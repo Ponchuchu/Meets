@@ -4,9 +4,6 @@ import { routeLinks } from '../event/route';
 import { coverDate, coverLinesFor, coverTime, priceTitle, relative, whenSub, whenTitle } from '../event/text';
 import { activeCompany, NEW_CHATS_PER_DAY, usePlans } from '../state/plans';
 
-import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
-
-jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 const at = (s: string) => new Date(`${s}+05:00`);
 const NOW = at('2026-09-28T17:30:00');
