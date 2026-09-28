@@ -25,6 +25,9 @@
 | [`design/png/`](design/png) | Картинки всех экранов макета |
 | [`design/screens/`](design/screens) | Исходники макета (HTML) |
 | [`design/assets/`](design/assets) | Фото для демо-данных |
+| [`data/seed/events-almaty.json`](data/seed/events-almaty.json) | 33 настоящих события Алматы на октябрь 2026 |
+| [`config/public-keys.json`](config/public-keys.json) | Публичные ключи: Mapbox, Supabase |
+| [`docs/KEYS.md`](docs/KEYS.md) | Какие ключи есть и что настроить владельцу |
 
 ## Запуск
 

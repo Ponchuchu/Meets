@@ -31,9 +31,9 @@
 **Как подключать:**
 - **iOS и Android:** `@rnmapbox/maps` с Expo config plugin (только dev build).
 - **Web:** `mapbox-gl` (например через `react-map-gl`) в `Map.web.tsx` с тем же стилем.
-- **Ключ:** публичный токен `EXPO_PUBLIC_MAPBOX_TOKEN` (`pk.…`); ограничить его по bundle id и доменам.
+- **Ключ:** публичный токен Mapbox уже лежит в `config/public-keys.json` (`mapboxPublicToken`). Позже ограничить его в кабинете Mapbox по bundle id и доменам.
 - **Без токена (демо-режим)** карта показывает статичную подложку в цветах «бумаги» с теми же пинами — чтобы всё остальное работало и проверялось.
-- **Сеть облачной среды.** Если тайлы не грузятся в облачной среде при скриншотах, в её сетевых настройках нужно разрешить домены `api.mapbox.com` и `events.mapbox.com`. Попроси владельца, инструкция в `docs/KEYS.md`.
+- **Сеть облачной среды.** Для тайлов владелец должен разрешить домены Mapbox в сетевых настройках среды (список в `docs/KEYS.md`). Пока нет доступа — статичная подложка.
 
 **Стили.** Три стиля в Mapbox Studio: «paper», «night», «mono» по палитрам из `DESIGN.md`.
 - «Ночь» включается сама после 20:00 и в тёмной теме.
@@ -127,6 +127,12 @@
 - Правила частоты и тихие часы — `PRODUCT.md`, раздел 15. Считать на сервере.
 
 ## Модель данных (стартовая)
+
+**Проект Supabase уже создан:** ref `xkpchsommtilristiesu`, адрес и publishable key — в `config/public-keys.json`.
+- Приложение ходит в Supabase **только с publishable key**. Всё, что нельзя делать клиенту, закрыто RLS.
+- **Схема (DDL)** — миграции в `supabase/migrations/`. Применяются через Management API `POST https://api.supabase.com/v1/projects/xkpchsommtilristiesu/database/query`. Токен подставляет прокси облачной среды (см. `docs/KEYS.md`).
+- **Секретный ключ** (`sb_secret_…`) нужен только серверу: воркер в GitHub Actions и Edge Functions. В приложение он не попадает никогда.
+- **Первые настоящие события** — `data/seed/events-almaty.json`. Их загружает `npm run seed:events` на этапе 0, координаты берутся из Nominatim.
 
 Все таблицы с **RLS**. Миграции в `supabase/migrations/`.
 

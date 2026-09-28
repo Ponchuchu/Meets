@@ -1,0 +1,7 @@
+{
+  "_comment": "Публичные ключи для клиента. Они и так попадают в приложение и видны в web-версии, поэтому хранятся в репозитории. Секретные ключи (sb_secret_…, пароль БД, personal access token, sk.… Mapbox, ключ Anthropic) сюда класть НЕЛЬЗЯ — только в настройки облачной среды / секреты GitHub.",
+  "mapboxPublicToken": "pk.eyJ1Ijoib3puYSIsImEiOiJjbXVsanFtZ20wMmh6MndzZGZpMjhhZ2J5In0.qt1it75J7YimGr3iIoxgDQ",
+  "supabaseUrl": "https://xkpchsommtilristiesu.supabase.co",
+  "supabaseProjectRef": "xkpchsommtilristiesu",
+  "supabasePublishableKey": "sb_publishable_JEpa69QlEB4wBiEltC5IrA_9ovpArXF"
+}
