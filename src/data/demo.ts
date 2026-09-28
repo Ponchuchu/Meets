@@ -2,7 +2,8 @@
 import { almaty, dayIndex, dayStart, now } from '../lib/clock';
 import { colors } from '../theme';
 import { seedEvents } from './seed';
-import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, FriendSpot, Message, Person } from './types';
+import { gridDisk, gridDistance, latLngToCell } from '../lib/h3';
+import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, FriendSpot, Message, MyProfile, Person } from './types';
 
 // ——— Люди ———
 const person = (p: Partial<Person> & Pick<Person, 'id' | 'name'>): Person => ({
@@ -12,11 +13,11 @@ const person = (p: Partial<Person> & Pick<Person, 'id' | 'name'>): Person => ({
 export const ME = person({ id: 'me', name: 'Данил', photo: 'danil', handle: 'danil' });
 
 export const PEOPLE: Person[] = [
-  person({ id: 'igor', name: 'Игорь', age: 25, photo: 'igor', isFriend: true }),
-  person({ id: 'denis', name: 'Денис', photo: 'denis', isFriend: true }),
-  person({ id: 'anton', name: 'Антон', photo: 'anton', isFriend: true }),
-  person({ id: 'timur', name: 'Тимур', initial: 'Т', tint: colors.softGreen, isFriend: true }),
-  person({ id: 'ainura', name: 'Айнура', age: 29, photo: 'ainura' }),
+  person({ id: 'igor', name: 'Игорь', withName: 'Игорем', age: 25, photo: 'igor', isFriend: true }),
+  person({ id: 'denis', name: 'Денис', withName: 'Денисом', photo: 'denis', isFriend: true }),
+  person({ id: 'anton', name: 'Антон', withName: 'Антоном', photo: 'anton', isFriend: true }),
+  person({ id: 'timur', name: 'Тимур', withName: 'Тимуром', initial: 'Т', tint: colors.softGreen, isFriend: true }),
+  person({ id: 'ainura', name: 'Айнура', withName: 'Айнурой', age: 29, photo: 'ainura' }),
   person({ id: 'erlan', name: 'Ерлан', age: 27, initial: 'Е', tint: colors.softYellow, note: 'познакомились на настолках' }),
   person({ id: 'mira', name: 'Мира', age: 22, initial: 'М', tint: colors.softGreen, note: '2 общих друга' }),
   person({ id: 'sasha', name: 'Саша', initial: 'С', tint: colors.softYellow, note: 'бегаете по средам' }),
@@ -194,6 +195,42 @@ export const FRIEND_SPOTS: FriendSpot[] = [
 ];
 export const MY_SPOT = { lat: 43.2533, lon: 76.9409 };
 
+// Моя история (демо): 185 сот с событиями вокруг центра, 37 открыто → 20% города, уровень 4.
+function demoCells(): { all: string[]; visited: string[] } {
+  const center = latLngToCell(43.2465, 76.9280, 8);
+  const all = gridDisk(center, 8).sort((a, b) => gridDistance(center, a) - gridDistance(center, b) || a.localeCompare(b)).slice(0, 185);
+  const visited = all.filter((_, i) => i % 5 === 0).slice(0, 37);
+  return { all, visited };
+}
+
+export function demoProfile(): MyProfile {
+  const cells = demoCells();
+  return {
+    handle: 'fromvtk', instagram: '@fromvtk', about: 'Джаз, настолки и горы по выходным', phoneMasked: '+7 7•• ••• •• 34',
+    stats: { events: 14, friends: 12 },
+    visitedCells: cells.visited, eventCells: cells.all,
+    districts: [{ name: 'Медеу', pct: 41 }, { name: 'Алмалы', pct: 38 }, { name: 'Бостандык', pct: 27 }, { name: 'Жетысу', pct: 12 }],
+    districtsTotal: 8,
+    cities: [
+      { name: 'Алматы', note: 'Казахстан · дом', pct: 20 }, { name: 'Астана', note: 'Казахстан', pct: 6 }, { name: 'Шымкент', note: 'Казахстан', pct: 3 },
+      { name: 'Ташкент', note: 'Узбекистан', pct: 2 }, { name: 'Бишкек', note: 'Кыргызстан', pct: 1 },
+    ],
+    countries: [
+      { iso: 'KZ', name: 'Казахстан', note: '3 города', got: true }, { iso: 'UZ', name: 'Узбекистан', note: '1 город', got: true },
+      { iso: 'KG', name: 'Кыргызстан', note: '1 город', got: true }, { iso: 'GE', name: 'Грузия', note: 'ещё нет', got: false },
+      { iso: 'TR', name: 'Турция', note: 'ещё нет', got: false }, { iso: 'AE', name: 'ОАЭ', note: 'ещё нет', got: false },
+    ],
+    timeline: [
+      { date: 'СБ 26', title: 'Кинопоказ во дворе', meta: 'с Игорем и Денисом · +1 место' },
+      { date: 'ЧТ 24', title: 'Настолки без своей компании', meta: '+2 друга: Ерлан, Мира' },
+      { date: 'ВС 20', title: 'Утро на Кок-Тобе', meta: 'значок «Выше города»' },
+      { date: 'ПТ 11', title: 'Лекция в Ташкенте', meta: 'новый город и страна' },
+    ],
+    badgeProgress: { opener: 1, above: 1, host: 1, countries3: 3, cities5: 5, regular: 3, night: 2, districts: 6, conqueror: 1, jazz: 1, games: 2 },
+    invitesToMe: [{ eventId: 'games', fromId: 'denis' }],
+  };
+}
+
 export const FRIEND_REQUESTS: FriendRequest[] = [
   { id: 'fr-erlan', personId: 'erlan', note: 'познакомились на настолках' },
   { id: 'fr-mira', personId: 'mira', note: '2 общих друга' },
@@ -219,5 +256,6 @@ export function createDemoSource(): DataSource {
     getFriendRequests: async () => FRIEND_REQUESTS,
     getFriendSpots: async () => FRIEND_SPOTS,
     getMySpot: async () => MY_SPOT,
+    getMyProfile: async () => demoProfile(),
   };
 }

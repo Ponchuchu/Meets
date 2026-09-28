@@ -80,6 +80,8 @@ export interface Person {
   isFriend: boolean;
   handle?: string;
   note?: string;
+  /** Имя в творительном падеже: «с Игорем». */
+  withName?: string;
 }
 
 export type MessageKind = 'text' | 'photo' | 'video' | 'voice' | 'circle' | 'sticker' | 'invite' | 'poll' | 'system';
@@ -137,6 +139,31 @@ export interface FriendSpot {
   minutesAgo?: number;
 }
 
+export interface TimelineItem {
+  date: string; // «СБ 26»
+  title: string;
+  meta: string;
+}
+
+/** Моя история для профиля: открытый город, значки, хроника. */
+export interface MyProfile {
+  handle: string;
+  instagram: string | null;
+  about: string;
+  phoneMasked: string;
+  stats: { events: number; friends: number };
+  visitedCells: string[];
+  eventCells: string[];
+  districts: { name: string; pct: number }[];
+  districtsTotal: number;
+  cities: { name: string; note: string; pct: number }[];
+  countries: { iso: string; name: string; note: string; got: boolean }[];
+  timeline: TimelineItem[];
+  badgeProgress: Record<string, number>;
+  /** Меня зовут: id события и кто зовёт. */
+  invitesToMe: { eventId: string; fromId: string }[];
+}
+
 export interface DataSource {
   readonly kind: 'demo' | 'supabase';
   getMe(): Promise<Person>;
@@ -149,4 +176,5 @@ export interface DataSource {
   getFriendSpots(): Promise<FriendSpot[]>;
   /** Моя точка по умолчанию (пока нет геолокации). */
   getMySpot(): Promise<{ lat: number; lon: number }>;
+  getMyProfile(): Promise<MyProfile>;
 }

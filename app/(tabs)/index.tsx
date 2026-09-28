@@ -22,6 +22,7 @@ import { SearchOverlay } from '../../src/map/ui/SearchOverlay';
 import { TopBar } from '../../src/map/ui/TopBar';
 import { useMapState } from '../../src/state/map';
 import { usePlans } from '../../src/state/plans';
+import { useProfile } from '../../src/state/profile';
 import { colors } from '../../src/theme';
 import { Backdrop, BottomSheet, DropCard } from '../../src/ui/sheet';
 
@@ -68,7 +69,9 @@ export default function MapScreen() {
   const { data: me } = useQuery({ queryKey: ['mySpot'], queryFn: () => data.getMySpot() });
 
   const today = dayIndex(clock);
-  const theme = autoTheme(almaty(clock).getUTCHours());
+  const mapStyle = useProfile((s) => s.settings.mapStyle);
+  const popularBigger = useProfile((s) => s.settings.popularBigger);
+  const theme = mapStyle === 'auto' ? autoTheme(almaty(clock).getUTCHours()) : mapStyle;
   const dark = theme === 'night';
   const visible = useMemo(() => visibleEvents(events, filters, clock, going), [events, filters, clock, going]);
   const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock, going.has(e.id)) !== 'hidden'), [events, clock, going]);
@@ -80,7 +83,8 @@ export default function MapScreen() {
 
   const markers: MapMarker[] = useMemo(() => {
     const list: MapMarker[] = visible.map((e) => {
-      const kind = pinKind(e, today, going.has(e.id));
+      const k0 = pinKind(e, today, going.has(e.id));
+      const kind = k0 === 'popular' && !popularBigger ? 'plain' : k0;
       return {
         id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
         node: (
@@ -98,7 +102,7 @@ export default function MapScreen() {
     }
     if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MePin /> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, select, going]);
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, select, going, popularBigger]);
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);

@@ -17,7 +17,9 @@ const AUTH = ['/start', '/code', '/about', '/interests', '/rhythm'];
 const routes = pairs.length
   ? pairs.map((p) => {
     // Формат: маршрут=Имя[~высота][@сессия][!нажать на элемент с такой подписью[!ещё]]
-    const [route, rest] = p.split('=');
+    const cut = p.lastIndexOf('=');
+    const route = p.slice(0, cut);
+    const rest = p.slice(cut + 1);
     const [head, ...clicks] = rest.split('!');
     const [nameH, preset] = head.split('@');
     const [name, h] = nameH.split('~');
@@ -89,6 +91,11 @@ for (const [route, name, preset, clicks = [], height = 844] of routes) {
   await page.evaluate(([st, clock]) => {
     localStorage.clear();
     if (st) localStorage.setItem('ryadom-session', JSON.stringify({ state: st, version: 0 }));
+    // Демо-планы Данила — как на макете Me: иду на джаз, выставку, стендап и поход, концерт сохранён.
+    if (st && st.onboarded) {
+      const at = new Date(Date.now() - 86400e3).toISOString();
+      localStorage.setItem('ryadom-plans', JSON.stringify({ state: { going: { jazz: at, anime: new Date().toISOString(), standup: at, hike: at }, saved: { concert: true }, company: {}, invites: [], meetups: [], declined: {}, newChats: { day: '', people: [] } }, version: 0 }));
+    }
     // Демо-часы: на скриншотах «сейчас» — 18:10 по Алматы, как в макете (SHOTS_CLOCK=off — настоящее время).
     if (clock !== 'off') localStorage.setItem('ryadom-clock', clock);
   }, [state, CLOCK]);

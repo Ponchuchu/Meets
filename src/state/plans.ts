@@ -34,6 +34,8 @@ interface PlansState {
   invites: Invite[];
   meetups: EventItem[];
   newChats: { day: string; people: string[] };
+  declined: Record<string, true>;
+  decline: (eventId: string) => void;
   go: (eventId: string) => void;
   ungo: (eventId: string) => void;
   toggleSave: (eventId: string) => void;
@@ -54,6 +56,8 @@ export const usePlans = create<PlansState>()(
       invites: [],
       meetups: [],
       newChats: { day: '', people: [] },
+      declined: {},
+      decline: (id) => set((s) => ({ declined: { ...s.declined, [id]: true } })),
       go: (id) => set((s) => ({ going: { ...s.going, [id]: new Date().toISOString() } })),
       ungo: (id) => set((s) => {
         const going = { ...s.going };

@@ -12,7 +12,11 @@ import { dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
 import { CAT_ICON, CAT_LABEL } from '../map/icons';
 import { useApp } from '../state/app';
+import { cellOf } from '../profile/city';
+import { makeSignal } from '../reco';
+import { useFeed } from '../state/feed';
 import { activeCompany, usePlans } from '../state/plans';
+import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { Ic, IC } from '../ui/Ic';
@@ -53,6 +57,13 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
   const company = usePlans((s) => s.company[e.id]);
   const { go, ungo, toggleSave, invite, startChat } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
+  const arrived = useProfile((s) => s.arrivals.some((a) => a.eventId === e.id));
+  const arrive = useProfile((s) => s.arrive);
+  const addSignal = useFeed((s) => s.addSignal);
+  // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
+  const startMs = new Date(e.startsAt).getTime();
+  const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
+  const canArrive = going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
   const removePlan = useApp((s) => s.removePlan);
 
   const show = (t: ToastData | null, ms = 4000) => {
@@ -208,6 +219,17 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
             </View>
           )}
 
+          {canArrive && (
+            <Pressable disabled={arrived} onPress={() => {
+              arrive(e.id, cellOf(e.lat, e.lon));
+              addSignal(makeSignal(e, 'arrived', now));
+              show({ text: 'Отметил! +1 место на карте города. Статус «На событии» — пока ты здесь' });
+            }} style={[styles.arrive, arrived && { backgroundColor: colors.sand }]} accessibilityRole="button">
+              <Ic d={arrived ? IC.check : IC.pin} c={arrived ? [] : [[12, 9, 2.5]]} size={20} color={colors.ink} w={2} />
+              <Text style={styles.arriveText}>{arrived ? 'Ты на месте' : 'Я на месте'}</Text>
+            </Pressable>
+          )}
+
           <Pressable onPress={() => router.push({ pathname: '/chat/[id]', params: { id: `ev-${e.id}` } })} style={styles.chat} accessibilityRole="button">
             <View style={styles.chatHead}>
               <Text style={styles.chatTitle}>{chat?.title ?? 'Чат события'}</Text>
@@ -300,6 +322,8 @@ const styles = StyleSheet.create({
   countText: { fontFamily: fonts.mono600, fontSize: 11, color: colors.ink },
   looker: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 18 },
   common: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.4, color: colors.ink },
+  arrive: { height: 54, borderRadius: 16, backgroundColor: colors.accent, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  arriveText: { fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
   chat: { padding: 16, gap: 10, backgroundColor: colors.ink, borderRadius: 20 },
   chatHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chatTitle: { fontFamily: fonts.display600, fontSize: 17, color: colors.paper },
