@@ -23,6 +23,8 @@ interface FeedState {
   removeSignal: (id: string) => void;
   /** Вернуть последнее решение: сигнал стирается целиком. */
   undo: () => Decision | null;
+  /** «Сбросить вкус» из админки: снова считаем только от ответов при регистрации. */
+  resetTaste: () => void;
 }
 
 export const useFeed = create<FeedState>()(
@@ -67,6 +69,7 @@ export const useFeed = create<FeedState>()(
         });
         return last;
       },
+      resetTaste: () => set({ signals: [], decided: {}, history: [] }),
     }),
     { name: 'ryadom-feed', storage: deviceStorage(), partialize: ({ undosLeft: _u, ...rest }) => rest },
   ),

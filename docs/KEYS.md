@@ -30,6 +30,20 @@
    Без этого база не будет звать функции: погода останется демо, пуши не уйдут. Ничего не сломается.
 5. **Вход по телефону.** Supabase → Authentication → Sign In / Providers → **Phone** → включить. Для SMS в Казахстан нужен шлюз (Mobizon.kz или SMSC.kz, см. «Понадобится позже») и Send SMS Hook. Пока шлюза нет, приложение пускает с демо-кодом 4821, но такой вход живёт только на телефоне, в базу он не попадает.
 
+## Этап 9: сборщик событий и админка
+
+1. **Миграция** `20260928000004_pipeline.sql` применится той же командой `npm run db:migrate` (источники, сырые посты, очередь, модерация, архив).
+2. **Секреты сборщика** — GitHub → репозиторий → Settings → Secrets and variables → Actions → **New repository secret**:
+   - `SUPABASE_SECRET_KEY` — Supabase → Project Settings → API Keys → Secret key (`sb_secret_…`);
+   - `ANTHROPIC_API_KEY` — console.anthropic.com → API Keys. Без него сборщик разбирает посты простыми правилами и ничего не публикует сам.
+   Пока секретов нет, сборщик каждые 2 часа делает демо-прогон и ничего не пишет.
+3. **Команда для админки.** Войди в приложение, потом в Supabase → SQL Editor:
+   ```sql
+   insert into public.staff (user_id, role) select id, 'admin' from auth.users where phone = '77071234567';
+   ```
+   (свой номер без «+»). После этого `/admin` в web-версии показывает настоящую очередь, иначе — демо макета.
+4. **Источники** в базе выключены, пока нет юридической проверки (`TECH.md`, «Источники»). Включить Telegram-канал — переключатель «собирать» в `/admin` → «Источники».
+
 ## Сделай сейчас: перевыпусти токен Supabase
 
 Токен Supabase (`sbp_…`) был отправлен в чат. Им создали таблицы, в репозиторий он не попал. Но токен даёт полный доступ к проекту, поэтому его лучше заменить:
@@ -72,7 +86,7 @@
 ## Чего нельзя делать
 
 - **Секретный ключ Supabase** (`sb_secret_…`), пароль базы и токены **не класть** в репозиторий и в код.
-- Секретный ключ понадобится только на этапе 9, для сборщика событий. Тогда его нужно будет положить в GitHub → Settings → Secrets and variables → Actions под именем `SUPABASE_SECRET_KEY`.
+- Секретный ключ нужен только сборщику событий: GitHub → Settings → Secrets and variables → Actions, имя `SUPABASE_SECRET_KEY` (см. «Этап 9»).
 - Если секретный ключ случайно попал куда-то публично — перевыпусти его в Supabase → Project Settings → API Keys.
 
 ## Mapbox: сделать до публикации
@@ -85,7 +99,6 @@
 
 | Что | Зачем | Где взять | Куда положить |
 |---|---|---|---|
-| Ключ Anthropic API | ИИ-разбор постов и афиш (этап 9) | console.anthropic.com → API Keys | Секреты GitHub Actions (`ANTHROPIC_API_KEY`) |
 | Google Cloud OAuth | Вход через Google | console.cloud.google.com → Credentials: клиенты Web, iOS, Android | Supabase → Auth → Providers → Google (Client IDs). Приложение уже умеет входить по id-токену; кнопку подключим к нативному входу вместе со сборкой (этап 10) |
 | Apple Developer ($99/год) | Вход через Apple, App Store | developer.apple.com | Supabase → Auth → Apple; EAS |
 | Google Play Console ($25) | Публикация в Google Play | play.google.com/console | EAS |

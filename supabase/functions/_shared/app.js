@@ -226,8 +226,8 @@ var QUIET_TO = 9;
 var FRIEND_NEAR_COOLDOWN_MS = 3 * 36e5;
 var STICKER_COOLDOWN_MS = 10 * 6e4;
 var REMINDER_BEFORE_MS = 2 * 36e5;
-var INSTANT = ["message", "sticker", "invite"];
-var OUTSIDE_LIMIT = ["message"];
+var INSTANT = ["message", "sticker", "invite", "cancelled", "staff"];
+var OUTSIDE_LIMIT = ["message", "cancelled", "staff"];
 function isQuiet(at) {
   const h = almaty(at).getUTCHours();
   return h >= QUIET_FROM || h < QUIET_TO;
@@ -251,6 +251,8 @@ function allowedByPrefs(kind, p) {
     case "weekend":
       return p.weekend;
     case "dailyFeed":
+    case "cancelled":
+    case "staff":
       return true;
   }
 }

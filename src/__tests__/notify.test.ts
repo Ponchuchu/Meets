@@ -57,6 +57,11 @@ describe('частота', () => {
   it('настройки выключают вид пушей', () => {
     expect(decide({ kind: 'weekend', at: at('2026-10-01T18:00:00') }, [])).toEqual({ send: false, reason: 'prefs' });
   });
+  it('отмена события и пуш команде — сразу и вне лимита', () => {
+    const full: SentPush[] = Array.from({ length: 4 }, (_, i) => ({ kind: 'invite', at: at(`2026-09-28T1${i}:00:00`) }));
+    expect(decide({ kind: 'cancelled', at: noon, about: 'e1' }, full)).toEqual({ send: true, silent: false });
+    expect(decide({ kind: 'staff', at: at('2026-09-28T23:30:00') }, full)).toEqual({ send: true, silent: true });
+  });
   it('подборка — один раз в день', () => {
     const sent: SentPush[] = [{ kind: 'dailyFeed', at: at('2026-09-28T10:00:00') }];
     expect(decide({ kind: 'dailyFeed', at: noon }, sent)).toEqual({ send: false, reason: 'duplicate' });

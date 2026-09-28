@@ -2,6 +2,8 @@
 // Вызовы (только с CRON_SECRET — из pg_cron и триггера):
 //   { type: 'message', message_id }      — триггер на новое сообщение
 //   { type: 'job', job: 'reminders' | 'dailyFeed' | 'weekend' | 'friendNear' } — pg_cron
+//   { type: 'cancelled', event_id }      — модератор или сборщик отменил событие
+//   { type: 'staff', count }             — после сбора: «7 событий ждут проверки»
 import { decide, DEFAULT_PREFS, type PushCandidate, type PushKind, type PushPrefs, type SentPush } from '../_shared/app.js';
 import { admin, isServiceCall, json } from '../_shared/supabase.ts';
 
@@ -96,10 +98,29 @@ async function friendNear() {
   })));
 }
 
+async function cancelled(eventId: string) {
+  const { data: ev } = await db.from('events').select('title').eq('id', eventId).single();
+  const { data } = await db.from('attendance').select('user_id').eq('event_id', eventId).in('status', ['going', 'saved']);
+  return Promise.all((data ?? []).map((r: any) => deliver({
+    userId: r.user_id, kind: 'cancelled', about: eventId, title: 'Событие отменили', body: ev?.title ?? '', data: { url: `/event/${eventId}` },
+  })));
+}
+
+const plural = (n: number, one: string, few: string, many: string) =>
+  n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
+
+async function staff(count: number) {
+  const { data } = await db.from('staff').select('user_id');
+  const body = `${count} ${plural(count, 'событие ждёт', 'события ждут', 'событий ждут')} проверки`;
+  return Promise.all((data ?? []).map((r: any) => deliver({ userId: r.user_id, kind: 'staff', title: 'Модерация', body, data: { url: '/admin' } })));
+}
+
 Deno.serve(async (req) => {
   if (!isServiceCall(req)) return json({ error: 'forbidden' }, 403);
   const body = await req.json().catch(() => ({}));
   if (body.type === 'message' && body.message_id) return json({ results: await onMessage(body.message_id) });
+  if (body.type === 'cancelled' && body.event_id) return json({ results: await cancelled(body.event_id) });
+  if (body.type === 'staff') return json({ results: await staff(Number(body.count) || 0) });
   if (body.type === 'job') {
     if (body.job === 'reminders') return json({ results: await reminders() });
     if (body.job === 'dailyFeed' || body.job === 'weekend') return json({ results: await digest(body.job) });

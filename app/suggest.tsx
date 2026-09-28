@@ -12,10 +12,14 @@ import { useProfile } from '../src/state/profile';
 import { colors, fonts } from '../src/theme';
 import { Ic, IC } from '../src/ui/Ic';
 import { BackButton, Chip } from '../src/ui/kit';
+import { submitSuggestion } from '../src/admin/api';
+import { now as clockNow } from '../src/lib/clock';
+import { parseRuDate } from '../src/admin/model';
 
 type Source = 'link' | 'shot';
 
 // Демо-разбор: ИИ-пайплайн (этап 9) вытащит поля из поста. Пока — пример из макета.
+const CAT: Record<string, string> = { Музыка: 'music', Искусство: 'art', Еда: 'food' };
 const EXTRACTED = { title: 'Винил-вечер: пластинки 70-х', date: 'Пт, 2 октября', time: '20:00', place: 'Кофейня на Жибек Жолы', cat: 'Музыка', price: '2 000 ₸' };
 
 export default function SuggestScreen() {
@@ -32,6 +36,13 @@ export default function SuggestScreen() {
   const [sent, setSent] = useState(false);
   const x = useSharedValue(0);
   const y = useSharedValue(0);
+
+  // Предложение → общая очередь модерации (после входа), и всегда — в «На проверке» на устройстве.
+  const send = (x: typeof EXTRACTED) => {
+    suggest({ title: x.title, date: x.date, time: x.time, place: x.place, price: x.price });
+    const startsAt = parseRuDate(x.date, x.time, clockNow());
+    if (startsAt) void submitSuggestion({ title: x.title, category: CAT[x.cat] ?? 'meetup', startsAt, place: x.place, price: x.price, sourceUrl: link || undefined });
+  };
 
   const extract = (label: string) => {
     setAttached(label);
@@ -145,7 +156,7 @@ export default function SuggestScreen() {
               <TextInput value={f.price} onChangeText={(price) => { setF({ ...f, price }); setPriceChecked(true); }} onFocus={() => setPriceChecked(true)} style={[styles.field, !priceChecked && styles.warn]} accessibilityLabel="Цена" />
               {!priceChecked && <Text style={styles.warnText}>На афише мелко — проверь сумму</Text>}
             </View>
-            <Pressable onPress={() => { suggest(f.title); setSent(true); }} style={styles.cta} accessibilityRole="button"><Text style={styles.ctaText}>Отправить на проверку</Text></Pressable>
+            <Pressable onPress={() => { send(f); setSent(true); }} style={styles.cta} accessibilityRole="button"><Text style={styles.ctaText}>Отправить на проверку</Text></Pressable>
             <Text style={styles.hint}>После проверки событие появится на карте у всех</Text>
           </>
         )}

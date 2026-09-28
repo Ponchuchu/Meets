@@ -16,14 +16,15 @@ const [stage = 'latest', ...pairs] = process.argv.slice(2);
 const AUTH = ['/start', '/code', '/about', '/interests', '/rhythm'];
 const routes = pairs.length
   ? pairs.map((p) => {
-    // Формат: маршрут=Имя[~высота][@сессия][!нажать на элемент с такой подписью[!ещё]]
+    // Формат: маршрут=Имя[~высота или ~ширинаxвысота][@сессия][!нажать на элемент с такой подписью[!ещё]]
     const cut = p.lastIndexOf('=');
     const route = p.slice(0, cut);
     const rest = p.slice(cut + 1);
     const [head, ...clicks] = rest.split('!');
     const [nameH, preset] = head.split('@');
     const [name, h] = nameH.split('~');
-    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded'), clicks, Number(h) || 844];
+    const [w, hh] = h?.includes('x') ? h.split('x').map(Number) : [390, Number(h)];
+    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded'), clicks, hh || 844, w || 390];
   })
   : [['/', 'Map'], ['/foryou', 'ForYou'], ['/chats', 'Chats'], ['/people', 'People'], ['/me', 'Me']].map((r) => [...r, 'onboarded']);
 
@@ -85,8 +86,8 @@ if (process.env.HTTPS_PROXY) {
 }
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('  pageerror:', e.message));
-for (const [route, name, preset, clicks = [], height = 844] of routes) {
-  await page.setViewportSize({ width: 390, height });
+for (const [route, name, preset, clicks = [], height = 844, width = 390] of routes) {
+  await page.setViewportSize({ width, height });
   const state = PRESETS[preset];
   await page.goto(`http://localhost:${port}/+not-found`);
   await page.evaluate(([st, clock]) => {

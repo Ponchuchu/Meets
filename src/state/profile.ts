@@ -34,6 +34,11 @@ export interface Suggestion {
   title: string;
   at: string;
   status: 'review';
+  /** Поля, как их разобрали с афиши: «Пт, 2 октября», «20:00», место, цена. */
+  date?: string;
+  time?: string;
+  place?: string;
+  price?: string;
 }
 
 interface ProfileState {
@@ -44,7 +49,7 @@ interface ProfileState {
   arrive: (eventId: string, cell: string) => void;
   setMarker: (p: Partial<MarkerSettings>) => void;
   setSettings: (p: Partial<Settings>) => void;
-  suggest: (title: string) => void;
+  suggest: (s: Pick<Suggestion, 'title' | 'date' | 'time' | 'place' | 'price'>) => void;
 }
 
 export const DEFAULT_MARKER: MarkerSettings = {
@@ -67,7 +72,7 @@ export const useProfile = create<ProfileState>()(
       arrive: (eventId, cell) => set((s) => (s.arrivals.some((a) => a.eventId === eventId) ? s : { arrivals: [...s.arrivals, { eventId, cell, at: new Date().toISOString() }] })),
       setMarker: (p) => set((s) => ({ marker: { ...s.marker, ...p } })),
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
-      suggest: (title) => set((s) => ({ suggestions: [...s.suggestions, { id: `sg-${Date.now()}`, title, at: new Date().toISOString(), status: 'review' }] })),
+      suggest: (x) => set((s) => ({ suggestions: [...s.suggestions, { ...x, id: `sg-${Date.now()}`, at: new Date().toISOString(), status: 'review' }] })),
     }),
     { name: 'ryadom-profile', storage: deviceStorage() },
   ),

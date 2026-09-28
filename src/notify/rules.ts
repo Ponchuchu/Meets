@@ -2,7 +2,7 @@
 // а тесты проверяют здесь. Время — по Алматы.
 import { almaty, dayIndex, dayStart } from '../lib/clock';
 
-export type PushKind = 'message' | 'sticker' | 'invite' | 'friendNear' | 'interestNear' | 'reminder' | 'dailyFeed' | 'weekend';
+export type PushKind = 'message' | 'sticker' | 'invite' | 'friendNear' | 'interestNear' | 'reminder' | 'dailyFeed' | 'weekend' | 'cancelled' | 'staff';
 
 export interface PushPrefs {
   friendNear: boolean;
@@ -38,10 +38,10 @@ export const FRIEND_NEAR_COOLDOWN_MS = 3 * 3600e3;
 export const STICKER_COOLDOWN_MS = 10 * 60e3;
 export const REMINDER_BEFORE_MS = 2 * 3600e3;
 
-/** «Сразу»: сообщения, стикеры, приглашения. В тихие часы приходят без звука. */
-const INSTANT: PushKind[] = ['message', 'sticker', 'invite'];
-/** В дневной лимит не входят только сообщения. */
-const OUTSIDE_LIMIT: PushKind[] = ['message'];
+/** «Сразу»: сообщения, стикеры, приглашения, отмена события. В тихие часы приходят без звука. */
+const INSTANT: PushKind[] = ['message', 'sticker', 'invite', 'cancelled', 'staff'];
+/** В дневной лимит не входят сообщения, отмена того, куда ты идёшь, и рабочие пуши команде. */
+const OUTSIDE_LIMIT: PushKind[] = ['message', 'cancelled', 'staff'];
 
 export function isQuiet(at: Date): boolean {
   const h = almaty(at).getUTCHours();
@@ -69,6 +69,8 @@ function allowedByPrefs(kind: PushKind, p: PushPrefs): boolean {
     case 'weekend':
       return p.weekend;
     case 'dailyFeed':
+    case 'cancelled':
+    case 'staff':
       return true;
   }
 }
