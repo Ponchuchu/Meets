@@ -2,7 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { config } from '../lib/config';
 import { createDemoSource, demoEvents, mergeEvents } from './demo';
-import { isLongEvent } from './seed';
+import { isLongEvent, sourceName } from './seed';
 import type { Category, DataSource, EventItem } from './types';
 
 let client: SupabaseClient | null = null;
@@ -61,6 +61,7 @@ export function mapFeedRow(r: FeedRow): EventItem {
     about: r.about ?? '',
     organizer: r.organizer,
     sourceUrl: r.source_url,
+    source: sourceName(r.source_url),
     cover: r.cover_url,
     visibility: r.visibility,
     origin: 'real',

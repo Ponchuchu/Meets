@@ -1,27 +1,24 @@
-// Страница события — полностью делается на этапе 3 (EventPage). Пока — заголовок и описание.
+// Страница события (Event, HikeEvent) — единый шаблон EventPage.
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-import { Screen, Stub } from '../../src/components/Screen';
-import { data } from '../../src/data';
-import { colors, fonts } from '../../src/theme';
-import { BackButton } from '../../src/ui/kit';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { data, eventsSnapshot } from '../../src/data';
+import { EventPage } from '../../src/event/EventPage';
+import { now as clockNow } from '../../src/lib/clock';
+import { usePlans } from '../../src/state/plans';
+import { colors } from '../../src/theme';
 
 export default function EventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: events } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents() });
-  const e = events?.find((x) => x.id === id);
-  return (
-    <Screen>
-      <View style={{ marginBottom: 16 }}><BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} /></View>
-      <Text style={styles.title}>{e?.title ?? 'Событие'}</Text>
-      <Text style={styles.about}>{e?.about}</Text>
-      <Stub stage={3} text="Полная страница события: погода, маршрут, «Я иду», «Ищу компанию», «Позвать»." />
-    </Screen>
-  );
+  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const meetups = usePlans((s) => s.meetups);
+  const [now, setNow] = useState(clockNow);
+  useEffect(() => {
+    const t = setInterval(() => setNow(clockNow()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const e = [...meetups, ...events].find((x) => x.id === id);
+  if (!e) return <View style={{ flex: 1, backgroundColor: colors.paper, justifyContent: 'center' }}><ActivityIndicator color={colors.ink} /></View>;
+  return <EventPage e={e} now={now} onClose={() => (router.canGoBack() ? router.back() : router.replace('/'))} />;
 }
-
-const styles = StyleSheet.create({
-  title: { fontFamily: fonts.display700, fontSize: 30, color: colors.ink, marginBottom: 8 },
-  about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 22, color: colors.muted2, marginBottom: 16 },
-});

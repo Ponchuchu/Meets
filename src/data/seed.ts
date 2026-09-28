@@ -29,6 +29,20 @@ export function isLongEvent(startsAt: string, endsAt: string | null): boolean {
   return !!endsAt && new Date(endsAt).getTime() - new Date(startsAt).getTime() > LONG_EVENT_MS;
 }
 
+const SOURCES: [RegExp, string][] = [
+  [/sxodim/, 'Sxodim'], [/ticketon/, 'Ticketon'], [/afisha\.yandex|yandex\.[a-z]+\/afisha/, 'Яндекс Афиша'], [/kino\.kz/, 'Kino.kz'],
+  [/t\.me/, 'Telegram'], [/instagram/, 'Instagram'], [/threads/, 'Threads'],
+];
+
+/** Название источника по ссылке: «Sxodim», «Яндекс Афиша», иначе домен. */
+export function sourceName(url: string | null): string | undefined {
+  if (!url) return undefined;
+  const hit = SOURCES.find(([re]) => re.test(url));
+  if (hit) return hit[1];
+  const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
+  return m ? m[1] : undefined;
+}
+
 export function mapSeedEvent(e: SeedEvent): EventItem {
   const hasPoint = e.lat != null && e.lon != null;
   return {
@@ -50,6 +64,7 @@ export function mapSeedEvent(e: SeedEvent): EventItem {
     about: e.about,
     organizer: e.organizer,
     sourceUrl: e.source_url,
+    source: sourceName(e.source_url),
     cover: null,
     visibility: 'public',
     origin: 'real',

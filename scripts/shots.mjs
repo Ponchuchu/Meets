@@ -16,11 +16,12 @@ const [stage = 'latest', ...pairs] = process.argv.slice(2);
 const AUTH = ['/start', '/code', '/about', '/interests', '/rhythm'];
 const routes = pairs.length
   ? pairs.map((p) => {
-    // Формат: маршрут=Имя[@сессия][!нажать на элемент с такой подписью[!ещё]]
+    // Формат: маршрут=Имя[~высота][@сессия][!нажать на элемент с такой подписью[!ещё]]
     const [route, rest] = p.split('=');
     const [head, ...clicks] = rest.split('!');
-    const [name, preset] = head.split('@');
-    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded'), clicks];
+    const [nameH, preset] = head.split('@');
+    const [name, h] = nameH.split('~');
+    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded'), clicks, Number(h) || 844];
   })
   : [['/', 'Map'], ['/foryou', 'ForYou'], ['/chats', 'Chats'], ['/people', 'People'], ['/me', 'Me']].map((r) => [...r, 'onboarded']);
 
@@ -81,7 +82,8 @@ if (process.env.HTTPS_PROXY) {
   });
 }
 const page = await ctx.newPage();
-for (const [route, name, preset, clicks = []] of routes) {
+for (const [route, name, preset, clicks = [], height = 844] of routes) {
+  await page.setViewportSize({ width: 390, height });
   const state = PRESETS[preset];
   await page.goto(`http://localhost:${port}/+not-found`);
   await page.evaluate(([st, clock]) => {
@@ -96,7 +98,9 @@ for (const [route, name, preset, clicks = []] of routes) {
   await page.waitForFunction(() => !document.querySelector('[role="progressbar"]'), null, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(Number(process.env.SHOTS_WAIT || 2500));
   for (const label of clicks) {
-    await page.getByLabel(label, { exact: false }).first().click();
+    const byLabel = page.getByLabel(label, { exact: false });
+    const target = (await byLabel.count()) ? byLabel.first() : page.getByText(label, { exact: true }).last();
+    await target.click();
     await page.waitForTimeout(700);
   }
   await page.screenshot({ path: join(out, `${name}.png`) });

@@ -21,7 +21,7 @@ describe('демо-данные', () => {
     const people = await createDemoSource().getPeople();
     const friends = people.filter((p) => p.isFriend).map((p) => p.name);
     expect(friends).toEqual(['Игорь', 'Денис', 'Антон', 'Тимур']);
-    expect(people.filter((p) => !p.isFriend).map((p) => p.name)).toEqual(['Айнура', 'Ерлан', 'Мира', 'Саша']);
+    expect(people.filter((p) => !p.isFriend).map((p) => p.name)).toEqual(['Айнура', 'Ерлан', 'Мира', 'Саша', 'Нурлан']);
   });
 
   it('события объединяются без дублей и по времени', () => {

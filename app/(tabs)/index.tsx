@@ -21,16 +21,18 @@ import { FiltersSheet } from '../../src/map/ui/FiltersSheet';
 import { SearchOverlay } from '../../src/map/ui/SearchOverlay';
 import { TopBar } from '../../src/map/ui/TopBar';
 import { useMapState } from '../../src/state/map';
+import { usePlans } from '../../src/state/plans';
 import { colors } from '../../src/theme';
 import { Backdrop, BottomSheet, DropCard } from '../../src/ui/sheet';
 
 type Sheet = null | 'calendar' | 'filters' | 'search';
 
-function pinKind(e: EventItem, today: number): PinKind {
+function pinKind(e: EventItem, today: number, going: boolean): PinKind {
   const isToday = dayIndex(e.startsAt) === today;
-  if (e.friendsGoing.length && !e.isLong && isToday) return 'hot';
+  const mine = going || !!e.meetup;
+  if ((e.friendsGoing.length || mine) && !e.isLong && isToday) return 'hot';
   if (e.goingCount >= 1000 && !e.isLong) return 'popular';
-  if (e.friendsGoing.length && !e.isLong) return 'labeled';
+  if ((e.friendsGoing.length || mine) && !e.isLong) return 'labeled';
   return 'plain';
 }
 
@@ -56,7 +58,11 @@ export default function MapScreen() {
     return () => clearInterval(t);
   }, []);
 
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: loaded = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const meetups = usePlans((s) => s.meetups);
+  const goingMap = usePlans((s) => s.going);
+  const events = useMemo(() => [...meetups, ...loaded], [meetups, loaded]);
+  const going = useMemo(() => new Set(Object.keys(goingMap)), [goingMap]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const { data: me } = useQuery({ queryKey: ['mySpot'], queryFn: () => data.getMySpot() });
@@ -64,21 +70,21 @@ export default function MapScreen() {
   const today = dayIndex(clock);
   const theme = autoTheme(almaty(clock).getUTCHours());
   const dark = theme === 'night';
-  const visible = useMemo(() => visibleEvents(events, filters, clock), [events, filters, clock]);
-  const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock) !== 'hidden'), [events, clock]);
+  const visible = useMemo(() => visibleEvents(events, filters, clock, going), [events, filters, clock, going]);
+  const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock, going.has(e.id)) !== 'hidden'), [events, clock, going]);
 
   const selected = visible.find((e) => e.id === selectedId)
-    ?? visible.find((e) => pinKind(e, today) === 'hot')
+    ?? visible.find((e) => pinKind(e, today, going.has(e.id)) === 'hot')
     ?? visible.find((e) => e.friendsGoing.length > 0)
     ?? visible[0];
 
   const markers: MapMarker[] = useMemo(() => {
     const list: MapMarker[] = visible.map((e) => {
-      const kind = pinKind(e, today);
+      const kind = pinKind(e, today, going.has(e.id));
       return {
         id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
         node: (
-          <EventPin e={e} kind={kind} phase={phaseOf(e, clock)} label={kind === 'hot' || kind === 'labeled' ? pinLabel(e, today) : undefined}
+          <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={kind === 'hot' || kind === 'labeled' ? pinLabel(e, today) : undefined}
             showCompany={filters.company} dark={dark} onPress={() => { select(e.id); setSheet(null); }} />
         ),
       };
@@ -92,7 +98,7 @@ export default function MapScreen() {
     }
     if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MePin /> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, select]);
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, select, going]);
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -118,7 +124,7 @@ export default function MapScreen() {
   };
 
   const topY = Math.max(50, insets.top + 6);
-  const cardDot = (e: EventItem) => (pinKind(e, today) === 'hot' ? colors.accent : e.isLong ? colors.sand : colors.ink);
+  const cardDot = (e: EventItem) => (pinKind(e, today, going.has(e.id)) === 'hot' ? colors.accent : e.isLong ? colors.sand : colors.ink);
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]}>
@@ -163,7 +169,7 @@ export default function MapScreen() {
 
       {selected && sheet !== 'filters' && (
         <View style={styles.card}>
-          <EventCard e={selected} when={whenLabel(selected, clock)} dotColor={cardDot(selected)} people={people} onOpen={() => openEvent(selected)} />
+          <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} dotColor={cardDot(selected)} people={people} onOpen={() => openEvent(selected)} />
         </View>
       )}
 

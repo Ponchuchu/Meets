@@ -17,9 +17,10 @@ export const PEOPLE: Person[] = [
   person({ id: 'anton', name: 'Антон', photo: 'anton', isFriend: true }),
   person({ id: 'timur', name: 'Тимур', initial: 'Т', tint: colors.softGreen, isFriend: true }),
   person({ id: 'ainura', name: 'Айнура', age: 29, photo: 'ainura' }),
-  person({ id: 'erlan', name: 'Ерлан', initial: 'Е', tint: colors.softYellow, note: 'познакомились на настолках' }),
-  person({ id: 'mira', name: 'Мира', initial: 'М', tint: colors.softGreen, note: '2 общих друга' }),
-  person({ id: 'sasha', name: 'Саша', initial: 'С', tint: colors.softBlue }),
+  person({ id: 'erlan', name: 'Ерлан', age: 27, initial: 'Е', tint: colors.softYellow, note: 'познакомились на настолках' }),
+  person({ id: 'mira', name: 'Мира', age: 22, initial: 'М', tint: colors.softGreen, note: '2 общих друга' }),
+  person({ id: 'sasha', name: 'Саша', initial: 'С', tint: colors.softYellow, note: 'бегаете по средам' }),
+  person({ id: 'nurlan', name: 'Нурлан', age: 30, initial: 'Н', tint: colors.softBlue }),
 ];
 
 // ——— События макета ———
@@ -82,10 +83,73 @@ export function demoEvents(base = now()): EventItem[] {
       friendsGoing: ['timur'], lookingCount: 2, goingCount: 14 },
   ];
   return list.map((e) => ({
-    tags: [], organizer: null, isLong: false, ...e,
+    tags: [], organizer: null, isLong: false, ...e, ...EVENT_DETAILS[e.id],
     sourceUrl: null, needsPin: false, visibility: 'public', origin: 'demo',
   }));
 }
+
+// Подробности для страницы события — тексты из макета EventPage.
+const ainura = { personId: 'ainura', note: 'Иду одна, хочу познакомиться', common: '3 ОБЩИХ · СТЕНДАП, ДЖАЗ, ГОРЫ' };
+const EVENT_DETAILS: Record<string, Partial<EventItem>> = {
+  jazz: {
+    catLabel: 'МУЗЫКА / ДЖАЗ', coverLines: [['ДЖАЗ', 'ink'], ['ВО ДВОРЕ', 'ink']], whereShort: 'ПАНФИЛОВА 110',
+    addressNote: 'вход через арку с улицы Панфилова', priceNote: 'донат музыкантам по желанию',
+    about: 'Камерный вечер с джазовым трио во дворе старого дома: стандарты и немного своего. Можно прийти одному — за 15 минут до начала встречаемся у входа и знакомимся. Пледы дадут, стульев мало, лучше прийти пораньше.',
+    organizer: 'Двор на Панфилова', source: 'Яндекс Афиша', goingCount: 18, lookingCount: 5,
+    lookers: [ainura, { personId: 'erlan', note: 'Нас двое, ищем ещё 1–2', common: '2 ОБЩИХ · ДЖАЗ, НАСТОЛКИ' }, { personId: 'mira', note: 'Первый раз на таком', common: '1 ОБЩИЙ · ПРОГУЛКИ' }],
+    chat: { title: 'Чат события', members: 12, who: 'Саша', text: 'займу столик у сцены, нас уже четверо' },
+  },
+  hike: {
+    catLabel: 'ГОРЫ / ПОХОД', coverLines: [['ПОХОД', 'paper'], ['НА КОК-', 'paper'], ['ЖАЙЛЯУ', 'paper']], whereShort: 'МЕДЕУ',
+    addressNote: 'точку сбора закрепят в чате похода', priceNote: 'нужны вода, ветровка и удобная обувь',
+    about: 'Однодневный поход с горным клубом: около 14 км туда и обратно, средняя сложность — подойдёт новичкам в неплохой форме. Наверху плато с видом на город и обед из своих запасов. Идём в темпе группы, никого не бросаем.',
+    organizer: 'Горный клуб «Тропа»', source: 'Threads', goingCount: 14, lookingCount: 3,
+    lookers: [{ personId: 'ainura', note: 'Первый раз так высоко, иду одна', common: '3 ОБЩИХ · ГОРЫ, ДЖАЗ, ПРОГУЛКИ' }, { personId: 'nurlan', note: 'Хожу с клубом второй год', common: '2 ОБЩИХ · ГОРЫ, КОФЕ' }],
+    chat: { title: 'Чат похода', members: 14, who: 'Клуб «Тропа»', text: 'закрепили точку сбора и трек маршрута' },
+  },
+  standup: {
+    catLabel: 'СТЕНДАП', coverLines: [['ОТКРЫТЫЙ', 'paper'], ['МИКРОФОН', 'accent']], whereShort: 'АБАЯ 52',
+    addressNote: 'вход со двора, второй этаж', priceNote: 'билет на входе или у организатора',
+    about: 'Восемь новых комиков пробуют свежий материал, ведущий держит зал. Бывает неровно, но смешно. Места не нумерованы — приходи к 19:40, чтобы сесть ближе к сцене.',
+    organizer: 'Открытый микрофон «Гараж»', source: 'Яндекс Афиша', goingCount: 38, lookers: [ainura],
+    chat: { title: 'Чат события', members: 38, who: 'Ведущий', text: 'закрепил список выступающих' },
+  },
+  anime: {
+    catLabel: 'ВЫСТАВКА', coverLines: [['ТОКИО', 'ink'], ['В АЛМАТЫ', 'ink']], whereShort: 'АБАЯ 109',
+    addressNote: 'вход через главный атриум', priceNote: 'студентам 1 500 ₸, билет на кассе',
+    about: 'Оригинальные эскизы, фигурки и уголок с мангой, которую можно читать на месте. Вечером — косплей-фотозона и мастер-класс по рисованию персонажей.',
+    organizer: 'Выставочный проект «Токио»', source: 'Instagram', goingCount: 59, lookingCount: 2,
+    lookers: [{ personId: 'mira', note: 'Хочу на мастер-класс', common: '2 ОБЩИХ · АНИМЕ, ПРОГУЛКИ' }],
+    chat: { title: 'Чат выставки', members: 61, who: 'Антон', text: 'на фотозоне почти нет очереди' },
+  },
+  games: {
+    catLabel: 'НАСТОЛКИ', coverLines: [['НАСТОЛКИ', 'ink'], ['БЕЗ СВОЕЙ', 'ink'], ['КОМПАНИИ', 'ink']], whereShort: 'ЖИБЕК ЖОЛЫ 64',
+    addressNote: '2 этаж, звонок «Игротека»', priceNote: 'чай и игры включены',
+    about: 'Ведущий рассаживает всех за столы по 4–5 человек и объясняет правила. Можно прийти одному — за этим и собираемся.',
+    organizer: 'Игротека «Ход»', source: 'Telegram', goingCount: 23,
+    lookers: [{ personId: 'erlan', note: 'Люблю «Каркассон»', common: '2 ОБЩИХ · НАСТОЛКИ, ДЖАЗ' }],
+    chat: { title: 'Чат события', members: 23, who: 'Ведущий', text: 'столов хватит всем, приходите' },
+  },
+  concert: {
+    catLabel: 'КОНЦЕРТ', coverLines: [['4 200', 'accent'], ['ИДУТ', 'paper']], whereShort: 'ЦЕНТРАЛЬНЫЙ СТАДИОН',
+    addressNote: 'вход с Сатпаева, открытие в 18:30', priceNote: 'билеты у организатора',
+    about: 'Большой вечерний концерт на открытом воздухе. Вход по билетам с QR-кодом, большие сумки не пускают. После концерта такси лучше ловить за два квартала.',
+    organizer: 'Центральный стадион', source: 'Яндекс Афиша', lookingCount: 12, lookers: [ainura],
+    chat: { title: 'Чат события', members: 4200, who: 'Организатор', text: 'схема входов в закрепе' },
+  },
+  food: {
+    catLabel: 'ЕДА / МАРКЕТ', coverLines: [['ФУД-', 'ink'], ['МАРКЕТ', 'ink']], whereShort: 'АБАЯ 150', coverColor: '#EADFB8',
+    addressNote: 'во дворе ТРЦ, вход с Абая', priceNote: 'вход свободный',
+    organizer: 'Маркет «Двор»', source: 'Instagram',
+    chat: { title: 'Чат маркета', members: 40, who: 'Организатор', text: 'сегодня плов и фермерский сыр' },
+  },
+  bike: {
+    catLabel: 'СПОРТ / ВЕЛО', coverLines: [['ВЕЛО-', 'ink'], ['ПРОГУЛКА', 'ink']], whereShort: 'ПАРК ПАНФИЛОВЦЕВ', coverColor: '#D6E0EE',
+    addressNote: 'сбор у главного входа', priceNote: 'свой велосипед или прокат у парка',
+    organizer: 'Вело-клуб «Круг»', source: 'Telegram',
+    chat: { title: 'Чат прогулки', members: 14, who: 'Тимур', text: 'маршрут в закрепе' },
+  },
+};
 
 // ——— Чаты ———
 export const CHATS: Chat[] = [

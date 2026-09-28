@@ -29,6 +29,17 @@ export interface EventItem {
   cover?: string | null; // ключ фото из assets
   /** Короткое имя для подписи пина: «ДЖАЗ», «ПОХОД». */
   short?: string;
+  /** Подробности для страницы события (EventPage). */
+  catLabel?: string; // «МУЗЫКА / ДЖАЗ»
+  coverLines?: [string, 'ink' | 'paper' | 'accent'][];
+  coverColor?: string;
+  whereShort?: string; // «ПАНФИЛОВА 110» для полосы на обложке
+  priceNote?: string;
+  source?: string; // «Яндекс Афиша»
+  lookers?: Looker[];
+  chat?: EventChatPreview;
+  /** Встреча, которую создал я (CreateEvent). */
+  meetup?: { kind: string; plusOne: boolean; invited: string[]; items: MeetupItem[] };
   visibility: Visibility;
   /** Откуда пришло: настоящее событие из афиши или демо-событие макета. */
   origin: 'real' | 'demo';
@@ -37,6 +48,26 @@ export interface EventItem {
   /** Сколько человек ищут компанию. */
   lookingCount: number;
   goingCount: number;
+}
+
+/** Человек в списке «Ищут компанию» на событии. */
+export interface Looker {
+  personId: string;
+  note: string;
+  common: string; // «3 ОБЩИХ · СТЕНДАП, ДЖАЗ, ГОРЫ»
+}
+
+export interface EventChatPreview {
+  title: string;
+  members: number;
+  who: string;
+  text: string;
+}
+
+export interface MeetupItem {
+  id: string;
+  title: string;
+  by: string | null; // id человека, который принесёт
 }
 
 export interface Person {

@@ -1,8 +1,7 @@
 // Сессия и ответы регистрации. Хранится на устройстве (AsyncStorage / localStorage на web).
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { deviceStorage } from './storage';
 import { buildStartTaste, type Budget, type Interest, type Taste, type TimeSlot, type WithWho } from '../reco/startTaste';
 
 export type Provider = 'google' | 'apple' | 'phone';
@@ -42,8 +41,6 @@ interface SessionState {
   signOut: () => void;
 }
 
-const SSR_STORAGE = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
-
 export const useSession = create<SessionState>()(
   persist(
     (set, get) => ({
@@ -64,8 +61,7 @@ export const useSession = create<SessionState>()(
     }),
     {
       name: 'ryadom-session',
-      // При статической сборке web (Node) window нет — там хранилище пустое.
-      storage: createJSONStorage(() => (Platform.OS === 'web' && typeof window === 'undefined' ? SSR_STORAGE : AsyncStorage)),
+      storage: deviceStorage(),
       partialize: ({ hydrated: _h, ...rest }) => rest,
       onRehydrateStorage: () => () => useSession.setState({ hydrated: true }),
     },
