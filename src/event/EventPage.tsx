@@ -39,7 +39,11 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Назад к карте' }: { e: EventItem; now: Date; onClose: () => void; closeLabel?: string }) {
+export function EventPage({ e, now, onClose, closeLabel = 'Назад к карте', onGo }: {
+  e: EventItem; now: Date; onClose: () => void; closeLabel?: string;
+  /** Из ленты «Я иду» работает как свайп вправо. */
+  onGo?: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -57,6 +61,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
   };
 
   const toggleGo = () => {
+    if (onGo && !going) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
     addPlan();

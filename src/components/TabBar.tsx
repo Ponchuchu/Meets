@@ -1,7 +1,9 @@
 // Таб-бар по design/screens/TabBar.dc.html: 5 колонок, полоска 24×3 у активной, точка «новое», бейджи.
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { data } from '../data';
@@ -20,6 +22,28 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
 export const TAB_BAR_HEIGHT = 84;
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
+
+/** Кольцо расходится (0.4 → 1.9) и всплывает «+1» — когда «пойду» прилетает в профиль. */
+function PlanPulse() {
+  const pulse = useApp((s) => s.planPulse);
+  const t = useSharedValue(1);
+  useEffect(() => {
+    if (!pulse) return;
+    t.value = 0;
+    t.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.quad) });
+  }, [pulse, t]);
+  const ring = useAnimatedStyle(() => ({ opacity: 0.9 * (1 - t.value), transform: [{ scale: 0.4 + 1.5 * t.value }] }));
+  const plus = useAnimatedStyle(() => ({
+    opacity: t.value < 0.25 ? t.value / 0.25 : 1 - (t.value - 0.25) / 0.75,
+    transform: [{ translateY: 6 - 32 * t.value }],
+  }));
+  return (
+    <>
+      <Animated.View pointerEvents="none" style={[styles.ring, ring]} />
+      <Animated.Text pointerEvents="none" style={[styles.plus, plus]}>+1</Animated.Text>
+    </>
+  );
+}
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -56,6 +80,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 <Text style={[styles.badgeText, { color: colors.paper }]}>{newPlans}</Text>
               </View>
             )}
+            {route.name === 'me' && <PlanPulse />}
             <Icon name={tab.icon} color={color} />
             <Text style={[styles.label, { color, fontFamily: active ? fonts.body600 : fonts.body500 }]}>{tab.label}</Text>
           </Pressable>
@@ -86,4 +111,6 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: colors.paper,
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10 },
+  ring: { position: 'absolute', top: 0, left: '50%', marginLeft: -24, width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.accent },
+  plus: { position: 'absolute', top: -18, left: '50%', marginLeft: 9, fontFamily: fonts.display800, fontSize: 15, color: colors.accent },
 });
