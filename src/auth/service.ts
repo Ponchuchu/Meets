@@ -1,5 +1,6 @@
 // Вход через Supabase Auth: телефон (SMS через Send SMS Hook), Google и Apple (id-токен от нативного входа).
 // Если SMS-шлюз ещё не подключён или сети нет — демо: код 4821, вход только на устройстве.
+import { Platform } from 'react-native';
 import { supabase, withTimeout } from '../data/client';
 import { config } from '../lib/config';
 import { DEMO_CODE, parseBirthDate } from './rules';
@@ -74,6 +75,38 @@ export async function saveProfile(d: ProfileDraft): Promise<boolean> {
     if (p.error) return false;
     const a = await supabase().from('start_answers').upsert({ user_id: id, interests: d.interests, times: d.times, with_who: d.withWho, budget: d.budget, updated_at: new Date().toISOString() });
     return !a.error;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sign in with Apple (обязателен в App Store, раз есть Google). Работает в dev build на iOS.
+ * Имя Apple отдаёт только при первом входе — возвращаем его, чтобы сразу сохранить в анкету.
+ * null — Apple недоступен (web, Android, отмена); тогда экран пускает в демо.
+ */
+export async function signInWithApple(): Promise<{ name: string | null } | null> {
+  if (Platform.OS !== 'ios') return null;
+  try {
+    const Apple = await import('expo-apple-authentication');
+    if (!(await Apple.isAvailableAsync())) return null;
+    const cred = await Apple.signInAsync({ requestedScopes: [Apple.AppleAuthenticationScope.FULL_NAME, Apple.AppleAuthenticationScope.EMAIL] });
+    if (!cred.identityToken || !(await signInWithIdToken('apple', cred.identityToken))) return null;
+    return { name: cred.fullName?.givenName ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Удалить аккаунт навсегда (App Store 5.1.1): сервер стирает человека и всё, что с ним связано. */
+export async function deleteAccount(): Promise<boolean> {
+  try {
+    const { data } = await supabase().auth.getSession();
+    if (!data.session) return true; // демо-вход: удалять на сервере нечего
+    const { error } = await withTimeout(supabase().rpc('delete_my_account'));
+    if (error) return false;
+    await supabase().auth.signOut();
+    return true;
   } catch {
     return false;
   }

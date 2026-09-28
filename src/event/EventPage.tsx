@@ -1,5 +1,6 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
+import { track } from '../analytics';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
@@ -223,6 +224,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
             <Pressable disabled={arrived} onPress={() => {
               arrive(e.id, cellOf(e.lat, e.lon));
               addSignal(makeSignal(e, 'arrived', now));
+              track('arrived', e.id);
               show({ text: 'Отметил! +1 место на карте города. Статус «На событии» — пока ты здесь' });
             }} style={[styles.arrive, arrived && { backgroundColor: colors.sand }]} accessibilityRole="button">
               <Ic d={arrived ? IC.check : IC.pin} c={arrived ? [] : [[12, 9, 2.5]]} size={20} color={colors.ink} w={2} />

@@ -1,6 +1,7 @@
 // Web: mapbox-gl. Пины — обычные React-компоненты, смонтированные в DOM-маркеры Mapbox.
+// Сама библиотека (~1 МБ) грузится отдельным куском после первого экрана — запуск быстрее (npm run perf).
 import 'mapbox-gl/dist/mapbox-gl.css';
-import mapboxgl from 'mapbox-gl';
+import type mapboxgl from 'mapbox-gl';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StyleSheet, View } from 'react-native';
@@ -26,6 +27,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const elements = useRef(new Map<string, { el: HTMLDivElement; marker: mapboxgl.Marker }>());
   const [failed, setFailed] = useState(() => typeof document === 'undefined' || !config.mapboxToken || !webglOk());
   const [, setTick] = useState(0);
+  const [ready, setReady] = useState(false);
+  const gl = useRef<typeof mapboxgl | null>(null);
 
   useImperativeHandle(ref, () => ({
     flyTo: (lat, lon, zoom) => {
@@ -36,35 +39,43 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
 
   useEffect(() => {
     if (failed || !host.current) { onMode?.('static'); return; }
-    mapboxgl.accessToken = config.mapboxToken;
-    let m: mapboxgl.Map;
-    try {
-      m = new mapboxgl.Map({
-        container: host.current,
-        style: mapStyle(theme) as unknown as mapboxgl.Style,
-        center: [camera.lon, camera.lat],
-        zoom: camera.zoom,
-        attributionControl: false,
-        pitchWithRotate: false,
-        dragRotate: false,
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    import('mapbox-gl').then(({ default: lib }) => {
+      if (cancelled || !host.current) return;
+      gl.current = lib;
+      lib.accessToken = config.mapboxToken;
+      let m: mapboxgl.Map;
+      try {
+        m = new lib.Map({
+          container: host.current,
+          style: mapStyle(theme) as unknown as mapboxgl.Style,
+          center: [camera.lon, camera.lat],
+          zoom: camera.zoom,
+          attributionControl: false,
+          pitchWithRotate: false,
+          dragRotate: false,
+        });
+      } catch {
+        setFailed(true);
+        return;
+      }
+      m.addControl(new lib.AttributionControl({ compact: true }), 'bottom-left');
+      host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
+      m.touchZoomRotate.disableRotation();
+      map.current = m;
+      setReady(true);
+      const els = elements.current;
+      // Нет сети или токен не пустили: через 8 с без загруженного стиля — подложка.
+      const t = setTimeout(() => { if (!m.isStyleLoaded()) setFailed(true); }, 8000);
+      m.on('load', () => { clearTimeout(t); onMode?.('mapbox'); });
+      m.on('error', (e: { error?: unknown }) => {
+        const status = (e.error as { status?: number } | undefined)?.status;
+        if (status === 401 || status === 403) setFailed(true);
       });
-    } catch {
-      setFailed(true);
-      return;
-    }
-    m.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
-    host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
-    m.touchZoomRotate.disableRotation();
-    map.current = m;
-    const els = elements.current;
-    // Нет сети или токен не пустили: через 8 с без загруженного стиля — подложка.
-    const t = setTimeout(() => { if (!m.isStyleLoaded()) setFailed(true); }, 8000);
-    m.on('load', () => { clearTimeout(t); onMode?.('mapbox'); });
-    m.on('error', (e: { error?: unknown }) => {
-      const status = (e.error as { status?: number } | undefined)?.status;
-      if (status === 401 || status === 403) setFailed(true);
-    });
-    return () => { clearTimeout(t); m.remove(); map.current = null; els.clear(); };
+      cleanup = () => { clearTimeout(t); m.remove(); map.current = null; els.clear(); };
+    }).catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; cleanup?.(); };
     // Камера и тема применяются отдельно, пересоздавать карту не нужно.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failed]);
@@ -79,7 +90,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   // Синхронизация маркеров: создаём DOM-элементы, контент рендерим порталом.
   useEffect(() => {
     const m = map.current;
-    if (!m) return;
+    const lib = gl.current;
+    if (!m || !lib || !ready) return;
     const seen = new Set<string>();
     for (const mk of markers) {
       seen.add(mk.id);
@@ -88,7 +100,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         const el = document.createElement('div');
         el.style.width = '0';
         el.style.height = '0';
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lon, mk.lat]).addTo(m);
+        const marker = new lib.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lon, mk.lat]).addTo(m);
         entry = { el, marker };
         elements.current.set(mk.id, entry);
       } else {
@@ -100,7 +112,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (!seen.has(id)) { entry.marker.remove(); elements.current.delete(id); }
     }
     setTick((x) => x + 1);
-  }, [markers]);
+  }, [markers, ready]);
 
   if (failed) return <StaticMap ref={staticRef} {...props} />;
 

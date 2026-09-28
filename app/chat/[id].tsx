@@ -1,5 +1,6 @@
 // Чат: личный (DirectChat, ChatAttach, ChatSheets) и чат события (EventChat).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { track } from '../../src/analytics';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -94,6 +95,7 @@ export default function ChatScreen() {
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
     const msg: Message = { id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...m };
     chat.send(msg);
+    track('chat_sent');
     // Чат из базы: пишем на сервер, Realtime принесёт сообщение обратно — тогда убираем локальную копию.
     if (isRemoteId(id)) {
       const media = msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? uploadMedia(id, msg.media) : Promise.resolve(msg.media ?? undefined);

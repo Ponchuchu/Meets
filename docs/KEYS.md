@@ -44,6 +44,16 @@
    (свой номер без «+»). После этого `/admin` в web-версии показывает настоящую очередь, иначе — демо макета.
 4. **Источники** в базе выключены, пока нет юридической проверки (`TECH.md`, «Источники»). Включить Telegram-канал — переключатель «собирать» в `/admin` → «Источники».
 
+## Этап 10: сборки для телефона
+
+Порядок и все команды — `docs/STORE.md`. Коротко, что нужно от тебя:
+1. Аккаунт **expo.dev** → `npx eas login` и `npx eas init` (или дай мне `EXPO_TOKEN` в переменные облачной среды — соберу сам).
+2. **Apple Developer** ($99/год): в App Store Connect создать приложение `kz.ryadom.app`, включить Sign in with Apple. В Supabase → Authentication → Providers → **Apple** включить и указать Bundle ID `kz.ryadom.app`.
+3. **Google Play Console** ($25): создать приложение, пройти закрытый тест (12 тестеров, 14 дней).
+4. **Пуши:** ключ FCM v1 (Firebase → Project settings → Service accounts) и APNs-ключ — загрузить в expo.dev → Credentials.
+5. Если сборка Android/iOS попросит токен загрузки Mapbox — account.mapbox.com → **Create token** со скоупом `DOWNLOADS:READ`, положить в expo.dev → Secrets как `RNMAPBOX_MAPS_DOWNLOAD_TOKEN`.
+6. Миграция `20260928000005_release.sql` (удаление аккаунта, аналитика) применится той же командой `npm run db:migrate`.
+
 ## Сделай сейчас: перевыпусти токен Supabase
 
 Токен Supabase (`sbp_…`) был отправлен в чат. Им создали таблицы, в репозиторий он не попал. Но токен даёт полный доступ к проекту, поэтому его лучше заменить:

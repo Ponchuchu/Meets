@@ -1,0 +1,23 @@
+{
+  "cpuSlowdown": 6,
+  "js": {
+    "totalKB": 4477,
+    "entryKB": 3516
+  },
+  "screens": {
+    "/": {
+      "contentMs": 2778,
+      "longTasks": 8,
+      "longTaskMs": 3514,
+      "fpsWhileDragging": 62,
+      "worstFrameMs": 17
+    },
+    "/foryou": {
+      "contentMs": 3356,
+      "longTasks": 7,
+      "longTaskMs": 3129,
+      "fpsWhileDragging": 58,
+      "worstFrameMs": 67
+    }
+  }
+}

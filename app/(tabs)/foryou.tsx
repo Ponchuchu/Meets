@@ -1,7 +1,7 @@
 // «Для тебя» — design/png/Feed.png. Бесконечная колода: после каждого свайпа пересчитывается (модуль reco).
 import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { now as clockNow } from '../../src/lib/clock';
 import { formatWhen } from '../../src/lib/format';
 import { buildDeck, makeSignal, tasteFrom } from '../../src/reco';
 import { useApp } from '../../src/state/app';
+import { track } from '../../src/analytics';
 import { useFeed } from '../../src/state/feed';
 import { usePlans } from '../../src/state/plans';
 import { INITIAL_DRAFT, useSession } from '../../src/state/session';
@@ -87,6 +88,7 @@ export default function ForYouScreen() {
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
+    track(kind, e.id);
     setEnter(null);
     if (kind === 'go') {
       go(e.id);
@@ -104,11 +106,14 @@ export default function ForYouScreen() {
     const last = undo();
     showToast(null);
     if (!last) return;
-    if (last.kind === 'go') { ungo(last.eventId); removePlan(); }
+    // «Отменить» после «пойду» считается в ungo как cancel_plan, «вернуть» после «мимо» — здесь.
+    if (last.kind === 'go') { ungo(last.eventId); removePlan(); } else track('undo', last.eventId);
     setEnter({ id: last.eventId, from: last.kind });
   }
 
   const top = deck[0];
+  useEffect(() => track('feed_open'), []);
+  useEffect(() => { if (top) track('card_shown', top.id); }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const onSave = () => {
     if (!top) return;
     const was = !!saved[top.id];
@@ -121,7 +126,7 @@ export default function ForYouScreen() {
   // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
   const p = useSharedValue(0);
   const openCard = (e: EventItem) => {
-    if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); }
+    if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
     showToast(null);
     setOpen(e);
     p.value = 0;

@@ -1,18 +1,19 @@
-// Web-админка /admin (docs/PIPELINE.md §5): Модерация / Рекомендации / Источники.
+// Web-админка /admin (docs/PIPELINE.md §5): Модерация / Рекомендации / Источники / Метрики.
 // Настоящие данные — только команде (таблица staff). Остальным — демо макета, в базу ничего не пишется.
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isStaff } from '../src/admin/api';
+import { Metrics } from '../src/admin/ui/Metrics';
 import { Moderation } from '../src/admin/ui/Moderation';
 import { Sources } from '../src/admin/ui/Sources';
 import { TasteAdmin } from '../src/admin/ui/TasteAdmin';
 import { useSession } from '../src/state/session';
 import { colors, fonts } from '../src/theme';
 
-type Tab = 'moderation' | 'taste' | 'sources';
-const TABS: [Tab, string][] = [['moderation', 'Модерация'], ['taste', 'Рекомендации'], ['sources', 'Источники']];
+type Tab = 'moderation' | 'taste' | 'sources' | 'metrics';
+const TABS: [Tab, string][] = [['moderation', 'Модерация'], ['taste', 'Рекомендации'], ['sources', 'Источники'], ['metrics', 'Метрики']];
 
 export default function Admin() {
   const insets = useSafeAreaInsets();
@@ -46,6 +47,7 @@ export default function Admin() {
         {tab === 'moderation' && <Moderation live={staff} />}
         {tab === 'taste' && <TasteAdmin live={staff} />}
         {tab === 'sources' && <Sources live={staff} />}
+        {tab === 'metrics' && <Metrics live={staff} />}
       </ScrollView>
       {!wide && (
         <View style={[styles.bottom, { paddingBottom: 10 + insets.bottom }]}>

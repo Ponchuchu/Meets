@@ -1,6 +1,6 @@
 // Старт регистрации — design/png/SignUp.png
 import { router } from 'expo-router';
-import { sendCode as requestSms } from '../../src/auth/service';
+import { sendCode as requestSms, signInWithApple } from '../../src/auth/service';
 import { useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,9 +23,10 @@ export default function Start() {
   const [phone, setPhone] = useState(draft.phone);
   const phoneRef = useRef<TextInput>(null);
 
-  // Демо: Google и Apple сразу пускают как «Данил», код не нужен.
-  const withProvider = (provider: 'google' | 'apple') => {
-    signIn(provider, { name: 'Данил', photo: 'danil' });
+  // Apple на iPhone — настоящий вход через Supabase. Google и web — пока демо: пускают как «Данил» (ключи — docs/KEYS.md).
+  const withProvider = async (provider: 'google' | 'apple') => {
+    const apple = provider === 'apple' ? await signInWithApple() : null;
+    signIn(provider, apple ? { name: apple.name ?? '' } : { name: 'Данил', photo: 'danil' });
     router.push('/about');
   };
   const sendCode = () => {
@@ -65,11 +66,11 @@ export default function Start() {
         <View style={styles.form}>
           <Appear index={1}><Text style={styles.h1}>Войти или создать аккаунт</Text></Appear>
           <Appear index={2}>
-            <Button variant="light" height={52} label="Продолжить с Google" onPress={() => withProvider('google')}
+            <Button variant="light" height={52} label="Продолжить с Google" onPress={() => void withProvider('google')}
               icon={<View style={styles.g}><Text style={styles.gText}>G</Text></View>} />
           </Appear>
           <Appear index={3}>
-            <Button variant="dark" height={52} label="Продолжить с Apple" onPress={() => withProvider('apple')}
+            <Button variant="dark" height={52} label="Продолжить с Apple" onPress={() => void withProvider('apple')}
               icon={<Glyph name="lock" size={20} color={colors.paper} strokeWidth={1.9} />} />
           </Appear>
           <Appear index={4}>

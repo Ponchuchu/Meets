@@ -14,7 +14,8 @@ import { Ic, IC } from '../src/ui/Ic';
 import { BackButton, Segments } from '../src/ui/kit';
 import { Cap, Group, Row, SwitchRow } from '../src/ui/Section';
 import { Backdrop, BottomSheet } from '../src/ui/sheet';
-import { signOut as authSignOut } from '../src/auth/service';
+import { useChat } from '../src/state/chat';
+import { deleteAccount, signOut as authSignOut } from '../src/auth/service';
 import { savePushPrefs } from '../src/notify/register';
 
 export default function SettingsScreen() {
@@ -26,6 +27,8 @@ export default function SettingsScreen() {
   const draft = useSession((x) => x.draft);
   const signOut = useSession((x) => x.signOut);
   const [confirm, setConfirm] = useState<null | 'out' | 'delete'>(null);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+  const blockedCount = Object.keys(useChat((c) => c.blocked)).length;
   const setN = (k: keyof Settings['notif'], v: boolean) => {
     const notif = { ...s.notif, [k]: v };
     set({ notif });
@@ -33,8 +36,12 @@ export default function SettingsScreen() {
   };
 
   const leave = async (wipe: boolean) => {
-    // Удаление: стираем всё локально; на сервере — запрос удаления аккаунта (этап 8, Supabase Auth).
+    // Удаление: сначала сервер (delete_my_account стирает человека и всё связанное), потом устройство.
     if (wipe) {
+      if (!(await deleteAccount())) {
+        setDeleteFailed(true);
+        return;
+      }
       usePlans.setState({ going: {}, saved: {}, company: {}, invites: [], meetups: [], declined: {} });
       useFeed.setState({ signals: [], decided: {}, history: [] });
       useProfile.setState({ arrivals: [], suggestions: [] });
@@ -108,8 +115,9 @@ export default function SettingsScreen() {
           {[
             ['Что вытаскивает из дома', String(draft.interests.length), () => router.push('/me')],
             ['Язык', 'Русский', () => {}],
-            ['Заблокированные', '0', () => {}],
-            ['Правила сообщества', '', () => Linking.openURL('https://github.com/Ponchuchu/ryadom/blob/main/docs/PRODUCT.md').catch(() => {})],
+            ['Заблокированные', String(blockedCount), () => {}],
+            ['Правила сообщества', '', () => router.push('/legal?doc=rules')],
+            ['Политика конфиденциальности', '', () => router.push('/legal?doc=privacy')],
             ['Помощь и связь с нами', '', () => Linking.openURL('mailto:help@ryadom.kz').catch(() => {})],
           ].map(([label, value, act], i, arr) => (
             <Pressable key={label as string} onPress={act as () => void} accessibilityRole="button">
@@ -135,6 +143,7 @@ export default function SettingsScreen() {
             <Text style={styles.sub}>{confirm === 'delete'
               ? 'Удалим профиль, планы, чаты, значки и карту города. Вернуть их будет нельзя. Друзья перестанут тебя видеть сразу.'
               : 'Планы и настройки останутся на этом телефоне. Войти обратно можно в любой момент.'}</Text>
+            {deleteFailed && confirm === 'delete' && <Text style={[styles.sub, { color: colors.accentText }]}>Не получилось связаться с сервером — аккаунт не удалён. Проверь интернет и попробуй ещё раз.</Text>}
             <Pressable onPress={() => leave(confirm === 'delete')} style={[styles.outBtn, { backgroundColor: confirm === 'delete' ? colors.accentText : colors.ink, borderWidth: 0 }]} accessibilityRole="button">
               <Text style={[styles.outText, { color: colors.paper }]}>{confirm === 'delete' ? 'Удалить навсегда' : 'Выйти'}</Text>
             </Pressable>

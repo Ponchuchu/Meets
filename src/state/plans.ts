@@ -2,6 +2,7 @@
 // Хранится на устройстве; в Supabase (attendance, company_requests, invites, meetups) — этап 8.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { track } from '../analytics';
 import { pushAttendance } from '../data/sync';
 import { deviceStorage } from './storage';
 import type { EventItem } from '../data/types';
@@ -65,6 +66,7 @@ export const usePlans = create<PlansState>()(
       },
       ungo: (id) => set((s) => {
         pushAttendance(id, null);
+        track('cancel_plan', id);
         const going = { ...s.going };
         delete going[id];
         return { going };

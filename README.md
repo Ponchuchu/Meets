@@ -36,7 +36,7 @@
 ```bash
 npm install
 npm run web          # web-версия в браузере
-npm start            # Expo: телефон (для карты нужен dev build, этап 2)
+npm start            # Expo: телефон (для карты и пушей нужен dev build: docs/STORE.md)
 ```
 
 | Команда | Что делает |
@@ -46,6 +46,12 @@ npm start            # Expo: телефон (для карты нужен dev bu
 | `npm run shots -- <этап>` | Скриншоты экранов 390×844 в `docs/progress/<этап>/` |
 | `npm run db:migrate` | Применить `supabase/migrations/` через Management API |
 | `npm run seed:events` | Проставить координаты событиям (Nominatim) и загрузить их в Supabase |
+| `npm run db:seed-demo [-- +7…]` | Демо-люди и чаты макета в базе (с номером — подключить свой аккаунт) |
+| `npm run functions:build` · `functions:deploy` | Собрать общий код и выложить Edge Functions (погода, колода, пуши) |
+| `npm run worker:demo` | Сборщик событий на примерах постов `worker/fixtures`, без записи в базу |
+| `npm run perf` | Замер карты и ленты на «слабом Android» (процессор ×6), после `build:web` |
+
+Админка команды — `/admin` в web-версии. Выпуск в магазины — `docs/STORE.md`.
 
 Приложение работает и без сети: если Supabase недоступен, данные берутся из демо-набора и `data/seed/events-almaty.json`.
 Координаты событий: © участники OpenStreetMap (ODbL), геокодер Nominatim.
