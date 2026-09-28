@@ -15,6 +15,8 @@ export const photos: Record<string, ImageSourcePropType> = {
   krug: require('../../design/assets/krug.jpg'),
 };
 
+/** Ключ демо-фото ('igor') или адрес картинки (галерея, Storage). */
 export function photo(key: string | null | undefined): ImageSourcePropType | undefined {
-  return key ? photos[key] : undefined;
+  if (!key) return undefined;
+  return photos[key] ?? { uri: key };
 }

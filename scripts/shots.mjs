@@ -1,6 +1,7 @@
 // npm run shots -- <этап> [маршрут=имя …]
 // Собирает web-версию (если нет dist/), раздаёт её локально и снимает экраны 390×844 через Playwright
-// в docs/progress/<этап>/. Пример: npm run shots -- stage-0 /=Map /chats=Chats
+// в docs/progress/<этап>/. Пример: npm run shots -- stage-1 /start=SignUp /about=SignUpProfile@google
+// Состояние сессии: @fresh (не вошёл), @google (вошёл через Google), @onboarded (по умолчанию для вкладок).
 import { createServer } from 'node:http';
 import { readFile, mkdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -12,9 +13,21 @@ import { chromium } from 'playwright';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const [stage = 'latest', ...pairs] = process.argv.slice(2);
+const AUTH = ['/start', '/code', '/about', '/interests', '/rhythm'];
 const routes = pairs.length
-  ? pairs.map((p) => p.split('='))
-  : [['/', 'Map'], ['/foryou', 'ForYou'], ['/chats', 'Chats'], ['/people', 'People'], ['/me', 'Me']];
+  ? pairs.map((p) => {
+    const [route, rest] = p.split('=');
+    const [name, preset] = rest.split('@');
+    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded')];
+  })
+  : [['/', 'Map'], ['/foryou', 'ForYou'], ['/chats', 'Chats'], ['/people', 'People'], ['/me', 'Me']].map((r) => [...r, 'onboarded']);
+
+const draft = { provider: null, phone: '', name: '', photo: null, birthDate: '', interests: ['music', 'hike', 'games'], times: ['weekday', 'weekend'], withWho: 'friends', budget: 'mid' };
+const PRESETS = {
+  fresh: null,
+  google: { signedIn: true, onboarded: false, locationAsked: false, taste: null, draft: { ...draft, provider: 'google', name: 'Данил', photo: 'danil' } },
+  onboarded: { signedIn: true, onboarded: true, locationAsked: true, taste: null, draft: { ...draft, provider: 'google', name: 'Данил', photo: 'danil', birthDate: '14.03.2001' } },
+};
 
 if (!existsSync(dist) || process.env.REBUILD) execSync('npx expo export -p web', { cwd: root, stdio: 'inherit' });
 
@@ -63,12 +76,18 @@ if (process.env.HTTPS_PROXY) {
   });
 }
 const page = await ctx.newPage();
-for (const [route, name] of routes) {
+for (const [route, name, preset] of routes) {
+  const state = PRESETS[preset];
+  await page.goto(`http://localhost:${port}/+not-found`);
+  await page.evaluate((st) => {
+    localStorage.clear();
+    if (st) localStorage.setItem('ryadom-session', JSON.stringify({ state: st, version: 0 }));
+  }, state);
   await page.goto(`http://localhost:${port}${route}`, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
   // Ждём, пока уйдут индикаторы загрузки (данные из Supabase или демо).
   await page.waitForFunction(() => !document.querySelector('[role="progressbar"]'), null, { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);
 }
