@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Чат события</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input::placeholder{color:#6B675F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="padding: 50px 16px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #DDD8CC">
+<a href="Chats.dc.html" aria-label="Назад к чатам" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<a href="Event.dc.html" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: #17161A">
+<span style="font-size: 16px; font-weight: 600">Джаз во дворе</span>
+<span style="font-size: 12px; color: #55524C">12 участников · начало через 1 ч 28 мин</span>
+</a>
+<span style="display: flex">
+<span style="width: 28px; height: 28px; border-radius: 50%; background: #D9E4D2; box-shadow: 0 0 0 2px #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">С</span>
+<img src="../assets/igor.jpg" alt="" style="margin-left: -8px; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #F3F0E8; display: block">
+<span style="margin-left: -8px; width: 28px; height: 28px; border-radius: 50%; background: #E7E2D6; box-shadow: 0 0 0 2px #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600">+9</span>
+</span>
+</div>
+
+<div style="margin: 12px 16px 0; padding: 12px; border-radius: 16px; background: #FBFAF6; border: 1.5px solid #17161A; display: flex; align-items: center; gap: 12px">
+<span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">ТОЧКА СБОРА</span>
+<span style="font-size: 14px; font-weight: 600; line-height: 1.3">Вход во двор с Панфилова, 19:15</span>
+</span>
+<button type="button" style="height: 36px; padding: 0 12px; flex-shrink: 0; border: 0; border-radius: 18px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600">Я на месте</button>
+</div>
+
+<div style="padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px">
+<span style="align-self: center; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.05em; color: #55524C; background: #E7E2D6; padding: 4px 10px; border-radius: 10px">АЙНУРА ПРИСОЕДИНИЛАСЬ</span>
+
+<div style="display: flex; gap: 8px; align-items: flex-end; max-width: 300px">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #D9E4D2; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">С</span>
+<span style="padding: 9px 12px; border-radius: 16px 16px 16px 4px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; font-weight: 600; color: #2447B8">Саша</span>
+<span style="font-size: 14px; line-height: 1.4">Займу столик у сцены, нас уже четверо</span>
+</span>
+</div>
+
+<div style="display: flex; gap: 8px; align-items: flex-end; max-width: 300px">
+<img src="../assets/igor.jpg" alt="" style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; object-fit: cover; display: block">
+<span style="padding: 9px 12px; border-radius: 16px 16px 16px 4px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; font-weight: 600; color: #8A3A12">Игорь</span>
+<span style="font-size: 14px; line-height: 1.4">Буду в 19:20, чуть опоздаю</span>
+</span>
+</div>
+
+<div style="margin-left: 36px; padding: 14px; border-radius: 16px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Куда после?</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: #55524C">ОПРОС · 9 ГОЛОСОВ</span></span>
+<button type="button" aria-pressed="true" style="position: relative; overflow: hidden; height: 38px; padding: 0 12px; border: 1.5px solid #17161A; border-radius: 10px; background: #FBFAF6; display: flex; align-items: center; justify-content: space-between; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 56%; background: #E7E2D6"></span><span style="position: relative">Гулять по Панфилова</span><span style="position: relative; font-family: 'JetBrains Mono', monospace; font-size: 12px">5</span></button>
+<button type="button" aria-pressed="false" style="position: relative; overflow: hidden; height: 38px; padding: 0 12px; border: 1px solid #DDD8CC; border-radius: 10px; background: #FBFAF6; display: flex; align-items: center; justify-content: space-between; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500; color: #17161A"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 33%; background: #EFEBE2"></span><span style="position: relative">Кофе рядом</span><span style="position: relative; font-family: 'JetBrains Mono', monospace; font-size: 12px">3</span></button>
+<button type="button" aria-pressed="false" style="position: relative; overflow: hidden; height: 38px; padding: 0 12px; border: 1px solid #DDD8CC; border-radius: 10px; background: #FBFAF6; display: flex; align-items: center; justify-content: space-between; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500; color: #17161A"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 11%; background: #EFEBE2"></span><span style="position: relative">Домой, завтра работа</span><span style="position: relative; font-family: 'JetBrains Mono', monospace; font-size: 12px">1</span></button>
+</div>
+
+<div style="align-self: flex-end; max-width: 270px; padding: 10px 12px; border-radius: 16px 16px 4px 16px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14px; line-height: 1.4">Я впервые, буду у входа в зелёной куртке</span>
+<span style="align-self: flex-end; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #BDB8AD">18:04</span>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 10px 12px 28px; background: #F3F0E8; border-top: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 8px">
+
+<div style="display: flex; gap: 6px; align-items: center">
+<button type="button" aria-label="Фото и видео" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="9" cy="10" r="1.8"></circle><path d="M21 16l-5-5-8 9"></path></svg></button>
+<input aria-label="Сообщение" placeholder="Сообщение" style="flex-grow: 1; min-width: 0; height: 44px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 22px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; color: #17161A; outline: none">
+<button type="button" aria-label="Записать кружок" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle></svg></button>
+<button type="button" aria-label="Записать голосовое" style="width: 44px; height: 44px; flex-shrink: 0; border: 0; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center; color: #F3F0E8"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Админка — модерация событий</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 390px; height: 1060px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="padding: 50px 16px 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="height: 26px; padding: 0 9px; border-radius: 7px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; display: flex; align-items: center">РЕЖИМ РАЗРАБОТЧИКА</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">ПОСЛЕДНИЙ СБОР 14:00</span>
+</div>
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em">Модерация</h1>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="padding: 12px; border-radius: 14px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.1">{{waiting}}</span><span style="font-size: 12px; color: #55524C">ждут тебя</span></div>
+<div style="padding: 12px; border-radius: 14px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.1">{{published}}</span><span style="font-size: 12px; color: #55524C">на карте</span></div>
+<div style="padding: 12px; border-radius: 14px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.1">27</span><span style="font-size: 12px; color: #55524C">отсеял ИИ</span></div>
+</div>
+</div>
+
+<div style="padding: 18px 16px 0; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{queue}}" as="q" hint-placeholder-count="4">
+<div style="padding: 14px; border-radius: 20px; background: #FBFAF6; border: 1px solid {{q.border}}; display: flex; flex-direction: column; gap: 10px; opacity: {{q.o}}">
+<div style="display: flex; justify-content: space-between; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: #55524C"><span>{{q.source}}</span><span style="color: {{q.confColor}}">{{q.conf}}</span></div>
+<span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 600; line-height: 1.2">{{q.title}}</span>
+<span style="font-size: 13.5px; color: #3A3833">{{q.meta}}</span>
+<sc-if value="{{q.hasFlag}}" hint-placeholder-val="{{ false }}">
+<span style="align-self: flex-start; min-height: 26px; padding: 4px 9px; box-sizing: border-box; border-radius: 8px; background: #FBE3D8; color: #8A3A12; font-size: 12.5px; font-weight: 600; display: flex; align-items: center">{{q.flag}}</span>
+</sc-if>
+<sc-if value="{{q.pending}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px">
+<button type="button" onClick="{{q.approve}}" style="height: 42px; border: 0; border-radius: 12px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600">{{q.approveLabel}}</button>
+<button type="button" style="height: 42px; border: 1px solid #CFC9BB; border-radius: 12px; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A">Править</button>
+<button type="button" onClick="{{q.reject}}" style="height: 42px; border: 1px solid #CFC9BB; border-radius: 12px; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A">Нет</button>
+</div>
+</sc-if>
+<sc-if value="{{q.done}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 14px; font-weight: 600">{{q.result}}</span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="margin: 18px 16px 0; padding: 14px; border-radius: 16px; border: 1.5px dashed #B9B2A3; display: flex; align-items: center; gap: 12px">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14.5px; font-weight: 600">Публиковать сразу, если 95%+</span><span style="font-size: 12.5px; color: #55524C">только для источников с доверием</span></span>
+<button type="button" role="switch" aria-checked="{{auto}}" aria-label="Автопубликация для доверенных источников" onClick="{{toggleAuto}}" style="width: 52px; height: 32px; flex-shrink: 0; padding: 0; border: 0; border-radius: 16px; background: {{autoTrack}}; position: relative"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(23,22,26,0.3); transform: translateX({{autoX}}px)"></span></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1060}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { st: {}, auto: true };
+  }
+  renderVals() {
+    const s = this.state;
+    const items = [
+      { id: 'anime', source: 'THREADS · @ALMATY.WEEKEND', conf: '94%', title: 'Аниме-выставка «Токио в Алматы»', meta: 'сб–вс, 11:00–21:00 · ТРЦ · 2 500 ₸', flag: '' },
+      { id: 'space', source: 'ЯНДЕКС АФИША', conf: '99%', title: 'Лекция «Как искать экзопланеты»', meta: 'чт, 19:00 · библиотека · бесплатно', flag: '' },
+      { id: 'roof', source: 'TELEGRAM · @AFISHA_ALMATY', conf: '81%', title: 'Вечеринка на крыше', meta: 'пт, 22:00 · адрес «в центре» · 5 000 ₸', flag: 'Адрес неточный — поставь точку', low: true },
+      { id: 'user', source: 'ПРЕДЛОЖИЛ ПОЛЬЗОВАТЕЛЬ · АЙНУРА', conf: '88%', title: 'Барахолка винтажа во дворе', meta: 'вс, 12:00–18:00 · Панфилова · вход свободный', flag: '' }
+    ];
+    const queue = items.map((q) => {
+      const st = s.st[q.id];
+      return {
+        ...q,
+        pending: !st, done: !!st,
+        hasFlag: !!q.flag && !st,
+        result: st === 'ok' ? 'Опубликовано — уже на карте' : 'Отклонено',
+        approveLabel: q.low ? 'Поставить точку' : 'Опубликовать',
+        confColor: q.low ? '#8A3A12' : '#55524C',
+        border: st === 'ok' ? '#17161A' : '#DDD8CC',
+        o: st === 'no' ? 0.55 : 1,
+        approve: () => this.setState({ st: { ...s.st, [q.id]: 'ok' } }),
+        reject: () => this.setState({ st: { ...s.st, [q.id]: 'no' } })
+      };
+    });
+    const ok = Object.values(s.st).filter((v) => v === 'ok').length;
+    return {
+      queue,
+      waiting: items.length - Object.keys(s.st).length,
+      published: 48 + ok,
+      auto: s.auto, autoTrack: s.auto ? '#17161A' : '#CFC9BB', autoX: s.auto ? 20 : 0,
+      toggleAuto: () => this.setState({ auto: !s.auto })
+    };
+  }
+}
+</script>
+</body>
+</html>

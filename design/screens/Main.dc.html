@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карта событий и друзей</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input[type=range]{accent-color:#17161A}
+@keyframes rdMove{0%{transform:translateX(0);opacity:0}8%{opacity:1}86%{opacity:1}100%{transform:translateX(96px);opacity:0}}
+@keyframes rdPulse{0%{transform:scale(0.6);opacity:0.55}100%{transform:scale(1.7);opacity:0}}
+@keyframes rdPop{0%{transform:scale(0.2) rotate(-14deg);opacity:0}60%{transform:scale(1.15) rotate(-6deg);opacity:1}100%{transform:scale(1) rotate(-6deg);opacity:1}}
+@keyframes rdDrop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rdSheet{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rdFade{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="position: absolute; left: 0px; top: 0px; width: 386px; height: 842px; transform: translateY({{panY}}px); transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.3, 1)">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="{{mapTheme}}" hint-size="390px,844px"></dc-import>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; opacity: {{eventsOpacity}}; transition: opacity 0.3s ease">
+<sc-if value="{{pin.concert}}" hint-placeholder-val="{{ true }}">
+<span style="position: absolute; left: 14px; top: 280px; width: 96px; height: 96px; border-radius: 50%; background: rgba(23,22,26,0.06)"></span>
+<a href="Event.dc.html" aria-label="Концерт на Центральном стадионе, 20:00, идут 4200 человек" style="position: absolute; left: 38px; top: 304px; width: 48px; height: 48px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4; text-decoration: none">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1z"></path><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13"></path></svg>
+<span style="position: absolute; right: -12px; top: -9px; height: 20px; padding: 0 6px; border-radius: 10px; background: #FBF9F4; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(23,22,26,0.18)">4,2K</span>
+<sc-if value="{{companyOn}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: -10px; bottom: -8px; height: 18px; padding: 0 5px; border-radius: 9px; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; display: flex; align-items: center; box-shadow: 0 0 0 2px #FBF9F4">12 ИЩУТ</span></sc-if>
+</a>
+</sc-if>
+<sc-if value="{{pin.games}}" hint-placeholder-val="{{ true }}">
+<a href="Event.dc.html" aria-label="Настолки без своей компании, 20:00" style="position: absolute; left: 170px; top: 236px; width: 32px; height: 32px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1"></circle><circle cx="15" cy="15" r="1"></circle></svg>
+<sc-if value="{{companyOn}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 22px; top: -10px; height: 18px; padding: 0 5px; border-radius: 9px; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; display: flex; align-items: center; box-shadow: 0 0 0 2px #FBF9F4">6</span></sc-if>
+</a>
+</sc-if>
+<sc-if value="{{pin.anime}}" hint-placeholder-val="{{ true }}">
+<a href="Event.dc.html" aria-label="Аниме-выставка, до 21:00" style="position: absolute; left: 262px; top: 290px; width: 32px; height: 32px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z"></path></svg></a>
+</sc-if>
+<sc-if value="{{pin.food}}" hint-placeholder-val="{{ true }}">
+<a href="Event.dc.html" aria-label="Фуд-маркет, до 23:00" style="position: absolute; left: 300px; top: 372px; width: 32px; height: 32px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8z"></path><path d="M17 10h1.5a2.5 2.5 0 010 5H17"></path></svg></a>
+</sc-if>
+<sc-if value="{{pin.standup}}" hint-placeholder-val="{{ false }}">
+<a href="Event.dc.html" aria-label="Стендап, пятница 20:00" style="position: absolute; left: 228px; top: 520px; width: 32px; height: 32px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></a>
+</sc-if>
+<sc-if value="{{pin.hike}}" hint-placeholder-val="{{ false }}">
+<a href="HikeEvent.dc.html" aria-label="Поход на Кок-Жайляу, суббота 08:00" style="position: absolute; left: 150px; top: 690px; display: flex; align-items: center; gap: 8px; text-decoration: none">
+<span style="width: 40px; height: 40px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBF9F4"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-10 4 6 3-4 5 8z"></path></svg></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; background: #17161A; color: #F3F0E8; padding: 5px 8px; border-radius: 7px">ПОХОД · СБ 08:00</span>
+</a>
+</sc-if>
+<sc-if value="{{pin.jazz}}" hint-placeholder-val="{{ true }}">
+<a href="Event.dc.html" aria-label="Джаз во дворе, 19:30" style="position: absolute; left: 166px; top: 384px; display: flex; align-items: center; gap: 8px; text-decoration: none">
+<span style="position: relative; width: 44px; height: 44px; border-radius: 15px; background: #F0521F; color: #17161A; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>
+<sc-if value="{{companyOn}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: -12px; bottom: -10px; height: 18px; padding: 0 5px; border-radius: 9px; background: #FBF9F4; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; display: flex; align-items: center; box-shadow: 0 0 0 2px #17161A">5 ИЩУТ</span></sc-if>
+</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; background: #17161A; color: #F3F0E8; padding: 5px 8px; border-radius: 7px">ДЖАЗ · 19:30</span>
+</a>
+</sc-if>
+</div>
+
+<a href="MarkerStyle.dc.html" aria-label="Это ты. Настроить свой значок на карте" style="position: absolute; left: 108px; top: 466px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; opacity: {{othersOpacity}}"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; background: #17161A; border: 3px solid #FFFFFF; box-shadow: 0 0 0 8px rgba(23,22,26,0.1)"></span></a>
+
+<sc-if value="{{friendsOn}}" hint-placeholder-val="{{ true }}">
+<sc-if value="{{small.anton}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{focusAnton}}" aria-label="Антон, на аниме-выставке" style="position: absolute; left: 300px; top: 254px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: transparent; opacity: {{othersOpacity}}"><img src="../assets/anton.jpg" alt="" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box; box-shadow: 0 0 0 2px #FFFFFF, 0 2px 6px rgba(23,22,26,0.25); display: block"></button>
+</sc-if>
+<sc-if value="{{small.timur}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{focusTimur}}" aria-label="Тимур, был здесь 25 минут назад" style="position: absolute; left: 50px; top: 404px; padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: {{timurOpacity}}; font-family: 'Golos Text', sans-serif; color: #17161A">
+<span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; background: #D9E4D2; border: 2px solid #8C8577; box-shadow: 0 0 0 2px #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">Т</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; background: #FBF9F4; color: #55524C; padding: 2px 5px; border-radius: 5px">25 МИН</span>
+</button>
+</sc-if>
+<sc-if value="{{small.igor}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{focusIgor}}" aria-label="Игорь, кофейня на Панфилова" style="position: absolute; left: 206px; top: 470px; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: transparent; opacity: {{othersOpacity}}"><img src="../assets/igor.jpg" alt="" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box; box-shadow: 0 0 0 2px #FFFFFF, 0 2px 6px rgba(23,22,26,0.25); display: block"></button>
+</sc-if>
+<sc-if value="{{small.denis}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 112px; top: 277px; width: 34px; height: 34px; animation: rdMove 7s linear infinite; opacity: {{othersOpacity}}">
+<span aria-hidden="true" style="position: absolute; left: -10px; top: 15px; width: 5px; height: 5px; border-radius: 50%; background: #2447B8; opacity: 0.5"></span>
+<span aria-hidden="true" style="position: absolute; left: -19px; top: 15px; width: 4px; height: 4px; border-radius: 50%; background: #2447B8; opacity: 0.3"></span>
+<span aria-hidden="true" style="position: absolute; left: -27px; top: 16px; width: 3px; height: 3px; border-radius: 50%; background: #2447B8; opacity: 0.18"></span>
+<button type="button" onClick="{{focusDenis}}" aria-label="Денис, едет на самокате, 14 километров в час" style="width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: transparent"><img src="../assets/denis.jpg" alt="" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box; box-shadow: 0 0 0 2px #FFFFFF, 0 2px 6px rgba(23,22,26,0.25); display: block"></button>
+<span aria-hidden="true" style="position: absolute; left: -9px; top: 38px; height: 20px; padding: 0 6px; border-radius: 10px; background: #2447B8; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; display: flex; align-items: center; gap: 3px; white-space: nowrap">14 КМ/Ч<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{isFocus}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: {{f.cx}}px; top: {{f.cy}}px; width: 0; height: 0; animation: {{f.anim}}">
+<span aria-hidden="true" style="position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; box-sizing: border-box; border-radius: 50%; background: rgba(36,71,184,0.14); border: 1px solid rgba(36,71,184,0.3)"></span>
+<span aria-hidden="true" style="position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; box-sizing: border-box; border-radius: 50%; border: 2px solid #2447B8; animation: rdPulse 1.8s ease-out infinite"></span>
+<sc-if value="{{f.hasPhoto}}" hint-placeholder-val="{{ true }}">
+<img src="{{f.photo}}" alt="{{f.name}}" style="position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 3px solid {{f.ring}}; box-sizing: border-box; box-shadow: 0 0 0 3px #FFFFFF, 0 4px 12px rgba(23,22,26,0.3); display: block">
+</sc-if>
+<sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ false }}">
+<span style="position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; background: #D9E4D2; border: 3px solid {{f.ring}}; box-shadow: 0 0 0 3px #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700">{{f.initial}}</span>
+</sc-if>
+<sc-if value="{{f.moving}}" hint-placeholder-val="{{ false }}">
+<span style="position: absolute; left: -34px; top: 30px; height: 22px; padding: 0 8px; border-radius: 11px; background: #2447B8; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap">{{f.speed}}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+</sc-if>
+<sc-if value="{{hasBubble}}" hint-placeholder-val="{{ false }}">
+<span style="position: absolute; left: 14px; top: -58px; height: 36px; padding: 0 12px; box-sizing: border-box; border-radius: 12px; border: 2px solid #FFFFFF; background: {{bubble.bg}}; color: {{bubble.fg}}; font-family: 'Geologica', sans-serif; font-size: 14px; font-weight: 800; display: flex; align-items: center; white-space: nowrap; box-shadow: 0 6px 14px rgba(23,22,26,0.25); animation: rdPop 0.4s ease-out both">{{bubble.label}}</span>
+</sc-if>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{calOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closeSheet}}" aria-label="Закрыть календарь" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; border: 0; background: rgba(23,22,26,0.32); animation: rdFade 0.2s ease-out"></button>
+</sc-if>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 50px; display: flex; gap: 8px; align-items: center">
+<button type="button" onClick="{{toggleCal}}" aria-expanded="{{calOpen}}" aria-label="{{dateAria}}" style="flex-grow: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 6px 0 16px; border: 0; border-radius: 26px; background: #FBF9F4; display: flex; align-items: center; gap: 10px; font-family: 'Golos Text', sans-serif; color: #17161A; text-align: left; box-shadow: 0 2px 10px rgba(23,22,26,0.08)">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 600; line-height: 1.2; white-space: nowrap">{{dateLabel}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{chevron}}deg); transition: transform 0.2s ease"><path d="M6 9l6 6 6-6"></path></svg></span>
+
+</span>
+<span style="height: 40px; padding: 0 12px 0 10px; box-sizing: border-box; border-radius: 20px; background: #EFEBE2; display: flex; align-items: center; gap: 6px; flex-shrink: 0">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{wx.icon}}"></path></svg>
+<span style="font-size: 15px; font-weight: 600">{{wx.t}}</span>
+</span>
+</button>
+<button type="button" aria-label="Поиск по событиям и местам" style="width: 52px; height: 52px; flex-shrink: 0; border: 0; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; color: #17161A; box-shadow: 0 2px 10px rgba(23,22,26,0.08)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+<button type="button" onClick="{{openFilters}}" aria-label="{{filtersAria}}" style="position: relative; width: 52px; height: 52px; flex-shrink: 0; border: 0; border-radius: 50%; background: {{filtersBg}}; display: flex; align-items: center; justify-content: center; color: {{filtersFg}}; box-shadow: 0 2px 10px rgba(23,22,26,0.08)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+<sc-if value="{{hasActive}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: 2px; top: 2px; width: 17px; height: 17px; border-radius: 50%; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FBF9F4">{{activeCount}}</span></sc-if>
+</button>
+</div>
+
+<sc-if value="{{calOpen}}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-label="Календарь" style="position: absolute; left: 12px; right: 12px; top: 112px; box-sizing: border-box; padding: 14px 12px 12px; border-radius: 24px; background: #FBF9F4; box-shadow: 0 18px 40px rgba(23,22,26,0.22); display: flex; flex-direction: column; gap: 12px; animation: rdDrop 0.22s ease-out">
+<div role="group" aria-label="Быстрый выбор" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{presets}}" as="pr" hint-placeholder-count="4">
+<button type="button" onClick="{{pr.pick}}" aria-pressed="{{pr.on}}" style="height: 38px; padding: 0; border: 1px solid {{pr.border}}; border-radius: 12px; background: {{pr.bg}}; color: {{pr.fg}}; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600">{{pr.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 600">Сентябрь — октябрь</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; color: #55524C">ПОГОДА НА 7 ДНЕЙ</span>
+</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-align: center; color: #55524C">
+<span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span style="color: #8A3A12">СБ</span><span style="color: #8A3A12">ВС</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 4px">
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="35">
+<div style="height: 50px; background: {{c.band}}; border-radius: {{c.bandRadius}}">
+<button type="button" onClick="{{c.pick}}" aria-pressed="{{c.sel}}" aria-label="{{c.aria}}" style="width: 100%; height: 50px; padding: 0; border: 0; border-radius: 12px; background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.ring}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-family: 'Geologica', sans-serif; font-size: 15px; font-weight: {{c.weight}}">
+<span>{{c.n}}</span>
+<sc-if value="{{c.hasWx}}" hint-placeholder-val="{{ false }}">
+<span style="display: flex; align-items: center; gap: 1px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.wxIcon}}"></path></svg>{{c.wxT}}</span>
+</sc-if>
+<sc-if value="{{c.noWx}}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; gap: 2px; height: 4px">
+<span style="width: 4px; height: 4px; border-radius: 50%; background: {{c.dot}}; opacity: {{c.a1}}"></span>
+<span style="width: 4px; height: 4px; border-radius: 50%; background: {{c.dot}}; opacity: {{c.a2}}"></span>
+<span style="width: 4px; height: 4px; border-radius: 50%; background: {{c.dot}}; opacity: {{c.a3}}"></span>
+</span>
+</sc-if>
+</button>
+</div>
+</sc-for>
+</div>
+<button type="button" onClick="{{closeSheet}}" style="height: 50px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">{{showLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isFocus}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 16px; right: 16px; top: 112px; display: flex">
+<span style="height: 38px; padding: 0 6px 0 12px; box-sizing: border-box; border-radius: 19px; background: #2447B8; color: #FFFFFF; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 10px rgba(36,71,184,0.25)">
+{{f.banner}}
+<button type="button" onClick="{{exitFocus}}" aria-label="Показать всех на карте" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(255,255,255,0.18); color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</span>
+</div>
+</sc-if>
+
+<sc-if value="{{notFocus}}" hint-placeholder-val="{{ true }}">
+<a href="CreateEvent.dc.html" aria-label="Создать встречу" style="position: absolute; right: 14px; top: 420px; width: 44px; height: 44px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none; box-shadow: 0 2px 10px rgba(23,22,26,0.1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+<button type="button" aria-label="Показать, где я" style="position: absolute; right: 14px; top: 472px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; color: #17161A; box-shadow: 0 2px 10px rgba(23,22,26,0.1)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4L4 11l7 2 2 7z"></path></svg></button>
+
+<a href="{{card.href}}" style="position: absolute; left: 12px; right: 12px; bottom: 96px; box-sizing: border-box; background: #FBF9F4; border-radius: 22px; padding: 16px; text-decoration: none; color: #17161A; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 8px 24px rgba(23,22,26,0.1)">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #55524C"><span style="width: 8px; height: 8px; border-radius: 2px; background: {{card.color}}"></span>{{card.meta}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">{{card.price}}</span>
+</div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; padding-top: 2px">{{card.title}}</div>
+<div style="font-size: 13px; color: #3A3833">{{card.address}}</div>
+<div style="display: flex; align-items: center; gap: 10px; margin-top: 8px">
+<span style="display: flex; padding-right: 8px">
+<sc-for list="{{card.people}}" as="p" hint-placeholder-count="2">
+<img src="{{p.src}}" alt="" style="width: 28px; height: 28px; margin-right: -8px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; box-shadow: 0 0 0 2px #FBF9F4; display: block">
+</sc-for>
+</span>
+<span style="flex-grow: 1; font-size: 13px; color: #3A3833">{{card.social}}</span>
+<span style="height: 38px; padding: 0 14px; border-radius: 19px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 14px; font-weight: 600">Открыть</span>
+</div>
+</a>
+</sc-if>
+
+<sc-if value="{{isFocus}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 12px; right: 12px; bottom: 96px; box-sizing: border-box; background: #FBF9F4; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 24px rgba(23,22,26,0.14); animation: rdSheet 0.3s ease-out">
+<div style="display: flex; gap: 12px; align-items: center">
+<sc-if value="{{f.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{f.photo}}" alt="" style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 3px solid {{f.ring}}; box-sizing: border-box; display: block"></sc-if>
+<sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 52px; height: 52px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; background: #D9E4D2; border: 3px solid {{f.ring}}; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 700">{{f.initial}}</span></sc-if>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700">{{f.name}}</span>
+<span style="font-size: 13px; color: #3A3833">{{f.place}}</span>
+</span>
+<a href="PersonFriend.dc.html" style="flex-shrink: 0; font-size: 13px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px">Профиль</a>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: #55524C">
+<sc-if value="{{f.moving}}" hint-placeholder-val="{{ false }}"><span style="height: 20px; padding: 0 7px; border-radius: 10px; background: #2447B8; color: #FFFFFF; display: flex; align-items: center">{{f.speed}}</span></sc-if>
+<span>{{f.status}}</span>
+</div>
+<a href="{{f.planHref}}" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: #F3F0E8; text-decoration: none; color: #17161A">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px; background: {{f.planColor}}"></span>
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.35">{{f.plan}}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+</a>
+<div role="group" aria-label="Кинуть стикер" style="display: flex; gap: 8px; align-items: center">
+<sc-for list="{{stickers}}" as="k" hint-placeholder-count="5">
+<button type="button" onClick="{{k.send}}" aria-label="{{k.aria}}" style="height: 40px; padding: 0 10px; box-sizing: border-box; border: 2px solid #FFFFFF; border-radius: 12px; background: {{k.bg}}; color: {{k.fg}}; font-family: 'Geologica', sans-serif; font-size: 13px; font-weight: 800; white-space: nowrap; transform: rotate({{k.rot}}deg); box-shadow: 0 3px 8px rgba(23,22,26,0.18)">{{k.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; gap: 8px">
+<a href="DirectChat.dc.html" style="flex-grow: 1; flex-basis: 0; height: 48px; box-sizing: border-box; border-radius: 14px; border: 1.5px solid #17161A; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: none">Написать</a>
+<button type="button" onClick="{{openInvite}}" style="flex-grow: 1; flex-basis: 0; height: 48px; border: 0; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">Позвать куда-то</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{flying}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: {{fly.x}}px; top: {{fly.y}}px; transform: translateX({{fly.dx}}px); transition: transform 0.65s cubic-bezier(0.5, 0, 0.75, 0.6)">
+<span style="height: 40px; padding: 0 10px; box-sizing: border-box; border: 2px solid #FFFFFF; border-radius: 12px; background: {{fly.bg}}; color: {{fly.fg}}; font-family: 'Geologica', sans-serif; font-size: 13px; font-weight: 800; display: flex; align-items: center; white-space: nowrap; box-shadow: 0 8px 18px rgba(23,22,26,0.28); transform: translateY({{fly.dy}}px) scale({{fly.sc}}) rotate({{fly.rot}}deg); transition: transform 0.65s cubic-bezier(0.2, 0.9, 0.4, 1)">{{fly.label}}</span>
+</span>
+</sc-if>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 16px; right: 16px; top: {{toastTop}}px; min-height: 52px; box-sizing: border-box; padding: 7px 7px 7px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(23,22,26,0.3); animation: rdDrop 0.25s ease-out">
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.35">{{toastText}}</span>
+<a href="DirectChat.dc.html" style="flex-shrink: 0; height: 38px; padding: 0 12px; border-radius: 12px; background: #F0521F; color: #17161A; display: flex; align-items: center; font-size: 13px; font-weight: 600; text-decoration: none">Чат</a>
+</div>
+</sc-if>
+
+<sc-if value="{{filtersOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closeSheet}}" aria-label="Закрыть фильтры" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; border: 0; background: rgba(23,22,26,0.4); animation: rdFade 0.2s ease-out"></button>
+<div role="dialog" aria-label="Фильтры" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; background: #F3F0E8; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; gap: 16px; animation: rdSheet 0.28s ease-out">
+<span style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Фильтры</span>
+<button type="button" onClick="{{resetFilters}}" style="height: 36px; padding: 0 4px; border: 0; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px">Сбросить</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">ЦЕНА</span>
+<div style="border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Только бесплатные</span><span style="font-size: 12.5px; color: #55524C">вход свободный или донат</span></span>
+<button type="button" role="switch" aria-checked="{{free}}" aria-label="Только бесплатные" onClick="{{toggleFree}}" style="width: 52px; height: 32px; flex-shrink: 0; padding: 0; border: 0; border-radius: 16px; background: {{freeTrack}}; position: relative"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(23,22,26,0.3); transform: translateX({{freeX}}px); transition: transform 0.15s ease"></span></button>
+</div>
+<div style="padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 4px; opacity: {{sliderOpacity}}">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Бюджет</span><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">{{priceLabel}}</span></div>
+<input type="range" min="0" max="20000" step="500" value="{{max}}" onChange="{{onMax}}" disabled="{{free}}" aria-label="Максимальная цена билета" style="width: 100%; margin: 0; height: 28px">
+<div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #55524C"><span>0 ₸</span><span>10 000</span><span>20 000+</span></div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">ЧТО ИНТЕРЕСНО</span>
+<div role="group" aria-label="Категории" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{cats}}" as="ct" hint-placeholder-count="8">
+<button type="button" onClick="{{ct.pick}}" aria-pressed="{{ct.on}}" style="height: 38px; padding: 0 14px; border: 1px solid {{ct.border}}; border-radius: 19px; background: {{ct.bg}}; color: {{ct.fg}}; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600">{{ct.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">НА КАРТЕ</span>
+<div style="border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column">
+<sc-for list="{{layers}}" as="w" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: {{w.line}}">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{w.label}}</span><span style="font-size: 12.5px; color: #55524C">{{w.hint}}</span></span>
+<button type="button" role="switch" aria-checked="{{w.on}}" aria-label="{{w.label}}" onClick="{{w.toggle}}" style="width: 52px; height: 32px; flex-shrink: 0; padding: 0; border: 0; border-radius: 16px; background: {{w.track}}; position: relative"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(23,22,26,0.3); transform: translateX({{w.x}}px); transition: transform 0.15s ease"></span></button>
+</div>
+</sc-for>
+</div>
+</div>
+
+<button type="button" onClick="{{closeSheet}}" style="height: 54px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 600">{{showLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{inviteOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closeSheet}}" aria-label="Закрыть" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; border: 0; background: rgba(23,22,26,0.4); animation: rdFade 0.2s ease-out"></button>
+<div role="dialog" aria-label="{{f.inviteTitle}}" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; background: #F3F0E8; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; gap: 14px; animation: rdSheet 0.28s ease-out">
+<span style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+<div style="display: flex; gap: 12px; align-items: center">
+<sc-if value="{{f.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{f.photo}}" alt="" style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; display: block"></sc-if>
+<sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 46px; height: 46px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; background: #D9E4D2; border: 2px solid #2447B8; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700">{{f.initial}}</span></sc-if>
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">{{f.inviteTitle}}</span>
+<span style="font-size: 13px; color: #55524C; line-height: 1.35">Подобрали по вашим общим интересам и планам</span>
+</span>
+</div>
+<div role="radiogroup" aria-label="Куда позвать" style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{suggest}}" as="g" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{g.on}}" onClick="{{g.pick}}" style="display: flex; align-items: center; gap: 12px; padding: 12px; box-sizing: border-box; border: 1.5px solid {{g.border}}; border-radius: 18px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; color: #17161A; text-align: left">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 13px; background: {{g.color}}; color: {{g.iconFg}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.icon}}"></path></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 600">{{g.title}}</span>
+<span style="font-size: 12.5px; color: #55524C">{{g.when}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; color: #8A3A12">{{g.why}}</span>
+</span>
+<span style="width: 22px; height: 22px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid {{g.border}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: #17161A; opacity: {{g.dotO}}"></span></span>
+</button>
+</sc-for>
+<a href="CreateEvent.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 12px; box-sizing: border-box; border: 1.5px dashed #B9B2A3; border-radius: 18px; text-decoration: none; color: #17161A">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 13px; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Своё: кофе, прогулка, ужин</span><span style="font-size: 12.5px; color: #55524C">выбрать место и время самому</span></span>
+</a>
+</div>
+<button type="button" onClick="{{sendInvite}}" style="height: 54px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 600">{{f.inviteCta}}</button>
+<span style="align-self: center; text-align: center; font-size: 12.5px; line-height: 1.4; color: #55524C">Придёт в чат карточкой с кнопками «Иду» и «Не смогу»</span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="map" hint-size="390px,84px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mapTheme":{"editor":"enum","options":["paper","night","mono"],"default":"paper"},"focus":{"editor":"enum","options":["none","igor","denis","anton","timur"],"default":"none"},"sheet":{"editor":"enum","options":["none","calendar","filters","invite"],"default":"none"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      focus: null, sheet: null,
+      start: 0, end: 0,
+      free: false, max: 20000, cats: {}, friends: true, company: false,
+      pick: 0, fly: null, bubble: null, toast: null
+    };
+    this.timers = [];
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  renderVals() {
+    const s = this.state;
+    const INK = '#17161A', PAPER = '#F3F0E8', CARD = '#FBFAF6', LINE = '#CFC9BB', SAND = '#E7E2D6', ORANGE = '#F0521F', BLUE = '#2447B8';
+    const IG = '../assets/igor.jpg', DE = '../assets/denis.jpg', AN = '../assets/anton.jpg';
+    const ICON = {
+      note: 'M9 18V5l11-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM17 19a3 3 0 100-6 3 3 0 000 6z',
+      mic: 'M9 3h6v11H9zM5 11a7 7 0 0014 0M12 18v3',
+      star: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z',
+      peak: 'M3 20l6-10 4 6 3-4 5 8z',
+      dice: 'M4 4h16v16H4zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      cup: 'M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8zM17 10h1.5a2.5 2.5 0 010 5H17'
+    };
+    const WX = {
+      sun: 'M12 8a4 4 0 110 8 4 4 0 010-8zM12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4',
+      part: 'M8.5 3v1.3M3 8.5h1.3M4.6 4.6l.9.9M12.4 4.6l-.9.9M6.3 10.2a3 3 0 015-2.6M9 20a3.6 3.6 0 01-.4-7.17A5.4 5.4 0 0119 12.2a3.9 3.9 0 01-.6 7.8z',
+      cloud: 'M7 18.5a4 4 0 01-.5-7.97A6 6 0 0118 9.5a4.5 4.5 0 01-.5 9z',
+      rain: 'M7 15.5a4 4 0 01-.5-7.97A6 6 0 0118 6.5a4.5 4.5 0 01-.5 9zM8 22l1.2-2.5M12 22l1.2-2.5M16 22l1.2-2.5'
+    };
+    const forecast = [['sun', '+18°', 'ясно'], ['part', '+16°', 'переменная облачность'], ['rain', '+11°', 'дождь'], ['part', '+14°', 'переменная облачность'], ['sun', '+17°', 'ясно'], ['sun', '+19°', 'ясно'], ['cloud', '+15°', 'облачно']];
+
+    const focusId = s.focus ?? this.props.focus ?? 'none';
+    const FR = {
+      igor: { name: 'Игорь', photo: IG, cx: 223, cy: 487, moving: false, ring: BLUE, place: 'Кофейня на Панфилова', status: 'НА МЕСТЕ · ОБНОВЛЕНО 2 МИН НАЗАД', speed: '',
+        plan: 'Вечером идёт на джаз — ты тоже', planColor: ORANGE, planHref: 'Event.dc.html', banner: 'Показываю Игоря',
+        suggest: [['jazz', 'Вместе на джаз', 'сегодня 19:30 · Панфилова, 110', 'ВЫ ОБА ИДЁТЕ — ВСТРЕТИТЬСЯ У ВХОДА'], ['games', 'Настолки без своей компании', 'сегодня 20:00 · Жибек Жолы, 64', 'ОБА ЛЮБИТЕ НАСТОЛКИ'], ['standup', 'Стендап: открытый микрофон', 'пт 20:00 · Абая, 52', 'ИГОРЬ СОХРАНИЛ ЭТО СОБЫТИЕ']] },
+      denis: { name: 'Денис', photo: DE, cx: 177, cy: 294, moving: true, ring: BLUE, place: 'Едет по Абая к аниме-выставке', status: 'САМОКАТ · ОБНОВЛЯЕТСЯ ВЖИВУЮ', speed: '14 КМ/Ч',
+        plan: 'Идёт на аниме-выставку до 21:00', planColor: SAND, planHref: 'Event.dc.html', banner: 'Показываю Дениса',
+        suggest: [['anime', 'Аниме-выставка «Токио в Алматы»', 'сегодня до 21:00 · Абая, 109', 'ДЕНИС ЕДЕТ ТУДА'], ['jazz', 'Джаз во дворе', 'сегодня 19:30 · Панфилова, 110', 'ТЫ ИДЁШЬ — ПОЗОВИ С СОБОЙ'], ['games', 'Настолки без своей компании', 'сегодня 20:00 · Жибек Жолы, 64', 'ОБА ЛЮБИТЕ НАСТОЛКИ']] },
+      anton: { name: 'Антон', photo: AN, cx: 317, cy: 271, moving: false, ring: BLUE, place: 'Аниме-выставка, ТРЦ на Абая', status: 'НА МЕСТЕ · ОБНОВЛЕНО 1 МИН НАЗАД', speed: '',
+        plan: 'Свободен весь вечер', planColor: '#D9E4D2', planHref: 'PersonFriend.dc.html', banner: 'Показываю Антона',
+        suggest: [['anime', 'Аниме-выставка «Токио в Алматы»', 'сегодня до 21:00 · Абая, 109', 'АНТОН УЖЕ ТАМ'], ['food', 'Фуд-маркет', 'сегодня до 23:00 · Абая, 150', 'РЯДОМ С ВАМИ ОБОИМИ'], ['jazz', 'Джаз во дворе', 'сегодня 19:30 · Панфилова, 110', 'ТЫ ИДЁШЬ — ПОЗОВИ С СОБОЙ']] },
+      timur: { name: 'Тимур', photo: '', initial: 'Т', cx: 65, cy: 419, moving: false, ring: '#8C8577', place: 'Был здесь 25 минут назад', status: 'ГЕОЛОКАЦИЯ НА ПАУЗЕ', speed: '',
+        plan: 'В субботу идёт в поход — ты тоже', planColor: INK, planHref: 'HikeEvent.dc.html', banner: 'Показываю Тимура',
+        suggest: [['hike', 'Поход на Кок-Жайляу', 'сб 08:00 · Медеуское ущелье', 'ВЫ ОБА ИДЁТЕ — ПОЕХАТЬ ВМЕСТЕ'], ['standup', 'Стендап: открытый микрофон', 'пт 20:00 · Абая, 52', 'ОБА ЛЮБИТЕ СТЕНДАП'], ['games', 'Настолки без своей компании', 'сегодня 20:00 · Жибек Жолы, 64', 'ДАВНО НЕ ВИДЕЛИСЬ']] }
+    };
+    const fr = FR[focusId];
+    const isFocus = !!fr;
+    let sheet = s.sheet ?? this.props.sheet ?? 'none';
+    if (sheet === 'invite' && !isFocus) sheet = 'none';
+    const panY = isFocus ? Math.max(-250, Math.min(0, 300 - fr.cy)) : 0;
+
+    const EV = {
+      jazz: { days: [0], cat: 'music', price: 0 }, concert: { days: [0], cat: 'music', price: 15000 }, games: { days: [0, 3], cat: 'games', price: 2000 },
+      anime: { days: [0, 1, 2, 3, 4, 5, 6], cat: 'art', price: 2500 }, food: { days: [0, 4, 5, 6], cat: 'food', price: 0 },
+      standup: { days: [4], cat: 'standup', price: 3000 }, hike: { days: [5], cat: 'hike', price: 0 }
+    };
+    const end = s.end == null ? s.start : s.end;
+    const lo = Math.min(s.start, end), hi = Math.max(s.start, end);
+    const catsOn = Object.keys(s.cats).filter((k) => s.cats[k]);
+    const visible = (id) => {
+      const e = EV[id];
+      const inDays = e.days.some((d) => d >= lo && d <= hi);
+      const okPrice = s.free ? e.price === 0 : e.price <= s.max;
+      const okCat = catsOn.length === 0 || catsOn.indexOf(e.cat) >= 0;
+      return inDays && okPrice && okCat;
+    };
+    const pin = {};
+    Object.keys(EV).forEach((k) => { pin[k] = visible(k); });
+    const count = Object.keys(EV).filter((k) => pin[k]).length;
+    const plural = (n) => (n % 10 === 1 && n % 100 !== 11) ? 'событие' : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'события' : 'событий');
+
+    const dayName = (t) => t < 3 ? (28 + t) + ' сен' : (t <= 33 ? (t - 2) + ' окт' : (t - 33) + ' ноя');
+    let dateLabel;
+    if (lo === hi) dateLabel = lo === 0 ? 'Сегодня' : (lo === 1 ? 'Завтра' : dayName(lo));
+    else if (lo === 5 && hi === 6) dateLabel = 'Выходные';
+    else dateLabel = dayName(lo) + ' – ' + dayName(hi);
+    const w = forecast[lo] || null;
+    const wx = w ? { icon: WX[w[0]], t: w[1] } : { icon: WX.cloud, t: '—' };
+
+    const density = [3,2,1,2,3,3,2,1,1,2,2,3,3,3,1,1,1,2,3,3,2,1,1,2,2,3,3,1,1,1,2,3,3,2,1];
+    const cells = density.map((k, t) => {
+      const other = t < 3 || t > 33;
+      const n = t < 3 ? String(28 + t) : (t <= 33 ? String(t - 2) : String(t - 33));
+      const isEnd = t === lo || t === hi;
+      const inR = t >= lo && t <= hi;
+      let bandRadius = '0';
+      if (lo === hi) bandRadius = '12px';
+      else if (t === lo) bandRadius = '12px 0 0 12px';
+      else if (t === hi) bandRadius = '0 12px 12px 0';
+      const col = t % 7;
+      const fw = forecast[t];
+      return {
+        n, sel: inR,
+        aria: dayName(t) + (t === 0 ? ', сегодня' : '') + (fw ? ', ' + fw[1] + ', ' + fw[2] : ''),
+        band: inR && lo !== hi ? SAND : 'transparent', bandRadius,
+        bg: isEnd ? INK : 'transparent',
+        fg: isEnd ? PAPER : (other && t > 33 ? '#6B675F' : (col >= 5 ? '#8A3A12' : INK)),
+        weight: isEnd || t === 0 ? '700' : '500',
+        ring: t === 0 && !isEnd ? 'inset 0 0 0 1.5px ' + INK : 'none',
+        hasWx: !!fw, noWx: !fw, wxIcon: fw ? WX[fw[0]] : '', wxT: fw ? fw[1] : '',
+        dot: isEnd ? ORANGE : INK,
+        a1: k >= 1 ? 1 : 0.15, a2: k >= 2 ? 1 : 0.15, a3: k >= 3 ? 1 : 0.15,
+        pick: () => {
+          if (s.end != null || t < s.start) this.setState({ start: t, end: null });
+          else this.setState({ end: t });
+        }
+      };
+    });
+    const chip = (on) => ({ bg: on ? INK : CARD, fg: on ? PAPER : INK, border: on ? INK : LINE });
+    const presets = [['Сегодня', 0, 0], ['Завтра', 1, 1], ['Выходные', 5, 6], ['7 дней', 0, 6]].map(([label, a, b]) => {
+      const on = lo === a && hi === b;
+      return { label, on, ...chip(on), pick: () => this.setState({ start: a, end: b }) };
+    });
+    const catDefs = [['music', 'Музыка'], ['standup', 'Стендап'], ['hike', 'Горы'], ['art', 'Выставки'], ['games', 'Настолки'], ['food', 'Еда'], ['sport', 'Спорт'], ['talks', 'Лекции']];
+    const cats = catDefs.map(([key, label]) => {
+      const on = !!s.cats[key];
+      return { label, on, ...chip(on), pick: () => this.setState({ cats: { ...s.cats, [key]: !on } }) };
+    });
+    const sw = (on) => ({ track: on ? INK : LINE, x: on ? 20 : 0 });
+    const layers = [
+      { label: 'Друзья', hint: 'только те, кто сам включил геолокацию', on: s.friends, ...sw(s.friends), line: '1px solid ' + SAND, toggle: () => this.setState({ friends: !s.friends }) },
+      { label: 'Где ищут компанию', hint: 'покажем, куда можно прийти одному', on: s.company, ...sw(s.company), line: '0', toggle: () => this.setState({ company: !s.company }) }
+    ];
+    const fmt = (v) => v.toLocaleString('ru-RU');
+    const priceLabel = s.free ? 'бесплатно' : (s.max >= 20000 ? 'любой' : 'до ' + fmt(s.max) + ' ₸');
+    const activeCount = (s.free || s.max < 20000 ? 1 : 0) + (catsOn.length ? 1 : 0) + (!s.friends ? 1 : 0) + (s.company ? 1 : 0);
+
+    let card;
+    if (pin.jazz) card = { href: 'Event.dc.html', color: ORANGE, meta: 'МУЗЫКА · СЕГОДНЯ 19:30', price: '0 ₸', title: 'Джаз во дворе', address: 'Панфилова, 110, во дворе', people: [{ src: IG }, { src: DE }], social: 'Игорь и Денис идут' };
+    else if (pin.hike) card = { href: 'HikeEvent.dc.html', color: INK, meta: 'ГОРЫ · СБ 08:00', price: '0 ₸', title: 'Поход на Кок-Жайляу', address: 'Начало тропы, Медеуское ущелье', people: [], social: 'Тимур идёт · ищут компанию 3' };
+    else if (pin.standup) card = { href: 'Event.dc.html', color: INK, meta: 'СТЕНДАП · ПТ 20:00', price: '3 000 ₸', title: 'Стендап: открытый микрофон', address: 'Бар «Гараж», Абая, 52', people: [], social: 'Айнура ищет компанию' };
+    else card = { href: 'Event.dc.html', color: SAND, meta: 'ВЫСТАВКА · ДО 21:00', price: '2 500 ₸', title: 'Аниме-выставка «Токио в Алматы»', address: 'ТРЦ на Абая, 109, 3 этаж', people: [{ src: AN }], social: 'Антон уже там' };
+
+    const STK = [['go', 'ГО?', ORANGE, INK, -4, 50], ['where', 'ТЫ ГДЕ?', BLUE, '#FFFFFF', 3, 115], ['coffee', 'КОФЕ?', SAND, INK, -2, 188], ['wait', 'ЖДУ', '#D9E4D2', INK, 4, 250], ['hi', 'ПРИВЕТ', INK, PAPER, -3, 317]];
+    const tx = isFocus ? fr.cx : 0;
+    const ty = isFocus ? fr.cy + panY : 0;
+    const stickers = STK.map(([id, label, bg, fg, rot, sx]) => ({
+      label, bg, fg, rot, aria: 'Кинуть стикер «' + label + '»',
+      send: () => {
+        if (!isFocus || s.fly) return;
+        const base = { label, bg, fg, x: sx - 30, y: 630 };
+        this.setState({ fly: { ...base, dx: 0, dy: 0, sc: 1, rot: rot }, bubble: null, toast: null });
+        this.later(() => this.setState({ fly: { ...base, dx: tx - sx, dy: ty - 650, sc: 0.85, rot: -6 } }), 30);
+        this.later(() => this.setState({ fly: null, bubble: { label, bg, fg }, toast: '«' + label + '» ушёл: ' + fr.name + ' увидит на карте и в чате' }), 720);
+        this.later(() => this.setState({ bubble: null }), 3400);
+      }
+    }));
+
+    const EVS = {
+      jazz: [ORANGE, INK, ICON.note], games: ['#D9E4D2', INK, ICON.dice], standup: [INK, PAPER, ICON.mic], anime: [SAND, INK, ICON.star], food: ['#EADFB8', INK, ICON.cup], hike: [INK, PAPER, ICON.peak]
+    };
+    const suggest = isFocus ? fr.suggest.map(([id, title, when, why], i) => {
+      const on = s.pick === i;
+      return { title, when, why, on, color: EVS[id][0], iconFg: EVS[id][1], icon: EVS[id][2], border: on ? INK : '#DDD8CC', dotO: on ? 1 : 0, pick: () => this.setState({ pick: i }) };
+    }) : [];
+    const nameAcc = { igor: 'Игоря', denis: 'Дениса', anton: 'Антона', timur: 'Тимура' };
+    const f = isFocus ? {
+      ...fr, hasPhoto: !!fr.photo, noPhoto: !fr.photo, initial: fr.initial || '',
+      anim: fr.moving ? 'rdMove 7s linear infinite' : 'none',
+      cx: fr.moving ? fr.cx - 48 : fr.cx,
+      inviteTitle: 'Позвать ' + nameAcc[focusId],
+      inviteCta: 'Позвать ' + nameAcc[focusId]
+    } : { cx: 0, cy: 0, anim: 'none', name: '', photo: '', hasPhoto: false, noPhoto: false, initial: '', ring: BLUE, moving: false, speed: '', banner: '', inviteTitle: '', inviteCta: '', place: '', status: '', plan: '', planHref: 'Main.dc.html', planColor: SAND };
+    const focusOn = (id) => () => this.setState({ focus: id, sheet: 'none', pick: 0, bubble: null, toast: null });
+    return {
+      mapTheme: this.props.mapTheme ?? 'paper',
+      panY, pin, companyOn: s.company,
+      isFocus, notFocus: !isFocus, f,
+      eventsOpacity: isFocus ? 0.35 : 1,
+      othersOpacity: isFocus ? 0.3 : 1,
+      timurOpacity: isFocus ? 0.25 : 0.6,
+      friendsOn: s.friends || isFocus,
+      small: { igor: focusId !== 'igor', denis: focusId !== 'denis', anton: focusId !== 'anton', timur: focusId !== 'timur' },
+      focusIgor: focusOn('igor'), focusDenis: focusOn('denis'), focusAnton: focusOn('anton'), focusTimur: focusOn('timur'),
+      exitFocus: () => this.setState({ focus: 'none', sheet: 'none', bubble: null, toast: null }),
+      dateLabel, dateAria: 'Дата: ' + dateLabel + ', ' + (w ? w[1] + ', ' + w[2] : 'прогноза пока нет') + '. Открыть календарь',
+      countLabel: count + ' ' + plural(count) + (s.friends ? ' · 4 друга рядом' : ''),
+      wx, chevron: sheet === 'calendar' ? 180 : 0,
+      calOpen: sheet === 'calendar', filtersOpen: sheet === 'filters', inviteOpen: sheet === 'invite',
+      toggleCal: () => this.setState({ sheet: sheet === 'calendar' ? 'none' : 'calendar' }),
+      openFilters: () => this.setState({ sheet: 'filters' }),
+      closeSheet: () => this.setState({ sheet: 'none' }),
+      presets, cells, cats, layers,
+      showLabel: count ? 'Показать ' + count + ' ' + plural(count) : 'Ничего не нашлось — ослабь фильтры',
+      free: s.free, max: s.max, priceLabel,
+      freeTrack: s.free ? INK : LINE, freeX: s.free ? 20 : 0, sliderOpacity: s.free ? 0.45 : 1,
+      toggleFree: () => this.setState({ free: !s.free }),
+      onMax: (e) => this.setState({ max: Number(e.target.value), free: false }),
+      resetFilters: () => this.setState({ free: false, max: 20000, cats: {}, friends: true, company: false }),
+      hasActive: activeCount > 0, activeCount: String(activeCount),
+      filtersBg: activeCount ? INK : '#FBF9F4', filtersFg: activeCount ? PAPER : INK,
+      filtersAria: 'Фильтры' + (activeCount ? ', активно ' + activeCount : ''),
+      card,
+      stickers,
+      flying: !!s.fly, fly: s.fly || { label: '', bg: INK, fg: PAPER, x: 0, y: 0, dx: 0, dy: 0, sc: 1, rot: 0 },
+      hasBubble: !!s.bubble, bubble: s.bubble || { label: '', bg: INK, fg: PAPER },
+      suggest,
+      openInvite: () => this.setState({ sheet: 'invite', toast: null }),
+      sendInvite: () => {
+        const g = fr ? fr.suggest[s.pick] : null;
+        this.setState({ sheet: 'none', toast: g ? 'Позвал: «' + g[1] + '». ' + fr.name + ' ответит в чате' : null });
+      },
+      hasToast: !!s.toast, toastText: s.toast || '',
+      toastTop: 160
+    };
+  }
+}
+</script>
+</body>
+</html>

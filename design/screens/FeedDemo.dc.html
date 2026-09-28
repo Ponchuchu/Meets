@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Как двигаются карточки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+.d1x{animation:d1x 5.2s infinite}.d1y{animation:d1y 5.2s infinite}.d1c{animation:d1c 5.2s infinite ease-in-out}.d1s{animation:d1s 5.2s infinite}.d1f{animation:d1f 5.2s infinite ease-in-out}.d1n{animation:d1n 5.2s infinite ease-out}.d1r{animation:d1r 5.2s infinite ease-out}.d1p{animation:d1p 5.2s infinite ease-out}.d1b{animation:d1b 5.2s infinite}.d1t{animation:d1t 5.2s infinite ease-out}
+@keyframes d1x{0%,40%{transform:translateX(0);animation-timing-function:cubic-bezier(0.25,0.7,0.4,1)}60%,100%{transform:translateX(156px)}}
+@keyframes d1y{0%{transform:translateY(0) scale(0.96);opacity:0}5%{transform:translateY(0) scale(1);opacity:1}40%{transform:translateY(0) scale(1);animation-timing-function:cubic-bezier(0.6,0,0.85,0.45)}52%{opacity:1}60%,100%{transform:translateY(418px) scale(0.06);opacity:0}}
+@keyframes d1c{0%,12%{transform:translate(0,0) rotate(0deg)}34%,40%{transform:translate(120px,6px) rotate(7deg)}56%,100%{transform:translate(0,0) rotate(0deg)}}
+@keyframes d1s{0%,14%{opacity:0}30%,56%{opacity:1}60%,100%{opacity:0}}
+@keyframes d1f{0%,6%{opacity:0;transform:translate(0,0) scale(1.3)}12%{opacity:0.9;transform:translate(0,0) scale(1)}34%{opacity:0.9;transform:translate(120px,6px) scale(1)}40%,100%{opacity:0;transform:translate(120px,6px) scale(1.2)}}
+@keyframes d1n{0%,44%{transform:translateY(8px) scale(0.95)}58%,100%{transform:translateY(0) scale(1)}}
+@keyframes d1r{0%,58%{transform:scale(0.4);opacity:0}60%{transform:scale(0.4);opacity:0.9}78%,100%{transform:scale(1.9);opacity:0}}
+@keyframes d1p{0%,58%{transform:translateY(6px);opacity:0}63%{opacity:1}80%,100%{transform:translateY(-26px);opacity:0}}
+@keyframes d1b{0%,58%{transform:scale(0)}64%{transform:scale(1.3)}70%,96%{transform:scale(1)}100%{transform:scale(0)}}
+@keyframes d1t{0%,60%{transform:translateY(14px);opacity:0}65%,94%{transform:none;opacity:1}99%,100%{transform:none;opacity:0}}
+.d2c{animation:d2c 6s infinite}.d2s{animation:d2s 6s infinite}.d2f{animation:d2f 6s infinite ease-in-out}.d2n{animation:d2n 6s infinite ease-out}.d2t{animation:d2t 6s infinite ease-out}.d2m{animation:d2m 6s infinite linear}.d2k{animation:d2k 6s infinite}.d2u{animation:d2u 6s infinite ease-out}
+@keyframes d2c{0%,10%{transform:translate(0,0) rotate(0deg);animation-timing-function:ease-in-out}30%,34%{transform:translate(-120px,6px) rotate(-7deg);animation-timing-function:ease-in}44%,66%{transform:translate(-560px,60px) rotate(-22deg);animation-timing-function:cubic-bezier(0.2,0.8,0.3,1)}80%,100%{transform:translate(0,0) rotate(0deg)}}
+@keyframes d2s{0%,12%{opacity:0}28%,44%{opacity:1}46%,100%{opacity:0}}
+@keyframes d2f{0%,4%{opacity:0;transform:translate(0,0) scale(1.3)}9%{opacity:0.9;transform:translate(0,0) scale(1)}30%{opacity:0.9;transform:translate(-120px,6px) scale(1)}35%{opacity:0;transform:translate(-120px,6px) scale(1.2)}52%{opacity:0;transform:translate(126px,250px) scale(1.3)}56%{opacity:0.9;transform:translate(126px,210px) scale(1)}60%{opacity:0.9;transform:translate(126px,210px) scale(0.82)}62%{opacity:0.9;transform:translate(126px,210px) scale(1)}66%,100%{opacity:0;transform:translate(126px,210px) scale(1.2)}}
+@keyframes d2n{0%,36%{transform:translateY(8px) scale(0.95)}46%,66%{transform:translateY(0) scale(1)}78%,100%{transform:translateY(8px) scale(0.95)}}
+@keyframes d2t{0%,44%{transform:translateY(14px);opacity:0}48%,62%{transform:none;opacity:1}66%,100%{transform:translateY(14px);opacity:0}}
+@keyframes d2m{0%,48%{transform:scaleX(1)}62%,100%{transform:scaleX(0.62)}}
+@keyframes d2k{0%,59%{transform:scale(1)}60%{transform:scale(0.9)}63%,100%{transform:scale(1)}}
+@keyframes d2u{0%,78%{transform:translateY(8px);opacity:0}82%,94%{transform:none;opacity:1}98%,100%{transform:none;opacity:0}}
+.d3x{animation:d3x 7s infinite}.d3y{animation:d3y 7s infinite}.d3c{animation:d3c 7s infinite}.d3f{animation:d3f 7s infinite ease-in-out}.d3g{animation:d3g 7s infinite ease-in-out}.d3h{animation:d3h 7s infinite}.d3o{animation:d3o 7s infinite ease-in-out}.d3btn{animation:d3btn 7s infinite}.d3la{animation:d3la 7s infinite}.d3lb{animation:d3lb 7s infinite}.d3n{animation:d3n 7s infinite ease-out}.d3r{animation:d3r 7s infinite ease-out}.d3b{animation:d3b 7s infinite}.d3t{animation:d3t 7s infinite ease-out}
+@keyframes d3x{0%,76%{transform:translateX(0);animation-timing-function:cubic-bezier(0.25,0.7,0.4,1)}90%,100%{transform:translateX(156px)}}
+@keyframes d3y{0%{transform:translateY(0) scale(0.96);opacity:0}4%{transform:translateY(0) scale(1);opacity:1}76%{transform:translateY(0) scale(1);animation-timing-function:cubic-bezier(0.6,0,0.85,0.45)}86%{opacity:1}90%,100%{transform:translateY(418px) scale(0.06);opacity:0}}
+@keyframes d3c{0%,11%{transform:scale(1)}13%{transform:scale(0.975)}16%,100%{transform:scale(1)}}
+@keyframes d3f{0%,6%{opacity:0;transform:scale(1.3)}10%{opacity:0.9;transform:scale(1)}13%{opacity:0.9;transform:scale(0.82)}15%{opacity:0.9;transform:scale(1)}19%,100%{opacity:0;transform:scale(1.2)}}
+@keyframes d3g{0%,53%{opacity:0;transform:scale(1.3)}56%{opacity:0.9;transform:scale(1)}58%{opacity:0.9;transform:scale(0.82)}60%{opacity:0.9;transform:scale(1)}63%,100%{opacity:0;transform:scale(1.2)}}
+@keyframes d3h{0%,15%{clip-path:inset(116px 16px 228px 16px round 26px);opacity:0}16%{clip-path:inset(116px 16px 228px 16px round 26px);opacity:1;animation-timing-function:cubic-bezier(0.2,0.8,0.3,1)}30%,64%{clip-path:inset(0px 0px 0px 0px round 0px);opacity:1;animation-timing-function:ease-in}74%{clip-path:inset(116px 16px 228px 16px round 26px);opacity:1}77%,100%{clip-path:inset(116px 16px 228px 16px round 26px);opacity:0}}
+@keyframes d3o{0%,34%{transform:translateY(0)}50%,62%{transform:translateY(-330px)}68%,100%{transform:translateY(0)}}
+@keyframes d3btn{0%,58%{background:#17161A;color:#F3F0E8}60%,100%{background:#F0521F;color:#17161A}}
+@keyframes d3la{0%,58%{opacity:1}60%,100%{opacity:0}}
+@keyframes d3lb{0%,58%{opacity:0}60%,100%{opacity:1}}
+@keyframes d3n{0%,78%{transform:translateY(8px) scale(0.95)}90%,100%{transform:translateY(0) scale(1)}}
+@keyframes d3r{0%,89%{transform:scale(0.4);opacity:0}90%{transform:scale(0.4);opacity:0.9}99%,100%{transform:scale(1.9);opacity:0}}
+@keyframes d3b{0%,89%{transform:scale(0)}93%{transform:scale(1.3)}96%,98%{transform:scale(1)}100%{transform:scale(0)}}
+@keyframes d3t{0%,90%{transform:translateY(14px);opacity:0}93%,98%{transform:none;opacity:1}100%{transform:none;opacity:0}}
+</style>
+</helmet>
+<div style="width: 1370px; height: 1060px; box-sizing: border-box; padding: 36px 40px 40px; background: #E9E5DB; font-family: 'Golos Text', sans-serif; color: #17161A; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 60px">
+
+<div style="display: flex; flex-direction: column; gap: 22px">
+<div style="height: 118px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">01 · СВАЙП ВПРАВО</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 700; letter-spacing: -0.015em">Пойду — карточка улетает в планы</span>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">Сжимается и падает во вкладку «Профиль»: там +1 в планах. Следующая карточка уже под пальцем, лента не кончается. Передумал — «Отменить» или ↺.</span>
+</div>
+<div style="position: relative; width: 390px; height: 844px; border-radius: 36px; overflow: hidden; background: #EFEBE2; box-shadow: 0 30px 60px rgba(23,22,26,0.16)">
+<div style="position: absolute; left: 16px; right: 16px; top: 50px; display: flex; align-items: center; gap: 12px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1">Для тебя</span><span style="font-size: 13px; color: #55524C">Алматы · сегодня и на неделе</span></div>
+</div>
+<div style="position: absolute; left: 16px; top: 116px; width: 358px; height: 500px">
+<div style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; background: #FBFAF6; transform: translateY(16px) scale(0.9); transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.08)"></div>
+<div class="d1n" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.1)">
+<div style="position: relative; height: 300px; background: #17161A; color: #F3F0E8">
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">СТЕНДАП</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ОТКРЫТЫЙ</span><span style="color: #F0521F">МИКРОФОН</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #F3F0E8; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>ПТ 2.10 · 20:00</span><span>3 000 ₸</span></span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Стендап: открытый микрофон</span><span style="font-size: 13.5px; color: #3A3833">Бар «Гараж», Абая, 52</span></div>
+</div>
+<div class="d1x" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px">
+<div class="d1y" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px">
+<div class="d1c" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; transform-origin: 50% 100%; box-shadow: 0 14px 34px rgba(23,22,26,0.18)">
+<div style="position: relative; height: 300px; background: #F0521F; color: #17161A">
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">МУЗЫКА</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ДЖАЗ</span><span>ВО ДВОРЕ</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #17161A; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>СЕГОДНЯ · 19:30</span><span>0 ₸</span></span>
+<span class="d1s" style="position: absolute; left: 18px; top: 66px; padding: 6px 12px; border: 3px solid #17161A; border-radius: 10px; background: #FBFAF6; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; transform: rotate(-12deg)">ПОЙДУ</span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Джаз во дворе</span>
+<span style="font-size: 13.5px; color: #3A3833">Панфилова, 110, во дворе</span>
+<span style="font-size: 13.5px; line-height: 1.4; color: #55524C">Джазовое трио во дворе старого дома. Можно прийти одному.</span>
+<span style="display: flex; align-items: center; gap: 10px; padding-top: 4px"><span style="display: flex"><img src="../assets/igor.jpg" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; display: block"><img src="../assets/denis.jpg" alt="" style="width: 28px; height: 28px; margin-left: -8px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; display: block"></span><span style="font-size: 13px">Игорь и Денис идут</span></span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 640px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(23,22,26,0.12)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">МИМО</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; margin-top: 9px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(23,22,26,0.1)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a5 5 0 010 10H9M8 5L4 9l4 4"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ВЕРНУТЬ</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(240,82,31,0.35)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ПОЙДУ</span></span>
+</div>
+<div class="d1t" role="status" style="position: absolute; left: 16px; right: 16px; top: 548px; height: 56px; box-sizing: border-box; padding: 8px 8px 8px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(23,22,26,0.3)"><span style="flex-grow: 1; font-size: 13.5px">В планах: джаз, сегодня 19:30</span><span style="height: 38px; padding: 0 12px; display: flex; align-items: center; font-size: 13px; font-weight: 600">Отменить</span></div>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="foryou" hint-size="390px,84px"></dc-import>
+</div>
+<span class="d1r" aria-hidden="true" style="position: absolute; left: 327px; top: 760px; width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; border: 2px solid #F0521F"></span>
+<span class="d1p" aria-hidden="true" style="position: absolute; left: 362px; top: 740px; font-family: 'Geologica', sans-serif; font-size: 15px; font-weight: 800; color: #F0521F">+1</span>
+<span class="d1b" aria-hidden="true" style="position: absolute; left: 356px; top: 766px; width: 18px; height: 18px; border-radius: 9px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #F3F0E8">1</span>
+<span class="d1f" aria-hidden="true" style="position: absolute; left: 173px; top: 344px; width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; background: rgba(23,22,26,0.3); border: 2px solid rgba(255,255,255,0.9)"></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 22px">
+<div style="height: 118px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">02 · СВАЙП ВЛЕВО, СЛУЧАЙНО</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 700; letter-spacing: -0.015em">Мимо — и сразу можно вернуть</span>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">5 секунд висит «Вернуть» с полоской-таймером, потом остаётся ↺. Пропущенное событие не вернётся в «Для тебя», но останется на карте и в поиске.</span>
+</div>
+<div style="position: relative; width: 390px; height: 844px; border-radius: 36px; overflow: hidden; background: #EFEBE2; box-shadow: 0 30px 60px rgba(23,22,26,0.16)">
+<div style="position: absolute; left: 16px; right: 16px; top: 50px; display: flex; align-items: center; gap: 12px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1">Для тебя</span><span style="font-size: 13px; color: #55524C">Алматы · сегодня и на неделе</span></div>
+</div>
+<div style="position: absolute; left: 16px; top: 116px; width: 358px; height: 500px">
+<div style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; background: #FBFAF6; transform: translateY(16px) scale(0.9); transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.08)"></div>
+<div class="d2n" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.1)">
+<div style="position: relative; height: 300px; background: #E7E2D6; color: #17161A">
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">ВЫСТАВКА</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ТОКИО</span><span>В АЛМАТЫ</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #17161A; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>СЕГОДНЯ ДО 21:00</span><span>2 500 ₸</span></span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Аниме-выставка «Токио в Алматы»</span><span style="font-size: 13.5px; color: #3A3833">ТРЦ на Абая, 109, 3 этаж</span></div>
+</div>
+<div class="d2c" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; transform-origin: 50% 100%; box-shadow: 0 14px 34px rgba(23,22,26,0.18)">
+<div style="position: relative; height: 300px; background: #17161A; color: #F3F0E8">
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">СТЕНДАП</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ОТКРЫТЫЙ</span><span style="color: #F0521F">МИКРОФОН</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #F3F0E8; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>ПТ 2.10 · 20:00</span><span>3 000 ₸</span></span>
+<span class="d2s" style="position: absolute; right: 18px; top: 66px; padding: 6px 12px; border: 3px solid #17161A; border-radius: 10px; background: #FBFAF6; color: #17161A; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; transform: rotate(12deg)">МИМО</span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Стендап: открытый микрофон</span>
+<span style="font-size: 13.5px; color: #3A3833">Бар «Гараж», Абая, 52</span>
+<span style="font-size: 13.5px; line-height: 1.4; color: #55524C">Восемь новых комиков пробуют свежий материал.</span>
+<span style="display: flex; align-items: center; gap: 10px; padding-top: 4px"><img src="../assets/ainura.jpg" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: block"><span style="font-size: 13px">Айнура и ещё 2 ищут компанию</span></span></div>
+</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 640px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(23,22,26,0.12)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">МИМО</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; margin-top: 9px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(23,22,26,0.1)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a5 5 0 010 10H9M8 5L4 9l4 4"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ВЕРНУТЬ</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(240,82,31,0.35)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ПОЙДУ</span></span>
+</div>
+<div class="d2t" role="status" style="position: absolute; left: 16px; right: 16px; top: 548px; height: 56px; box-sizing: border-box; padding: 8px 8px 8px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; overflow: hidden; box-shadow: 0 10px 24px rgba(23,22,26,0.3)">
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.35">Мимо: «Стендап: открытый микрофон»</span>
+<span class="d2k" style="height: 38px; padding: 0 12px; border-radius: 12px; background: #F0521F; color: #17161A; display: flex; align-items: center; font-size: 13px; font-weight: 600">Вернуть</span>
+<span class="d2m" aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #F0521F; transform-origin: 0 50%"></span>
+</div>
+<span class="d2u" style="position: absolute; left: 50%; top: 92px; margin-left: -112px; width: 224px; height: 30px; border-radius: 15px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: center">ВЕРНУЛ · КАРТОЧКА СНОВА ПЕРВАЯ</span>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="foryou" hint-size="390px,84px"></dc-import>
+</div>
+<span class="d2f" aria-hidden="true" style="position: absolute; left: 173px; top: 344px; width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; background: rgba(23,22,26,0.3); border: 2px solid rgba(255,255,255,0.9)"></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 22px">
+<div style="height: 118px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">03 · ТАП ПО КАРТОЧКЕ</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 700; letter-spacing: -0.015em">Тап — разворачивается подробно</span>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">Тот же шаблон события, что и на карте. Внизу «Я иду», «Ищу компанию», «Позвать друга». «Я иду» отсюда тоже отправляет карточку в планы.</span>
+</div>
+<div style="position: relative; width: 390px; height: 844px; border-radius: 36px; overflow: hidden; background: #EFEBE2; box-shadow: 0 30px 60px rgba(23,22,26,0.16)">
+<div style="position: absolute; left: 16px; right: 16px; top: 50px; display: flex; align-items: center; gap: 12px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1">Для тебя</span><span style="font-size: 13px; color: #55524C">Алматы · сегодня и на неделе</span></div>
+</div>
+<div style="position: absolute; left: 16px; top: 116px; width: 358px; height: 500px">
+<div style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; background: #FBFAF6; transform: translateY(16px) scale(0.9); transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.08)"></div>
+<div class="d3n" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; transform-origin: 50% 100%; box-shadow: 0 6px 16px rgba(23,22,26,0.1)">
+<div style="position: relative; height: 300px; background: #D9E4D2; color: #17161A">
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">НАСТОЛКИ</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>НАСТОЛКИ</span><span>БЕЗ СВОЕЙ</span><span>КОМПАНИИ</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #17161A; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>СЕГОДНЯ · 20:00</span><span>2 000 ₸</span></span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Настолки без своей компании</span><span style="font-size: 13.5px; color: #3A3833">Антикафе, Жибек Жолы, 64</span></div>
+</div>
+<div class="d3x" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px">
+<div class="d3y" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px">
+<div class="d3c" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; border-radius: 26px; overflow: hidden; background: #FBFAF6; box-shadow: 0 14px 34px rgba(23,22,26,0.18)">
+<div style="position: relative; height: 300px; background: #17161A; color: #F3F0E8; overflow: hidden">
+<img src="../assets/hike.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; object-fit: cover; display: block">
+<span style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; background: rgba(23,22,26,0.38)"></span>
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">ГОРЫ</span>
+<span style="position: absolute; left: 18px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ПОХОД</span><span>В ГОРЫ</span></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #F3F0E8; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>СБ 3.10 · 08:00</span><span>0 ₸</span></span>
+</div>
+<div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Поход на Кок-Жайляу</span>
+<span style="font-size: 13.5px; color: #3A3833">Начало тропы, Медеуское ущелье</span>
+<span style="font-size: 13.5px; line-height: 1.4; color: #55524C">Около 14 км туда и обратно, средняя сложность.</span>
+<span style="display: flex; align-items: center; gap: 10px; padding-top: 4px"><span style="width: 28px; height: 28px; border-radius: 50%; background: #D9E4D2; border: 2px solid #2447B8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">Т</span><span style="font-size: 13px">Тимур идёт · 3 ищут компанию</span></span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 640px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(23,22,26,0.12)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">МИМО</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 48px; height: 48px; margin-top: 9px; border-radius: 50%; background: #FBF9F4; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(23,22,26,0.1)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h11a5 5 0 010 10H9M8 5L4 9l4 4"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ВЕРНУТЬ</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 66px; height: 66px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(240,82,31,0.35)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">ПОЙДУ</span></span>
+</div>
+<div class="d3t" role="status" style="position: absolute; left: 16px; right: 16px; top: 548px; height: 56px; box-sizing: border-box; padding: 8px 8px 8px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(23,22,26,0.3)"><span style="flex-grow: 1; font-size: 13.5px">В планах: поход в субботу</span><span style="height: 38px; padding: 0 12px; display: flex; align-items: center; font-size: 13px; font-weight: 600">Отменить</span></div>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="foryou" hint-size="390px,84px"></dc-import>
+</div>
+<span class="d3r" aria-hidden="true" style="position: absolute; left: 327px; top: 760px; width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; border: 2px solid #F0521F"></span>
+<span class="d3b" aria-hidden="true" style="position: absolute; left: 356px; top: 766px; width: 18px; height: 18px; border-radius: 9px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #F3F0E8">1</span>
+
+<div class="d3h" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: #F3F0E8; overflow: hidden">
+<div class="d3o" style="position: absolute; left: 0; top: 0; width: 390px">
+<div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+<span style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span>
+<span style="flex-grow: 1"></span>
+<span style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"></path></svg></span>
+<span style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></span>
+</div>
+<div style="margin: 14px 16px 0; height: 300px; border-radius: 24px; position: relative; overflow: hidden; background: #17161A; color: #F3F0E8">
+<img src="../assets/hike.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; object-fit: cover; display: block">
+<span style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; background: rgba(23,22,26,0.42)"></span>
+<span style="position: absolute; left: 20px; top: 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">ГОРЫ / ПОХОД</span>
+<span style="position: absolute; left: 20px; bottom: 50px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 46px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em"><span>ПОХОД</span><span>НА КОК-</span><span>ЖАЙЛЯУ</span></span>
+<span style="position: absolute; left: 20px; right: 20px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid #F3F0E8; padding-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>СБОР 08:00</span><span>МЕДЕУ</span><span>0 ₸</span></span>
+</div>
+<div style="padding: 20px 16px 0; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05">Поход на Кок-Жайляу</span>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span style="display: flex; gap: 12px"><span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Суббота, 3 октября, 08:00–15:00</span><span style="font-size: 13px; color: #55524C">через 5 дней · внизу +12°, наверху +3°</span></span></span>
+<span style="display: flex; gap: 12px"><span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Начало тропы, Медеуское ущелье</span><span style="font-size: 13px; color: #55524C">точку сбора закрепят в чате похода</span></span></span>
+<span style="display: flex; gap: 12px"><span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Бесплатно</span><span style="font-size: 13px; color: #55524C">нужны вода, ветровка и удобная обувь</span></span></span>
+</div>
+<span style="font-size: 15px; line-height: 1.55; color: #3A3833">Однодневный поход с горным клубом: около 14 км туда и обратно, средняя сложность. Наверху плато с видом на город.</span>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC"><span style="width: 40px; height: 40px; border-radius: 12px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-weight: 700">Т</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Горный клуб «Тропа»</span><span style="font-size: 12.5px; color: #55524C">организатор · источник: Threads</span></span></div>
+<span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Ищут компанию · 3</span>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC"><img src="../assets/ainura.jpg" alt="" style="width: 46px; height: 46px; border-radius: 16px; object-fit: cover; display: block"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 15px; font-weight: 600">Айнура, 29</span><span style="font-size: 13px; color: #55524C">Первый раз так высоко, иду одна</span></span></div>
+</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 12px 16px 28px; background: #F3F0E8; border-top: 1px solid #DDD8CC; display: flex; gap: 8px">
+<span style="width: 54px; height: 54px; flex-shrink: 0; box-sizing: border-box; border: 1.5px solid #17161A; border-radius: 16px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M19 8v6M16 11h6"></path></svg></span>
+<span style="flex-grow: 1; flex-basis: 0; height: 54px; box-sizing: border-box; border-radius: 16px; border: 1.5px solid #17161A; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600">Ищу компанию</span>
+<span class="d3btn" style="position: relative; flex-grow: 1; flex-basis: 0; height: 54px; border-radius: 16px; font-size: 15px; font-weight: 600">
+<span class="d3la" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center">Я иду</span>
+<span class="d3lb" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 6px">Ты идёшь<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+</span>
+</div>
+</div>
+<span class="d3f" aria-hidden="true" style="position: absolute; left: 173px; top: 344px; width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; background: rgba(23,22,26,0.3); border: 2px solid rgba(255,255,255,0.9)"></span>
+<span class="d3g" aria-hidden="true" style="position: absolute; left: 274px; top: 768px; width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; background: rgba(23,22,26,0.3); border: 2px solid rgba(255,255,255,0.9)"></span>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1370,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

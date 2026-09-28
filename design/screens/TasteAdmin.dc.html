@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Админка: рекомендации пользователя</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+input::placeholder{color:#6B675F}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; padding: 0 0 32px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A; display: flex; flex-direction: column; gap: 24px">
+
+<div style="height: 64px; box-sizing: border-box; padding: 0 32px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 28px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.03em">рядом<span style="color: #F0521F">.</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #BDB8AD">АДМИНКА</span></span>
+<nav aria-label="Разделы админки" style="display: flex; gap: 4px">
+<span style="height: 36px; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; font-size: 14px; color: #BDB8AD">Модерация</span>
+<span aria-current="page" style="height: 36px; padding: 0 14px; border-radius: 10px; background: #2A292E; display: flex; align-items: center; font-size: 14px; font-weight: 600">Рекомендации</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 10px; display: flex; align-items: center; font-size: 14px; color: #BDB8AD">Источники</span>
+</nav>
+<span style="flex-grow: 1"></span>
+<input aria-label="Найти пользователя" placeholder="id, телефон или имя" value="Данил · #10482" style="width: 280px; height: 38px; box-sizing: border-box; padding: 0 14px; border: 1px solid #3A3833; border-radius: 10px; background: #2A292E; font-family: 'Golos Text', sans-serif; font-size: 14px; color: #F3F0E8; outline: none">
+</div>
+
+<div style="padding: 0 32px; display: flex; align-items: center; gap: 16px">
+<img src="../assets/danil.jpg" alt="" style="width: 56px; height: 56px; border-radius: 18px; object-fit: cover; display: block">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 700">Данил, 24 · Алматы</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #55524C">С 12 СЕНТЯБРЯ · 412 СВАЙПОВ · 23 «ПОЙДУ» · 9 ДОШЁЛ · ДЕЛАЕТ ~40 СВАЙПОВ ЗА ЗАХОД</span>
+</div>
+<span style="flex-grow: 1"></span>
+<span style="font-size: 13px; color: #3A3833">Пользователь этого не видит</span>
+<button type="button" onClick="{{toggleExplore}}" role="switch" aria-checked="{{explore}}" style="height: 40px; padding: 0 14px; box-sizing: border-box; border: 1px solid #CFC9BB; border-radius: 12px; background: #FBFAF6; display: flex; align-items: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600; color: #17161A">Новизна {{exploreLabel}}<span style="width: 36px; height: 22px; border-radius: 11px; background: {{exploreTrack}}; position: relative; display: block"><span style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; transform: translateX({{exploreX}}px)"></span></span></button>
+<button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: #17161A; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600; color: #F3F0E8">Пересчитать колоду</button>
+<button type="button" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1.5px solid #8A3A12; border-radius: 12px; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600; color: #8A3A12">Сбросить вкус</button>
+</div>
+
+<div style="padding: 0 32px; display: grid; grid-template-columns: 340px 500px minmax(0, 1fr); gap: 20px; align-items: start">
+
+<section style="padding: 20px; border-radius: 20px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">СТАРТ · ОТВЕТЫ ПРИ РЕГИСТРАЦИИ</span>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #55524C">Что вытаскивает из дома</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 12.5px">Живая музыка</span><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 12.5px">Посмеяться</span><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 12.5px">Горы и природа</span><span style="height: 28px; padding: 0 10px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 12.5px">Настолки</span></div></div>
+<div style="display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; font-size: 13.5px">
+<span style="color: #55524C">Когда</span><span>будни вечером, выходные днём</span>
+<span style="color: #55524C">С кем</span><span>с друзьями</span>
+<span style="color: #55524C">Бюджет</span><span>до 5 000 ₸</span>
+</div>
+<div style="height: 1px; background: #E7E2D6"></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 13px; color: #55524C">Уверенность модели</span><span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; color: #F0521F">74%</span></div>
+<span style="position: relative; height: 8px; border-radius: 4px; background: #E7E2D6; display: block; overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 74%; border-radius: 4px; background: #F0521F"></span></span>
+<span style="font-size: 12.5px; line-height: 1.45; color: #55524C">Первые 10 карточек брали из ответов выше. Сейчас ответы весят 20%, свайпы и визиты — 80%.</span>
+</div>
+</section>
+
+<section style="padding: 20px; border-radius: 20px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">ВКУС СЕЙЧАС</span>
+<div style="display: flex; flex-direction: column; gap: 7px">
+<sc-for list="{{tags}}" as="t" hint-placeholder-count="7">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px 52px; gap: 10px; align-items: center">
+<span style="font-size: 13.5px">{{t.label}}</span>
+<span style="height: 8px; border-radius: 3px; background: #E7E2D6; display: flex"><span style="width: {{t.w}}%; border-radius: 3px; background: {{t.bar}}"></span></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">{{t.v}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; text-align: right; color: {{t.dFg}}">{{t.d}}</span>
+</div>
+</sc-for>
+</div>
+<div style="height: 1px; background: #E7E2D6"></div>
+<div style="display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; color: #55524C; text-align: center">
+<span></span><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span>
+</div>
+<sc-for list="{{heat}}" as="r" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); gap: 3px; align-items: center; margin-top: -8px">
+<span style="font-size: 12px; color: #3A3833">{{r.label}}</span>
+<sc-for list="{{r.cells}}" as="h" hint-placeholder-count="7"><span style="height: 20px; border-radius: 5px; background: {{h.c}}"></span></sc-for>
+</div>
+</sc-for>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="padding: 10px; border-radius: 12px; background: #F3F0E8; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #55524C">Потолок цены</span><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">~4 500 ₸</span></div>
+<div style="padding: 10px; border-radius: 12px; background: #F3F0E8; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #55524C">Если идут друзья</span><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">×2,4</span></div>
+<div style="padding: 10px; border-radius: 12px; background: #F3F0E8; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11.5px; color: #55524C">Формат</span><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">камерно</span></div>
+</div>
+</section>
+
+<section style="padding: 20px; border-radius: 20px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">ПОСЛЕДНИЕ СИГНАЛЫ</span>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{signals}}" as="g" hint-placeholder-count="8">
+<div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 120px 48px; gap: 10px; align-items: center; height: 40px; border-bottom: {{g.line}}">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">{{g.time}}</span>
+<span style="font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.ev}}</span>
+<span style="justify-self: start; height: 24px; padding: 0 8px; border-radius: 12px; background: {{g.bg}}; color: {{g.fg}}; display: flex; align-items: center; font-size: 12px; font-weight: 600">{{g.act}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right; color: {{g.wFg}}">{{g.w}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+
+<section style="margin: 0 32px; padding: 20px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #F0521F">СЛЕДУЮЩИЕ КАРТОЧКИ · ПЕРЕСЧИТЫВАЮТСЯ ПОСЛЕ КАЖДОГО СВАЙПА</span><span style="font-size: 12.5px; color: #BDB8AD">колода бесконечная — дальше догружаем по 10</span></div>
+<div style="display: grid; grid-template-columns: 30px minmax(0, 1fr) repeat(6, 72px) 72px 150px; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: #BDB8AD; padding-bottom: 6px; border-bottom: 1px solid #3A3833">
+<span>#</span><span>СОБЫТИЕ</span><span>ВКУС</span><span>ДРУЗЬЯ</span><span>ВРЕМЯ</span><span>ЦЕНА</span><span>СКОРО</span><span>НОВИЗНА</span><span>ИТОГ</span><span>ПРАВИЛО</span>
+</div>
+<sc-for list="{{deck}}" as="d" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 30px minmax(0, 1fr) repeat(6, 72px) 72px 150px; gap: 10px; align-items: center; height: 34px; font-size: 13.5px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #BDB8AD">{{d.n}}</span>
+<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.ev}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.a}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.b}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.c}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.p}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.s}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{d.x}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #F0521F">{{d.total}}</span>
+<span style="font-size: 12px; color: #E4E0D6">{{d.rule}}</span>
+</div>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { explore: true };
+  }
+  renderVals() {
+    const s = this.state;
+    const tl = [['Джаз', 0.86, '+0,22'], ['Стендап', 0.64, '+0,08'], ['Горы', 0.58, '+0,03'], ['Настолки', 0.40, '−0,05'], ['Выставки', 0.32, '+0,32'], ['Open-air', 0.51, '+0,51'], ['Клубы', 0.06, '−0,20']];
+    const tags = tl.map(([label, v, d]) => ({ label, v: v.toFixed(2).replace('.', ','), w: Math.round(v * 100), d, dFg: d.charAt(0) === '+' ? '#2F8F5B' : '#8A3A12', bar: v >= 0.6 ? '#F0521F' : (v < 0.15 ? '#B9B2A3' : '#17161A') }));
+    const tone = ['#EFEBE2', '#E7D3C3', '#F2A07E', '#F0521F'];
+    const heat = [['Утро', [0, 0, 0, 0, 0, 3, 2]], ['День', [0, 0, 0, 0, 1, 2, 2]], ['Вечер', [2, 1, 2, 2, 3, 3, 1]]].map(([label, c]) => ({ label, cells: c.map((k) => ({ c: tone[k] })) }));
+    const sg = [
+      ['15:58', 'Джаз во дворе', 'пойду', '+1,0'], ['15:57', 'Концерт на стадионе', 'мимо', '−0,4'], ['15:56', 'Поход на Кок-Жайляу', 'открыл', '+0,3'],
+      ['15:55', 'Поход на Кок-Жайляу', 'пойду', '+1,0'], ['15:54', 'Вечеринка на крыше', 'мимо → вернул', '0'], ['15:52', 'Стендап', 'ищу компанию', '+1,5'],
+      ['вчера', 'Кинопоказ во дворе', 'дошёл', '+3,0'], ['вчера', 'Лекция о джазе', 'пойду, не дошёл', '−0,3']
+    ];
+    const act = (a) => a === 'пойду' ? ['#F0521F', '#17161A'] : a === 'дошёл' ? ['#2F8F5B', '#FFFFFF'] : a === 'ищу компанию' ? ['#2447B8', '#FFFFFF'] : a.indexOf('мимо') === 0 ? ['#E7E2D6', '#17161A'] : ['#F3F0E8', '#17161A'];
+    const signals = sg.map(([time, ev, a, w], i) => ({ time, ev, act: a, w, bg: act(a)[0], fg: act(a)[1], wFg: w.charAt(0) === '−' ? '#8A3A12' : '#17161A', line: i < sg.length - 1 ? '1px solid #E7E2D6' : '0' }));
+    const dk = [
+      ['Джем в «Барабане»', '0,91', '0,40', '0,90', '1,00', '0,80', '0', '0,84', 'сильное совпадение'],
+      ['Стендап: импровизация', '0,70', '0,90', '0,80', '0,85', '0,60', '0', '0,76', 'идёт Айнура'],
+      ['Open-air кино на Кок-Тобе', '0,55', '0', '0,95', '1,00', '0,90', '0', '0,63', ''],
+      ['Мастерская керамики', '0,12', '0', '0,70', '0,60', '0,50', '1', '0,41', s.explore ? 'новое · каждая 8-я' : 'новизна выключена'],
+      ['Настолки: Каркассон', '0,40', '0,20', '0,80', '1,00', '0,70', '0', '0,52', 'не 3 темы подряд'],
+      ['Рок-концерт в клубе', '0,48', '0', '0,60', '0,40', '0,90', '0', '0,44', 'выше бюджета']
+    ];
+    const deck = dk.map(([ev, a, b, c, p, sn, x, total, rule], i) => ({ n: String(i + 1), ev, a, b, c, p, s: sn, x, total, rule }));
+    return {
+      tags, heat, signals, deck,
+      explore: s.explore, exploreLabel: s.explore ? '12%' : 'выкл',
+      exploreTrack: s.explore ? '#17161A' : '#CFC9BB', exploreX: s.explore ? 14 : 0,
+      toggleExplore: () => this.setState({ explore: !s.explore })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Как работают рекомендации</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 1840px; height: 1800px; box-sizing: border-box; padding: 44px 40px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">КАК «ДЛЯ ТЕБЯ» ЗАПОМИНАЕТ ВЫБОР</span>
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 700; letter-spacing: -0.025em">Рекомендации</h1>
+</div>
+<span style="max-width: 640px; font-size: 16px; line-height: 1.45; color: #3A3833; text-align: right">Как в Tinder: лента бесконечная, каждый свайп сразу меняет следующие карточки. Старт — ответы при регистрации. Пользователь механику не видит: для него подборка просто «угадывает». Эта доска и админка — только для команды.</span>
+</div>
+
+<svg width="1760" height="270" viewBox="0 0 1760 270" role="img" aria-label="Цикл рекомендаций: сигналы обновляют вкус, вкус отбирает кандидатов, они ранжируются в колоду дня, а каждый свайп снова становится сигналом" style="display: block">
+<defs><marker id="ra" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#17161A"></path></marker></defs>
+<g fill="none" stroke="#17161A" stroke-width="1.8" marker-end="url(#ra)">
+<path d="M266 95 H368"></path>
+<path d="M641 95 H743"></path>
+<path d="M1016 95 H1118"></path>
+<path d="M1391 95 H1493"></path>
+<path d="M1630 152 V222 H130 V158"></path>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" letter-spacing="0.4" fill="#17161A" stroke="#F3F0E8" stroke-width="5" paint-order="stroke" text-anchor="middle">
+<text x="317" y="84">обновляют</text>
+<text x="692" y="84">отбирает</text>
+<text x="1067" y="84">оценивает</text>
+<text x="1442" y="84">раскладывает</text>
+<text x="880" y="228">каждый свайп сразу учит вкус — без перезапуска</text>
+</g>
+<g stroke="#17161A" stroke-width="1.5">
+<rect x="0" y="40" width="266" height="112" rx="16" fill="#F0521F"></rect>
+<rect x="375" y="40" width="266" height="112" rx="16" fill="#FBFAF6"></rect>
+<rect x="750" y="40" width="266" height="112" rx="16" fill="#FBFAF6"></rect>
+<rect x="1125" y="40" width="266" height="112" rx="16" fill="#FBFAF6"></rect>
+<rect x="1500" y="40" width="260" height="112" rx="16" fill="#17161A"></rect>
+</g>
+<g font-family="Geologica, sans-serif" font-size="21" font-weight="700">
+<text x="20" y="80" fill="#17161A">Сигналы</text>
+<text x="395" y="80" fill="#17161A">Вкус</text>
+<text x="770" y="80" fill="#17161A">Кандидаты</text>
+<text x="1145" y="80" fill="#17161A">Оценка</text>
+<text x="1520" y="80" fill="#F3F0E8">Колода</text>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="11" font-weight="500" letter-spacing="0.2">
+<text x="20" y="108" fill="#17161A">регистрация, свайпы,</text>
+<text x="20" y="128" fill="#17161A">тапы, «пришёл» — с весом</text>
+<text x="395" y="108" fill="#3A3833">темы, время, бюджет,</text>
+<text x="395" y="128" fill="#3A3833">с кем ходишь, погода</text>
+<text x="770" y="108" fill="#3A3833">события на 7 дней</text>
+<text x="770" y="128" fill="#3A3833">минус «мимо» и планы</text>
+<text x="1145" y="108" fill="#3A3833">7 факторов +</text>
+<text x="1145" y="128" fill="#3A3833">правила разнообразия</text>
+<text x="1520" y="108" fill="#E4E0D6">бесконечная, следующие 3</text>
+<text x="1520" y="128" fill="#E4E0D6">пересчёт после свайпа</text>
+</g>
+</svg>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start">
+
+<section style="padding: 24px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #8A3A12">01</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Сигналы и их вес</h2></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Пришёл («Я на месте»)</span><span style="height: 10px; display: flex"><span style="width: 100%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+3,0</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Ищу компанию</span><span style="height: 10px; display: flex"><span style="width: 50%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+1,5</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Пойду · позвал друга</span><span style="height: 10px; display: flex"><span style="width: 33%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+1,0</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Сохранить</span><span style="height: 10px; display: flex"><span style="width: 20%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+0,6</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Открыл подробности</span><span style="height: 10px; display: flex"><span style="width: 10%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+0,3</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Смотрел дольше 6 сек</span><span style="height: 10px; display: flex"><span style="width: 7%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">+0,2</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Мимо после подробностей</span><span style="height: 10px; display: flex"><span style="width: 7%; border-radius: 3px; background: #17161A"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">−0,2</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Пойду, но не пришёл</span><span style="height: 10px; display: flex"><span style="width: 10%; border-radius: 3px; background: #17161A"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">−0,3</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Мимо сразу</span><span style="height: 10px; display: flex"><span style="width: 13%; border-radius: 3px; background: #17161A"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">−0,4</span></div>
+<div style="display: grid; grid-template-columns: 230px minmax(0, 1fr) 52px; gap: 12px; align-items: center"><span style="font-size: 14px">Отменил за 5 сек</span><span style="height: 10px; border-radius: 3px; border: 1px dashed #B9B2A3; box-sizing: border-box"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">0</span></div>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px">
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Сильнее всего учит то, что человек сделал в жизни: пришёл, позвал, искал компанию. Свайп — только намерение.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Свежее важнее: через 30 дней сигнал весит вдвое меньше. Вкус меняется вместе с человеком.</span></li>
+</ul>
+</section>
+
+<section style="padding: 24px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #8A3A12">02</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Из чего состоит вкус</h2></div>
+<div style="display: flex; flex-direction: column; border-radius: 16px; background: #F3F0E8">
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">Темы и теги</span><span style="color: #3A3833">не «музыка вообще», а джаз, open-air, бесплатно, камерно — около 60 тегов</span></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">Время</span><span style="color: #3A3833">дни недели × утро, день, вечер — когда человек реально выбирается</span></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">Бюджет</span><span style="color: #3A3833">обычный потолок цены: середина его выборов плюс запас 20%</span></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">С кем</span><span style="color: #3A3833">охотнее с друзьями, один или через «ищу компанию»</span></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">Погода</span><span style="color: #3A3833">в дождь поднимаем события под крышей, в солнце — горы и open-air</span></div>
+<div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 14px; font-size: 14.5px; line-height: 1.4"><span style="font-weight: 600">Похожие люди</span><span style="color: #3A3833">куда пошли люди с таким же вкусом — так находится новое</span></div>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px">
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Удобство дороги учитываем тихо, в порядке карточек. В самой карточке расстояние не пишем.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Человек не видит ни вкуса, ни формулы. Смотреть и править вкус может только команда — в админке рекомендаций.</span></li>
+</ul>
+</section>
+
+<section style="padding: 24px; border-radius: 24px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #F0521F">03</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Как собирается колода</h2></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Совпадение со вкусом</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 100%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">35%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Идут друзья</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 57%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">20%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Удобное время</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 43%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">15%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Цена в бюджете</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 29%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">10%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Скоро и свежее</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 29%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">10%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Похожим понравилось</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 14%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">5%</span></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 12px; align-items: center"><span style="font-size: 14px; color: #E4E0D6">Новое для тебя</span><span style="height: 10px; border-radius: 3px; background: #2A292E; display: flex"><span style="width: 14%; border-radius: 3px; background: #D6E0EE"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">5%</span></div>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px">
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #E4E0D6"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Первые 3 карточки — самые сильные совпадения: цепляет с первого свайпа.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #E4E0D6"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Не больше 2 карточек одной темы подряд. Каждая 8-я — что-то новое, чтобы вкус не замыкался в одном жанре.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #E4E0D6"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Колода бесконечная: после каждого свайпа следующие 3 карточки пересчитываются, дальше догружаем по 10. При равной оценке «сегодня» выше, чем «через неделю».</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #E4E0D6"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Причины остаются внутри. На карточке только факты: кто из друзей идёт, когда, где, сколько стоит.</span></li>
+</ul>
+</section>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start">
+
+<section style="padding: 24px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #8A3A12">04</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Первые дни</h2></div>
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 600">
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #E7E2D6; display: flex; align-items: center">ответы при регистрации</span><span aria-hidden="true">→</span>
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #E7E2D6; display: flex; align-items: center">10 карточек-калибровка</span><span aria-hidden="true">→</span>
+<span style="height: 30px; padding: 0 10px; border-radius: 15px; background: #17161A; color: #F3F0E8; display: flex; align-items: center">дальше решают свайпы</span>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px">
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>«Что вытаскивает из дома», «когда», «с кем» и «бюджет» из регистрации — стартовый вкус. Первые 10 карточек нарочно разные в его пределах, и каждый свайп весит вдвое больше.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Пока своих данных мало, опираемся на похожих людей и на популярное в городе этой недели.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45; color: #3A3833"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #F0521F"></span><span>Через 30–40 свайпов ответы регистрации весят уже 20%, остальное — поведение. Поменял интересы в профиле — стартовый вкус пересчитывается.</span></li>
+</ul>
+</section>
+
+<section style="padding: 24px; border-radius: 24px; background: #F0521F; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #17161A">05</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Что затягивает — и не бесит</h2></div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #17161A"></span><span><b>Нет дна.</b> Колода бесконечная, как в Tinder: за любой карточкой есть следующая.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #17161A"></span><span><b>Сразу умнее.</b> Свайпнул вправо джаз — через карточку ещё один джем. Человек чувствует, что подборка «слушает», не видя, как.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #17161A"></span><span><b>Друзья.</b> «Игорь тоже идёт» поднимает карточку и сразу даёт повод написать.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #17161A"></span><span><b>Каждый выбор ощутим.</b> Карточка улетает в профиль, вкладка подмигивает +1.</span></li>
+<li style="display: flex; gap: 10px; font-size: 15px; line-height: 1.45"><span style="width: 6px; height: 6px; margin-top: 9px; flex-shrink: 0; border-radius: 1px; background: #17161A"></span><span><b>Немного сюрприза.</b> Каждая 8-я карточка — что-то новое, чтобы лента не приедалась.</span></li>
+</ul>
+</section>
+
+<section style="padding: 24px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #8A3A12">06</span><h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Как понять, что работает</h2></div>
+<div style="display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #E7E2D6; font-size: 14.5px"><span>Доля «пойду» от показанных</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap">20–35%</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #E7E2D6; font-size: 14.5px"><span><b>Дошли</b> из тех, кто нажал «пойду»</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap">ГЛАВНАЯ</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #E7E2D6; font-size: 14.5px"><span>Вернулись в «Для тебя» завтра и через неделю</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap">D1 · D7</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; font-size: 14.5px"><span>Отмены и «вернуть»</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap">&lt; 5%</span></div>
+</div>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">Меньше 20% «пойду» — промахиваемся со вкусом. Больше 35% — карточки слишком лёгкие, люди соглашаются и не идут. Много отмен — проблема в жестах, а не во вкусе.</span>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1840,"height":1800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

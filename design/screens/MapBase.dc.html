@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Подложка карты Алматы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{c.land}}; font-family: 'JetBrains Mono', monospace">
+<svg width="390" height="844" viewBox="0 0 390 844" style="display: block" aria-hidden="true">
+<rect x="0" y="0" width="390" height="844" fill="{{c.land}}" />
+<path d="M18 0V660M90 0V660M162 0V660M234 0V660M306 0V660M378 0V660M0 22H390M0 90H390M0 226H390M0 362H390M0 430H390M0 566H390" stroke="{{c.road}}" stroke-width="2" fill="none" />
+<rect x="282" y="432" width="50" height="86" rx="8" fill="{{c.park}}" />
+<rect x="204" y="232" width="40" height="40" rx="8" fill="{{c.park}}" />
+<rect x="132" y="540" width="62" height="54" rx="8" fill="{{c.park}}" />
+<path d="M0 668 C40 652 76 680 116 662 C156 644 190 674 232 656 C272 640 310 668 350 650 C368 642 382 648 390 644 V844 H0 Z" fill="{{c.mt1}}" />
+<path d="M0 740 C50 718 92 748 142 726 C192 706 234 738 284 716 C326 698 362 724 390 708 V844 H0 Z" fill="{{c.mt2}}" />
+<path d="M0 796 C60 772 104 802 164 780 C216 762 262 792 322 768 C352 756 374 766 390 758 V844 H0 Z" fill="{{c.mt3}}" />
+<path d="M318 844 C312 790 296 740 300 690 C304 640 290 590 294 530 C298 470 280 420 286 350 C292 280 272 210 278 140 C282 80 268 40 272 0" stroke="{{c.water}}" stroke-width="4" fill="none" stroke-linecap="round" />
+<path d="M0 158H390M0 294H390M0 396H390M0 498H390M54 0V650M126 0V650M198 0V640M270 0V600C272 640 286 672 304 720M0 622C120 612 250 628 390 606" stroke="{{c.major}}" stroke-width="5" fill="none" stroke-linecap="round" />
+<text x="206" y="390" fill="{{c.label}}" font-size="7.5" letter-spacing="1.5">АБАЯ</text>
+<text x="266" y="130" fill="{{c.label}}" font-size="7.5" letter-spacing="1.5" transform="rotate(-90 266 130)">ДОСТЫК</text>
+<text x="136" y="616" fill="{{c.label}}" font-size="7.5" letter-spacing="1.5">АЛЬ-ФАРАБИ</text>
+<text x="64" y="350" fill="{{c.district}}" font-size="10" font-weight="600" letter-spacing="5">АЛМАЛЫ</text>
+<text x="292" y="214" fill="{{c.district}}" font-size="10" font-weight="600" letter-spacing="5">МЕДЕУ</text>
+<text x="112" y="812" fill="{{c.district}}" font-size="10" font-weight="600" letter-spacing="6">ИЛЕ АЛАТАУ</text>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["paper","night","mono"],"default":"paper"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const themes = {
+      paper: { land: '#EFEBE2', road: '#F6F3EC', major: '#FBF9F4', park: '#DCE3CE', water: '#C4D5DB', mt1: '#E8E3D8', mt2: '#E1DBCE', mt3: '#D9D2C3', label: '#9A9387', district: '#BDB6A8' },
+      night: { land: '#1C1D21', road: '#222328', major: '#2E3036', park: '#1F2924', water: '#1C2E36', mt1: '#202125', mt2: '#24252A', mt3: '#28292E', label: '#62656F', district: '#45474F' },
+      mono: { land: '#FAFAF8', road: '#F1F1ED', major: '#FFFFFF', park: '#EEF0E9', water: '#E6ECEE', mt1: '#F4F4F0', mt2: '#EEEEE9', mt3: '#E8E8E2', label: '#A5A59E', district: '#C4C4BD' }
+    };
+    return { c: themes[this.props.theme ?? 'paper'] || themes.paper };
+  }
+}
+</script>
+</body>
+</html>

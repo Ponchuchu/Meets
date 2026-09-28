@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карточка события — единый шаблон</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: {{rootH}}px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: {{rootH}}px; overflow-x: hidden; overflow-y: {{scrollY}}">
+
+<div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 8px">
+<sc-if value="{{isPage}}" hint-placeholder-val="{{ true }}">
+<a href="Main.dc.html" aria-label="Назад к карте" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+</sc-if>
+<sc-if value="{{isSheet}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{close}}" aria-label="Свернуть обратно в карточку" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</sc-if>
+<span style="flex-grow: 1"></span>
+<button type="button" aria-label="Поделиться" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"></path></svg></button>
+<button type="button" onClick="{{toggleSave}}" aria-pressed="{{saved}}" aria-label="{{saveLabel}}" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 50%; border: 1px solid {{saveBorder}}; background: {{saveBg}}; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="{{saveFill}}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></button>
+</div>
+
+<div style="margin: 14px 16px 0; height: 300px; box-sizing: border-box; border-radius: 24px; position: relative; overflow: hidden; background: {{e.bg}}; color: {{e.fg}}">
+<sc-if value="{{e.isPhoto}}" hint-placeholder-val="{{ false }}">
+<img src="{{e.photo}}" alt="{{e.photoAlt}}" style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; object-fit: cover; display: block">
+<span style="position: absolute; left: 0; top: 0; width: 358px; height: 300px; background: rgba(23,22,26,0.42)"></span>
+</sc-if>
+<svg width="230" height="230" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: -40px; top: 26px; opacity: {{e.iconO}}"><path d="{{e.icon}}"></path></svg>
+<div style="position: absolute; left: 20px; right: 20px; top: 20px; display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">
+<span>{{e.cat}}</span>
+<span>{{e.date}}</span>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 50px; display: flex; flex-direction: column">
+<sc-for list="{{e.big}}" as="b" hint-placeholder-count="2">
+<span style="font-family: 'Geologica', sans-serif; font-size: {{e.bigSize}}px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em; color: {{b.c}}">{{b.t}}</span>
+</sc-for>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 14px; display: flex; justify-content: space-between; gap: 8px; border-top: 1.5px solid {{e.fg}}; padding-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">
+<sc-for list="{{e.strip}}" as="t" hint-placeholder-count="3">
+<span style="white-space: nowrap">{{t.v}}</span>
+</sc-for>
+</div>
+</div>
+
+<div style="padding: 20px 16px 0; display: flex; flex-direction: column; gap: 18px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05">{{e.title}}</h1>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{e.when}}</span><span style="font-size: 13px; color: #55524C">{{e.whenSub}}</span></span>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span style="font-size: 15px; font-weight: 600">{{e.where}}</span><span style="font-size: 13px; color: #55524C">{{e.whereSub}}</span></span>
+<a href="Main.dc.html" style="flex-shrink: 0; font-size: 13px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px; padding-top: 2px">Маршрут</a>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"></path><circle cx="7.5" cy="8.5" r="1.2"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{e.price}}</span><span style="font-size: 13px; color: #55524C">{{e.priceSub}}</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Описание</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #3A3833">{{e.about}}</p>
+</div>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: {{e.orgBg}}; color: {{e.orgFg}}; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 700">{{e.orgLetter}}</span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{e.orgName}}</span><span style="font-size: 12.5px; color: #55524C">{{e.orgSub}}</span></span>
+</div>
+
+<div style="height: 1px; background: #DDD8CC"></div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Кто идёт</h2>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="display: flex; padding-right: 10px">
+<sc-for list="{{e.going}}" as="p" hint-placeholder-count="2">
+<sc-if value="{{p.hasSrc}}" hint-placeholder-val="{{ true }}"><img src="{{p.src}}" alt="" style="width: 40px; height: 40px; margin-right: -10px; border-radius: 50%; object-fit: cover; border: 2px solid {{p.ring}}; box-sizing: border-box; box-shadow: 0 0 0 2px #F3F0E8; display: block"></sc-if>
+<sc-if value="{{p.noSrc}}" hint-placeholder-val="{{ false }}"><span style="width: 40px; height: 40px; margin-right: -10px; border-radius: 50%; background: {{p.tint}}; border: 2px solid {{p.ring}}; box-sizing: border-box; box-shadow: 0 0 0 2px #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">{{p.initial}}</span></sc-if>
+</sc-for>
+</span>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px; font-weight: 600">{{e.goingTitle}}</span><span style="font-size: 13px; color: #55524C">{{e.goingSub}}</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Ищут компанию</h2>
+<span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: #F0521F; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{e.lookCount}}</span>
+</div>
+<sc-for list="{{e.look}}" as="l" hint-placeholder-count="2">
+<a href="Person.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #FBFAF6; border: 1px solid #DDD8CC; border-radius: 18px; text-decoration: none; color: #17161A">
+<sc-if value="{{l.hasSrc}}" hint-placeholder-val="{{ true }}"><img src="{{l.src}}" alt="" style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 16px; object-fit: cover; display: block"></sc-if>
+<sc-if value="{{l.noSrc}}" hint-placeholder-val="{{ false }}"><span style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 16px; background: {{l.tint}}; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">{{l.initial}}</span></sc-if>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 600">{{l.name}}</span>
+<span style="font-size: 13px; color: #55524C">{{l.note}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em">{{l.common}}</span>
+</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+</a>
+</sc-for>
+</div>
+
+<a href="EventChat.dc.html" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #17161A; color: #F3F0E8; border-radius: 20px; text-decoration: none">
+<span style="display: flex; justify-content: space-between; align-items: center">
+<span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 600">{{e.chatName}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.05em; color: #BDB8AD">{{e.chatCount}}</span>
+</span>
+<span style="font-size: 14px; line-height: 1.45; color: #E4E0D6"><span style="font-weight: 600; color: #F3F0E8">{{e.chatWho}}</span> {{e.chatText}}</span>
+</a>
+
+<div style="height: 120px"></div>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 12px 16px 28px; background: #F3F0E8; border-top: 1px solid #DDD8CC; display: flex; gap: 8px">
+<button type="button" onClick="{{openInvite}}" aria-label="Позвать друга" style="width: 54px; height: 54px; flex-shrink: 0; box-sizing: border-box; border: 1.5px solid #17161A; border-radius: 16px; background: transparent; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M19 8v6M16 11h6"></path></svg></button>
+<a href="Company.dc.html" style="flex-grow: 1; flex-basis: 0; height: 54px; box-sizing: border-box; border-radius: 16px; border: 1.5px solid #17161A; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: none">Ищу компанию</a>
+<button type="button" onClick="{{go}}" aria-pressed="{{going}}" style="flex-grow: 1; flex-basis: 0; height: 54px; border: 0; border-radius: 16px; background: {{goBg}}; color: {{goFg}}; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>{{goLabel}}</button>
+</div>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 108px; min-height: 54px; box-sizing: border-box; padding: 8px 8px 8px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(23,22,26,0.3)">
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.35">{{toastText}}</span>
+<a href="{{toastHref}}" style="flex-shrink: 0; height: 38px; padding: 0 12px; border-radius: 12px; background: #F0521F; color: #17161A; display: flex; align-items: center; font-size: 13px; font-weight: 600; text-decoration: none">{{toastCta}}</a>
+</div>
+</sc-if>
+
+<sc-if value="{{inviteOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closeInvite}}" aria-label="Закрыть" style="position: absolute; left: 0; top: 0; width: 390px; height: {{rootH}}px; border: 0; background: rgba(23,22,26,0.45)"></button>
+<div role="dialog" aria-label="Позвать друга" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; background: #F3F0E8; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; gap: 14px">
+<span style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Позвать друга</span>
+<span style="font-size: 13px; color: #55524C">Придёт в чат карточкой «{{e.title}}» с кнопками «Иду» и «Не смогу»</span>
+</div>
+<div style="display: flex; flex-direction: column; border: 1px solid #DDD8CC; border-radius: 18px; background: #FBFAF6">
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="4">
+<button type="button" onClick="{{f.pick}}" disabled="{{f.already}}" aria-pressed="{{f.on}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-bottom: {{f.line}}; background: transparent; font-family: 'Golos Text', sans-serif; color: #17161A; text-align: left; opacity: {{f.o}}">
+<sc-if value="{{f.hasSrc}}" hint-placeholder-val="{{ true }}"><img src="{{f.src}}" alt="" style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; display: block"></sc-if>
+<sc-if value="{{f.noSrc}}" hint-placeholder-val="{{ false }}"><span style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; background: #D9E4D2; border: 2px solid #2447B8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">{{f.initial}}</span></sc-if>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{f.label}}</span><span style="font-size: 12.5px; color: #55524C">{{f.hint}}</span></span>
+<span style="width: 26px; height: 26px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; border: 1.5px solid {{f.boxBorder}}; background: {{f.boxBg}}; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity: {{f.checkO}}"><path d="M5 12l5 5 9-10"></path></svg></span>
+</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{sendInvite}}" disabled="{{noneSelected}}" style="height: 54px; border: 0; border-radius: 16px; background: {{sendBg}}; color: {{sendFg}}; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 600">{{sendLabel}}</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"ev":{"editor":"enum","options":["jazz","hike","standup","anime","games","concert"],"default":"jazz"},"mode":{"editor":"enum","options":["page","sheet"],"default":"page"},"onGo":{"editor":null},"onClose":{"editor":null},"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { going: false, saved: false, invite: false, sel: { denis: true }, toast: null };
+  }
+  data() {
+    const IG = '../assets/igor.jpg', DE = '../assets/denis.jpg', AN = '../assets/anton.jpg', AI = '../assets/ainura.jpg';
+    const INK = '#17161A', PAPER = '#F3F0E8', ORANGE = '#F0521F', BLUE = '#2447B8';
+    const I = {
+      note: 'M9 18V5l11-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM17 19a3 3 0 100-6 3 3 0 000 6z',
+      mic: 'M9 3h6v11H9zM5 11a7 7 0 0014 0M12 18v3',
+      star: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z',
+      peak: 'M3 20l6-10 4 6 3-4 5 8z',
+      dice: 'M4 4h16v16H4zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      speaker: 'M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13'
+    };
+    const ainura = { src: AI, name: 'Айнура, 29', note: 'Иду одна, хочу познакомиться', common: '3 ОБЩИХ · СТЕНДАП, ДЖАЗ, ГОРЫ' };
+    return {
+      jazz: { cat: 'МУЗЫКА / ДЖАЗ', date: 'ПН 28.09', bg: ORANGE, fg: INK, icon: I.note, big: [['ДЖАЗ', INK], ['ВО ДВОРЕ', INK]], strip: ['19:30—22:00', 'ПАНФИЛОВА 110', '0 ₸'],
+        title: 'Джаз во дворе', when: 'Сегодня, 19:30–22:00', whenSub: 'через 2 часа · вечером +16°, ясно',
+        where: 'Панфилова, 110, во дворе', whereSub: 'вход через арку с улицы Панфилова',
+        price: 'Бесплатно', priceSub: 'донат музыкантам по желанию',
+        about: 'Камерный вечер с джазовым трио во дворе старого дома: стандарты и немного своего. Можно прийти одному — за 15 минут до начала встречаемся у входа и знакомимся. Пледы дадут, стульев мало, лучше прийти пораньше.',
+        org: ['Д', '#EADFB8', INK, 'Двор на Панфилова', 'организатор · источник: Яндекс Афиша'],
+        going: [{ src: IG }, { src: DE }], goingTitle: 'Игорь и Денис', goingSub: 'и ещё 16 человек',
+        lookCount: '5', look: [ainura, { initial: 'Е', tint: '#EADFB8', name: 'Ерлан, 27', note: 'Нас двое, ищем ещё 1–2', common: '2 ОБЩИХ · ДЖАЗ, НАСТОЛКИ' }, { initial: 'М', tint: '#D9E4D2', name: 'Мира, 22', note: 'Первый раз на таком', common: '1 ОБЩИЙ · ПРОГУЛКИ' }],
+        chat: ['Чат события', '12 УЧАСТНИКОВ', 'Саша:', 'займу столик у сцены, нас уже четверо'] },
+      hike: { cat: 'ГОРЫ / ПОХОД', date: 'СБ 03.10', bg: INK, fg: PAPER, photo: '../assets/hike.jpg', photoAlt: 'Группа идёт по скалистому гребню, вдали снежные вершины', icon: I.peak, big: [['ПОХОД', PAPER], ['НА КОК-', PAPER], ['ЖАЙЛЯУ', PAPER]], strip: ['СБОР 08:00', 'МЕДЕУ', '0 ₸'],
+        title: 'Поход на Кок-Жайляу', when: 'Суббота, 3 октября, 08:00–15:00', whenSub: 'через 5 дней · внизу +12°, наверху +3°',
+        where: 'Начало тропы, Медеуское ущелье', whereSub: 'точку сбора закрепят в чате похода',
+        price: 'Бесплатно', priceSub: 'нужны вода, ветровка и удобная обувь',
+        about: 'Однодневный поход с горным клубом: около 14 км туда и обратно, средняя сложность — подойдёт новичкам в неплохой форме. Наверху плато с видом на город и обед из своих запасов. Идём в темпе группы, никого не бросаем.',
+        org: ['Т', INK, PAPER, 'Горный клуб «Тропа»', 'организатор · источник: Threads'],
+        going: [{ initial: 'Т', tint: '#D9E4D2' }], goingTitle: 'Тимур', goingSub: 'и ещё 13 человек',
+        lookCount: '3', look: [{ src: AI, name: 'Айнура, 29', note: 'Первый раз так высоко, иду одна', common: '3 ОБЩИХ · ГОРЫ, ДЖАЗ, ПРОГУЛКИ' }, { initial: 'Н', tint: '#D6E0EE', name: 'Нурлан, 30', note: 'Хожу с клубом второй год', common: '2 ОБЩИХ · ГОРЫ, КОФЕ' }],
+        chat: ['Чат похода', '14 УЧАСТНИКОВ', 'Клуб «Тропа»:', 'закрепили точку сбора и трек маршрута'] },
+      standup: { cat: 'СТЕНДАП', date: 'ПТ 02.10', bg: INK, fg: PAPER, icon: I.mic, big: [['ОТКРЫТЫЙ', PAPER], ['МИКРОФОН', ORANGE]], strip: ['20:00—22:30', 'АБАЯ 52', '3 000 ₸'],
+        title: 'Стендап: открытый микрофон', when: 'Пятница, 2 октября, 20:00–22:30', whenSub: 'через 4 дня · вечером +14°',
+        where: 'Бар «Гараж», Абая, 52', whereSub: 'вход со двора, второй этаж',
+        price: '3 000 ₸', priceSub: 'билет на входе или у организатора',
+        about: 'Восемь новых комиков пробуют свежий материал, ведущий держит зал. Бывает неровно, но смешно. Места не нумерованы — приходи к 19:40, чтобы сесть ближе к сцене.',
+        org: ['Г', '#E5D3DC', INK, 'Открытый микрофон «Гараж»', 'организатор · источник: Яндекс Афиша'],
+        going: [{ initial: 'С', tint: '#D9E4D2', ring: 'transparent' }, { initial: 'Л', tint: '#EADFB8', ring: 'transparent' }], goingTitle: 'Друзей пока нет', goingSub: 'идут 38 человек',
+        lookCount: '3', look: [ainura],
+        chat: ['Чат события', '38 УЧАСТНИКОВ', 'Ведущий:', 'закрепил список выступающих'] },
+      anime: { cat: 'ВЫСТАВКА', date: 'ПН 28.09', bg: '#E7E2D6', fg: INK, icon: I.star, big: [['ТОКИО', INK], ['В АЛМАТЫ', INK]], strip: ['ДО 21:00', 'АБАЯ 109', '2 500 ₸'],
+        title: 'Аниме-выставка «Токио в Алматы»', when: 'Сегодня, до 21:00', whenSub: 'открыто ещё 3 часа · в помещении',
+        where: 'ТРЦ на Абая, 109, 3 этаж', whereSub: 'вход через главный атриум',
+        price: '2 500 ₸', priceSub: 'студентам 1 500 ₸, билет на кассе',
+        about: 'Оригинальные эскизы, фигурки и уголок с мангой, которую можно читать на месте. Вечером — косплей-фотозона и мастер-класс по рисованию персонажей.',
+        org: ['Т', '#D6E0EE', INK, 'Выставочный проект «Токио»', 'организатор · источник: Instagram'],
+        going: [{ src: AN }, { src: DE }], goingTitle: 'Антон и Денис', goingSub: 'и ещё 57 человек',
+        lookCount: '2', look: [{ initial: 'М', tint: '#D9E4D2', name: 'Мира, 22', note: 'Хочу на мастер-класс', common: '2 ОБЩИХ · АНИМЕ, ПРОГУЛКИ' }],
+        chat: ['Чат выставки', '61 УЧАСТНИК', 'Антон:', 'на фотозоне почти нет очереди'] },
+      games: { cat: 'НАСТОЛКИ', date: 'ПН 28.09', bg: '#D9E4D2', fg: INK, icon: I.dice, big: [['НАСТОЛКИ', INK], ['БЕЗ СВОЕЙ', INK], ['КОМПАНИИ', INK]], strip: ['20:00—23:00', 'ЖИБЕК ЖОЛЫ 64', '2 000 ₸'],
+        title: 'Настолки без своей компании', when: 'Сегодня, 20:00–23:00', whenSub: 'через 2,5 часа · в помещении',
+        where: 'Антикафе, Жибек Жолы, 64', whereSub: '2 этаж, звонок «Игротека»',
+        price: '2 000 ₸', priceSub: 'чай и игры включены',
+        about: 'Ведущий рассаживает всех за столы по 4–5 человек и объясняет правила. Можно прийти одному — за этим и собираемся.',
+        org: ['Х', '#17161A', PAPER, 'Игротека «Ход»', 'организатор · источник: Telegram'],
+        going: [{ initial: 'А', tint: '#EADFB8', ring: 'transparent' }], goingTitle: 'Друзей пока нет', goingSub: 'идут 23 человека',
+        lookCount: '6', look: [{ initial: 'Е', tint: '#EADFB8', name: 'Ерлан, 27', note: 'Люблю «Каркассон»', common: '2 ОБЩИХ · НАСТОЛКИ, ДЖАЗ' }],
+        chat: ['Чат события', '23 УЧАСТНИКА', 'Ведущий:', 'столов хватит всем, приходите'] },
+      concert: { cat: 'КОНЦЕРТ', date: 'ПН 28.09', bg: INK, fg: PAPER, icon: I.speaker, big: [['4 200', ORANGE], ['ИДУТ', PAPER]], strip: ['20:00', 'ЦЕНТРАЛЬНЫЙ СТАДИОН', 'ОТ 15 000 ₸'],
+        title: 'Концерт на Центральном стадионе', when: 'Сегодня, 20:00', whenSub: 'через 2,5 часа · вечером +14°',
+        where: 'Центральный стадион, Абая, 48', whereSub: 'вход с Сатпаева, открытие в 18:30',
+        price: 'от 15 000 ₸', priceSub: 'билеты у организатора',
+        about: 'Большой вечерний концерт на открытом воздухе. Вход по билетам с QR-кодом, большие сумки не пускают. После концерта такси лучше ловить за два квартала.',
+        org: ['Ц', '#EADFB8', INK, 'Центральный стадион', 'организатор · источник: Яндекс Афиша'],
+        going: [{ initial: 'Д', tint: '#E5D3DC', ring: 'transparent' }, { initial: 'К', tint: '#D6E0EE', ring: 'transparent' }], goingTitle: 'Друзей пока нет', goingSub: 'идут 4 200 человек',
+        lookCount: '12', look: [ainura],
+        chat: ['Чат события', '4 200 УЧАСТНИКОВ', 'Организатор:', 'схема входов в закрепе'] }
+    };
+  }
+  renderVals() {
+    const s = this.state;
+    const all = this.data();
+    const key = all[this.props.ev] ? this.props.ev : 'jazz';
+    const d = all[key];
+    const sheet = (this.props.mode ?? 'page') === 'sheet';
+    const H = sheet ? 844 : 1500;
+    const e = {
+      cat: d.cat, date: d.date, bg: d.bg, fg: d.fg, icon: d.icon, iconO: d.photo ? 0 : 0.22,
+      isPhoto: !!d.photo, photo: d.photo || '', photoAlt: d.photoAlt || '',
+      big: d.big.map((b) => ({ t: b[0], c: b[1] })),
+      bigSize: d.big.length > 2 ? 46 : 56,
+      strip: d.strip.map((v) => ({ v })),
+      title: d.title, when: d.when, whenSub: d.whenSub, where: d.where, whereSub: d.whereSub, price: d.price, priceSub: d.priceSub, about: d.about,
+      orgLetter: d.org[0], orgBg: d.org[1], orgFg: d.org[2], orgName: d.org[3], orgSub: d.org[4],
+      going: d.going.map((p) => ({ src: p.src || '', hasSrc: !!p.src, noSrc: !p.src, initial: p.initial || '', tint: p.tint || '#E7E2D6', ring: p.ring || '#2447B8' })),
+      goingTitle: d.goingTitle, goingSub: d.goingSub,
+      lookCount: d.lookCount,
+      look: d.look.map((l) => ({ ...l, src: l.src || '', hasSrc: !!l.src, noSrc: !l.src, initial: l.initial || '', tint: l.tint || '#E7E2D6' })),
+      chatName: d.chat[0], chatCount: d.chat[1], chatWho: d.chat[2], chatText: d.chat[3]
+    };
+    const friendDefs = [
+      { id: 'igor', label: 'Игорь', src: '../assets/igor.jpg', hint: key === 'jazz' ? 'уже идёт' : 'онлайн', already: key === 'jazz' },
+      { id: 'denis', label: 'Денис', src: '../assets/denis.jpg', hint: key === 'jazz' || key === 'anime' ? 'уже идёт' : 'часто ходите вместе', already: key === 'jazz' || key === 'anime' },
+      { id: 'anton', label: 'Антон', src: '../assets/anton.jpg', hint: key === 'anime' ? 'уже там' : 'свободен вечером', already: key === 'anime' },
+      { id: 'timur', label: 'Тимур', initial: 'Т', hint: key === 'hike' ? 'уже идёт' : 'давно не виделись', already: key === 'hike' }
+    ];
+    const picked = friendDefs.filter((f) => !f.already && s.sel[f.id]);
+    const friends = friendDefs.map((f, i) => {
+      const on = !f.already && !!s.sel[f.id];
+      return {
+        label: f.label, hint: f.hint, src: f.src || '', hasSrc: !!f.src, noSrc: !f.src, initial: f.initial || '',
+        already: f.already, on, o: f.already ? 0.5 : 1,
+        line: i < friendDefs.length - 1 ? '1px solid #E7E2D6' : '0',
+        boxBg: on ? '#17161A' : 'transparent', boxBorder: on ? '#17161A' : '#B9B2A3', checkO: on ? 1 : 0,
+        pick: () => this.setState({ sel: { ...s.sel, [f.id]: !s.sel[f.id] } })
+      };
+    });
+    const names = picked.map((f) => f.label);
+    return {
+      e, rootH: H, scrollY: sheet ? 'auto' : 'hidden',
+      isPage: !sheet, isSheet: sheet,
+      close: () => { if (typeof this.props.onClose === 'function') this.props.onClose(); },
+      saved: s.saved, saveLabel: s.saved ? 'Убрать из сохранённых' : 'Сохранить на потом',
+      saveBg: s.saved ? '#F0521F' : '#FBFAF6', saveBorder: s.saved ? '#F0521F' : '#DDD8CC', saveFill: s.saved ? '#17161A' : 'none',
+      toggleSave: () => this.setState({ saved: !s.saved }),
+      going: s.going,
+      goLabel: s.going ? 'Ты идёшь' : 'Я иду',
+      goBg: s.going ? '#F0521F' : '#17161A', goFg: s.going ? '#17161A' : '#F3F0E8',
+      go: () => {
+        if (sheet && typeof this.props.onGo === 'function') { this.props.onGo(); return; }
+        const next = !s.going;
+        this.setState({ going: next, toast: next ? { text: 'Добавил в «Мои планы». Напомню за 2 часа', cta: 'Мои планы', href: 'Me.dc.html' } : null });
+      },
+      hasToast: !!s.toast, toastText: s.toast ? s.toast.text : '', toastCta: s.toast ? s.toast.cta : '', toastHref: s.toast ? s.toast.href : 'Me.dc.html',
+      inviteOpen: s.invite,
+      openInvite: () => this.setState({ invite: true, toast: null }),
+      closeInvite: () => this.setState({ invite: false }),
+      friends,
+      noneSelected: names.length === 0,
+      sendBg: names.length ? '#17161A' : '#E7E2D6', sendFg: names.length ? '#F3F0E8' : '#6B675F',
+      sendLabel: names.length ? 'Позвать: ' + names.join(', ') : 'Выбери, кого позвать',
+      sendInvite: () => this.setState({ invite: false, toast: { text: 'Позвал: ' + names.join(', ') + '. Ответ придёт в чат', cta: 'Чаты', href: 'Chats.dc.html' } })
+    };
+  }
+}
+</script>
+</body>
+</html>

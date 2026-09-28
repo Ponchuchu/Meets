@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Профиль — Айнура (не в друзьях)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+</style>
+</helmet>
+<div style="width: 390px; height: 1680px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="position: relative; width: 390px; height: 500px; overflow: hidden; border-radius: 0 0 30px 30px; background: #17161A">
+<img src="{{photo}}" alt="{{photoAlt}}" style="width: 390px; height: 500px; object-fit: cover; display: block">
+<button type="button" onClick="{{prev}}" aria-label="Предыдущее фото" style="position: absolute; left: 0; top: 110px; width: 150px; height: 300px; border: 0; background: transparent"></button>
+<button type="button" onClick="{{next}}" aria-label="Следующее фото" style="position: absolute; right: 0; top: 110px; width: 240px; height: 300px; border: 0; background: transparent"></button>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 34px; display: flex; justify-content: space-between">
+
+
+</div>
+
+</div>
+
+<div style="padding: 18px 16px 0; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1">Айнура, 29</h1>
+<span style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: #3A3833">Была недавно</span>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="height: 28px; padding: 0 10px; border-radius: 8px; background: #E7E2D6; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>Не в друзьях</span>
+<span style="height: 28px; padding: 0 10px; border-radius: 8px; background: #E7E2D6; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500">
+<img src="../assets/igor.jpg" alt="" style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover; display: block">
+<img src="../assets/denis.jpg" alt="" style="width: 18px; height: 18px; margin-left: -10px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1.5px #E7E2D6; display: block">
+2 общих друга</span>
+</div>
+</div>
+
+<div style="display: flex; gap: 8px">
+<a href="DirectChat.dc.html" style="flex-grow: 1; height: 52px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 600; text-decoration: none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>Написать</a>
+<button type="button" onClick="{{toggleFriend}}" style="flex-grow: 1; height: 52px; border: 1.5px solid #17161A; border-radius: 16px; background: {{friendBg}}; color: #17161A; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"></path><path d="{{friendIcon}}"></path></svg>{{friendLabel}}</button>
+<button type="button" aria-label="Открыть Instagram Айнуры" style="width: 52px; height: 52px; flex-shrink: 0; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none"></circle></svg></button>
+</div>
+
+<div style="border-radius: 22px; background: #F0521F; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">ХОЧЕТ ПОЙТИ · ИЩЕТ КОМПАНИЮ</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">ПТ 02.10</span>
+</div>
+<div style="display: flex; gap: 12px; align-items: center">
+<span style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700; line-height: 1.1">Стендап: открытый микрофон</span>
+<span style="font-size: 14px">20:00 · бар на Абая · 3 000 ₸</span>
+</span>
+</div>
+<a href="DirectChat.dc.html" style="height: 48px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none">Позвать пойти вместе</a>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Интересы</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 14px; font-weight: 500">Стендап</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 14px; font-weight: 500">Джаз</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; color: #17161a; display: flex; align-items: center; font-size: 14px; font-weight: 500; background-color: transparent">Горы</span>
+<span style="height: 36px; padding: 0 14px; box-sizing: border-box; border-radius: 18px; border: 1px solid #CFC9BB; display: flex; align-items: center; font-size: 14px; background-color: transparent; color: #17161a">Плёночная фотография</span>
+<span style="height: 36px; padding: 0 14px; box-sizing: border-box; border-radius: 18px; border: 1px solid #CFC9BB; display: flex; align-items: center; font-size: 14px">Винтаж</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">О себе</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #3A3833">Снимаю на плёнку, собираю винтаж, летом хожу в горы. Ищу людей, с которыми не страшно пойти на что-то новое.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 600">Достижения</h2>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">АЛМАТЫ 31% · 4 СТРАНЫ</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #17161A; color: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-10 4 6 3-4 5 8z"></path></svg></span><span style="font-size: 12px; font-weight: 600; line-height: 1.2">Выше города</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #17161A; color: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path></svg></span><span style="font-size: 12px; font-weight: 600; line-height: 1.2">4 страны</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #17161A; color: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></span><span style="font-size: 12px; font-weight: 600; line-height: 1.2">Плёночник</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #17161A; color: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></span><span style="font-size: 12px; font-weight: 600; line-height: 1.2">Смешинка</span></div>
+</div>
+</div>
+
+
+
+
+
+<div style="display: flex; gap: 20px; justify-content: center">
+<button type="button" style="border: 0; background: transparent; padding: 10px 4px; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500; color: #55524C">Скрыть профиль</button>
+<button type="button" style="border: 0; background: transparent; padding: 10px 4px; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500; color: #55524C">Пожаловаться</button>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1680}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, requested: false };
+  }
+  renderVals() {
+    const photos = [
+      { src: '../assets/ainura.jpg', alt: 'Айнура, портрет' },
+      { src: '../assets/hike.jpg', alt: 'Айнура в горах, фото с похода' }
+    ];
+    const i = this.state.idx, n = photos.length, r = this.state.requested;
+    return {
+      photo: photos[i].src, photoAlt: photos[i].alt,
+      counter: (i + 1) + ' / ' + n,
+      segments: photos.map((p, k) => ({ c: k === i ? '#FFFFFF' : 'rgba(255,255,255,0.4)' })),
+      prev: () => this.setState({ idx: (i - 1 + n) % n }),
+      next: () => this.setState({ idx: (i + 1) % n }),
+      toggleFriend: () => this.setState({ requested: !r }),
+      friendLabel: r ? 'Заявка ушла' : 'В друзья',
+      friendBg: r ? '#E7E2D6' : 'transparent',
+      friendIcon: r ? 'M16 12l2 2 4-4' : 'M19 8v6M16 11h6'
+    };
+  }
+}
+</script>
+</body>
+</html>

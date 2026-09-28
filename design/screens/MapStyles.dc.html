@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Стили карты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+</style>
+</helmet>
+<div style="width: 1120px; height: 720px; box-sizing: border-box; padding: 36px 40px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.025em">Одни данные — три стиля карты</h1>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #55524C">ДАННЫЕ OSM · СВОЙ СТИЛЬ ПОВЕРХ</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">01</span><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600">Бумага</span><span style="font-size: 13px; color: #55524C">днём, по умолчанию</span></div>
+<div style="width: 320px; height: 520px; position: relative; overflow: hidden; border-radius: 28px; border: 1px solid #DDD8CC">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; transform: translate(0px, -123px) scale(0.82); transform-origin: 0 0">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<span style="position: absolute; left: 91px; top: 69px; width: 30px; height: 30px; border-radius: 10px; background: #17161A; box-shadow: 0 0 0 3px #F3F0E8"></span>
+<span style="position: absolute; left: 237px; top: 81px; width: 30px; height: 30px; border-radius: 10px; background: #17161A; box-shadow: 0 0 0 3px #F3F0E8"></span>
+<span style="position: absolute; left: 214px; top: 233px; width: 30px; height: 30px; border-radius: 10px; background: #17161A; box-shadow: 0 0 0 3px #F3F0E8"></span>
+<span style="position: absolute; left: 157px; top: 134px; width: 40px; height: 40px; border-radius: 13px; background: #F0521F; box-shadow: 0 0 0 3px #17161A"></span>
+<span style="position: absolute; left: 123px; top: 262px; width: 14px; height: 14px; border-radius: 50%; background: #2447B8; border: 3px solid #FFFFFF"></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">02</span><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600">Ночь</span><span style="font-size: 13px; color: #55524C">после 20:00 сама</span></div>
+<div style="width: 320px; height: 520px; position: relative; overflow: hidden; border-radius: 28px; border: 1px solid #2B2C32">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; transform: translate(0px, -123px) scale(0.82); transform-origin: 0 0">
+<dc-import name="MapBase" theme="night" hint-size="390px,844px"></dc-import>
+</div>
+<span style="position: absolute; left: 91px; top: 69px; width: 30px; height: 30px; border-radius: 10px; background: #F3F0E8; box-shadow: 0 0 0 3px #1C1D21"></span>
+<span style="position: absolute; left: 237px; top: 81px; width: 30px; height: 30px; border-radius: 10px; background: #F3F0E8; box-shadow: 0 0 0 3px #1C1D21"></span>
+<span style="position: absolute; left: 214px; top: 233px; width: 30px; height: 30px; border-radius: 10px; background: #F3F0E8; box-shadow: 0 0 0 3px #1C1D21"></span>
+<span style="position: absolute; left: 157px; top: 134px; width: 40px; height: 40px; border-radius: 13px; background: #F0521F; box-shadow: 0 0 0 3px #F3F0E8, 0 0 24px rgba(240,82,31,0.55)"></span>
+<span style="position: absolute; left: 123px; top: 262px; width: 14px; height: 14px; border-radius: 50%; background: #5B7FEA; border: 3px solid #1C1D21"></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">03</span><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600">Контур</span><span style="font-size: 13px; color: #55524C">для скринов в Threads</span></div>
+<div style="width: 320px; height: 520px; position: relative; overflow: hidden; border-radius: 28px; border: 1px solid #DDD8CC">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; transform: translate(0px, -123px) scale(0.82); transform-origin: 0 0">
+<dc-import name="MapBase" theme="mono" hint-size="390px,844px"></dc-import>
+</div>
+<span style="position: absolute; left: 91px; top: 69px; width: 30px; height: 30px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 237px; top: 81px; width: 30px; height: 30px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 214px; top: 233px; width: 30px; height: 30px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 157px; top: 134px; width: 40px; height: 40px; border-radius: 50%; background: #F0521F"></span>
+<span style="position: absolute; left: 20px; bottom: 20px; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: #17161A; line-height: 1">7 планов<br>на выходные</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

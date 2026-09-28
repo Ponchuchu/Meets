@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход и регистрация</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input::placeholder{color:#6B675F}
+@keyframes suIn{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes suFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isStart}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 400px; overflow: hidden; border-radius: 0 0 32px 32px; background: #17161A; color: #F3F0E8">
+<div aria-hidden="true" style="position: absolute; left: 0; top: -150px; width: 390px; height: 844px; opacity: 0.95">
+<dc-import name="MapBase" theme="night" hint-size="390px,844px"></dc-import>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 400px; background: rgba(23,22,26,0.25)"></span>
+<span aria-hidden="true" style="position: absolute; left: 160px; top: 96px; display: flex; align-items: center; gap: 8px; animation: suFloat 4s ease-in-out infinite">
+<span style="width: 40px; height: 40px; border-radius: 14px; background: #F0521F; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #17161A"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; background: #F3F0E8; color: #17161A; padding: 5px 8px; border-radius: 7px">ДЖАЗ · 19:30</span>
+</span>
+<span aria-hidden="true" style="position: absolute; left: 60px; top: 170px; width: 30px; height: 30px; border-radius: 10px; background: #F3F0E8; box-shadow: 0 0 0 3px #17161A; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20l6-10 4 6 3-4 5 8z"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 300px; top: 150px; width: 30px; height: 30px; border-radius: 10px; background: #F3F0E8; box-shadow: 0 0 0 3px #17161A; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></span>
+<img src="../assets/igor.jpg" alt="" style="position: absolute; left: 240px; top: 200px; width: 40px; height: 40px; box-sizing: border-box; border-radius: 50%; object-fit: cover; border: 3px solid #5B7FEA; box-shadow: 0 0 0 2px #17161A; display: block; animation: suFloat 5s ease-in-out infinite">
+<img src="../assets/ainura.jpg" alt="" style="position: absolute; left: 110px; top: 60px; width: 36px; height: 36px; box-sizing: border-box; border-radius: 50%; object-fit: cover; border: 3px solid #5B7FEA; box-shadow: 0 0 0 2px #17161A; display: block">
+<img src="../assets/denis.jpg" alt="" style="position: absolute; left: 318px; top: 76px; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; object-fit: cover; border: 3px solid #5B7FEA; box-shadow: 0 0 0 2px #17161A; display: block">
+<div style="position: absolute; left: 24px; right: 24px; bottom: 28px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 60px; font-weight: 800; letter-spacing: -0.05em; line-height: 0.95">рядом<span style="color: #F0521F">.</span></span>
+<span style="font-size: 17px; line-height: 1.35; color: #E4E0D6">Куда пойти сегодня — и с кем</span>
+</div>
+</div>
+
+<div style="position: absolute; left: 20px; right: 20px; top: 422px; display: flex; flex-direction: column; gap: 10px">
+<h1 style="margin: 0 0 4px; font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Войти или создать аккаунт</h1>
+<button type="button" onClick="{{withGoogle}}" style="height: 52px; box-sizing: border-box; border: 1.5px solid #17161A; border-radius: 16px; background: #FBFAF6; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 600; color: #17161A"><span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 50%; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 13px; font-weight: 800">G</span>Продолжить с Google</button>
+<button type="button" onClick="{{withGoogle}}" style="height: 52px; border: 0; border-radius: 16px; background: #17161A; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 600; color: #F3F0E8"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2.5"></rect><path d="M8 10V7a4 4 0 018 0v3"></path></svg>Продолжить с Apple</button>
+<div aria-hidden="true" style="display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C"><span style="flex-grow: 1; height: 1px; background: #DDD8CC"></span>ИЛИ ПО НОМЕРУ<span style="flex-grow: 1; height: 1px; background: #DDD8CC"></span></div>
+<div style="display: flex; gap: 8px">
+<button type="button" aria-label="Код страны: Казахстан, +7" style="width: 76px; height: 52px; flex-shrink: 0; box-sizing: border-box; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; display: flex; align-items: center; justify-content: center; gap: 4px; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 600; color: #17161A">+7<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<input type="tel" inputmode="tel" aria-label="Номер телефона" placeholder="707 123 45 67" value="{{phone}}" onInput="{{onPhone}}" style="flex-grow: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 16px; color: #17161A; outline: none">
+</div>
+<button type="button" onClick="{{sendCode}}" style="height: 52px; border: 0; border-radius: 16px; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 600; color: #17161A">Получить код</button>
+<span style="padding-top: 2px; text-align: center; font-size: 12px; line-height: 1.45; color: #55524C">Только 18+. Продолжая, ты принимаешь правила сообщества и политику конфиденциальности.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isCode}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 50px 20px 30px; display: flex; flex-direction: column; gap: 20px; animation: suIn 0.25s ease-out">
+<button type="button" onClick="{{toStart}}" aria-label="Назад" style="width: 44px; height: 44px; box-sizing: border-box; border: 1px solid #DDD8CC; border-radius: 50%; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.025em">Код из SMS</h1>
+<span style="font-size: 15px; line-height: 1.5; color: #55524C">Отправили на +7 {{phoneShown}}. <button type="button" onClick="{{toStart}}" style="padding: 0; border: 0; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px">Изменить</button></span>
+</div>
+<div style="position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{boxes}}" as="b" hint-placeholder-count="4">
+<span style="height: 72px; box-sizing: border-box; border: {{b.border}}; border-radius: 18px; background: #FBFAF6; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 700">{{b.d}}</span>
+</sc-for>
+<input inputmode="numeric" maxlength="4" aria-label="Код из SMS, 4 цифры" value="{{code}}" onInput="{{onCode}}" style="position: absolute; left: 0; top: 0; width: 100%; height: 72px; box-sizing: border-box; border: 0; background: transparent; color: transparent; caret-color: transparent; font-size: 16px; outline: none">
+</div>
+<button type="button" onClick="{{pasteCode}}" style="align-self: flex-start; height: 40px; padding: 0 14px; border: 0; border-radius: 20px; background: #E7E2D6; display: flex; align-items: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>Вставить код из сообщения: 4821</button>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #55524C">ОТПРАВИТЬ ЕЩЁ РАЗ ЧЕРЕЗ 0:42</span>
+<span style="flex-grow: 1"></span>
+<button type="button" onClick="{{withGoogle}}" style="height: 48px; border: 0; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #55524C">Не приходит код? Войти через Google</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isProfile}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 56px 20px 30px; display: flex; flex-direction: column; gap: 18px; animation: suIn 0.25s ease-out">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">1 / 3</span>
+<span style="flex-grow: 1; display: flex; gap: 4px"><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #17161A"></span><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #D6D0C3"></span><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #D6D0C3"></span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.05">Давай знакомиться</h1>
+<span style="font-size: 15px; line-height: 1.5; color: #55524C">{{profileHint}}</span>
+</div>
+<div style="display: flex; gap: 14px; align-items: center">
+<sc-if value="{{hasPhoto}}" hint-placeholder-val="{{ false }}">
+<img src="../assets/danil.jpg" alt="Фото профиля" style="width: 96px; height: 96px; flex-shrink: 0; border-radius: 30px; object-fit: cover; display: block">
+</sc-if>
+<sc-if value="{{noPhoto}}" hint-placeholder-val="{{ true }}">
+<span style="width: 96px; height: 96px; flex-shrink: 0; box-sizing: border-box; border-radius: 30px; border: 1.5px dashed #B9B2A3; display: flex; align-items: center; justify-content: center; color: #55524C"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></span>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" onClick="{{usePhoto}}" style="height: 38px; padding: 0 12px; border: 0; border-radius: 19px; background: #E7E2D6; display: flex; align-items: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600; color: #17161A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect><circle cx="12" cy="12" r="4"></circle></svg>Взять из Instagram</button>
+<button type="button" onClick="{{usePhoto}}" style="height: 38px; padding: 0 12px; box-sizing: border-box; border: 1px solid #CFC9BB; border-radius: 19px; background: transparent; display: flex; align-items: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: 600; color: #17161A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4"></path></svg>Из галереи</button>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="su-name" style="font-size: 13px; font-weight: 600; color: #3A3833">Имя</label>
+<input id="su-name" value="{{name}}" onInput="{{onName}}" placeholder="Как к тебе обращаться" style="height: 52px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 16px; color: #17161A; outline: none">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="su-bday" style="font-size: 13px; font-weight: 600; color: #3A3833">Дата рождения</label>
+<input id="su-bday" inputmode="numeric" placeholder="ДД.ММ.ГГГГ" style="height: 52px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 16px; color: #17161A; outline: none">
+<span style="font-size: 12.5px; color: #55524C">Нужно 18+. Другим покажем только возраст.</span>
+</div>
+<span style="flex-grow: 1"></span>
+<a href="Onboarding.dc.html" style="height: 56px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">Дальше</a>
+</div>
+</sc-if>
+
+<sc-if value="{{isRhythm}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; box-sizing: border-box; padding: 56px 20px 30px; display: flex; flex-direction: column; gap: 18px; animation: suIn 0.25s ease-out">
+<div style="display: flex; align-items: center; gap: 12px">
+<a href="Onboarding.dc.html" aria-label="Назад к интересам" style="width: 36px; height: 36px; flex-shrink: 0; box-sizing: border-box; border: 1px solid #DDD8CC; border-radius: 50%; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">3 / 3</span>
+<span style="flex-grow: 1; display: flex; gap: 4px"><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #17161A"></span><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #17161A"></span><span style="flex-grow: 1; height: 3px; border-radius: 2px; background: #17161A"></span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.05">Когда тебя проще вытащить?</h1>
+<span style="font-size: 15px; line-height: 1.5; color: #55524C">Первая подборка будет по этим ответам, дальше подстроится сама.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; color: #3A3833">Когда обычно свободен</span>
+<div role="group" aria-label="Когда обычно свободен" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{times}}" as="t" hint-placeholder-count="5">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.on}}" style="height: 40px; padding: 0 14px; border: 1px solid {{t.border}}; border-radius: 20px; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; color: #3A3833">С кем обычно ходишь</span>
+<div role="group" aria-label="С кем обычно ходишь" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: #E7E2D6">
+<sc-for list="{{withs}}" as="w" hint-placeholder-count="3">
+<button type="button" onClick="{{w.pick}}" aria-pressed="{{w.on}}" style="height: 40px; border: 0; border-radius: 11px; background: {{w.bg}}; box-shadow: {{w.sh}}; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: {{w.fw}}; color: #17161A">{{w.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; color: #3A3833">Сколько готов тратить за вечер</span>
+<div role="group" aria-label="Бюджет" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: #E7E2D6">
+<sc-for list="{{budgets}}" as="g" hint-placeholder-count="3">
+<button type="button" onClick="{{g.pick}}" aria-pressed="{{g.on}}" style="height: 40px; border: 0; border-radius: 11px; background: {{g.bg}}; box-shadow: {{g.sh}}; font-family: 'Golos Text', sans-serif; font-size: 13.5px; font-weight: {{g.fw}}; color: #17161A">{{g.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 12px; background: #2447B8; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4L4 11l7 2 2 7z"></path></svg></span>
+<span style="font-size: 13px; line-height: 1.45; color: #3A3833">Дальше спросим доступ к геолокации — чтобы показать, что рядом. Друзья тебя не увидят, пока сам не включишь.</span>
+</div>
+<span style="flex-grow: 1"></span>
+<a href="Main.dc.html" style="height: 56px; border-radius: 16px; background: #F0521F; color: #17161A; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">Готово — показать, что рядом</a>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["start","code","profile","rhythm"],"default":"start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: null, phone: '707 123 45 67', code: '', google: false, name: '', times: { weekday: true, weekend: true }, withWho: 'friends', budget: 'mid' };
+    this.timer = null;
+  }
+  componentWillUnmount() { if (this.timer) clearTimeout(this.timer); }
+  renderVals() {
+    const s = this.state;
+    const step = s.step ?? this.props.step ?? 'start';
+    const INK = '#17161A';
+    const code = s.code || '';
+    const boxes = [0, 1, 2, 3].map((i) => ({ d: code[i] || '', border: i === code.length ? '2px solid ' + INK : '1px solid #CFC9BB' }));
+    const goProfile = () => { this.timer = setTimeout(() => this.setState({ step: 'profile' }), 350); };
+    const chip = (on) => ({ bg: on ? INK : '#FBFAF6', fg: on ? '#F3F0E8' : INK, border: on ? INK : '#CFC9BB' });
+    const seg = (on) => ({ bg: on ? '#FBFAF6' : 'transparent', sh: on ? '0 1px 3px rgba(23,22,26,0.14)' : 'none', fw: on ? '600' : '500' });
+    const timeDefs = [['weekday', 'Будни вечером'], ['friday', 'Пятница'], ['weekend', 'Выходные днём'], ['weekendNight', 'Выходные вечером'], ['now', 'Спонтанно, прямо сейчас']];
+    const times = timeDefs.map(([k, label]) => {
+      const on = !!s.times[k];
+      return { label, on, ...chip(on), pick: () => this.setState({ times: { ...s.times, [k]: !on } }) };
+    });
+    const withs = [['friends', 'С друзьями'], ['alone', 'Один'], ['mixed', 'По-разному']].map(([k, label]) => ({ label, on: s.withWho === k, ...seg(s.withWho === k), pick: () => this.setState({ withWho: k }) }));
+    const budgets = [['free', 'Бесплатно'], ['mid', 'До 5 000 ₸'], ['any', 'Не важно']].map(([k, label]) => ({ label, on: s.budget === k, ...seg(s.budget === k), pick: () => this.setState({ budget: k }) }));
+    const google = s.google || (this.props.step === 'profile' && s.step == null);
+    return {
+      isStart: step === 'start', isCode: step === 'code', isProfile: step === 'profile', isRhythm: step === 'rhythm',
+      phone: s.phone, phoneShown: s.phone || '707 123 45 67',
+      onPhone: (e) => this.setState({ phone: e.target.value }),
+      sendCode: () => this.setState({ step: 'code', code: '' }),
+      toStart: () => this.setState({ step: 'start' }),
+      withGoogle: () => this.setState({ step: 'profile', google: true, name: 'Данил' }),
+      boxes, code,
+      onCode: (e) => {
+        const v = String(e.target.value || '').replace(/\D/g, '').slice(0, 4);
+        this.setState({ code: v });
+        if (v.length === 4) goProfile();
+      },
+      pasteCode: () => { this.setState({ code: '4821' }); goProfile(); },
+      hasPhoto: google, noPhoto: !google,
+      usePhoto: () => this.setState({ google: true }),
+      name: s.name || (google ? 'Данил' : ''),
+      onName: (e) => this.setState({ name: e.target.value }),
+      profileHint: google ? 'Имя и фото взяли из Google — поменяй, если хочешь' : 'Так тебя увидят люди на событиях',
+      times, withs, budgets
+    };
+  }
+}
+</script>
+</body>
+</html>

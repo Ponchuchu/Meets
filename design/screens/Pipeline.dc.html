@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Как событие попадает на карту</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 1840px; height: 1320px; box-sizing: border-box; padding: 44px 40px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">ДЛЯ РАЗРАБОТЧИКА · ПУТЬ ОДНОГО СОБЫТИЯ</span>
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 700; letter-spacing: -0.025em">Как событие попадает на карту — и уходит с неё</h1>
+</div>
+<span style="max-width: 420px; font-size: 16px; line-height: 1.45; color: #3A3833; text-align: right">Скрипт и ИИ делают черновую работу. Ты только решаешь: публиковать или нет.</span>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr); align-items: stretch">
+
+<div style="padding: 22px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">01 · ТЫ, ОДИН РАЗ</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Добавляешь источники</span>
+<div style="display: flex; flex-direction: column; border-radius: 16px; border: 1px solid #E2DDD1; background: #F3F0E8">
+<div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid #E2DDD1"><span style="width: 32px; height: 32px; border-radius: 9px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600">ЯА</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">Яндекс Афиша · Алматы</span><span style="font-size: 12px; color: #55524C">ссылка на раздел города</span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; padding: 3px 6px; border-radius: 5px; background: #17161A; color: #F3F0E8">ДОВЕРИЕ</span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid #E2DDD1"><span style="width: 32px; height: 32px; border-radius: 9px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600">TH</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">Threads · @almaty.weekend</span><span style="font-size: 12px; color: #55524C">посты и картинки-афиши</span></span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid #E2DDD1"><span style="width: 32px; height: 32px; border-radius: 9px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600">TG</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">Telegram · @afisha_almaty</span><span style="font-size: 12px; color: #55524C">канал читается целиком</span></span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 11px 12px"><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 9px; border: 1.5px dashed #B9B2A3; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #55524C">+</span><span style="font-size: 14px; font-weight: 500; color: #3A3833">Добавить ссылку</span></div>
+</div>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">У источника есть уровень доверия: официальным афишам можно разрешить публикацию без проверки.</span>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: center"><svg width="32" height="20" viewBox="0 0 32 20" aria-hidden="true"><path d="M2 10H28M20 3l8 7-8 7" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+
+<div style="padding: 22px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">02 · СКРИПТ, ПО РАСПИСАНИЮ</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Собирает новые посты</span>
+<div style="padding: 16px 12px 12px; border-radius: 16px; border: 1px solid #E2DDD1; background: #F3F0E8; display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; height: 22px">
+<span style="position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: #CFC9BB"></span>
+<span style="position: absolute; left: 0%; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 22%; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 44%; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #17161A"></span>
+<span style="position: absolute; left: 66%; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px rgba(240,82,31,0.25)"></span>
+<span style="position: absolute; left: 88%; top: 5px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #17161A; box-sizing: border-box; background: #F3F0E8"></span>
+</div>
+<div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600"><span>08:00</span><span>10:00</span><span>12:00</span><span style="color: #8A3A12">14:00</span><span>16:00</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4">
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #8A3A12">→</span>Каждые 2 часа, с 08:00 до полуночи</span>
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #8A3A12">→</span>Берёт только новое с прошлого запуска</span>
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #8A3A12">→</span>Картинки-афиши тоже, текст с них прочитает ИИ</span>
+</div>
+<span style="align-self: flex-start; height: 34px; padding: 0 12px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">14:00 — НАЙДЕНО 38 ПОСТОВ</span>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: center"><svg width="32" height="20" viewBox="0 0 32 20" aria-hidden="true"><path d="M2 10H28M20 3l8 7-8 7" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+
+<div style="padding: 22px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">03 · ИИ</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Отличает событие от мусора</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 28px; gap: 10px; align-items: center"><span style="font-size: 14px; font-weight: 600">Событие</span><span style="height: 12px; border-radius: 3px; background: #E2DDD1; display: flex"><span style="width: 29%; border-radius: 3px; background: #F0521F"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">11</span></div>
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 28px; gap: 10px; align-items: center"><span style="font-size: 14px">Реклама</span><span style="height: 12px; border-radius: 3px; background: #E2DDD1; display: flex"><span style="width: 37%; border-radius: 3px; background: #8C8577"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">14</span></div>
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 28px; gap: 10px; align-items: center"><span style="font-size: 14px">Мемы, личное</span><span style="height: 12px; border-radius: 3px; background: #E2DDD1; display: flex"><span style="width: 24%; border-radius: 3px; background: #8C8577"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">9</span></div>
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 28px; gap: 10px; align-items: center"><span style="font-size: 14px">Не Алматы</span><span style="height: 12px; border-radius: 3px; background: #E2DDD1; display: flex"><span style="width: 5%; border-radius: 3px; background: #8C8577"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">2</span></div>
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 28px; gap: 10px; align-items: center"><span style="font-size: 14px">Дубль</span><span style="height: 12px; border-radius: 3px; background: #E2DDD1; display: flex"><span style="width: 5%; border-radius: 3px; background: #8C8577"></span></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: right">2</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4">
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #8A3A12">→</span>Реклама и мемы сразу в корзину — ты их не видишь</span>
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #8A3A12">→</span>Дубли склеиваются: одно событие из трёх каналов = одна точка</span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: center"><svg width="32" height="20" viewBox="0 0 32 20" aria-hidden="true"><path d="M2 10H28M20 3l8 7-8 7" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+
+<div style="padding: 22px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">04 · ИИ + ГЕОКОДЕР</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Собирает черновик карточки</span>
+<div style="border-radius: 16px; border: 1px solid #E2DDD1; background: #F3F0E8; display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border-bottom: 1px solid #E2DDD1; font-size: 13.5px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C; padding-top: 2px">НАЗВАНИЕ</span><span style="font-weight: 600">Аниме-выставка «Токио в Алматы»</span></div>
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border-bottom: 1px solid #E2DDD1; font-size: 13.5px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C; padding-top: 2px">КОГДА</span><span>сб–вс, 11:00–21:00</span></div>
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border-bottom: 1px solid #E2DDD1; font-size: 13.5px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C; padding-top: 2px">ГДЕ</span><span>ТРЦ, 3 этаж → точка на карте ✓</span></div>
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border-bottom: 1px solid #E2DDD1; font-size: 13.5px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C; padding-top: 2px">ЦЕНА</span><span>2 500 ₸</span></div>
+<div style="display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 10px; padding: 9px 12px; font-size: 13.5px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C; padding-top: 2px">ТИП</span><span>Искусство · длинное событие</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span style="font-weight: 600">Уверенность ИИ</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600">94%</span></div>
+<span style="height: 8px; border-radius: 4px; background: #E2DDD1; display: flex"><span style="width: 94%; border-radius: 4px; background: #17161A"></span></span>
+</div>
+<span style="font-size: 14px; line-height: 1.45; color: #3A3833">Если адрес размытый («в парке Горького») — карточка помечается, и ты ставишь точку сам.</span>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr); align-items: start">
+<div style="display: flex; justify-content: center; grid-column: 7 / 8"><svg width="20" height="32" viewBox="0 0 20 32" aria-hidden="true"><path d="M10 2V28M3 20l7 8 7-8" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(0, 1fr); align-items: stretch; margin-top: -28px">
+
+<div style="grid-column: 7 / 8; grid-row: 1; padding: 22px; border-radius: 24px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #BDB8AD">05 · ТЫ</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Одобряешь в админке</span>
+<div style="padding: 14px; border-radius: 16px; background: #F3F0E8; color: #17161A; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; color: #55524C"><span>THREADS · 94%</span><span>14:02</span></div>
+<span style="font-size: 16px; font-weight: 600">Аниме-выставка «Токио в Алматы»</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<span style="height: 38px; border-radius: 10px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600">Опубликовать</span>
+<span style="height: 38px; border-radius: 10px; border: 1px solid #CFC9BB; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600">Править</span>
+<span style="height: 38px; border-radius: 10px; border: 1px solid #CFC9BB; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600">Нет</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; color: #E4E0D6">
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #F0521F">→</span>Приходит пуш: «7 событий ждут проверки»</span>
+<span style="display: flex; gap: 10px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #F0521F">→</span>Предложения пользователей — в эту же очередь</span>
+</div>
+</div>
+
+<div style="grid-column: 6 / 7; grid-row: 1; display: flex; align-items: center; justify-content: center"><svg width="32" height="20" viewBox="0 0 32 20" aria-hidden="true"><path d="M30 10H4M12 3l-8 7 8 7" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></div>
+
+<div style="grid-column: 1 / 6; grid-row: 1; padding: 22px 24px; border-radius: 24px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">06 · АВТОМАТИКА</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 600">Жизнь точки на карте</span>
+</div>
+<span style="font-size: 14px; color: #3A3833">Пример: концерт в 19:30, длится 2 часа</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; position: relative">
+<span style="position: absolute; left: 10%; right: 10%; top: 44px; height: 2px; background: #CFC9BB"></span>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C">ЗА НЕДЕЛЮ</span>
+<span style="width: 30px; height: 30px; border-radius: 10px; background: #17161A; box-shadow: 0 0 0 4px #FBFAF6"></span>
+<span style="font-size: 15px; font-weight: 600">Анонс</span>
+<span style="font-size: 13px; line-height: 1.4; color: #55524C">обычная точка, видна при фильтре дат</span>
+</div>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #55524C">В ДЕНЬ СОБЫТИЯ</span>
+<span style="display: flex; align-items: center; gap: 4px; box-shadow: 0 0 0 4px #FBFAF6; border-radius: 10px"><span style="width: 30px; height: 30px; border-radius: 10px; background: #17161A"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; padding: 3px 5px; border-radius: 5px; background: #E7E2D6">19:30</span></span>
+<span style="font-size: 15px; font-weight: 600">Сегодня</span>
+<span style="font-size: 13px; line-height: 1.4; color: #55524C">на карте «Сегодня», с временем</span>
+</div>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8A3A12">18:30</span>
+<span style="display: flex; align-items: center; gap: 4px; box-shadow: 0 0 0 4px #FBFAF6; border-radius: 10px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #17161A"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; padding: 3px 5px; border-radius: 5px; background: #17161A; color: #F3F0E8">ЧЕРЕЗ 1 Ч</span></span>
+<span style="font-size: 15px; font-weight: 600">Скоро</span>
+<span style="font-size: 13px; line-height: 1.4; color: #55524C">точка крупнее, идущим — напоминание</span>
+</div>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8A3A12">19:30</span>
+<span style="position: relative; width: 36px; height: 36px; box-shadow: 0 0 0 4px #FBFAF6; border-radius: 12px"><span style="position: absolute; left: -10px; top: -10px; width: 56px; height: 56px; border-radius: 50%; background: rgba(240,82,31,0.22)"></span><span style="position: absolute; inset: 0; border-radius: 12px; background: #F0521F"></span></span>
+<span style="font-size: 15px; font-weight: 600">Идёт сейчас</span>
+<span style="font-size: 13px; line-height: 1.4; color: #55524C">пульсирует: «идёт · ещё 1 ч 50 мин»</span>
+</div>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8A3A12">20:10</span>
+<span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 10px; border: 2px dashed #B9B2A3; background: #FBFAF6; box-shadow: 0 0 0 4px #FBFAF6"></span>
+<span style="font-size: 15px; font-weight: 600">Скрыто</span>
+<span style="font-size: 13px; line-height: 1.4; color: #55524C">через 40 мин после начала — опоздавшим уже поздно</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div style="padding: 14px; border-radius: 16px; background: #F3F0E8; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; font-weight: 600">Длинные события</span><span style="font-size: 13.5px; line-height: 1.45; color: #3A3833">Выставка, маркет, фестиваль видны до закрытия: «идёт до 21:00», за 30 мин — «скоро закроется».</span></div>
+<div style="padding: 14px; border-radius: 16px; background: #F3F0E8; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; font-weight: 600">Кто нажал «Я иду»</span><span style="font-size: 13.5px; line-height: 1.45; color: #3A3833">Видит событие до конца и чат ещё 48 часов, даже когда точка скрыта у остальных.</span></div>
+<div style="padding: 14px; border-radius: 16px; background: #F3F0E8; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; font-weight: 600">Отменили или закончилось</span><span style="font-size: 13.5px; line-height: 1.45; color: #3A3833">Отмену ловит тот же скрипт и пишет всем, кто собирался. После конца — в архив и в хронику.</span></div>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1840,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

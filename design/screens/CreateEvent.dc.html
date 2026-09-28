@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новая встреча для друзей</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input::placeholder,textarea::placeholder{color:#6B675F}
+</style>
+</helmet>
+<div style="width: 390px; height: 1960px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="padding: 50px 16px 0; display: flex; align-items: center; gap: 12px">
+<a href="Main.dc.html" aria-label="Закрыть" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></a>
+<span style="flex-grow: 1; font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700">Новая встреча</span>
+<a href="Suggest.dc.html" style="font-size: 13px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px">Есть афиша?</a>
+</div>
+
+<div style="padding: 18px 16px 0; display: flex; flex-direction: column; gap: 22px">
+
+<div role="group" aria-label="Кто увидит встречу" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: #E7E2D6">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.on}}" style="height: 52px; border: 0; border-radius: 11px; background: {{m.bg}}; box-shadow: {{m.sh}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-family: 'Golos Text', sans-serif; color: #17161A">
+<span style="font-size: 14px; font-weight: 600">{{m.label}}</span>
+<span style="font-size: 11.5px; color: #55524C">{{m.hint}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; font-weight: 500; color: #55524C">Какая встреча</span>
+<div role="group" aria-label="Тип встречи" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="6">
+<button type="button" onClick="{{k.pick}}" aria-pressed="{{k.on}}" aria-label="{{k.label}}" style="height: 72px; padding: 0; border: 1px solid {{k.border}}; border-radius: 14px; background: {{k.bg}}; color: {{k.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: 'Golos Text', sans-serif; font-size: 11px; font-weight: 600">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{k.icon}}" /></svg>
+<span>{{k.label}}</span>
+</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ce-title" style="font-size: 13px; font-weight: 500; color: #55524C">Название</label>
+<input id="ce-title" value="Ужин у меня" style="height: 56px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600; color: #17161A">
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ce-desc" style="font-size: 13px; font-weight: 500; color: #55524C">Пара слов</label>
+<textarea id="ce-desc" rows="2" style="box-sizing: border-box; width: 100%; padding: 14px 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; line-height: 1.45; color: #17161A; resize: none">Готовлю плов. С вас хорошее настроение и что-нибудь к чаю</textarea>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ce-date" style="font-size: 13px; font-weight: 500; color: #55524C">Когда</label>
+<input id="ce-date" value="Пт, 2 октября" style="height: 50px; box-sizing: border-box; padding: 0 14px; border: 1px solid #CFC9BB; border-radius: 14px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; color: #17161A; min-width: 0">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="ce-time" style="font-size: 13px; font-weight: 500; color: #55524C">Во сколько</label>
+<input id="ce-time" value="19:30" style="height: 50px; box-sizing: border-box; padding: 0 14px; border: 1px solid #CFC9BB; border-radius: 14px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; color: #17161A; min-width: 0">
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; font-weight: 500; color: #55524C">Где</span>
+<div style="border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden">
+<div style="height: 140px; position: relative; overflow: hidden">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; transform: translate(-20px, -330px) scale(0.95); transform-origin: 0 0">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<span style="position: absolute; left: 132px; top: 26px; width: 92px; height: 92px; border-radius: 50%; background: rgba(240,82,31,0.16); border: 1.5px dashed #F0521F"></span>
+<span style="position: absolute; left: 160px; top: 54px; width: 36px; height: 36px; border-radius: 12px; background: #F0521F; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #17161A"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z" /><path d="M10 20v-5h4v5" /></svg></span>
+</div>
+<div style="padding: 12px 14px; display: flex; align-items: center; gap: 12px">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Моя квартира · Бостандык</span><span style="font-size: 13px; color: #55524C">[ТВОЙ АДРЕС, ПОДЪЕЗД, ЭТАЖ]</span></span>
+<button type="button" style="height: 36px; padding: 0 12px; flex-shrink: 0; border: 1px solid #CFC9BB; border-radius: 18px; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; color: #17161A">Изменить</button>
+</div>
+<div style="padding: 10px 14px; border-top: 1px solid #E7E2D6; display: flex; gap: 10px; align-items: center; background: #F3F0E8">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
+<span style="font-size: 13px; line-height: 1.4; color: #3A3833">Точный адрес видят только гости, которые приняли приглашение. Остальным — просто район.</span>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600">Кого позвать</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">ВЫБРАНО {{chosen}}</span>
+</div>
+<div style="display: flex; gap: 6px">
+<button type="button" onClick="{{pickAll}}" style="height: 34px; padding: 0 12px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; color: #17161A">Все друзья</button>
+<button type="button" onClick="{{pickClose}}" style="height: 34px; padding: 0 12px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; color: #17161A">Близкие</button>
+<button type="button" onClick="{{pickNone}}" style="height: 34px; padding: 0 12px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; color: #17161A">Никого</button>
+</div>
+<div style="display: flex; flex-direction: column; border: 1px solid #DDD8CC; border-radius: 16px; background: #FBFAF6">
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="6">
+<button type="button" onClick="{{f.pick}}" role="checkbox" aria-checked="{{f.on}}" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0; border-bottom: {{f.line}}; background: transparent; text-align: left; font-family: 'Golos Text', sans-serif; color: #17161A">
+<sc-if value="{{f.photo}}" hint-placeholder-val="{{ false }}"><img src="{{f.photo}}" alt="" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; object-fit: cover; display: block"></sc-if>
+<sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ true }}"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: {{f.tint}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">{{f.initial}}</span></sc-if>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px; font-weight: 600">{{f.name}}</span><span style="font-size: 12.5px; color: #55524C">{{f.note}}</span></span>
+<span style="width: 26px; height: 26px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; border: 1.5px solid {{f.boxBorder}}; background: {{f.boxBg}}; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity: {{f.tick}}"><path d="M5 12l5 5 9-10" /></svg></span>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Гости могут привести +1</span><span style="font-size: 12.5px; color: #55524C">ты увидишь, кого они добавили</span></span>
+<button type="button" role="switch" aria-checked="{{plusOne}}" aria-label="Гости могут привести +1" onClick="{{togglePlus}}" style="width: 52px; height: 32px; flex-shrink: 0; padding: 0; border: 0; border-radius: 16px; background: {{plusTrack}}; position: relative"><span style="position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(23,22,26,0.3); transform: translateX({{plusX}}px)"></span></button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 600">Кто что принесёт</span>
+<div style="display: flex; flex-direction: column; border: 1px solid #DDD8CC; border-radius: 16px; background: #FBFAF6">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6">
+<span style="flex-grow: 1; font-size: 15px">Напитки</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><img src="../assets/igor.jpg" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; display: block">Игорь</span>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6">
+<span style="flex-grow: 1; font-size: 15px">Десерт</span>
+<span style="font-size: 13px; color: #55524C">свободно</span>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #E7E2D6">
+<span style="flex-grow: 1; font-size: 15px">Настолка на вечер</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><img src="../assets/denis.jpg" alt="" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; display: block">Денис</span>
+</div>
+<button type="button" style="height: 46px; border: 0; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>Добавить пункт</button>
+</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 12px 16px 28px; background: #F3F0E8; border-top: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 8px">
+<a href="Me.dc.html" style="height: 56px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; text-decoration: none">{{cta}}</a>
+<span style="font-size: 12.5px; color: #55524C; text-align: center">{{ctaHint}}</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'friends', kind: 'dinner', plusOne: true, sel: { igor: true, denis: true, timur: true, sasha: false, ainura: false, mira: false } };
+  }
+  renderVals() {
+    const s = this.state;
+    const INK = '#17161A', PAPER = '#F3F0E8', CARD = '#FBFAF6', LINE = '#CFC9BB';
+    const modes = [
+      { key: 'friends', label: 'Для друзей', hint: 'видят только гости' },
+      { key: 'open', label: 'Открытая', hint: 'на общей карте' }
+    ].map((m) => {
+      const on = s.mode === m.key;
+      return { ...m, on, bg: on ? CARD : 'transparent', sh: on ? '0 1px 3px rgba(23,22,26,0.14)' : 'none', pick: () => this.setState({ mode: m.key }) };
+    });
+    const kinds = [
+      { key: 'dinner', label: 'Ужин', icon: 'M5 3v8a2 2 0 002 2v8M9 3v8a2 2 0 01-2 2M7 3v6M17 21V3c-2 1-3 4-3 8h3' },
+      { key: 'movie', label: 'Кино', icon: 'M3 5h18v14H3zM7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4' },
+      { key: 'games', label: 'Игры', icon: 'M4 4h16v16H4zM9 9h.01M15 15h.01M15 9h.01M9 15h.01' },
+      { key: 'walk', label: 'Гулять', icon: 'M13 4a1.5 1.5 0 100-.01M10 21l2-6-2-3 1-5 3 3h3M8 11l2-4' },
+      { key: 'sport', label: 'Спорт', icon: 'M12 3a9 9 0 100 18 9 9 0 000-18zM3.5 9h17M3.5 15h17M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18' },
+      { key: 'party', label: 'Туса', icon: 'M4 20l5-14 9 9zM14 4l1 2M19 8l2-1M17 3l-1 3' }
+    ].map((k) => {
+      const on = s.kind === k.key;
+      return { ...k, on, bg: on ? INK : CARD, fg: on ? PAPER : INK, border: on ? INK : LINE, pick: () => this.setState({ kind: k.key }) };
+    });
+    const defs = [
+      { key: 'igor', name: 'Игорь', note: 'близкий друг', photo: '../assets/igor.jpg', close: true },
+      { key: 'denis', name: 'Денис', note: 'близкий друг', photo: '../assets/denis.jpg', close: true },
+      { key: 'timur', name: 'Тимур', note: 'вместе на велопрогулке', initial: 'Т', tint: '#D9E4D2', close: true },
+      { key: 'sasha', name: 'Саша', note: 'бегаете по средам', initial: 'С', tint: '#EADFB8', close: false },
+      { key: 'ainura', name: 'Айнура', note: 'заявка в друзья отправлена', photo: '../assets/ainura.jpg', close: false },
+      { key: 'mira', name: 'Мира', note: '2 общих друга', initial: 'М', tint: '#E5D3DC', close: false }
+    ];
+    const friends = defs.map((f, i) => {
+      const on = !!s.sel[f.key];
+      return {
+        ...f, on, photo: f.photo || '', noPhoto: !f.photo,
+        line: i < defs.length - 1 ? '1px solid #E7E2D6' : '0',
+        boxBg: on ? INK : 'transparent', boxBorder: on ? INK : '#B9B2A3', tick: on ? 1 : 0,
+        pick: () => this.setState({ sel: { ...s.sel, [f.key]: !on } })
+      };
+    });
+    const setAll = (fn) => { const o = {}; defs.forEach((d) => { o[d.key] = fn(d); }); this.setState({ sel: o }); };
+    const n = defs.filter((d) => s.sel[d.key]).length;
+    const word = n % 10 === 1 && n % 100 !== 11 ? 'друга' : 'друзей';
+    return {
+      modes, kinds, friends, chosen: n,
+      pickAll: () => setAll(() => true),
+      pickClose: () => setAll((d) => d.close),
+      pickNone: () => setAll(() => false),
+      plusOne: s.plusOne, plusTrack: s.plusOne ? INK : LINE, plusX: s.plusOne ? 20 : 0,
+      togglePlus: () => this.setState({ plusOne: !s.plusOne }),
+      cta: s.mode === 'friends' ? (n ? 'Позвать ' + n + ' ' + word : 'Выбери, кого позвать') : 'Опубликовать на карте',
+      ctaHint: s.mode === 'friends' ? 'Встреча появится на карте только у приглашённых' : 'Встречу увидят все, адрес — после одобрения'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ищу компанию</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input::placeholder{color:#6B675F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; overflow: hidden; pointer-events: none">
+<dc-import name="EventPage" ev="jazz" mode="page" hint-size="390px,1500px"></dc-import>
+</div>
+<a href="Event.dc.html" aria-label="Закрыть и вернуться к событию" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(23,22,26,0.5)"></a>
+
+<div role="dialog" aria-label="Ищу компанию" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; background: #F3F0E8; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; gap: 18px">
+<span style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+
+<div style="display: flex; align-items: flex-start; gap: 12px">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Ищу компанию</span>
+<span style="font-size: 13px; color: #55524C">Джаз во дворе · сегодня, 19:30</span>
+</span>
+<a href="Event.dc.html" aria-label="Закрыть" style="width: 40px; height: 40px; flex-shrink: 0; box-sizing: border-box; border: 1px solid #DDD8CC; border-radius: 50%; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+</div>
+
+<sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 600">Зачем идёшь <span style="font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 500; color: #55524C">· до двух</span></span>
+<div role="group" aria-label="Зачем идёшь" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{moods}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.on}}" style="height: 40px; padding: 0 14px; border: 1px solid {{m.border}}; border-radius: 20px; background: {{m.bg}}; color: {{m.fg}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500">{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 600">Кто увидит</span>
+<div role="group" aria-label="Кто увидит заявку" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: #E7E2D6">
+<sc-for list="{{vis}}" as="v" hint-placeholder-count="2">
+<button type="button" onClick="{{v.pick}}" aria-pressed="{{v.on}}" style="height: 42px; border: 0; border-radius: 11px; background: {{v.bg}}; box-shadow: {{v.sh}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: {{v.fw}}; color: #17161A">{{v.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<input aria-label="Пара слов о себе, необязательно" placeholder="Пара слов, если хочешь: буду в зелёной куртке" style="height: 50px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 16px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; color: #17161A; outline: none">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" onClick="{{publish}}" style="height: 56px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 600">Искать компанию</button>
+<span style="align-self: center; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; color: #55524C">ЗАЯВКА ИСЧЕЗНЕТ, КОГДА СОБЫТИЕ НАЧНЁТСЯ</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 18px; background: #17161A; color: #F3F0E8">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: #F0521F; color: #17161A; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Ты в списке «Ищут компанию»</span><span style="font-size: 13px; color: #BDB8AD; line-height: 1.4">{{doneHint}}</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 600">Тоже ищут · 5</span>
+<div style="display: flex; flex-direction: column; border: 1px solid #DDD8CC; border-radius: 18px; background: #FBFAF6">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #E7E2D6">
+<img src="../assets/ainura.jpg" alt="" style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; object-fit: cover; display: block">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Айнура, 29</span><span style="font-size: 12.5px; color: #55524C">познакомиться · 3 общих интереса</span></span>
+<a href="DirectChat.dc.html" style="height: 36px; padding: 0 12px; flex-shrink: 0; box-sizing: border-box; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; font-size: 13px; font-weight: 600; text-decoration: none">Написать</a>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #E7E2D6">
+<span style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; background: #EADFB8; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 700">Е</span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Ерлан, 27</span><span style="font-size: 12.5px; color: #55524C">их двое, ищут ещё 1–2</span></span>
+<a href="DirectChat.dc.html" style="height: 36px; padding: 0 12px; flex-shrink: 0; box-sizing: border-box; border-radius: 18px; border: 1.5px solid #17161A; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #17161A; text-decoration: none">Написать</a>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px">
+<span style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; background: #D9E4D2; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 700">М</span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Мира, 22</span><span style="font-size: 12.5px; color: #55524C">первый раз на таком</span></span>
+<a href="DirectChat.dc.html" style="height: 36px; padding: 0 12px; flex-shrink: 0; box-sizing: border-box; border-radius: 18px; border: 1.5px solid #17161A; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #17161A; text-decoration: none">Написать</a>
+</div>
+</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{withdraw}}" style="flex-grow: 1; flex-basis: 0; height: 50px; box-sizing: border-box; border: 1.5px solid #17161A; border-radius: 14px; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600; color: #17161A">Снять заявку</button>
+<a href="Event.dc.html" style="flex-grow: 1; flex-basis: 0; height: 50px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none">Готово</a>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { moods: { music: true, meet: true }, vis: 'all', done: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const INK = '#17161A';
+    const defs = [['music', 'Послушать музыку'], ['meet', 'Познакомиться'], ['walk', 'Потом погулять'], ['notalone', 'Просто не идти одному']];
+    const count = Object.values(s.moods).filter(Boolean).length;
+    const moods = defs.map(([k, label]) => {
+      const on = !!s.moods[k];
+      return {
+        label, on, bg: on ? INK : '#FBFAF6', fg: on ? '#F3F0E8' : INK, border: on ? INK : '#CFC9BB',
+        pick: () => {
+          if (!on && count >= 2) return;
+          this.setState({ moods: { ...s.moods, [k]: !on } });
+        }
+      };
+    });
+    const visDefs = [['all', 'Все, кто идёт'], ['fof', 'Друзья друзей']];
+    const vis = visDefs.map(([k, label]) => {
+      const on = s.vis === k;
+      return { label, on, bg: on ? '#FBFAF6' : 'transparent', sh: on ? '0 1px 3px rgba(23,22,26,0.14)' : 'none', fw: on ? '600' : '500', pick: () => this.setState({ vis: k }) };
+    });
+    return {
+      moods, vis,
+      isForm: !s.done, isDone: s.done,
+      doneHint: s.vis === 'all' ? 'Тебя видят все, кто идёт. Напиши первым или жди — ответы придут в «Чаты»' : 'Тебя видят только друзья твоих друзей на этом событии',
+      publish: () => this.setState({ done: true }),
+      withdraw: () => this.setState({ done: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

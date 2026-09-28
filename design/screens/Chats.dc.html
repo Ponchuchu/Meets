@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Чаты и заявки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="padding: 50px 16px 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.025em">Чаты</h1>
+<button type="button" aria-label="Поиск по чатам" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg></button>
+</div>
+<div role="group" aria-label="Фильтр чатов" style="display: flex; gap: 6px">
+<button type="button" aria-pressed="true" style="height: 34px; padding: 0 13px; border: 1px solid #17161A; border-radius: 17px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600">Все</button>
+<button type="button" aria-pressed="false" style="height: 34px; padding: 0 13px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 500">События</button>
+<button type="button" aria-pressed="false" style="height: 34px; padding: 0 13px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 500">Личные</button>
+<button type="button" aria-pressed="false" style="height: 34px; padding: 0 10px 0 13px; border: 1px solid #CFC9BB; border-radius: 17px; background: #FBFAF6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px">Заявки<span style="min-width: 18px; height: 18px; border-radius: 9px; background: #F0521F; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">2</span></button>
+</div>
+</div>
+
+<div style="padding: 18px 16px 0; display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #55524C">НОВЫЕ ЗАЯВКИ</span>
+<div style="padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #D9E4D2; border: 2px solid #2447B8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">Т</span>
+<span style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; font-weight: 600">Тимур хочет пойти с тобой</span>
+<span style="font-size: 13px; color: #55524C">Велопрогулка по городу · сб, 10:00</span>
+<span style="font-size: 14px; color: #3A3833; margin-top: 2px">«Возьму запасной шлем, если нужно»</span>
+</span>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex-grow: 1; height: 42px; border: 0; border-radius: 12px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600">Принять</button>
+<button type="button" style="flex-grow: 1; height: 42px; border: 1px solid #CFC9BB; border-radius: 12px; background: transparent; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 500">Не сейчас</button>
+</div>
+</div>
+<a href="DirectChat.dc.html" style="padding: 12px 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; gap: 12px; align-items: center; text-decoration: none; color: #17161A">
+<img src="../assets/ainura.jpg" alt="" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; object-fit: cover; display: block">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; font-weight: 600">Айнура ответила «Давай!»</span>
+<span style="font-size: 13px; color: #55524C">Стендап в пятницу · личный чат</span>
+</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+</a>
+</div>
+
+<div style="padding: 20px 16px 0; display: flex; flex-direction: column">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #55524C; padding-bottom: 6px">ЧАТЫ СОБЫТИЙ</span>
+<a href="EventChat.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; text-decoration: none; color: #17161A; border-bottom: 1px solid #E2DDD1">
+<span style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 600">Джаз во дворе</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">18:02</span></span>
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-size: 13px; color: #55524C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Саша: займу столик у сцены</span><span style="min-width: 20px; height: 20px; flex-shrink: 0; border-radius: 10px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center">3</span></span>
+</span>
+</a>
+<a href="EventChat.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; text-decoration: none; color: #17161A; border-bottom: 1px solid #E2DDD1">
+<span style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><circle cx="9" cy="9" r="1" /><circle cx="15" cy="15" r="1" /><circle cx="15" cy="9" r="1" /><circle cx="9" cy="15" r="1" /></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 600">Настолки без своей компании</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">17:40</span></span>
+<span style="font-size: 13px; color: #55524C">Ерлан: кто берёт Каркассон?</span>
+</span>
+</a>
+<a href="EventChat.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; text-decoration: none; color: #17161A">
+<span style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="3.5" /><circle cx="18.5" cy="17" r="3.5" /><path d="M5.5 17L9 9h6l3.5 8M9 9L7.5 6H5.5M15 9l-3 8" /></svg></span>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 600">Велопрогулка по городу</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">вчера</span></span>
+<span style="font-size: 13px; color: #55524C">Маршрут в закрепе</span>
+</span>
+</a>
+</div>
+
+<div style="padding: 14px 16px 0; display: flex; flex-direction: column">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: #55524C; padding-bottom: 6px">ЛИЧНЫЕ</span>
+<a href="DirectChat.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px 0; text-decoration: none; color: #17161A">
+<img src="../assets/igor.jpg" alt="" style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; display: block">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; justify-content: space-between"><span style="font-size: 15px; font-weight: 600">Игорь</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C">18:10</span></span>
+<span style="font-size: 13px; color: #55524C">Ты уже выходишь?</span>
+</span>
+</a>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="chats" hint-size="390px,84px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

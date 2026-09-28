@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карта переходов</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+</style>
+</helmet>
+<div style="width: 1800px; height: 800px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif">
+<svg width="1800" height="800" viewBox="0 0 1800 800" role="img" aria-label="Схема переходов между экранами приложения рядом и путь события от источника до карты" style="display: block">
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#17161A"></path></marker>
+<marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6B675F"></path></marker>
+</defs>
+
+<text x="40" y="56" font-family="Geologica, sans-serif" font-size="30" font-weight="700" letter-spacing="-0.5" fill="#17161A">рядом. — карта переходов</text>
+<g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="500" letter-spacing="0.6" fill="#3A3833">
+<rect x="1290" y="30" width="14" height="14" rx="4" fill="#F0521F" stroke="#17161A" stroke-width="1.5"></rect><text x="1312" y="41">КЛЮЧЕВОЙ ЭКРАН</text>
+<rect x="1440" y="30" width="14" height="14" rx="4" fill="#FBFAF6" stroke="#17161A" stroke-width="1.5"></rect><text x="1462" y="41">ЭКРАН</text>
+<path d="M1530 37 H1564" stroke="#6B675F" stroke-width="1.6" stroke-dasharray="5 4"></path><text x="1572" y="41">АВТОМАТИКА</text>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="1" fill="#55524C">
+<text x="40" y="118">ЧТО ВИДИТ ЧЕЛОВЕК · ВКЛАДКИ «КАРТА» И «ДЛЯ ТЕБЯ»</text>
+<text x="40" y="470">ВКЛАДКИ «ЧАТЫ», «ЛЮДИ», «ПРОФИЛЬ»</text>
+<text x="40" y="676">ФОН: КАК СОБЫТИЯ ПОПАДАЮТ НА КАРТУ</text>
+</g>
+
+<g fill="none" stroke="#17161A" stroke-width="1.6" marker-end="url(#ah)">
+<path d="M270 168 H324"></path>
+<path d="M850 168 H904"></path>
+<path d="M1140 168 H1194"></path>
+<path d="M1430 168 H1484"></path>
+<path d="M445 130 V104 H1025 V124"></path>
+<path d="M330 185 H300 V338 H276"></path>
+<path d="M445 206 V294"></path>
+<path d="M560 338 H614"></path>
+<path d="M1025 206 V294"></path>
+<path d="M1140 338 H1194"></path>
+<path d="M1605 206 V294"></path>
+<path d="M1315 376 V410 H445 V382"></path>
+<path d="M230 480 V440 H420 V382"></path>
+<path d="M560 518 H614"></path>
+<path d="M445 556 V600 H1025 V562"></path>
+<path d="M1025 600 H1605 V562"></path>
+<path d="M735 376 V440 H1330 V382"></path>
+</g>
+<path d="M566 168 H614" fill="none" stroke="#17161A" stroke-width="1.6" marker-start="url(#ah)" marker-end="url(#ah)"></path>
+<g fill="none" stroke="#6B675F" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ahg)">
+<path d="M1650 556 V650 H1025 V684"></path>
+<path d="M270 728 H324"></path>
+<path d="M560 728 H614"></path>
+<path d="M850 728 H904"></path>
+<path d="M1140 728 H1194"></path>
+<path d="M1430 728 H1760 V80 H400 V124"></path></g>
+
+<g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.3" fill="#17161A" stroke="#F3F0E8" stroke-width="5" paint-order="stroke">
+<text x="297" y="158" text-anchor="middle">готово</text>
+<text x="590" y="158" text-anchor="middle">вкладка</text>
+<text x="877" y="158" text-anchor="middle">тап</text>
+<text x="1167" y="158" text-anchor="middle">ищу компанию</text>
+<text x="1457" y="158" text-anchor="middle">заявка</text>
+<text x="735" y="98" text-anchor="middle">тап по точке</text>
+<text x="294" y="264" text-anchor="end">дата, фильтр</text>
+<text x="455" y="256" text-anchor="start">тап по другу</text>
+<text x="587" y="328" text-anchor="middle">позвать</text>
+<text x="1035" y="256" text-anchor="start">кто идёт</text>
+<text x="1167" y="328" text-anchor="middle">написать</text>
+<text x="1615" y="256" text-anchor="start">чат</text>
+<text x="880" y="404" text-anchor="middle">аватарка → «на карте»</text>
+<text x="1030" y="460" text-anchor="middle">приглашение приходит в чат</text>
+<text x="325" y="434" text-anchor="middle">на карте</text>
+<text x="587" y="508" text-anchor="middle">«все»</text>
+<text x="735" y="592" text-anchor="middle">шестерёнка</text>
+<text x="1460" y="592" text-anchor="middle">есть афиша</text>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" letter-spacing="0.3" fill="#55524C" stroke="#F3F0E8" stroke-width="5" paint-order="stroke">
+<text x="1340" y="642" text-anchor="middle">на проверку</text>
+<text x="297" y="718" text-anchor="middle">раз в 2 ч</text>
+<text x="587" y="718" text-anchor="middle">JSON</text>
+<text x="877" y="718" text-anchor="middle">координаты</text>
+<text x="1167" y="718" text-anchor="middle">«опубликовать»</text>
+<text x="1100" y="74" text-anchor="middle">событие появляется у всех</text></g>
+
+<g stroke="#17161A" stroke-width="1.5">
+<rect x="40" y="130" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="330" y="130" width="230" height="76" rx="14" fill="#F0521F"></rect>
+<rect x="620" y="130" width="230" height="76" rx="14" fill="#F0521F"></rect>
+<rect x="910" y="130" width="230" height="76" rx="14" fill="#F0521F"></rect>
+<rect x="1200" y="130" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="1490" y="130" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="40" y="300" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="330" y="300" width="230" height="76" rx="14" fill="#F0521F"></rect>
+<rect x="620" y="300" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="910" y="300" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="1200" y="300" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="1490" y="300" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="40" y="480" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="330" y="480" width="230" height="76" rx="14" fill="#F0521F"></rect>
+<rect x="620" y="480" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="910" y="480" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="1200" y="480" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+<rect x="1490" y="480" width="230" height="76" rx="14" fill="#FBFAF6"></rect>
+</g>
+<g stroke="#B9B2A3" stroke-width="1.5" fill="#E7E2D6">
+<rect x="40" y="690" width="230" height="76" rx="14"></rect>
+<rect x="330" y="690" width="230" height="76" rx="14"></rect>
+<rect x="620" y="690" width="230" height="76" rx="14"></rect>
+<rect x="910" y="690" width="230" height="76" rx="14"></rect>
+<rect x="1200" y="690" width="230" height="76" rx="14"></rect>
+</g>
+
+<g font-family="Geologica, sans-serif" font-size="16" font-weight="600" fill="#17161A">
+<text x="56" y="162">Регистрация</text>
+<text x="346" y="162">Карта</text>
+<text x="636" y="162">Для тебя</text>
+<text x="926" y="162">Событие</text>
+<text x="1216" y="162">Ищу компанию</text>
+<text x="1506" y="162">Чаты и заявки</text>
+<text x="56" y="332">Дата, фильтр, погода</text>
+<text x="346" y="332">Друг на карте</text>
+<text x="636" y="332">Позвать куда-то</text>
+<text x="926" y="332">Профиль человека</text>
+<text x="1216" y="332">Личный чат</text>
+<text x="1506" y="332">Чат события</text>
+<text x="56" y="512">Люди</text>
+<text x="346" y="512">Мой профиль</text>
+<text x="636" y="512">Все значки</text>
+<text x="926" y="512">Настройки</text>
+<text x="1216" y="512">Создать встречу</text>
+<text x="1506" y="512">Предложить событие</text>
+<text x="56" y="722">Источники</text>
+<text x="346" y="722">ИИ-разбор</text>
+<text x="636" y="722">Геокодер</text>
+<text x="926" y="722">Админка</text>
+<text x="1216" y="722">На карте</text>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="10" font-weight="500" letter-spacing="0.2" fill="#3A3833">
+<text x="56" y="186">Google, Apple, телефон</text>
+<text x="346" y="186">события, друзья, погода</text>
+<text x="636" y="186">пойду → · ← мимо · тап</text>
+<text x="926" y="186">один шаблон для всех</text>
+<text x="1216" y="186">шторка на 10 секунд</text>
+<text x="1506" y="186">события, личные, мэтчи</text>
+<text x="56" y="356">шторки прямо на карте</text>
+<text x="346" y="356">скорость, стикер, позвать</text>
+<text x="636" y="356">3 события для двоих</text>
+<text x="926" y="356">не друг / друг</text>
+<text x="1216" y="356">фото, видео, кружок, голос</text>
+<text x="1506" y="356">живёт 48 ч после</text>
+<text x="56" y="536">рядом, заявки, друзья</text>
+<text x="346" y="536">планы, карта города, хроника</text>
+<text x="636" y="536">шторка поверх профиля</text>
+<text x="926" y="536">приватность, мой значок</text>
+<text x="1216" y="536">кнопка + на карте</text>
+<text x="1506" y="536">ссылка или скрин</text>
+<text x="56" y="746">Яндекс Афиша, Threads, TG</text>
+<text x="346" y="746">событие или реклама</text>
+<text x="636" y="746">адрес → точка</text>
+<text x="926" y="746">да / правка / нет</text>
+<text x="1216" y="746">прячется после начала</text>
+</g>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

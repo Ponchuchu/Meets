@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Для тебя — подборка свайпами</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+@keyframes fdRing{0%{transform:scale(0.4);opacity:0.9}100%{transform:scale(1.9);opacity:0}}
+@keyframes fdPlus{0%{transform:translateY(6px);opacity:0}25%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+@keyframes fdTimer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes fdOpen{from{clip-path:inset(116px 16px 228px 16px round 26px)}to{clip-path:inset(0px 0px 0px 0px round 0px)}}
+@keyframes fdClose{from{clip-path:inset(0px 0px 0px 0px round 0px);opacity:1}to{clip-path:inset(116px 16px 228px 16px round 26px);opacity:0.6}}
+@keyframes fdToast{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="position: absolute; left: 16px; right: 16px; top: 50px; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1">Для тебя</h1>
+<span style="font-size: 13px; color: #55524C">Алматы · сегодня и на неделе</span>
+</div>
+
+<div style="position: absolute; left: 16px; top: 116px; width: 358px; height: 500px">
+<sc-for list="{{stack}}" as="c" hint-placeholder-count="3">
+<div style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; transform: translateX({{c.ox}}px); transition: {{c.oxT}}">
+<div style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; transform: translateY({{c.oy}}px) scale({{c.os}}); opacity: {{c.op}}; transition: {{c.oyT}}">
+<div onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.cancel}}" aria-label="{{c.aria}}" style="position: absolute; left: 0; top: 0; width: 358px; height: 500px; box-sizing: border-box; border-radius: 26px; overflow: hidden; background: #FBFAF6; box-shadow: {{c.shadow}}; transform: {{c.tf}}; transform-origin: 50% 100%; transition: {{c.trans}}; touch-action: none; user-select: none; cursor: {{c.cursor}}">
+<div style="position: relative; height: 320px; background: {{c.bg}}; color: {{c.fg}}; overflow: hidden">
+<sc-if value="{{c.isPhoto}}" hint-placeholder-val="{{ false }}">
+<img src="{{c.photo}}" alt="" draggable="false" style="position: absolute; left: 0; top: 0; width: 358px; height: 320px; object-fit: cover; display: block">
+<span style="position: absolute; left: 0; top: 0; width: 358px; height: 320px; background: rgba(23,22,26,0.38)"></span>
+</sc-if>
+<svg width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: -36px; top: 34px; opacity: {{c.iconO}}"><path d="{{c.icon}}"></path></svg>
+<div style="position: absolute; left: 18px; right: 12px; top: 14px; display: flex; justify-content: space-between; align-items: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em">{{c.cat}}</span>
+<button type="button" onClick="{{c.toggleSave}}" aria-label="{{c.saveLabel}}" aria-pressed="{{c.saved}}" style="width: 40px; height: 40px; border: 0; border-radius: 50%; background: {{c.saveBg}}; color: #17161A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="{{c.saveFill}}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></button>
+</div>
+<div style="position: absolute; left: 18px; right: 18px; bottom: 50px; display: flex; flex-direction: column">
+<sc-for list="{{c.big}}" as="b" hint-placeholder-count="2">
+<span style="font-family: 'Geologica', sans-serif; font-size: {{c.bigSize}}px; font-weight: 800; line-height: 0.92; letter-spacing: -0.035em; color: {{b.c}}">{{b.t}}</span>
+</sc-for>
+</div>
+<div style="position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; justify-content: space-between; border-top: 1.5px solid {{c.fg}}; padding-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">
+<span>{{c.when}}</span><span>{{c.price}}</span>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 18px; top: 70px; padding: 6px 12px; border: 3px solid #17161A; border-radius: 10px; background: {{c.leftStampBg}}; color: #17161A; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 0.02em; transform: rotate(-12deg); opacity: {{c.leftO}}">{{c.leftWord}}</span>
+<span aria-hidden="true" style="position: absolute; right: 18px; top: 70px; padding: 6px 12px; border: 3px solid #17161A; border-radius: 10px; background: {{c.rightStampBg}}; color: #17161A; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: 0.02em; transform: rotate(12deg); opacity: {{c.rightO}}">{{c.rightWord}}</span>
+</div>
+<div style="padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.title}}</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: #3A3833"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>{{c.address}}</span>
+<span style="font-size: 13.5px; line-height: 1.4; color: #55524C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{c.about}}</span>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 30px; padding-top: 4px">
+<span style="display: flex; padding-right: 8px">
+<sc-for list="{{c.people}}" as="p" hint-placeholder-count="2">
+<sc-if value="{{p.hasSrc}}" hint-placeholder-val="{{ true }}"><img src="{{p.src}}" alt="" draggable="false" style="width: 28px; height: 28px; margin-right: -8px; border-radius: 50%; object-fit: cover; border: 2px solid {{p.ring}}; box-sizing: border-box; box-shadow: 0 0 0 2px #FBFAF6; display: block"></sc-if>
+<sc-if value="{{p.noSrc}}" hint-placeholder-val="{{ false }}"><span style="width: 28px; height: 28px; margin-right: -8px; border-radius: 50%; background: {{p.tint}}; border: 2px solid {{p.ring}}; box-sizing: border-box; box-shadow: 0 0 0 2px #FBFAF6; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700">{{p.initial}}</span></sc-if>
+</sc-for>
+</span>
+<span style="flex-grow: 1; font-size: 13px; line-height: 1.3">{{c.social}}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 16px; right: 16px; top: 548px; min-height: 56px; box-sizing: border-box; padding: 8px 8px 8px 16px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; overflow: hidden; box-shadow: 0 10px 24px rgba(23,22,26,0.3); animation: fdToast 0.25s ease-out">
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.35">{{toastText}}</span>
+<button type="button" onClick="{{undo}}" style="flex-shrink: 0; height: 38px; padding: 0 12px; border: 0; border-radius: 12px; background: {{toastBtnBg}}; color: {{toastBtnFg}}; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600">{{toastCta}}</button>
+<sc-if value="{{toastTimer}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #F0521F; transform-origin: 0 50%; animation: fdTimer 5s linear forwards"></span>
+</sc-if>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 640px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start">
+<sc-for list="{{controls}}" as="bt" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<button type="button" onClick="{{bt.act}}" disabled="{{bt.disabled}}" aria-label="{{bt.aria}}" style="width: {{bt.size}}px; height: {{bt.size}}px; margin-top: {{bt.mt}}px; border: 0; border-radius: 50%; background: {{bt.bg}}; color: {{bt.fg}}; opacity: {{bt.o}}; display: flex; align-items: center; justify-content: center; box-shadow: {{bt.sh}}"><svg width="{{bt.is}}" height="{{bt.is}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{bt.sw}}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{bt.icon}}"></path></svg></button>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; color: #55524C">{{bt.label}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 84px">
+<dc-import name="TabBar" active="foryou" plans="{{plans}}" hint-size="390px,84px"></dc-import>
+</div>
+<sc-if value="{{pulse}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 327px; top: 760px; width: 48px; height: 48px; box-sizing: border-box; border-radius: 50%; border: 2px solid #F0521F; animation: fdRing 0.9s ease-out forwards; pointer-events: none"></span>
+<span aria-hidden="true" style="position: absolute; left: 360px; top: 742px; font-family: 'Geologica', sans-serif; font-size: 15px; font-weight: 800; color: #F0521F; animation: fdPlus 0.9s ease-out forwards; pointer-events: none">+1</span>
+</sc-if>
+
+<sc-if value="{{isOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; animation: {{openAnim}}">
+<dc-import name="EventPage" ev="{{openEv}}" mode="sheet" on-go="{{goFromDetails}}" on-close="{{closeDetails}}" hint-size="390px,844px"></dc-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"goSide":{"editor":"enum","options":["right","left"],"default":"right"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, dx: 0, dy: 0, drag: false, fly: null, ret: null, settle: false, log: [], toast: null, saved: {}, plans: 0, pulse: false, open: null, closing: false };
+    this.sx = 0;
+    this.sy = 0;
+    this.timers = [];
+    this.toastTimer = null;
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); if (this.toastTimer) clearTimeout(this.toastTimer); }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  cards() {
+    const IG = '../assets/igor.jpg', DE = '../assets/denis.jpg', AN = '../assets/anton.jpg', AI = '../assets/ainura.jpg';
+    const INK = '#17161A', PAPER = '#F3F0E8', ORANGE = '#F0521F', BLUE = '#2447B8';
+    const I = {
+      note: 'M9 18V5l11-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM17 19a3 3 0 100-6 3 3 0 000 6z',
+      mic: 'M9 3h6v11H9zM5 11a7 7 0 0014 0M12 18v3',
+      star: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z',
+      peak: 'M3 20l6-10 4 6 3-4 5 8z',
+      dice: 'M4 4h16v16H4zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      speaker: 'M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13'
+    };
+    return [
+      { id: 'jazz', ev: 'jazz', cat: 'МУЗЫКА', when: 'СЕГОДНЯ · 19:30', price: '0 ₸', title: 'Джаз во дворе', address: 'Панфилова, 110, во дворе',
+        about: 'Джазовое трио во дворе старого дома. Можно прийти одному — перед началом все знакомятся у входа.',
+        bg: ORANGE, fg: INK, icon: I.note, big: [['ДЖАЗ', INK], ['ВО ДВОРЕ', INK]],
+        people: [{ src: IG, ring: BLUE }, { src: DE, ring: BLUE }], social: 'Игорь и Денис идут',
+        goText: 'В планах: джаз, сегодня 19:30. Игорь и Денис тоже идут' },
+      { id: 'standup', ev: 'standup', cat: 'СТЕНДАП', when: 'ПТ 2.10 · 20:00', price: '3 000 ₸', title: 'Стендап: открытый микрофон', address: 'Бар «Гараж», Абая, 52',
+        about: 'Восемь новых комиков пробуют свежий материал. Бывает неровно, но смешно.',
+        bg: INK, fg: PAPER, icon: I.mic, big: [['ОТКРЫТЫЙ', PAPER], ['МИКРОФОН', ORANGE]],
+        people: [{ src: AI, ring: 'transparent' }], social: 'Айнура и ещё 2 ищут компанию',
+        goText: 'В планах: стендап в пятницу. Айнура ищет компанию туда же' },
+      { id: 'anime', ev: 'anime', cat: 'ВЫСТАВКА', when: 'СЕГОДНЯ ДО 21:00', price: '2 500 ₸', title: 'Аниме-выставка «Токио в Алматы»', address: 'ТРЦ на Абая, 109, 3 этаж',
+        about: 'Эскизы, фигурки, манга и косплей-фотозона. Вечером — мастер-класс по рисованию.',
+        bg: '#E7E2D6', fg: INK, icon: I.star, big: [['ТОКИО', INK], ['В АЛМАТЫ', INK]],
+        people: [{ src: AN, ring: BLUE }, { src: DE, ring: BLUE }], social: 'Антон уже там, Денис едет',
+        goText: 'В планах: аниме-выставка, до 21:00' },
+      { id: 'hike', ev: 'hike', cat: 'ГОРЫ', when: 'СБ 3.10 · 08:00', price: '0 ₸', title: 'Поход на Кок-Жайляу', address: 'Начало тропы, Медеуское ущелье',
+        about: 'Около 14 км туда и обратно, средняя сложность. Наверху плато с видом на город.',
+        bg: INK, fg: PAPER, photo: '../assets/hike.jpg', icon: I.peak, big: [['ПОХОД', PAPER], ['В ГОРЫ', PAPER]],
+        people: [{ initial: 'Т', tint: '#D9E4D2', ring: BLUE }], social: 'Тимур идёт · 3 ищут компанию',
+        goText: 'В планах: поход в субботу. Напомню про воду и ветровку' },
+      { id: 'games', ev: 'games', cat: 'НАСТОЛКИ', when: 'СЕГОДНЯ · 20:00', price: '2 000 ₸', title: 'Настолки без своей компании', address: 'Антикафе, Жибек Жолы, 64',
+        about: 'Ведущий рассаживает по столам и объясняет правила. Приходят в основном по одному.',
+        bg: '#D9E4D2', fg: INK, icon: I.dice, big: [['НАСТОЛКИ', INK], ['БЕЗ СВОЕЙ', INK], ['КОМПАНИИ', INK]],
+        people: [], social: '6 человек ищут компанию',
+        goText: 'В планах: настолки в 20:00' },
+      { id: 'concert', ev: 'concert', cat: 'КОНЦЕРТ', when: 'СЕГОДНЯ · 20:00', price: 'ОТ 15 000 ₸', title: 'Концерт на Центральном стадионе', address: 'Центральный стадион, Абая, 48',
+        about: 'Большой вечерний концерт на открытом воздухе. Вход по QR-билетам.',
+        bg: INK, fg: PAPER, icon: I.speaker, big: [['4 200', ORANGE], ['ИДУТ', PAPER]],
+        people: [], social: 'Идут 4 200 · друзей пока нет',
+        goText: 'В планах. Билет — у организатора, ссылка в карточке' }
+    ];
+  }
+  card(i) { const list = this.cards(); return list[((i % list.length) + list.length) % list.length]; }
+  goSign() { return (this.props.goSide ?? 'right') === 'left' ? -1 : 1; }
+  showToast(toast, ms) {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.setState({ toast });
+    if (toast && ms) this.toastTimer = setTimeout(() => this.setState({ toast: null }), ms);
+  }
+  decide(kind) {
+    const s = this.state;
+    if (s.fly || s.ret) return;
+    const card = this.card(s.idx);
+    this.setState({ fly: kind, drag: false, toast: null, open: null, closing: false });
+    this.later(() => {
+      const st = this.state;
+      const next = { idx: st.idx + 1, dx: 0, dy: 0, fly: null, settle: true, log: st.log.concat([{ id: card.id, kind: kind }]) };
+      if (kind === 'go') { next.plans = st.plans + 1; next.pulse = true; }
+      this.setState(next);
+      this.later(() => this.setState({ settle: false }), 40);
+      this.later(() => this.setState({ pulse: false }), 950);
+      if (kind === 'go') this.showToast({ text: card.goText, cta: 'Отменить', timer: false }, 4000);
+      else this.showToast({ text: 'Мимо: «' + card.title + '»', cta: 'Вернуть', timer: true }, 5000);
+    }, kind === 'go' ? 640 : 320);
+  }
+  undo() {
+    const s = this.state;
+    if (!s.log.length || s.fly || s.ret) return;
+    const last = s.log[s.log.length - 1];
+    const back = { idx: s.idx - 1, log: s.log.slice(0, -1), dx: 0, dy: 0, ret: last.kind, settle: true, open: null };
+    if (last.kind === 'go') back.plans = Math.max(0, s.plans - 1);
+    this.showToast(null, 0);
+    this.setState(back);
+    this.later(() => this.setState({ ret: null, settle: false }), 40);
+  }
+  openDetails(ev) {
+    if (!ev) return;
+    this.showToast(null, 0);
+    this.setState({ open: ev, closing: false, dx: 0, dy: 0, drag: false });
+  }
+  closeDetails(then) {
+    if (!this.state.open) return;
+    this.setState({ closing: true });
+    this.later(() => { this.setState({ open: null, closing: false }); if (then) this.later(then, 60); }, 240);
+  }
+  renderVals() {
+    const s = this.state;
+    const sign = this.goSign();
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const noop = () => {};
+    const CX = 195, CY = 366;
+    const PROFILE = { x: 351 - CX, y: 784 - CY };
+    const stack = [];
+    for (let k = 2; k >= 0; k--) {
+      const c = this.card(s.idx + k);
+      const top = k === 0;
+      let tf, trans, ox = 0, oy = 0, os = 1, op = 1, oxT = 'none', oyT = 'none';
+      const rest = s.settle ? 'none' : 'transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.3s ease';
+      if (top) {
+        if (s.fly === 'go') {
+          tf = 'translate(0px, 0px) rotate(0deg)';
+          trans = 'transform 0.36s ease-out';
+          ox = PROFILE.x; oy = PROFILE.y; os = 0.06; op = 0;
+          oxT = 'transform 0.62s cubic-bezier(0.25, 0.7, 0.4, 1)';
+          oyT = 'transform 0.62s cubic-bezier(0.6, 0, 0.85, 0.45), opacity 0.16s linear 0.46s';
+        } else if (s.fly === 'skip' || s.ret === 'skip') {
+          tf = 'translate(' + (-sign * 560) + 'px, 60px) rotate(' + (-sign * 22) + 'deg)';
+          trans = s.fly === 'skip' ? 'transform 0.32s ease-in' : 'none';
+        } else if (s.ret === 'go') {
+          tf = 'translate(0px, 0px) rotate(0deg)'; trans = 'none';
+          ox = PROFILE.x; oy = PROFILE.y; os = 0.06; op = 0;
+        } else {
+          tf = 'translate(' + s.dx + 'px, ' + s.dy + 'px) rotate(' + (s.dx / 18) + 'deg)';
+          trans = s.drag || s.settle ? 'none' : 'transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1)';
+          oxT = rest; oyT = rest;
+        }
+      } else {
+        const kk = s.fly ? k - 1 : k;
+        tf = 'translateY(' + (kk * 8) + 'px) scale(' + (1 - kk * 0.05) + ')';
+        trans = s.settle ? 'none' : 'transform 0.3s ease';
+      }
+      const saved = !!s.saved[c.id];
+      const rightIsGo = sign > 0;
+      const dragRight = top ? (s.fly === 'go' ? (rightIsGo ? 1 : 0) : s.fly === 'skip' ? (rightIsGo ? 0 : 1) : clamp(s.dx / 90)) : 0;
+      const dragLeft = top ? (s.fly === 'go' ? (rightIsGo ? 0 : 1) : s.fly === 'skip' ? (rightIsGo ? 1 : 0) : clamp(-s.dx / 90)) : 0;
+      stack.push({
+        aria: c.title + '. Нажми, чтобы открыть подробности',
+        title: c.title, cat: c.cat, when: c.when, price: c.price, address: c.address, about: c.about, social: c.social,
+        bg: c.bg, fg: c.fg, icon: c.icon, iconO: c.photo ? 0 : 0.2,
+        isPhoto: !!c.photo, photo: c.photo || '',
+        big: c.big.map((b) => ({ t: b[0], c: b[1] })),
+        bigSize: c.big.length > 2 ? 38 : 44,
+        people: c.people.map((p) => ({ src: p.src || '', hasSrc: !!p.src, noSrc: !p.src, initial: p.initial || '', tint: p.tint || '#E7E2D6', ring: p.ring })),
+        tf, trans, ox, oy, os, op, oxT, oyT,
+        shadow: top ? '0 14px 34px rgba(23,22,26,0.18)' : '0 6px 16px rgba(23,22,26,0.1)',
+        cursor: top ? 'grab' : 'default',
+        leftWord: rightIsGo ? 'ПОЙДУ' : 'МИМО', rightWord: rightIsGo ? 'МИМО' : 'ПОЙДУ',
+        leftStampBg: '#FBFAF6', rightStampBg: '#FBFAF6',
+        leftO: dragRight, rightO: dragLeft,
+        saved,
+        saveLabel: saved ? 'Убрать из сохранённых' : 'Сохранить на потом',
+        saveBg: saved ? '#F0521F' : 'rgba(251,250,246,0.85)',
+        saveFill: saved ? '#17161A' : 'none',
+        toggleSave: top ? () => this.setState({ saved: { ...s.saved, [c.id]: !saved } }) : noop,
+        down: top ? (e) => {
+          if (this.state.fly || this.state.ret || this.state.open) return;
+          const t = e.target;
+          if (t && t.closest && t.closest('button, a')) return;
+          this.sx = e.clientX; this.sy = e.clientY;
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+          this.setState({ drag: true, dx: 0, dy: 0 });
+        } : noop,
+        move: top ? (e) => {
+          if (!this.state.drag) return;
+          this.setState({ dx: e.clientX - this.sx, dy: (e.clientY - this.sy) * 0.4 });
+        } : noop,
+        up: top ? () => {
+          const st = this.state;
+          if (!st.drag) return;
+          const along = st.dx * sign;
+          if (Math.abs(st.dx) < 6 && Math.abs(st.dy) < 6) { this.setState({ drag: false }); this.openDetails(c.ev); }
+          else if (along > 90) this.decide('go');
+          else if (along < -90) this.decide('skip');
+          else this.setState({ drag: false, dx: 0, dy: 0 });
+        } : noop,
+        cancel: top ? () => this.setState({ drag: false, dx: 0, dy: 0 }) : noop
+      });
+    }
+    const t = s.toast;
+    const hasLog = s.log.length > 0;
+    const goBtn = { label: 'ПОЙДУ', aria: 'Пойду — добавить в планы', act: () => this.decide('go'), size: 66, mt: 0, bg: '#F0521F', fg: '#17161A', o: 1, disabled: false, sh: '0 6px 16px rgba(240,82,31,0.35)', is: 26, sw: 2.6, icon: 'M5 12l5 5 9-10' };
+    const skipBtn = { label: 'МИМО', aria: 'Мимо — дальше', act: () => this.decide('skip'), size: 66, mt: 0, bg: '#FBF9F4', fg: '#17161A', o: 1, disabled: false, sh: '0 4px 14px rgba(23,22,26,0.12)', is: 24, sw: 2.4, icon: 'M6 6l12 12M18 6L6 18' };
+    const undoBtn = { label: 'ВЕРНУТЬ', aria: 'Вернуть последнюю карточку', act: () => this.undo(), size: 48, mt: 9, bg: '#FBF9F4', fg: '#17161A', o: hasLog ? 1 : 0.4, disabled: !hasLog, sh: '0 2px 10px rgba(23,22,26,0.1)', is: 19, sw: 2, icon: 'M4 9h11a5 5 0 010 10H9M8 5L4 9l4 4' };
+    return {
+      stack,
+      controls: sign > 0 ? [skipBtn, undoBtn, goBtn] : [goBtn, undoBtn, skipBtn],
+      undo: () => this.undo(),
+      hasToast: !!t,
+      toastText: t ? t.text : '',
+      toastCta: t ? t.cta : '',
+      toastTimer: !!(t && t.timer),
+      toastBtnBg: t && t.timer ? '#F0521F' : 'transparent',
+      toastBtnFg: t && t.timer ? '#17161A' : '#F3F0E8',
+      plans: s.plans,
+      pulse: s.pulse,
+      isOpen: !!s.open,
+      openEv: s.open || 'jazz',
+      openAnim: s.closing ? 'fdClose 0.24s ease-in forwards' : 'fdOpen 0.34s cubic-bezier(0.2, 0.8, 0.3, 1)',
+      goFromDetails: () => this.closeDetails(() => this.decide('go')),
+      closeDetails: () => this.closeDetails(null)
+    };
+  }
+}
+</script>
+</body>
+</html>

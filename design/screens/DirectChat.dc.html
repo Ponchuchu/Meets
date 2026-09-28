@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Личный чат</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+a{color:#17161A}a:hover{color:#17161A}
+input::placeholder{color:#6B675F}
+@keyframes dcTray{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="padding: 50px 16px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #DDD8CC">
+<a href="Chats.dc.html" aria-label="Назад к чатам" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<button type="button" onClick="{{openSheet}}" aria-label="{{headerLabel}}" style="flex-grow: 1; min-width: 0; padding: 0; border: 0; background: transparent; display: flex; align-items: center; gap: 10px; text-align: left; font-family: 'Golos Text', sans-serif; color: #17161A">
+<img src="{{photo}}" alt="" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid {{ring}}; box-sizing: border-box; display: block">
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 16px; font-weight: 600">{{name}}</span><span style="font-size: 12px; color: #55524C">{{status}}</span></span>
+</button>
+</div>
+
+<div style="padding: 14px 16px 0; display: flex; flex-direction: column; gap: 10px">
+<span style="align-self: center; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.04em; color: #55524C; background: #E7E2D6; padding: 5px 10px; border-radius: 10px; text-align: center">{{banner}}</span>
+<sc-for list="{{messages}}" as="m" hint-placeholder-count="5">
+<sc-if value="{{m.isMe}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-end; max-width: 270px; padding: 10px 12px; border-radius: 18px 18px 4px 18px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14.5px; line-height: 1.4">{{m.text}}</span>
+<span style="align-self: flex-end; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #BDB8AD">{{m.time}}</span>
+</div>
+</sc-if>
+<sc-if value="{{m.isThem}}" hint-placeholder-val="{{ true }}">
+<div style="align-self: flex-start; max-width: 270px; padding: 10px 12px; border-radius: 18px 18px 18px 4px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14.5px; line-height: 1.4">{{m.text}}</span>
+<span style="align-self: flex-end; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #55524C">{{m.time}}</span>
+</div>
+</sc-if>
+<sc-if value="{{m.isVoice}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-start; width: 250px; padding: 10px 12px; border-radius: 18px 18px 18px 4px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; align-items: center; gap: 10px">
+<button type="button" aria-label="Прослушать голосовое" style="width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 50%; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"></path></svg></button>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px">
+<svg width="160" height="24" viewBox="0 0 160 24" aria-hidden="true"><g fill="#17161A"><rect x="0" y="9" width="3" height="6" rx="1.5"></rect><rect x="6" y="6" width="3" height="12" rx="1.5"></rect><rect x="12" y="3" width="3" height="18" rx="1.5"></rect><rect x="18" y="8" width="3" height="8" rx="1.5"></rect><rect x="24" y="5" width="3" height="14" rx="1.5"></rect><rect x="30" y="2" width="3" height="20" rx="1.5"></rect><rect x="36" y="7" width="3" height="10" rx="1.5"></rect><rect x="42" y="4" width="3" height="16" rx="1.5"></rect><rect x="48" y="9" width="3" height="6" rx="1.5"></rect></g><g fill="#B9B2A3"><rect x="54" y="6" width="3" height="12" rx="1.5"></rect><rect x="60" y="3" width="3" height="18" rx="1.5"></rect><rect x="66" y="8" width="3" height="8" rx="1.5"></rect><rect x="72" y="5" width="3" height="14" rx="1.5"></rect><rect x="78" y="9" width="3" height="6" rx="1.5"></rect><rect x="84" y="4" width="3" height="16" rx="1.5"></rect><rect x="90" y="7" width="3" height="10" rx="1.5"></rect><rect x="96" y="2" width="3" height="20" rx="1.5"></rect><rect x="102" y="6" width="3" height="12" rx="1.5"></rect><rect x="108" y="9" width="3" height="6" rx="1.5"></rect><rect x="114" y="5" width="3" height="14" rx="1.5"></rect><rect x="120" y="8" width="3" height="8" rx="1.5"></rect><rect x="126" y="4" width="3" height="16" rx="1.5"></rect><rect x="132" y="9" width="3" height="6" rx="1.5"></rect><rect x="138" y="7" width="3" height="10" rx="1.5"></rect><rect x="144" y="10" width="3" height="4" rx="1.5"></rect></g></svg>
+<span style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #55524C"><span>{{m.dur}}</span><span>{{m.time}}</span></span>
+</span>
+</div>
+</sc-if>
+<sc-if value="{{m.isCircle}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-end; position: relative; width: 168px; height: 168px">
+<img src="../assets/krug.jpg" alt="Видеосообщение-кружок" style="width: 168px; height: 168px; border-radius: 50%; object-fit: cover; display: block; box-shadow: 0 0 0 3px #17161A">
+<svg width="176" height="176" viewBox="0 0 176 176" aria-hidden="true" style="position: absolute; left: -4px; top: -4px"><circle cx="88" cy="88" r="85" fill="none" stroke="#F0521F" stroke-width="3" stroke-dasharray="534" stroke-dashoffset="380" stroke-linecap="round" transform="rotate(-90 88 88)"></circle></svg>
+<span style="position: absolute; left: 10px; bottom: 6px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(23,22,26,0.75); color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center">0:07</span>
+<span style="position: absolute; right: 6px; bottom: 6px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(23,22,26,0.75); color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center">{{m.time}}</span>
+</div>
+</sc-if>
+<sc-if value="{{m.isPhoto}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-start; width: 236px; border-radius: 18px 18px 18px 4px; overflow: hidden; background: #FBFAF6; border: 1px solid #DDD8CC">
+<img src="{{m.src}}" alt="{{m.alt}}" style="width: 236px; height: 170px; object-fit: cover; display: block">
+<span style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><span style="font-size: 14.5px; line-height: 1.4">{{m.text}}</span><span style="flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #55524C">{{m.time}}</span></span>
+</div>
+</sc-if>
+<sc-if value="{{m.isVideo}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-start; width: 236px; border-radius: 18px 18px 18px 4px; overflow: hidden; background: #FBFAF6; border: 1px solid #DDD8CC">
+<div style="position: relative; width: 236px; height: 150px; background: #17161A; color: #F3F0E8; overflow: hidden">
+<span style="position: absolute; left: 14px; bottom: 12px; display: flex; flex-direction: column; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; opacity: 0.35"><span>ОТКРЫТЫЙ</span><span>МИКРОФОН</span></span>
+<span style="position: absolute; left: 94px; top: 51px; width: 48px; height: 48px; border-radius: 50%; background: rgba(243,240,232,0.92); color: #17161A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"></path></svg></span>
+<span style="position: absolute; right: 8px; top: 8px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(23,22,26,0.75); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; gap: 4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg>{{m.dur}}</span>
+</div>
+<span style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><span style="font-size: 14.5px; line-height: 1.4">{{m.text}}</span><span style="flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #55524C">{{m.time}}</span></span>
+</div>
+</sc-if>
+<sc-if value="{{m.isSticker}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding: 4px 6px 0 0">
+<span style="height: 52px; padding: 0 16px; box-sizing: border-box; border: 3px solid #FFFFFF; border-radius: 16px; background: #2447B8; color: #FFFFFF; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800; display: flex; align-items: center; transform: rotate(-4deg); box-shadow: 0 6px 14px rgba(23,22,26,0.2)">{{m.text}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.04em; color: #55524C">СТИКЕР С КАРТЫ · {{m.time}}</span>
+</div>
+</sc-if>
+<sc-if value="{{m.isInvite}}" hint-placeholder-val="{{ false }}">
+<a href="Event.dc.html" style="align-self: flex-end; width: 262px; border-radius: 18px 18px 4px 18px; overflow: hidden; background: #FBFAF6; border: 1.5px solid #17161A; text-decoration: none; color: #17161A; display: flex; flex-direction: column">
+<span style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #F0521F">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM17 19a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em">ПРИГЛАШЕНИЕ</span>
+</span>
+<span style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">{{m.text}}</span>
+<span style="font-size: 13px; color: #55524C">{{m.sub}}</span>
+<span style="margin-top: 6px; align-self: flex-start; height: 28px; padding: 0 10px; border-radius: 14px; background: #D9E4D2; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2F8F5B"></span>{{m.answer}}</span>
+</span>
+</a>
+</sc-if>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 0; bottom: {{composerBottom}}px; width: 390px; box-sizing: border-box; padding: 10px 12px {{composerPad}}px; background: #F3F0E8; border-top: 1px solid #DDD8CC; display: flex; gap: 6px; align-items: center">
+<button type="button" onClick="{{toggleTray}}" aria-expanded="{{trayOpen}}" aria-label="Фото и видео" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid {{trayBorder}}; background: {{trayBg}}; display: flex; align-items: center; justify-content: center; color: {{trayFg}}"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="9" cy="10" r="1.8"></circle><path d="M21 16l-5-5-8 9"></path></svg></button>
+<input aria-label="Сообщение" placeholder="Сообщение" style="flex-grow: 1; min-width: 0; height: 44px; box-sizing: border-box; padding: 0 16px; border: 1px solid #CFC9BB; border-radius: 22px; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; color: #17161A; outline: none">
+<button type="button" aria-label="Записать кружок" style="width: 44px; height: 44px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle></svg></button>
+<button type="button" aria-label="Записать голосовое" style="width: 44px; height: 44px; flex-shrink: 0; border: 0; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center; color: #F3F0E8"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></button>
+</div>
+
+<sc-if value="{{trayOpen}}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-label="Фото и видео" style="position: absolute; left: 0; bottom: 0; width: 390px; height: 330px; box-sizing: border-box; padding: 12px 12px 28px; background: #FBF9F4; display: flex; flex-direction: column; gap: 10px; animation: dcTray 0.24s ease-out">
+<div style="display: flex; align-items: center; gap: 8px">
+<div role="group" aria-label="Что показать" style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 3px; border-radius: 12px; background: #E7E2D6">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="3">
+<button type="button" onClick="{{k.pick}}" aria-pressed="{{k.on}}" style="height: 34px; border: 0; border-radius: 9px; background: {{k.bg}}; box-shadow: {{k.sh}}; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: {{k.fw}}; color: #17161A">{{k.label}}</button>
+</sc-for>
+</div>
+<button type="button" aria-label="Снять на камеру" style="height: 40px; padding: 0 12px; flex-shrink: 0; border: 0; border-radius: 12px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 6px; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>Камера</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{thumbs}}" as="t" hint-placeholder-count="6">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.on}}" aria-label="{{t.aria}}" style="position: relative; height: 104px; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: #E7E2D6">
+<img src="{{t.src}}" alt="" style="width: 100%; height: 104px; object-fit: cover; display: block; opacity: {{t.o}}">
+<sc-if value="{{t.isVideo}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 6px; bottom: 6px; height: 20px; padding: 0 6px; border-radius: 10px; background: rgba(23,22,26,0.75); color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; display: flex; align-items: center; gap: 3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg>{{t.dur}}</span></sc-if>
+<span style="position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #FFFFFF; background: {{t.markBg}}; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{t.num}}</span>
+</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{sendPicked}}" disabled="{{noPicked}}" style="height: 46px; border: 0; border-radius: 14px; background: {{sendBg}}; color: {{sendFg}}; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">{{sendLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closeSheet}}" aria-label="Закрыть" style="position: absolute; left: 0; top: 0; width: 390px; height: 900px; border: 0; background: rgba(23,22,26,0.45)"></button>
+<div role="dialog" aria-label="{{name}}" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; background: #F3F0E8; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; gap: 14px">
+<span style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+<div style="display: flex; align-items: center; gap: 12px">
+<img src="{{photo}}" alt="" style="width: 60px; height: 60px; border-radius: 20px; object-fit: cover; display: block">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700">{{fullName}}</span><span style="font-size: 13px; color: #55524C">{{sheetStatus}}</span></span>
+<button type="button" onClick="{{closeSheet}}" aria-label="Закрыть" style="width: 40px; height: 40px; border: 1px solid #DDD8CC; border-radius: 50%; background: #FBFAF6; display: flex; align-items: center; justify-content: center; color: #17161A"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+
+<sc-if value="{{isFriend}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1.5px solid #2447B8">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #2447B8; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Сейчас: кофейня на Панфилова</span><span style="font-size: 13px; color: #55524C">на месте · обновлено 2 мин назад · до 18:40</span></span>
+</div>
+<div style="display: flex; gap: 8px">
+<a href="PersonFriend.dc.html" style="flex-grow: 1; flex-basis: 0; height: 50px; box-sizing: border-box; border-radius: 14px; border: 1.5px solid #17161A; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: none">Профиль</a>
+<a href="MapFocus.dc.html" style="flex-grow: 1; flex-basis: 0; height: 50px; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; text-decoration: none">Показать на карте</a>
+</div>
+</sc-if>
+
+<sc-if value="{{notFriend}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 14px; border-radius: 18px; border: 1.5px dashed #B9B2A3; display: flex; gap: 12px; align-items: flex-start">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 600">На карте её не видно</span><span style="font-size: 13px; line-height: 1.45; color: #55524C">Айнура разрешила писать тем, кто идёт на те же события. Где она сейчас — видят только друзья, и только если она сама включит.</span></span>
+</div>
+<div style="display: flex; gap: 8px">
+<a href="Person.dc.html" style="flex-grow: 1; flex-basis: 0; height: 50px; box-sizing: border-box; border-radius: 14px; border: 1.5px solid #17161A; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: none">Профиль</a>
+<button type="button" onClick="{{requestFriend}}" style="flex-grow: 1; flex-basis: 0; height: 50px; border: 0; border-radius: 14px; background: {{reqBg}}; color: {{reqFg}}; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">{{reqLabel}}</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"friend":{"editor":"boolean","default":false},"sheet":{"editor":"boolean","default":false},"tray":{"editor":"boolean","default":false},"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sheet: null, tray: null, kind: 'all', picked: props && props.tray ? ['b', 'a'] : [], requested: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const friend = !!this.props.friend;
+    const sheetOpen = s.sheet == null ? !!this.props.sheet : s.sheet;
+    const trayOpen = s.tray == null ? !!this.props.tray : s.tray;
+    const msg = (type, text, time, extra) => ({
+      isMe: type === 'me', isThem: type === 'them', isVoice: type === 'voice', isCircle: type === 'circle',
+      isPhoto: type === 'photo', isVideo: type === 'video', isSticker: type === 'sticker', isInvite: type === 'invite',
+      text: text || '', time: time, dur: '', src: '', alt: '', sub: '', answer: '', ...(extra || {})
+    });
+    const messages = friend ? [
+      msg('sticker', 'ТЫ ГДЕ?', '17:50'),
+      msg('voice', '', '17:51', { dur: '0:09' }),
+      msg('photo', 'Я тут, у окна', '17:53', { src: '../assets/igor1.jpg', alt: 'Игорь в кофейне' }),
+      msg('invite', 'Вместе на джаз', '17:54', { sub: 'Сегодня 19:30 · Панфилова, 110', answer: 'Игорь: иду' }),
+      msg('them', 'Го! Встретимся у арки в 19:15', '17:56')
+    ] : [
+      msg('me', 'Увидел, что ты ищешь компанию на стендап в пятницу. Я тоже хотел — пойдём вместе?', '11:04'),
+      msg('voice', '', '11:05', { dur: '0:14' }),
+      msg('them', 'Давай! Возьму нам места поближе к сцене', '11:05'),
+      msg('circle', '', '11:06'),
+      msg('video', 'С прошлого микрофона, будет смешно', '11:08', { dur: '0:21' })
+    ];
+    const media = [
+      { id: 'a', src: '../assets/hike.jpg', video: true, dur: '0:21', aria: 'Видео из похода, 21 секунда' },
+      { id: 'b', src: '../assets/igor2.jpg', video: false, aria: 'Фото' },
+      { id: 'c', src: '../assets/igor3.jpg', video: true, dur: '0:12', aria: 'Видео, 12 секунд' },
+      { id: 'd', src: '../assets/igor4.jpg', video: false, aria: 'Фото' },
+      { id: 'e', src: '../assets/igor1.jpg', video: false, aria: 'Фото' },
+      { id: 'f', src: '../assets/krug.jpg', video: true, dur: '0:07', aria: 'Видео, 7 секунд' }
+    ];
+    const shown = media.filter((m) => s.kind === 'all' || (s.kind === 'video') === m.video);
+    const thumbs = shown.map((m) => {
+      const pos = s.picked.indexOf(m.id);
+      const on = pos >= 0;
+      return {
+        src: m.src, isVideo: m.video, dur: m.dur || '', aria: m.aria + (on ? ', выбрано' : ''), on,
+        num: on ? String(pos + 1) : '', markBg: on ? '#F0521F' : 'rgba(23,22,26,0.25)', o: on ? 0.82 : 1,
+        pick: () => this.setState({ picked: on ? s.picked.filter((x) => x !== m.id) : s.picked.concat([m.id]) })
+      };
+    });
+    const kinds = [['all', 'Всё'], ['photo', 'Фото'], ['video', 'Видео']].map(([k, label]) => {
+      const on = s.kind === k;
+      return { label, on, bg: on ? '#FBFAF6' : 'transparent', sh: on ? '0 1px 3px rgba(23,22,26,0.14)' : 'none', fw: on ? '600' : '500', pick: () => this.setState({ kind: k }) };
+    });
+    const n = s.picked.length;
+    return {
+      messages,
+      photo: friend ? '../assets/igor.jpg' : '../assets/ainura.jpg',
+      name: friend ? 'Игорь' : 'Айнура',
+      fullName: friend ? 'Игорь, 25' : 'Айнура, 29',
+      headerLabel: friend ? 'Игорь: профиль и где сейчас' : 'Айнура: профиль',
+      ring: friend ? '#2447B8' : 'transparent',
+      status: friend ? 'в друзьях · онлайн' : 'онлайн · не в друзьях',
+      banner: friend ? 'ИГОРЬ ДЕЛИТСЯ ГЕОЛОКАЦИЕЙ ДО 18:40' : 'ВЫ ОБА ИДЁТЕ НА «ДЖАЗ ВО ДВОРЕ» — ПОЭТОМУ МОЖНО ПИСАТЬ',
+      sheetStatus: friend ? 'в друзьях · онлайн' : 'не в друзьях · общее событие',
+      isFriend: friend, notFriend: !friend,
+      sheetOpen,
+      openSheet: () => this.setState({ sheet: true, tray: false }),
+      closeSheet: () => this.setState({ sheet: false }),
+      trayOpen,
+      toggleTray: () => this.setState({ tray: !trayOpen }),
+      trayBg: trayOpen ? '#17161A' : '#FBFAF6', trayFg: trayOpen ? '#F3F0E8' : '#17161A', trayBorder: trayOpen ? '#17161A' : '#DDD8CC',
+      composerBottom: trayOpen ? 330 : 0,
+      composerPad: trayOpen ? 10 : 28,
+      kinds, thumbs,
+      noPicked: n === 0,
+      sendBg: n ? '#17161A' : '#E7E2D6', sendFg: n ? '#F3F0E8' : '#6B675F',
+      sendLabel: n ? 'Отправить · ' + n : 'Выбери фото или видео',
+      sendPicked: () => this.setState({ picked: [], tray: false }),
+      requestFriend: () => this.setState({ requested: !s.requested }),
+      reqLabel: s.requested ? 'Заявка ушла' : 'Добавить в друзья',
+      reqBg: s.requested ? '#E7E2D6' : '#17161A',
+      reqFg: s.requested ? '#17161A' : '#F3F0E8'
+    };
+  }
+}
+</script>
+</body>
+</html>
