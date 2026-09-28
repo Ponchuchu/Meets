@@ -97,6 +97,8 @@ export interface Message {
   duration?: string;
   sub?: string;
   answer?: string;
+  eventId?: string;
+  poll?: { question: string; options: { text: string; votes: number }[] };
 }
 
 export interface Chat {
@@ -109,6 +111,10 @@ export interface Chat {
   lastTime: string;
   unread: number;
   pinnedNote?: string;
+  /** Чат события: точка сбора, участники. */
+  meetPoint?: string;
+  members?: number;
+  memberIds?: string[];
 }
 
 export interface ChatRequest {

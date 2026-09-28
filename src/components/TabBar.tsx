@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { data } from '../data';
 import { useApp } from '../state/app';
+import { useChat } from '../state/chat';
 import { colors, fonts } from '../theme';
 import { Icon, type IconName } from './Icon';
 
@@ -50,7 +51,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const newPlans = useApp((s) => s.newPlans);
   const freshFeed = useApp((s) => s.freshFeed);
   const { data: requests } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
-  const unread = requests?.length ?? 0;
+  const answered = useChat((s) => s.requests);
+  const unread = (requests ?? []).filter((r) => !answered[r.id]).length;
   const activeKey = state.routes[state.index]?.name;
 
   return (

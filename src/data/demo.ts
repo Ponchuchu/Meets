@@ -155,9 +155,12 @@ const EVENT_DETAILS: Record<string, Partial<EventItem>> = {
 
 // ——— Чаты ———
 export const CHATS: Chat[] = [
-  { id: 'ev-jazz', kind: 'event', title: 'Джаз во дворе', eventId: 'jazz', lastText: 'Саша: займу столик у сцены', lastTime: '18:02', unread: 3 },
-  { id: 'ev-games', kind: 'event', title: 'Настолки без своей компании', eventId: 'games', lastText: 'Ерлан: кто берёт Каркассон?', lastTime: '17:40', unread: 0 },
-  { id: 'ev-bike', kind: 'event', title: 'Велопрогулка по городу', eventId: 'bike', lastText: 'Маршрут в закрепе', lastTime: 'вчера', unread: 0 },
+  { id: 'ev-jazz', kind: 'event', title: 'Джаз во дворе', eventId: 'jazz', lastText: 'Саша: займу столик у сцены', lastTime: '18:02', unread: 3,
+    meetPoint: 'Вход во двор с Панфилова, 19:15', members: 12, memberIds: ['sasha', 'igor', 'denis', 'ainura', 'erlan', 'mira'] },
+  { id: 'ev-games', kind: 'event', title: 'Настолки без своей компании', eventId: 'games', lastText: 'Ерлан: кто берёт Каркассон?', lastTime: '17:40', unread: 0,
+    meetPoint: 'Антикафе, 2 этаж, звонок «Игротека», 19:50', members: 23, memberIds: ['erlan'] },
+  { id: 'ev-bike', kind: 'event', title: 'Велопрогулка по городу', eventId: 'bike', lastText: 'Маршрут в закрепе', lastTime: 'вчера', unread: 0,
+    meetPoint: 'Главный вход в парк Панфиловцев, 09:50', members: 14, memberIds: ['timur'], pinnedNote: 'Маршрут: парк → Весновка → Арбат, 20 км' },
   { id: 'dm-igor', kind: 'direct', title: 'Игорь', personId: 'igor', lastText: 'Ты уже выходишь?', lastTime: '18:10', unread: 0 },
   { id: 'dm-ainura', kind: 'direct', title: 'Айнура', personId: 'ainura', lastText: 'С прошлого микрофона, будет смешно', lastTime: '11:08', unread: 0 },
 ];
@@ -171,19 +174,23 @@ const m = (chatId: string, i: number, authorId: string, kind: Message['kind'], t
   ({ id: `${chatId}-${i}`, chatId, authorId, kind, text, time, ...extra });
 
 export const MESSAGES: Message[] = [
-  m('dm-igor', 1, 'igor', 'sticker', 'ТЫ ГДЕ?', '17:50'),
+  m('dm-igor', 1, 'me', 'sticker', 'ТЫ ГДЕ?', '17:50'),
   m('dm-igor', 2, 'igor', 'voice', '', '17:51', { duration: '0:09' }),
   m('dm-igor', 3, 'igor', 'photo', 'Я тут, у окна', '17:53', { media: 'igor1' }),
-  m('dm-igor', 4, 'me', 'invite', 'Вместе на джаз', '17:54', { sub: 'Сегодня 19:30 · Панфилова, 110', answer: 'Игорь: иду' }),
+  m('dm-igor', 4, 'me', 'invite', 'Вместе на джаз', '17:54', { sub: 'Сегодня 19:30 · Панфилова, 110', answer: 'Игорь: иду', eventId: 'jazz' }),
   m('dm-igor', 5, 'igor', 'text', 'Го! Встретимся у арки в 19:15', '17:56'),
   m('dm-igor', 6, 'igor', 'text', 'Ты уже выходишь?', '18:10'),
   m('dm-ainura', 1, 'me', 'text', 'Увидел, что ты ищешь компанию на стендап в пятницу. Я тоже хотел — пойдём вместе?', '11:04'),
-  m('dm-ainura', 2, 'me', 'voice', '', '11:05', { duration: '0:14' }),
+  m('dm-ainura', 2, 'ainura', 'voice', '', '11:05', { duration: '0:14' }),
   m('dm-ainura', 3, 'ainura', 'text', 'Давай! Возьму нам места поближе к сцене', '11:05'),
   m('dm-ainura', 4, 'me', 'circle', '', '11:06', { media: 'krug', duration: '0:07' }),
   m('dm-ainura', 5, 'ainura', 'video', 'С прошлого микрофона, будет смешно', '11:08', { duration: '0:21', media: 'hike' }),
-  m('ev-jazz', 1, 'sasha', 'text', 'займу столик у сцены', '18:02'),
-  m('ev-games', 1, 'erlan', 'text', 'кто берёт Каркассон?', '17:40'),
+  m('ev-jazz', 1, 'system', 'system', 'АЙНУРА ПРИСОЕДИНИЛАСЬ', '17:30'),
+  m('ev-jazz', 2, 'sasha', 'text', 'Займу столик у сцены, нас уже четверо', '17:41'),
+  m('ev-jazz', 3, 'igor', 'text', 'Буду в 19:20, чуть опоздаю', '17:52'),
+  m('ev-jazz', 4, 'sasha', 'poll', 'Куда после?', '17:58', { poll: { question: 'Куда после?', options: [{ text: 'Гулять по Панфилова', votes: 5 }, { text: 'Кофе рядом', votes: 3 }, { text: 'Домой, завтра работа', votes: 1 }] } }),
+  m('ev-jazz', 5, 'me', 'text', 'Я впервые, буду у входа в зелёной куртке', '18:04'),
+  m('ev-games', 1, 'erlan', 'text', 'Кто берёт Каркассон?', '17:40'),
   m('ev-bike', 1, 'timur', 'system', 'Маршрут в закрепе', 'вчера'),
 ];
 
