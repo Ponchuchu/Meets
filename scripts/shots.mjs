@@ -16,13 +16,16 @@ const [stage = 'latest', ...pairs] = process.argv.slice(2);
 const AUTH = ['/start', '/code', '/about', '/interests', '/rhythm'];
 const routes = pairs.length
   ? pairs.map((p) => {
+    // Формат: маршрут=Имя[@сессия][!нажать на элемент с такой подписью[!ещё]]
     const [route, rest] = p.split('=');
-    const [name, preset] = rest.split('@');
-    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded')];
+    const [head, ...clicks] = rest.split('!');
+    const [name, preset] = head.split('@');
+    return [route, name, preset || (AUTH.includes(route) ? 'fresh' : 'onboarded'), clicks];
   })
   : [['/', 'Map'], ['/foryou', 'ForYou'], ['/chats', 'Chats'], ['/people', 'People'], ['/me', 'Me']].map((r) => [...r, 'onboarded']);
 
 const draft = { provider: null, phone: '', name: '', photo: null, birthDate: '', interests: ['music', 'hike', 'games'], times: ['weekday', 'weekend'], withWho: 'friends', budget: 'mid' };
+const CLOCK = process.env.SHOTS_CLOCK || '18:10';
 const PRESETS = {
   fresh: null,
   google: { signedIn: true, onboarded: false, locationAsked: false, taste: null, draft: { ...draft, provider: 'google', name: 'Данил', photo: 'danil' } },
@@ -54,7 +57,9 @@ const out = join(root, 'docs/progress', stage);
 await mkdir(out, { recursive: true });
 // В облачной среде Chromium лежит в /opt/pw-browsers/chromium; локально Playwright найдёт свой.
 const preinstalled = '/opt/pw-browsers/chromium';
-const browser = await chromium.launch(existsSync(preinstalled) && (await stat(preinstalled)).isFile() ? { executablePath: preinstalled } : {});
+// WebGL для Mapbox в headless-режиме — программный рендер SwiftShader.
+const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+const browser = await chromium.launch({ args, ...(existsSync(preinstalled) && (await stat(preinstalled)).isFile() ? { executablePath: preinstalled } : {}) });
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', timezoneId: 'Asia/Almaty',
   isMobile: true, hasTouch: true,
@@ -76,18 +81,24 @@ if (process.env.HTTPS_PROXY) {
   });
 }
 const page = await ctx.newPage();
-for (const [route, name, preset] of routes) {
+for (const [route, name, preset, clicks = []] of routes) {
   const state = PRESETS[preset];
   await page.goto(`http://localhost:${port}/+not-found`);
-  await page.evaluate((st) => {
+  await page.evaluate(([st, clock]) => {
     localStorage.clear();
     if (st) localStorage.setItem('ryadom-session', JSON.stringify({ state: st, version: 0 }));
-  }, state);
+    // Демо-часы: на скриншотах «сейчас» — 18:10 по Алматы, как в макете (SHOTS_CLOCK=off — настоящее время).
+    if (clock !== 'off') localStorage.setItem('ryadom-clock', clock);
+  }, [state, CLOCK]);
   await page.goto(`http://localhost:${port}${route}`, { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
   // Ждём, пока уйдут индикаторы загрузки (данные из Supabase или демо).
   await page.waitForFunction(() => !document.querySelector('[role="progressbar"]'), null, { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(Number(process.env.SHOTS_WAIT || 2500));
+  for (const label of clicks) {
+    await page.getByLabel(label, { exact: false }).first().click();
+    await page.waitForTimeout(700);
+  }
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);
 }

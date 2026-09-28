@@ -3,17 +3,17 @@ import { isLongEvent, mapSeedEvent, seedEvents, ALMATY_CENTER } from '../data/se
 import { mapFeedRow } from '../data/supabase';
 import { formatPrice, formatWhen } from '../lib/format';
 
+
 describe('демо-данные', () => {
   it('содержат все события макета', () => {
     const ids = demoEvents().map((e) => e.id);
-    expect(ids).toEqual(expect.arrayContaining(['jazz', 'standup', 'anime', 'hike', 'games', 'concert', 'bike']));
+    expect(ids).toEqual(expect.arrayContaining(['jazz', 'standup', 'anime', 'hike', 'games', 'concert', 'food', 'bike']));
   });
 
   it('джаз всегда сегодня в 19:30, и Игорь с Денисом идут', () => {
-    const base = new Date(2026, 8, 28, 12, 0);
+    const base = new Date('2026-09-28T07:00:00Z'); // 12:00 в Алматы
     const jazz = demoEvents(base).find((e) => e.id === 'jazz')!;
-    const d = new Date(jazz.startsAt);
-    expect([d.getDate(), d.getHours(), d.getMinutes()]).toEqual([28, 19, 30]);
+    expect(jazz.startsAt).toBe('2026-09-28T14:30:00.000Z'); // 19:30 в Алматы
     expect(jazz.friendsGoing).toEqual(['igor', 'denis']);
   });
 

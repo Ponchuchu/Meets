@@ -1,6 +1,7 @@
 // Точка входа слоя данных. Всё приложение ходит сюда, а не в demo/supabase напрямую.
 import { config } from '../lib/config';
-import { createDemoSource } from './demo';
+import { createDemoSource, demoEvents, mergeEvents } from './demo';
+import { seedEvents } from './seed';
 import { createSupabaseSource } from './supabase';
 import type { DataSource } from './types';
 
@@ -35,8 +36,15 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
     getChatRequests: wrap('getChatRequests'),
     getMessages: wrap('getMessages'),
     getFriendRequests: wrap('getFriendRequests'),
+    getFriendSpots: wrap('getFriendSpots'),
+    getMySpot: wrap('getMySpot'),
     lastSource: () => last,
   };
 }
 
 export const data = withFallback(remote, demo);
+
+/** Мгновенный набор событий (демо + seed-файл): показываем сразу, пока идёт запрос в Supabase. */
+export function eventsSnapshot() {
+  return mergeEvents(demoEvents(), seedEvents());
+}

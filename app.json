@@ -36,7 +36,8 @@
           "backgroundColor": "#F3F0E8"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@rnmapbox/maps"
     ],
     "experiments": {
       "typedRoutes": true

@@ -27,6 +27,8 @@ export interface EventItem {
   organizer: string | null;
   sourceUrl: string | null;
   cover?: string | null; // ключ фото из assets
+  /** Короткое имя для подписи пина: «ДЖАЗ», «ПОХОД». */
+  short?: string;
   visibility: Visibility;
   /** Откуда пришло: настоящее событие из афиши или демо-событие макета. */
   origin: 'real' | 'demo';
@@ -91,6 +93,19 @@ export interface FriendRequest {
   note: string;
 }
 
+/** Где друг сейчас (только если он сам включил геолокацию — правила видимости на этапе 6). */
+export interface FriendSpot {
+  personId: string;
+  lat: number;
+  lon: number;
+  state: 'here' | 'moving' | 'paused';
+  place: string;
+  speedKmh?: number;
+  /** Направление движения, градусы (0 — север, 90 — восток). */
+  heading?: number;
+  minutesAgo?: number;
+}
+
 export interface DataSource {
   readonly kind: 'demo' | 'supabase';
   getMe(): Promise<Person>;
@@ -100,4 +115,7 @@ export interface DataSource {
   getChatRequests(): Promise<ChatRequest[]>;
   getMessages(chatId: string): Promise<Message[]>;
   getFriendRequests(): Promise<FriendRequest[]>;
+  getFriendSpots(): Promise<FriendSpot[]>;
+  /** Моя точка по умолчанию (пока нет геолокации). */
+  getMySpot(): Promise<{ lat: number; lon: number }>;
 }

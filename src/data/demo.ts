@@ -1,7 +1,8 @@
 // Демо-реализация: люди, чаты и события из макета + настоящие события из seed-файла.
+import { almaty, dayIndex, dayStart, now } from '../lib/clock';
 import { colors } from '../theme';
 import { seedEvents } from './seed';
-import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, Message, Person } from './types';
+import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, FriendSpot, Message, Person } from './types';
 
 // ——— Люди ———
 const person = (p: Partial<Person> & Pick<Person, 'id' | 'name'>): Person => ({
@@ -23,54 +24,57 @@ export const PEOPLE: Person[] = [
 
 // ——— События макета ———
 // Даты считаются от «сегодня», чтобы демо всегда было живым: джаз — сегодня в 19:30 и т. д.
-function at(dayOffset: number, hh: number, mm = 0, base = new Date()): string {
-  const d = new Date(base);
-  d.setHours(hh, mm, 0, 0);
-  d.setDate(d.getDate() + dayOffset);
-  return d.toISOString();
+// Время — по Алматы, независимо от часового пояса устройства.
+function at(dayOffset: number, hh: number, mm = 0, base = now()): string {
+  return new Date(dayStart(dayIndex(base) + dayOffset).getTime() + (hh * 60 + mm) * 60000).toISOString();
 }
-function nextWeekday(weekday: number, base = new Date()): number {
+function nextWeekday(weekday: number, base = now()): number {
   // 0 — вс … 6 — сб. Сегодня тоже подходит.
-  return (weekday - base.getDay() + 7) % 7;
+  return (weekday - almaty(base).getUTCDay() + 7) % 7;
 }
 
 type DemoSeed = Omit<EventItem, 'origin' | 'visibility' | 'needsPin' | 'tags' | 'organizer' | 'sourceUrl' | 'isLong'> &
   Partial<Pick<EventItem, 'tags' | 'organizer' | 'isLong'>>;
 
-export function demoEvents(base = new Date()): EventItem[] {
+export function demoEvents(base = now()): EventItem[] {
   const fri = nextWeekday(5, base);
   const sat = nextWeekday(6, base);
   const list: DemoSeed[] = [
     { id: 'jazz', title: 'Джаз во дворе', category: 'music', startsAt: at(0, 19, 30, base), endsAt: at(0, 22, 0, base),
-      venueName: null, address: 'Панфилова, 110, во дворе', lat: 43.2567, lon: 76.9453,
+      venueName: null, address: 'Панфилова, 110, во дворе', lat: 43.2567, lon: 76.9453, short: 'ДЖАЗ',
       priceMin: 0, priceMax: 0, isFree: true, cover: null,
       about: 'Джазовое трио во дворе старого дома. Можно прийти одному — перед началом все знакомятся у входа.',
       friendsGoing: ['igor', 'denis'], lookingCount: 12, goingCount: 48 },
     { id: 'standup', title: 'Стендап: открытый микрофон', category: 'standup', startsAt: at(fri, 20, 0, base), endsAt: null,
-      venueName: 'Бар «Гараж»', address: 'Бар «Гараж», Абая, 52', lat: 43.2401, lon: 76.9331,
+      venueName: 'Бар «Гараж»', address: 'Бар «Гараж», Абая, 52', lat: 43.2505, lon: 76.9489,
       priceMin: 3000, priceMax: 3000, isFree: false, cover: null,
       about: 'Восемь новых комиков пробуют свежий материал. Бывает неровно, но смешно.',
       friendsGoing: [], lookingCount: 3, goingCount: 36 },
     { id: 'anime', title: 'Аниме-выставка «Токио в Алматы»', category: 'art', startsAt: at(0, 10, 0, base), endsAt: at(6, 21, 0, base), isLong: true,
-      venueName: 'ТРЦ на Абая', address: 'ТРЦ на Абая, 109, 3 этаж', lat: 43.2406, lon: 76.9068,
+      venueName: 'ТРЦ на Абая', address: 'ТРЦ на Абая, 109, 3 этаж', lat: 43.2614, lon: 76.9512,
       priceMin: 2500, priceMax: 2500, isFree: false, cover: null,
       about: 'Эскизы, фигурки, манга и косплей-фотозона. Вечером — мастер-класс по рисованию.',
       friendsGoing: ['anton', 'denis'], lookingCount: 4200, goingCount: 4200 },
     { id: 'hike', title: 'Поход на Кок-Жайляу', category: 'hike', startsAt: at(sat, 8, 0, base), endsAt: at(sat, 16, 0, base),
-      venueName: null, address: 'Начало тропы, Медеуское ущелье', lat: 43.1636, lon: 77.0321,
+      venueName: null, address: 'Начало тропы, Медеуское ущелье', lat: 43.1636, lon: 77.0321, short: 'ПОХОД',
       priceMin: 0, priceMax: 0, isFree: true, cover: 'hike',
       about: 'Около 14 км туда и обратно, средняя сложность. Наверху плато с видом на город.',
       friendsGoing: ['timur'], lookingCount: 3, goingCount: 18 },
     { id: 'games', title: 'Настолки без своей компании', category: 'games', startsAt: at(0, 20, 0, base), endsAt: at(0, 23, 0, base),
-      venueName: 'Антикафе', address: 'Антикафе, Жибек Жолы, 64', lat: 43.2605, lon: 76.9430,
+      venueName: 'Антикафе', address: 'Антикафе, Жибек Жолы, 64', lat: 43.2640, lon: 76.9452,
       priceMin: 2000, priceMax: 2000, isFree: false, cover: null,
       about: 'Ведущий рассаживает по столам и объясняет правила. Приходят в основном по одному.',
       friendsGoing: [], lookingCount: 6, goingCount: 22 },
     { id: 'concert', title: 'Концерт на Центральном стадионе', category: 'concert', startsAt: at(0, 20, 0, base), endsAt: at(0, 23, 0, base),
-      venueName: 'Центральный стадион', address: 'Центральный стадион, Абая, 48', lat: 43.2386, lon: 76.9205,
+      venueName: 'Центральный стадион', address: 'Центральный стадион, Абая, 48', lat: 43.2604, lon: 76.9371,
       priceMin: 15000, priceMax: null, isFree: false, cover: null,
       about: 'Большой вечерний концерт на открытом воздухе. Вход по QR-билетам.',
       friendsGoing: [], lookingCount: 0, goingCount: 4200 },
+    { id: 'food', title: 'Фуд-маркет', category: 'food', startsAt: at(0, 12, 0, base), endsAt: at(0, 23, 0, base), isLong: true,
+      venueName: null, address: 'Абая, 150, во дворе ТРЦ', lat: 43.2586, lon: 76.9536,
+      priceMin: 0, priceMax: 0, isFree: true, cover: null,
+      about: 'Уличная еда, кофе и местные фермеры. Вход свободный, платишь только за еду.',
+      friendsGoing: [], lookingCount: 0, goingCount: 310 },
     { id: 'bike', title: 'Велопрогулка по городу', category: 'bike', startsAt: at(sat, 10, 0, base), endsAt: at(sat, 13, 0, base),
       venueName: 'Парк 28 гвардейцев-панфиловцев', address: 'Парк 28 гвардейцев-панфиловцев, вход с Гоголя', lat: 43.2587, lon: 76.9531,
       priceMin: 0, priceMax: 0, isFree: true, cover: null,
@@ -117,6 +121,15 @@ export const MESSAGES: Message[] = [
   m('ev-bike', 1, 'timur', 'system', 'Маршрут в закрепе', 'вчера'),
 ];
 
+// Точки разложены как на макете Main (демо-координаты, адреса — текстом). Где друзья сейчас: Игорь в кофейне у джаза, Денис едет по Абая, Антон на выставке, Тимур на паузе.
+export const FRIEND_SPOTS: FriendSpot[] = [
+  { personId: 'igor', lat: 43.2529, lon: 76.9476, state: 'here', place: 'Кофейня на Панфилова', minutesAgo: 2 },
+  { personId: 'denis', lat: 43.2620, lon: 76.9415, state: 'moving', place: 'Едет по Абая к аниме-выставке', speedKmh: 14, heading: 90 },
+  { personId: 'anton', lat: 43.2631, lon: 76.9537, state: 'here', place: 'Аниме-выставка, ТРЦ на Абая', minutesAgo: 1 },
+  { personId: 'timur', lat: 43.2561, lon: 76.9373, state: 'paused', place: 'Был здесь 25 минут назад', minutesAgo: 25 },
+];
+export const MY_SPOT = { lat: 43.2533, lon: 76.9409 };
+
 export const FRIEND_REQUESTS: FriendRequest[] = [
   { id: 'fr-erlan', personId: 'erlan', note: 'познакомились на настолках' },
   { id: 'fr-mira', personId: 'mira', note: '2 общих друга' },
@@ -140,5 +153,7 @@ export function createDemoSource(): DataSource {
     getChatRequests: async () => CHAT_REQUESTS,
     getMessages: async (chatId) => MESSAGES.filter((x) => x.chatId === chatId),
     getFriendRequests: async () => FRIEND_REQUESTS,
+    getFriendSpots: async () => FRIEND_SPOTS,
+    getMySpot: async () => MY_SPOT,
   };
 }
