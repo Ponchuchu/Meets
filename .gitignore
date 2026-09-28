@@ -10,3 +10,4 @@ web-build/
 ios/
 android/
 coverage/
+expo-env.d.ts

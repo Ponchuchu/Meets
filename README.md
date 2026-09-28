@@ -8,7 +8,7 @@
 - чаты с фото, видео, кружками и голосовыми;
 - профиль с картой открытого города.
 
-**Статус:** макет готов, приложение собирается по этапам из [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Статус:** приложение собирается по этапам из [`docs/ROADMAP.md`](docs/ROADMAP.md). Скриншоты готовых экранов — в [`docs/progress/`](docs/progress).
 
 ## Где что лежит
 
@@ -31,4 +31,21 @@
 
 ## Запуск
 
-Появится после этапа 0.
+Нужен Node.js 22.
+
+```bash
+npm install
+npm run web          # web-версия в браузере
+npm start            # Expo: телефон (для карты нужен dev build, этап 2)
+```
+
+| Команда | Что делает |
+|---|---|
+| `npm run typecheck` · `npm run lint` · `npm test` | Проверки (их же запускает GitHub Actions на каждый push) |
+| `npm run build:web` | Собрать web-версию в `dist/` |
+| `npm run shots -- <этап>` | Скриншоты экранов 390×844 в `docs/progress/<этап>/` |
+| `npm run db:migrate` | Применить `supabase/migrations/` через Management API |
+| `npm run seed:events` | Проставить координаты событиям (Nominatim) и загрузить их в Supabase |
+
+Приложение работает и без сети: если Supabase недоступен, данные берутся из демо-набора и `data/seed/events-almaty.json`.
+Координаты событий: © участники OpenStreetMap (ODbL), геокодер Nominatim.
