@@ -22,12 +22,16 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const { theme, camera, markers, onMode, bottomInset = 0 } = props;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const staticRef = useRef<MapCanvasHandle>(null);
   const elements = useRef(new Map<string, { el: HTMLDivElement; marker: mapboxgl.Marker }>());
   const [failed, setFailed] = useState(() => typeof document === 'undefined' || !config.mapboxToken || !webglOk());
   const [, setTick] = useState(0);
 
   useImperativeHandle(ref, () => ({
-    flyTo: (lat, lon, zoom) => map.current?.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 }),
+    flyTo: (lat, lon, zoom) => {
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 });
+      else staticRef.current?.flyTo(lat, lon, zoom);
+    },
   }));
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     setTick((x) => x + 1);
   }, [markers]);
 
-  if (failed) return <StaticMap {...props} />;
+  if (failed) return <StaticMap ref={staticRef} {...props} />;
 
   return (
     <View style={StyleSheet.absoluteFill}>

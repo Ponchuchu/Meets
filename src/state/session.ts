@@ -63,6 +63,11 @@ export const useSession = create<SessionState>()(
       name: 'ryadom-session',
       storage: deviceStorage(),
       partialize: ({ hydrated: _h, ...rest }) => rest,
+      // Старые или неполные сохранения дополняем значениями по умолчанию (после обновлений приложения).
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<SessionState>;
+        return { ...current, ...p, draft: { ...INITIAL_DRAFT, ...(p.draft ?? {}) } };
+      },
       onRehydrateStorage: () => () => useSession.setState({ hydrated: true }),
     },
   ),

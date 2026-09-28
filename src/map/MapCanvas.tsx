@@ -20,13 +20,17 @@ try {
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, bottomInset = 0 } = props;
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
+  const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
 
   useImperativeHandle(ref, () => ({
-    flyTo: (lat, lon, zoom) => cam.current?.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 }),
+    flyTo: (lat, lon, zoom) => {
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 });
+      else staticRef.current?.flyTo(lat, lon, zoom);
+    },
   }));
 
-  if (failed || !Mapbox) return <StaticMap {...props} />;
+  if (failed || !Mapbox) return <StaticMap ref={staticRef} {...props} />;
   const M = Mapbox;
   return (
     <View style={StyleSheet.absoluteFill}>

@@ -3,7 +3,8 @@ import { almaty, dayIndex, dayStart, now } from '../lib/clock';
 import { colors } from '../theme';
 import { seedEvents } from './seed';
 import { gridDisk, gridDistance, latLngToCell } from '../lib/h3';
-import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, FriendSpot, Message, MyProfile, Person } from './types';
+import { DEFAULT_PRIVACY } from '../people/visibility';
+import type { Chat, ChatRequest, DataSource, EventItem, FriendRequest, FriendSpot, Message, MyProfile, Person, PersonDetails } from './types';
 
 // ——— Люди ———
 const person = (p: Partial<Person> & Pick<Person, 'id' | 'name'>): Person => ({
@@ -188,9 +189,9 @@ export const MESSAGES: Message[] = [
 
 // Точки разложены как на макете Main (демо-координаты, адреса — текстом). Где друзья сейчас: Игорь в кофейне у джаза, Денис едет по Абая, Антон на выставке, Тимур на паузе.
 export const FRIEND_SPOTS: FriendSpot[] = [
-  { personId: 'igor', lat: 43.2529, lon: 76.9476, state: 'here', place: 'Кофейня на Панфилова', minutesAgo: 2 },
-  { personId: 'denis', lat: 43.2620, lon: 76.9415, state: 'moving', place: 'Едет по Абая к аниме-выставке', speedKmh: 14, heading: 90 },
-  { personId: 'anton', lat: 43.2631, lon: 76.9537, state: 'here', place: 'Аниме-выставка, ТРЦ на Абая', minutesAgo: 1 },
+  { personId: 'igor', lat: 43.2529, lon: 76.9476, state: 'here', place: 'Кофейня на Панфилова', minutesAgo: 2, note: 'джаз с 19:00' },
+  { personId: 'denis', lat: 43.2620, lon: 76.9415, state: 'moving', place: 'Едет по Абая к аниме-выставке', speedKmh: 14, heading: 90, doing: 'едет на аниме-выставку', vehicle: 'самокат', note: 'выставка до 21:00' },
+  { personId: 'anton', lat: 43.2631, lon: 76.9537, state: 'here', place: 'Аниме-выставка, ТРЦ на Абая', minutesAgo: 1, note: 'свободен весь вечер' },
   { personId: 'timur', lat: 43.2561, lon: 76.9373, state: 'paused', place: 'Был здесь 25 минут назад', minutesAgo: 25 },
 ];
 export const MY_SPOT = { lat: 43.2533, lon: 76.9409 };
@@ -231,6 +232,73 @@ export function demoProfile(): MyProfile {
   };
 }
 
+// Профили людей — тексты из макетов Person / PersonFriend / Friends.
+const sharing = { ...DEFAULT_PRIVACY, sharingLocation: true, achievements: 'friends' as const };
+const i = (label: string, common = true) => ({ label, common });
+export const PERSON_DETAILS: Record<string, PersonDetails> = {
+  igor: {
+    id: 'igor', about: 'Люблю смотреть на город сверху и живую музыку. Всегда за движ, особенно если там есть еда.',
+    interests: [i('Живая музыка'), i('Горы'), i('Настолки'), i('Стритфуд'), i('Тату')], interestKeys: ['music', 'hike', 'games', 'food'],
+    badges: ['above', 'jazz', 'soul', 'night'], gallery: ['igor', 'igor2', 'igor3', 'igor4'], online: true, instagram: '@igor.almaty',
+    commonFriends: ['denis', 'anton', 'timur'], friendsCount: 34, commonCount: 7, friendIds: ['denis', 'anton', 'me', 'timur'],
+    plans: [{ eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }, { title: 'Ужин у Данила', when: 'ПТ 2.10', note: 'несёт напитки' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'для друзей · ты тоже приглашён' }],
+    now: { place: 'кофейня на Панфилова', sharingUntil: '18:40' }, privacy: sharing,
+    planLine: { text: 'Вечером идёт на джаз — ты тоже', eventId: 'jazz', color: '#F0521F' },
+  },
+  denis: {
+    id: 'denis', about: 'Катаю на самокате по всему городу. Аниме, настолки и джаз по настроению.',
+    interests: [i('Аниме'), i('Настолки'), i('Живая музыка'), i('Самокат', false)], interestKeys: ['art', 'games', 'music'],
+    badges: ['wheels', 'games', 'opener'], gallery: ['denis'], online: true, commonFriends: ['igor', 'anton'], friendsCount: 21, commonCount: 5,
+    friendIds: ['igor', 'anton', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка «Токио в Алматы»', when: 'СЕГОДНЯ', note: 'едет туда' }, { eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }],
+    now: { place: 'едет по Абая к аниме-выставке', sharingUntil: '20:30' }, privacy: sharing,
+    planLine: { text: 'Идёт на аниме-выставку до 21:00', eventId: 'anime', color: '#E7E2D6' },
+  },
+  anton: {
+    id: 'anton', about: 'Выставки, аниме и хорошая еда. Зову на шашлыки по воскресеньям.',
+    interests: [i('Выставки'), i('Аниме'), i('Еда и маркеты')], interestKeys: ['art', 'food'],
+    badges: ['host', 'art'], gallery: ['anton'], online: true, commonFriends: ['igor', 'denis'], friendsCount: 18, commonCount: 4,
+    friendIds: ['igor', 'denis', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка', when: 'СЕГОДНЯ', note: 'уже там' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'устраивает' }],
+    now: { place: 'аниме-выставка, ТРЦ на Абая', sharingUntil: '21:00' }, privacy: sharing,
+    planLine: { text: 'Свободен весь вечер', color: '#D9E4D2' },
+  },
+  timur: {
+    id: 'timur', about: 'Горы по субботам, велосипед по воскресеньям.',
+    interests: [i('Горы'), i('Бег и вело'), i('Стендап')], interestKeys: ['hike', 'sport', 'standup'],
+    badges: ['conqueror', 'wheels', 'early'], gallery: [], online: false, lastSeen: 'был 25 минут назад', commonFriends: ['igor'], friendsCount: 15, commonCount: 3,
+    friendIds: ['igor', 'me'], plans: [{ eventId: 'hike', title: 'Поход на Кок-Жайляу', when: 'СБ 3.10', note: 'вы идёте вместе' }, { eventId: 'bike', title: 'Велопрогулка по городу', when: 'СБ 3.10', note: 'зовёт тебя' }],
+    // Геолокация на паузе: друзья видят последнюю точку и «25 МИН».
+    privacy: { ...DEFAULT_PRIVACY, sharingLocation: true },
+    planLine: { text: 'В субботу идёт в поход — ты тоже', eventId: 'hike', color: '#17161A' },
+  },
+  ainura: {
+    id: 'ainura', about: 'Снимаю на плёнку, собираю винтаж, летом хожу в горы. Ищу людей, с которыми не страшно пойти на что-то новое.',
+    interests: [i('Стендап'), i('Джаз'), i('Горы', false), i('Плёночная фотография', false), i('Винтаж', false)], interestKeys: ['standup', 'music', 'hike'],
+    badges: ['above', 'countries3', 'film', 'laugh'], badgeLine: 'АЛМАТЫ 31% · 4 СТРАНЫ', gallery: ['ainura'], online: false, lastSeen: 'Была недавно', instagram: '@ainura.film',
+    commonFriends: ['igor', 'denis'], friendsCount: 40, commonCount: 2, friendIds: [],
+    lookingFor: { eventId: 'standup', note: 'Иду одна, хочу познакомиться' }, plans: [],
+    privacy: { ...DEFAULT_PRIVACY, company: 'all', achievements: 'all' }, suggestNote: 'Тоже идёт на джаз',
+  },
+  erlan: {
+    id: 'erlan', about: 'Настолки, квизы и джаз. Если зовут — прихожу.', interests: [i('Настолки'), i('Джаз'), i('Квизы', false)], interestKeys: ['games', 'music'],
+    badges: ['games'], gallery: [], online: true, commonFriends: [], friendsCount: 12, commonCount: 0, friendIds: [],
+    lookingFor: { eventId: 'jazz', note: 'Нас двое, ищем ещё 1–2' }, plans: [], privacy: { ...DEFAULT_PRIVACY, company: 'all' }, suggestNote: 'Были вместе на настолках',
+  },
+  mira: {
+    id: 'mira', about: 'Недавно переехала в Алматы, знакомлюсь с городом.', interests: [i('Прогулки'), i('Аниме'), i('Выставки', false)], interestKeys: ['art', 'people'],
+    badges: [], gallery: [], online: false, lastSeen: 'Была вчера', commonFriends: ['anton', 'denis'], friendsCount: 6, commonCount: 2, friendIds: [],
+    lookingFor: { eventId: 'jazz', note: 'Первый раз на таком' }, plans: [], privacy: { ...DEFAULT_PRIVACY, company: 'fof' }, suggestNote: '2 общих друга',
+  },
+  sasha: {
+    id: 'sasha', about: 'Бегаю по средам, по пятницам — стендап.', interests: [i('Бег'), i('Стендап')], interestKeys: ['sport', 'standup'],
+    badges: [], gallery: [], online: false, lastSeen: 'Был недавно', commonFriends: ['igor'], friendsCount: 9, commonCount: 1, friendIds: [], plans: [], privacy: DEFAULT_PRIVACY,
+  },
+  nurlan: {
+    id: 'nurlan', about: 'Хожу с горным клубом второй год.', interests: [i('Горы'), i('Кофе', false)], interestKeys: ['hike'],
+    badges: ['conqueror'], gallery: [], online: false, lastSeen: 'Был недавно', commonFriends: [], friendsCount: 30, commonCount: 0, friendIds: [],
+    lookingFor: { eventId: 'hike', note: 'Хожу с клубом второй год' }, plans: [], privacy: { ...DEFAULT_PRIVACY, company: 'all' },
+  },
+};
+
 export const FRIEND_REQUESTS: FriendRequest[] = [
   { id: 'fr-erlan', personId: 'erlan', note: 'познакомились на настолках' },
   { id: 'fr-mira', personId: 'mira', note: '2 общих друга' },
@@ -257,5 +325,6 @@ export function createDemoSource(): DataSource {
     getFriendSpots: async () => FRIEND_SPOTS,
     getMySpot: async () => MY_SPOT,
     getMyProfile: async () => demoProfile(),
+    getPersonDetails: async (id) => PERSON_DETAILS[id] ?? null,
   };
 }

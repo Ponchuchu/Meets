@@ -107,7 +107,7 @@ for (const [route, name, preset, clicks = [], height = 844] of routes) {
   for (const label of clicks) {
     const byLabel = page.getByLabel(label, { exact: false });
     const target = (await byLabel.count()) ? byLabel.first() : page.getByText(label, { exact: true }).last();
-    await target.click();
+    await target.click({ force: true });
     await page.waitForTimeout(700);
   }
   await page.screenshot({ path: join(out, `${name}.png`) });

@@ -137,6 +137,10 @@ export interface FriendSpot {
   /** Направление движения, градусы (0 — север, 90 — восток). */
   heading?: number;
   minutesAgo?: number;
+  /** Короткая подпись для «Рядом с тобой»: «едет на аниме-выставку», «свободен весь вечер». */
+  doing?: string;
+  note?: string;
+  vehicle?: string;
 }
 
 export interface TimelineItem {
@@ -164,6 +168,36 @@ export interface MyProfile {
   invitesToMe: { eventId: string; fromId: string }[];
 }
 
+/** Подробный профиль человека (Person / PersonFriend). */
+export interface PersonDetails {
+  id: string;
+  about: string;
+  interests: { label: string; common: boolean }[];
+  badges: string[]; // id значков
+  badgeLine?: string; // «АЛМАТЫ 31% · 4 СТРАНЫ»
+  gallery: string[];
+  online: boolean;
+  lastSeen?: string; // «Была недавно»
+  instagram?: string;
+  commonFriends: string[];
+  friendsCount: number;
+  commonCount: number;
+  friendIds: string[];
+  /** Ищет компанию — для не-друзей (видно, если сам включил). */
+  lookingFor?: { eventId: string; note: string };
+  /** Планы друга: событие и подпись. */
+  plans: { eventId?: string; title: string; when: string; note: string }[];
+  /** Где сейчас (для друзей с включённой геолокацией). */
+  now?: { place: string; sharingUntil: string };
+  privacy: import('../people/visibility').OwnerPrivacy;
+  /** Интересы для «Позвать куда-то» — группы тегов. */
+  interestKeys: string[];
+  /** «Могут стать другом»: откуда знакомы. */
+  suggestNote?: string;
+  /** Строка плана в карточке на карте: «Вечером идёт на джаз — ты тоже». */
+  planLine?: { text: string; eventId?: string; color: string };
+}
+
 export interface DataSource {
   readonly kind: 'demo' | 'supabase';
   getMe(): Promise<Person>;
@@ -177,4 +211,5 @@ export interface DataSource {
   /** Моя точка по умолчанию (пока нет геолокации). */
   getMySpot(): Promise<{ lat: number; lon: number }>;
   getMyProfile(): Promise<MyProfile>;
+  getPersonDetails(id: string): Promise<PersonDetails | null>;
 }

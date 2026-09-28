@@ -171,3 +171,40 @@ const styles = StyleSheet.create({
   meHalo: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.1)', alignItems: 'center', justifyContent: 'center' },
   me: { width: 16, height: 16, borderRadius: 8, backgroundColor: colors.ink, borderWidth: 3, borderColor: '#FFFFFF' },
 });
+
+/** Друг в фокусе (MapFocus): крупнее, мягкий круг и пульсирующее кольцо, над ним — облачко стикера. */
+export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string }) {
+  const pop = useSharedValue(0);
+  useEffect(() => {
+    if (bubble) { pop.value = 0; pop.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.back(2)) }); }
+  }, [bubble, pop]);
+  const popStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pop.value * 1.6), transform: [{ scale: 0.2 + 0.8 * pop.value }, { rotate: '-6deg' }] }));
+  return (
+    <View style={styles.anchor} pointerEvents="none">
+      <View style={{ position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(36,71,184,0.14)', borderWidth: 1, borderColor: 'rgba(36,71,184,0.3)' }} />
+      <Pulse size={80} color={colors.friend} />
+      <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 6 }}>
+        {person.photo ? <Image source={photo(person.photo)} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: ring }} /> : (
+          <View style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: ring, backgroundColor: person.tint, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontFamily: fonts.body700, fontSize: 18, color: colors.ink }}>{person.initial}</Text>
+          </View>
+        )}
+      </View>
+      {speed && (
+        <Tag x={-34} y={30}>
+          <View style={[styles.speed, { height: 22, paddingHorizontal: 8 }]}>
+            <Text style={[styles.speedText, { fontSize: 10 }]}>{speed}</Text>
+            <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12h14M13 6l6 6-6 6" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
+          </View>
+        </Tag>
+      )}
+      {bubble && (
+        <Tag x={14} y={-60}>
+          <Animated.View style={[{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: bubble.bg, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 7, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, popStyle]}>
+            <Text style={{ fontFamily: fonts.display800, fontSize: 14, color: bubble.fg }}>{bubble.label}</Text>
+          </Animated.View>
+        </Tag>
+      )}
+    </View>
+  );
+}
