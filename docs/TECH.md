@@ -117,7 +117,7 @@
   - `profiles` — имя, дата рождения, фото, @ник, о себе, instagram, флаги приватности;
   - `start_answers` — интересы, время, с кем, бюджет;
   - `friendships`, `friend_requests`, `blocks`, `reports`;
-  - `marker_settings` — режим скорости, статус, цвет кольца, фото/буква, невидимка, `share_until`;
+  - `marker_settings` — режим скорости, статус, цвет кольца, фото/буква, невидимка, `share_until`, `home_geog` (зона дома 300 м, никому не видна);
   - `locations_last` — `user_id`, `geog`, `speed`, `heading`, `updated_at`.
 - **События:**
   - `venues` — название, алиасы, `geog`, адрес;
