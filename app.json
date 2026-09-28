@@ -37,7 +37,8 @@
         }
       ],
       "expo-font",
-      "@rnmapbox/maps"
+      "@rnmapbox/maps",
+      ["expo-notifications", { "color": "#F0521F" }]
     ],
     "experiments": {
       "typedRoutes": true

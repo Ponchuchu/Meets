@@ -15,6 +15,7 @@ interface ChatState {
   read: Record<string, number>; // chatId → сколько непрочитанных уже видели
   requests: Record<string, 'accepted' | 'later'>;
   send: (m: Message) => void;
+  unsend: (id: string) => void;
   vote: (messageId: string, i: number) => void;
   answer: (messageId: string, a: 'yes' | 'no') => void;
   reveal: (messageId: string) => void;
@@ -29,6 +30,7 @@ export const useChat = create<ChatState>()(
     (set) => ({
       sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {},
       send: (m) => set((s) => ({ sent: [...s.sent, m] })),
+      unsend: (id) => set((s) => ({ sent: s.sent.filter((m) => m.id !== id) })),
       vote: (id, i) => set((s) => ({ votes: { ...s.votes, [id]: i } })),
       answer: (id, a) => set((s) => ({ answers: { ...s.answers, [id]: a } })),
       reveal: (id) => set((s) => ({ revealed: { ...s.revealed, [id]: true } })),

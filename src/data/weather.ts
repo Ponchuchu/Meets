@@ -25,3 +25,30 @@ export const DEMO_FORECAST: DayWeather[] = [
 ];
 
 export const tempLabel = (t: number) => `${t > 0 ? '+' : ''}${t}°`;
+
+/** Ответ Open-Meteo (daily), как его кладёт в weather_cache Edge Function weather. */
+export interface OpenMeteoDaily {
+  daily: { time: string[]; weather_code: number[]; temperature_2m_max: number[] };
+}
+
+/** Код погоды WMO → наша иконка и подпись. */
+export function skyOf(code: number): { sky: Sky; text: string } {
+  if (code === 0) return { sky: 'sun', text: 'ясно' };
+  if (code <= 2) return { sky: 'part', text: 'переменная облачность' };
+  if (code === 3) return { sky: 'cloud', text: 'облачно' };
+  if (code === 45 || code === 48) return { sky: 'cloud', text: 'туман' };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { sky: 'cloud', text: 'снег' };
+  if (code >= 95) return { sky: 'rain', text: 'гроза' };
+  return { sky: 'rain', text: 'дождь' };
+}
+
+/** 7 дней начиная с сегодняшнего (дата по Алматы «ГГГГ-ММ-ДД»). Не хватает дней — добиваем последним. */
+export function fromOpenMeteo(p: OpenMeteoDaily, today: string): DayWeather[] {
+  const { time, weather_code: codes, temperature_2m_max: temps } = p.daily;
+  const start = Math.max(0, time.indexOf(today));
+  const out: DayWeather[] = [];
+  for (let i = start; i < time.length && out.length < 7; i++) out.push({ ...skyOf(codes[i]), temp: Math.round(temps[i]) });
+  if (!out.length) throw new Error('empty forecast');
+  while (out.length < 7) out.push(out[out.length - 1]);
+  return out;
+}

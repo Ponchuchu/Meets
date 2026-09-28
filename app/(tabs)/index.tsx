@@ -7,6 +7,7 @@ import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { data, eventsSnapshot, type EventItem } from '../../src/data';
+import { useLiveFriends, useShareLocation } from '../../src/data/realtime';
 import { DEMO_FORECAST } from '../../src/data/weather';
 import { almaty, dayIndex, now as clockNow } from '../../src/lib/clock';
 import { rangeLabel } from '../../src/map/calendar';
@@ -86,6 +87,8 @@ export default function MapScreen() {
   const going = useMemo(() => new Set(Object.keys(goingMap)), [goingMap]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  useLiveFriends(useMemo(() => people.filter((x) => x.isFriend).map((x) => x.id), [people]));
+  useShareLocation(useProfile((s) => s.marker));
   const { data: me } = useQuery({ queryKey: ['mySpot'], queryFn: () => data.getMySpot() });
   const { data: details = [] } = useQuery({
     queryKey: ['spotDetails', spots.map((x) => x.personId).join(',')],
@@ -148,7 +151,7 @@ export default function MapScreen() {
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
-  const forecast = DEMO_FORECAST;
+  const { data: forecast = DEMO_FORECAST } = useQuery({ queryKey: ['forecast'], queryFn: () => data.getForecast(), staleTime: 30 * 60e3 });
   const weather = forecast[filters.from] ?? null;
 
   const pickDay = useCallback((d: number) => {

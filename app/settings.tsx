@@ -14,6 +14,8 @@ import { Ic, IC } from '../src/ui/Ic';
 import { BackButton, Segments } from '../src/ui/kit';
 import { Cap, Group, Row, SwitchRow } from '../src/ui/Section';
 import { Backdrop, BottomSheet } from '../src/ui/sheet';
+import { signOut as authSignOut } from '../src/auth/service';
+import { savePushPrefs } from '../src/notify/register';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -24,7 +26,11 @@ export default function SettingsScreen() {
   const draft = useSession((x) => x.draft);
   const signOut = useSession((x) => x.signOut);
   const [confirm, setConfirm] = useState<null | 'out' | 'delete'>(null);
-  const setN = (k: keyof Settings['notif'], v: boolean) => set({ notif: { ...s.notif, [k]: v } });
+  const setN = (k: keyof Settings['notif'], v: boolean) => {
+    const notif = { ...s.notif, [k]: v };
+    set({ notif });
+    void savePushPrefs(notif);
+  };
 
   const leave = async (wipe: boolean) => {
     // Удаление: стираем всё локально; на сервере — запрос удаления аккаунта (этап 8, Supabase Auth).
@@ -35,6 +41,7 @@ export default function SettingsScreen() {
       await AsyncStorage.multiRemove(['ryadom-plans', 'ryadom-feed', 'ryadom-profile']).catch(() => {});
     }
     signOut();
+    void authSignOut();
     router.replace('/start');
   };
 

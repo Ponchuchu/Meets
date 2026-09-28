@@ -1,5 +1,6 @@
 // Точка входа слоя данных. Всё приложение ходит сюда, а не в demo/supabase напрямую.
 import { config } from '../lib/config';
+import { NoSessionError } from './client';
 import { createDemoSource, demoEvents, mergeEvents } from './demo';
 import { seedEvents } from './seed';
 import { createSupabaseSource } from './supabase';
@@ -21,7 +22,7 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
           last = 'supabase';
           return res;
         } catch (err) {
-          if (__DEV__) console.warn(`[data] ${String(key)}: Supabase недоступен, демо-режим`, err);
+          if (__DEV__ && !(err instanceof NoSessionError)) console.warn(`[data] ${String(key)}: Supabase недоступен, демо-режим`, err);
           last = 'demo';
         }
       }
@@ -40,6 +41,7 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
     getMySpot: wrap('getMySpot'),
     getMyProfile: wrap('getMyProfile'),
     getPersonDetails: wrap('getPersonDetails'),
+    getForecast: wrap('getForecast'),
     lastSource: () => last,
   };
 }

@@ -1,10 +1,11 @@
-// Код из SMS — design/png/SignUpCode.png. Демо: код всегда 4821.
+// Код из SMS — design/png/SignUpCode.png. Настоящая SMS — через Supabase; без SMS-шлюза демо-код 4821.
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEMO_CODE, onlyCode, RESEND_SECONDS } from '../../src/auth/rules';
+import { authMode, sendCode, verifyCode } from '../../src/auth/service';
 import { useSession } from '../../src/state/session';
 import { colors, fonts } from '../../src/theme';
 import { Glyph } from '../../src/ui/Glyph';
@@ -38,8 +39,9 @@ export default function Code() {
     setError(false);
     if (v.length < 4) return;
     // Автопереход после 4 цифр — с короткой паузой, чтобы было видно последнюю цифру.
-    timer.current = setTimeout(() => {
-      if (v === DEMO_CODE) {
+    timer.current = setTimeout(async () => {
+      const ok = await verifyCode(phone, v).catch(() => false);
+      if (ok) {
         signIn('phone');
         router.replace('/about');
       } else {
@@ -86,16 +88,18 @@ export default function Code() {
         </Animated.View>
       </Appear>
       <Appear index={2} style={{ gap: 20 }}>
-        <Pressable onPress={() => onCode(DEMO_CODE)} style={styles.paste} accessibilityRole="button">
-          <Glyph name="chat" size={16} color={colors.ink} strokeWidth={2} />
-          <Text style={styles.pasteText}>Вставить код из сообщения: {DEMO_CODE}</Text>
-        </Pressable>
+        {authMode() === 'demo' && (
+          <Pressable onPress={() => onCode(DEMO_CODE)} style={styles.paste} accessibilityRole="button">
+            <Glyph name="chat" size={16} color={colors.ink} strokeWidth={2} />
+            <Text style={styles.pasteText}>Вставить код из сообщения: {DEMO_CODE}</Text>
+          </Pressable>
+        )}
         {error ? (
           <Text style={[styles.resend, { color: colors.accentText }]}>НЕВЕРНЫЙ КОД · ПОПРОБУЙ ЕЩЁ РАЗ</Text>
         ) : left > 0 ? (
           <Text style={styles.resend}>ОТПРАВИТЬ ЕЩЁ РАЗ ЧЕРЕЗ {mm}:{ss}</Text>
         ) : (
-          <Pressable onPress={() => setLeft(RESEND_SECONDS)} accessibilityRole="button" hitSlop={12} style={{ alignSelf: 'flex-start' }}>
+          <Pressable onPress={() => { setLeft(RESEND_SECONDS); void sendCode(phone); }} accessibilityRole="button" hitSlop={12} style={{ alignSelf: 'flex-start' }}>
             <Text style={[styles.resend, { color: colors.ink, textDecorationLine: 'underline' }]}>ОТПРАВИТЬ ЕЩЁ РАЗ</Text>
           </Pressable>
         )}

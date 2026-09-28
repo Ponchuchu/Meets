@@ -84,6 +84,7 @@ if (process.env.HTTPS_PROXY) {
   });
 }
 const page = await ctx.newPage();
+page.on('pageerror', (e) => console.log('  pageerror:', e.message));
 for (const [route, name, preset, clicks = [], height = 844] of routes) {
   await page.setViewportSize({ width: 390, height });
   const state = PRESETS[preset];

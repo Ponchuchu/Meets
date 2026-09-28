@@ -1,0 +1,41 @@
+// Клиент Supabase — один на всё приложение. Сессия входа хранится на устройстве (AsyncStorage / localStorage).
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
+import { config } from '../lib/config';
+
+const ssr = Platform.OS === 'web' && typeof window === 'undefined';
+
+let client: SupabaseClient | null = null;
+export function supabase(): SupabaseClient {
+  if (!client) {
+    client = createClient(config.supabaseUrl, config.supabaseKey, {
+      auth: {
+        storage: ssr ? undefined : AsyncStorage,
+        persistSession: !ssr,
+        autoRefreshToken: !ssr,
+        detectSessionInUrl: false,
+      },
+    });
+  }
+  return client;
+}
+
+export class NoSessionError extends Error {
+  constructor() {
+    super('no-session');
+  }
+}
+
+/** id вошедшего человека. Без входа в Supabase — NoSessionError, и слой данных берёт демо. */
+export async function requireUser(): Promise<string> {
+  const { data } = await supabase().auth.getSession();
+  const id = data.session?.user.id;
+  if (!id) throw new NoSessionError();
+  return id;
+}
+
+/** Промис с таймаутом: сеть не должна подвешивать экран. */
+export function withTimeout<T>(p: PromiseLike<T>, ms = 6000): Promise<T> {
+  return Promise.race([Promise.resolve(p), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+}

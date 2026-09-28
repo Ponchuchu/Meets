@@ -1,6 +1,8 @@
 // Шаг 3/3 «Когда тебя проще вытащить?» — design/png/SignUpRhythm.png. Потом — запрос геолокации и карта.
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
+import { saveProfile } from '../../src/auth/service';
+import { registerPush } from '../../src/notify/register';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Budget, TimeSlot, WithWho } from '../../src/reco/startTaste';
@@ -35,6 +37,7 @@ export default function Rhythm() {
     }
     setLocationAsked();
     finish();
+    void saveProfile(useSession.getState().draft).then((ok) => (ok ? registerPush() : null));
     router.replace('/');
   };
 

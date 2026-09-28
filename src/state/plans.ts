@@ -2,6 +2,7 @@
 // Хранится на устройстве; в Supabase (attendance, company_requests, invites, meetups) — этап 8.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { pushAttendance } from '../data/sync';
 import { deviceStorage } from './storage';
 import type { EventItem } from '../data/types';
 
@@ -58,8 +59,12 @@ export const usePlans = create<PlansState>()(
       newChats: { day: '', people: [] },
       declined: {},
       decline: (id) => set((s) => ({ declined: { ...s.declined, [id]: true } })),
-      go: (id) => set((s) => ({ going: { ...s.going, [id]: new Date().toISOString() } })),
+      go: (id) => {
+        pushAttendance(id, 'going');
+        set((s) => ({ going: { ...s.going, [id]: new Date().toISOString() } }));
+      },
       ungo: (id) => set((s) => {
+        pushAttendance(id, null);
         const going = { ...s.going };
         delete going[id];
         return { going };

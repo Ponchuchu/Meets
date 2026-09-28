@@ -1,4 +1,5 @@
 // Демо-реализация: люди, чаты и события из макета + настоящие события из seed-файла.
+import { DEMO_FORECAST } from './weather';
 import { almaty, dayIndex, dayStart, now } from '../lib/clock';
 import { colors } from '../theme';
 import { seedEvents } from './seed';
@@ -333,5 +334,6 @@ export function createDemoSource(): DataSource {
     getMySpot: async () => MY_SPOT,
     getMyProfile: async () => demoProfile(),
     getPersonDetails: async (id) => PERSON_DETAILS[id] ?? null,
+    getForecast: async () => DEMO_FORECAST,
   };
 }

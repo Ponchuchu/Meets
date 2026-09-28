@@ -1,5 +1,6 @@
 // Старт регистрации — design/png/SignUp.png
 import { router } from 'expo-router';
+import { sendCode as requestSms } from '../../src/auth/service';
 import { useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ export default function Start() {
   const sendCode = () => {
     if (!isPhoneComplete(phone)) { phoneRef.current?.focus(); return; }
     update({ phone });
+    void requestSms(phone);
     router.push('/code');
   };
 

@@ -1,5 +1,5 @@
 // Чат: личный (DirectChat, ChatAttach, ChatSheets) и чат события (EventChat).
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -9,6 +9,8 @@ import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../src/chat
 import { Bubble } from '../../src/chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../src/data';
 import { photo } from '../../src/data/photos';
+import { isRemoteId, useLiveChat } from '../../src/data/realtime';
+import { sendMessage, uploadMedia } from '../../src/data/remote';
 import { dayIndex, now as clockNow } from '../../src/lib/clock';
 import { accusative } from '../../src/lib/names';
 import { canSee } from '../../src/people/visibility';
@@ -43,6 +45,8 @@ export default function ChatScreen() {
   const now = clockNow();
   const isEvent = id.startsWith('ev-');
   const personId = isEvent ? null : id.replace(/^dm-/, '');
+  const qc = useQueryClient();
+  useLiveChat(id);
   const { data: base = [] } = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
   const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
@@ -88,7 +92,17 @@ export default function ChatScreen() {
   const push = (m: Partial<Message> & Pick<Message, 'kind'>) => {
     if (!check.ok) return;
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    chat.send({ id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...m });
+    const msg: Message = { id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...m };
+    chat.send(msg);
+    // Чат из базы: пишем на сервер, Realtime принесёт сообщение обратно — тогда убираем локальную копию.
+    if (isRemoteId(id)) {
+      const media = msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? uploadMedia(id, msg.media) : Promise.resolve(msg.media ?? undefined);
+      media
+        .then((path) => sendMessage(id, msg.text, msg.kind, path))
+        .then(() => qc.invalidateQueries({ queryKey: ['messages', id] }))
+        .then(() => chat.unsend(msg.id))
+        .catch(() => undefined);
+    }
   };
   const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); } };
   const record = (k: 'voice' | 'circle') => {

@@ -218,4 +218,6 @@ export interface DataSource {
   getMySpot(): Promise<{ lat: number; lon: number }>;
   getMyProfile(): Promise<MyProfile>;
   getPersonDetails(id: string): Promise<PersonDetails | null>;
+  /** Погода на 7 дней с сегодняшнего: Open-Meteo через кэш на сервере. */
+  getForecast(): Promise<import('./weather').DayWeather[]>;
 }

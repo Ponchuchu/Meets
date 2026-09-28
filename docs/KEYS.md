@@ -11,6 +11,25 @@
 
 Публичные ключи безопасно хранить в репозитории: они и так попадают в приложение. Доступ к данным в Supabase ограничивают правила RLS.
 
+## Этап 8: бэкенд написан, но ещё не включён в базе
+
+28.09 Management API перестал принимать токен из чата (ответ 401 — токен, видимо, уже отозван). Поэтому всё для людей, чатов и пушей лежит в репозитории, но в Supabase ещё не применено. Приложение работает как раньше: события — из базы, остальное — демо.
+
+Когда появится доступ (пункт 2 ниже — токен как API credential), Claude сам выполнит шаги 1–3. Если захочешь сам — нужны Node и терминал в папке проекта:
+
+1. **Таблицы и правила доступа:** `SUPABASE_ACCESS_TOKEN=<токен> npm run db:migrate`. Создаст людей, друзей, чаты, сообщения, планы, вкус, значки, пуши, погоду, хранилище фото и расписание задач. Все миграции проверены на Postgres 16.
+2. **Демо-люди и чаты макета:** `SUPABASE_ACCESS_TOKEN=<токен> npm run db:seed-demo`. Чтобы твой аккаунт сразу получил друзей и чаты как в макете, сначала войди в приложение по телефону, потом добавь номер в команду: `npm run db:seed-demo -- +77071234567`.
+3. **Серверные функции** (погода, колода «Для тебя», пуши). Нужен вход в Supabase CLI: `npx supabase login`, затем `npm run functions:deploy`.
+4. **Секрет для расписания.** Придумай длинный случайный пароль (например, из менеджера паролей) и положи его в два места:
+   - Supabase → Edge Functions → **Secrets** → `CRON_SECRET` = пароль;
+   - Supabase → SQL Editor, выполни:
+     ```sql
+     select vault.create_secret('https://xkpchsommtilristiesu.supabase.co', 'project_url');
+     select vault.create_secret('<тот же пароль>', 'cron_secret');
+     ```
+   Без этого база не будет звать функции: погода останется демо, пуши не уйдут. Ничего не сломается.
+5. **Вход по телефону.** Supabase → Authentication → Sign In / Providers → **Phone** → включить. Для SMS в Казахстан нужен шлюз (Mobizon.kz или SMSC.kz, см. «Понадобится позже») и Send SMS Hook. Пока шлюза нет, приложение пускает с демо-кодом 4821, но такой вход живёт только на телефоне, в базу он не попадает.
+
 ## Сделай сейчас: перевыпусти токен Supabase
 
 Токен Supabase (`sbp_…`) был отправлен в чат. Им создали таблицы, в репозиторий он не попал. Но токен даёт полный доступ к проекту, поэтому его лучше заменить:
@@ -31,6 +50,7 @@
    - В «Allowed domains» вставь:
      ```
      *.supabase.co
+     exp.host
      api.supabase.com
      api.mapbox.com
      events.mapbox.com
@@ -66,8 +86,8 @@
 | Что | Зачем | Где взять | Куда положить |
 |---|---|---|---|
 | Ключ Anthropic API | ИИ-разбор постов и афиш (этап 9) | console.anthropic.com → API Keys | Секреты GitHub Actions (`ANTHROPIC_API_KEY`) |
-| Google Cloud OAuth | Вход через Google | console.cloud.google.com → Credentials | Supabase → Auth → Providers → Google |
+| Google Cloud OAuth | Вход через Google | console.cloud.google.com → Credentials: клиенты Web, iOS, Android | Supabase → Auth → Providers → Google (Client IDs). Приложение уже умеет входить по id-токену; кнопку подключим к нативному входу вместе со сборкой (этап 10) |
 | Apple Developer ($99/год) | Вход через Apple, App Store | developer.apple.com | Supabase → Auth → Apple; EAS |
 | Google Play Console ($25) | Публикация в Google Play | play.google.com/console | EAS |
-| Аккаунт Expo | Сборки для телефона, пуши | expo.dev | Токен `EXPO_TOKEN` — в переменные облачной среды |
-| SMS-шлюз (Mobizon.kz или SMSC.kz) | Коды по SMS | Договор, имя отправителя, шаблон OTP | Секреты Supabase |
+| Аккаунт Expo | Сборки для телефона, пуши | expo.dev | Токен `EXPO_TOKEN` — в переменные облачной среды. Для пушей: projectId проекта EAS (этап 10), ключи FCM v1 (Android) и APNs (iOS) — в expo.dev → Credentials. `EXPO_ACCESS_TOKEN` (если включишь защиту пушей) — в Supabase → Edge Functions → Secrets |
+| SMS-шлюз (Mobizon.kz или SMSC.kz) | Коды по SMS | Договор, имя отправителя, шаблон OTP | Ключ шлюза — Supabase → Edge Functions → Secrets; функцию Send SMS Hook добавлю, когда будет договор |
