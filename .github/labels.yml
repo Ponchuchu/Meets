@@ -1,0 +1,10 @@
+# Метки задач. Меняются здесь — workflow labels.yml применяет их в GitHub после мержа в main.
+- { name: app, color: F0521F, description: "А: экраны, анимации, сборки" }
+- { name: backend, color: 2447B8, description: "Б: база, функции, сборщик, логика" }
+- { name: shared, color: 6B675F, description: "Общее: types.ts, зависимости, CI — ревью обоих" }
+- { name: bug, color: D73A4A, description: "Что-то работает не так" }
+- { name: task, color: 2F8F5B, description: "Новая функция или доработка" }
+- { name: design, color: EADFB8, description: "Расхождение с макетом design/png" }
+- { name: privacy, color: 8A3A12, description: "Кто что видит, данные людей" }
+- { name: release, color: 17161A, description: "Сторы, сборки, релиз" }
+- { name: blocked, color: CFC9BB, description: "Ждёт ключа, решения или другой задачи" }

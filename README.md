@@ -51,7 +51,7 @@ npm start            # Expo: телефон (для карты и пушей н�
 | `npm run worker:demo` | Сборщик событий на примерах постов `worker/fixtures`, без записи в базу |
 | `npm run perf` | Замер карты и ленты на «слабом Android» (процессор ×6), после `build:web` |
 
-Админка команды — `/admin` в web-версии. Выпуск в магазины — `docs/STORE.md`.
+Админка команды — `/admin` в web-версии. Выпуск в магазины — `docs/STORE.md`. Как работать вдвоём — `CONTRIBUTING.md`.
 
 Приложение работает и без сети: если Supabase недоступен, данные берутся из демо-набора и `data/seed/events-almaty.json`.
 Координаты событий: © участники OpenStreetMap (ODbL), геокодер Nominatim.
