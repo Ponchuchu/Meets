@@ -24,10 +24,6 @@ jobs:
             echo "::error::Нет секрета EXPO_TOKEN. Как добавить — docs/KEYS.md, раздел «APK для Android»."
             exit 1
           fi
-      - name: Привязать проект Expo
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest init --non-interactive --force
       - name: Собрать APK
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
