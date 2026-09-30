@@ -29,10 +29,17 @@ import { Ic, IC } from '../../src/ui/Ic';
 import { Backdrop, BottomSheet } from '../../src/ui/sheet';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 
-const GALLERY_IC = 'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4';
-const CIRCLE_IC = 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z';
-const MIC_IC = 'M9 3h6v11H9zM5 11a7 7 0 0014 0M12 18v3';
-const SEND_IC = 'M5 12h14M13 6l6 6-6 6';
+// Иконки в стиле lucide, 1.9: скрепка, микрофон-капсула, «кружок» (объектив в круге), самолётик.
+const ATTACH_IC = 'M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9';
+const CIRCLE_IC = 'M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM12 8.2a3.8 3.8 0 100 7.6 3.8 3.8 0 000-7.6zM17.2 6.8h.01';
+const MIC_IC = 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6';
+const SEND_IC = 'M21.5 2.5L10 14M21.5 2.5l-7 19-4.5-7.5L2.5 9.5z';
+const POLL_IC = 'M5 20V10M12 20V4M19 20v-6';
+const CAM_IC = 'M4 8.5A1.5 1.5 0 015.5 7h2.3l1.7-2.5h5l1.7 2.5h2.3A1.5 1.5 0 0120 8.5v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z';
+const ALBUMS = [['recent', 'Недавние'], ['photo', 'Фото'], ['video', 'Видео'], ['fav', 'Избранное']] as const;
+type Album = (typeof ALBUMS)[number][0];
+/** Время для длительности записи — вне рендера. */
+const nowMs = () => Date.now();
 const MEDIA = [
   { id: 'a', src: 'hike', video: true, dur: '0:21' }, { id: 'b', src: 'igor2', video: false }, { id: 'c', src: 'igor3', video: true, dur: '0:12' },
   { id: 'd', src: 'igor4', video: false }, { id: 'e', src: 'igor1', video: false }, { id: 'f', src: 'krug', video: true, dur: '0:07' },
@@ -62,7 +69,12 @@ export default function ChatScreen() {
   const focusFriend = useMapState((s) => s.focusFriend);
   const [text, setText] = useState('');
   const [tray, setTray] = useState(trayParam === '1');
-  const [kind, setKind] = useState<'all' | 'photo' | 'video'>('all');
+  const [album, setAlbum] = useState<Album>('recent');
+  const [albumsOpen, setAlbumsOpen] = useState(false);
+  const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
+  const [recStart, setRecStart] = useState(0);
+  const [inputH, setInputH] = useState(44);
+  const [poll, setPoll] = useState<null | { q: string; options: string[] }>(null);
   const [picked, setPicked] = useState<string[]>(trayParam === '1' ? ['b', 'a'] : []);
   const [sheet, setSheet] = useState<null | 'person' | 'menu'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
@@ -106,15 +118,25 @@ export default function ChatScreen() {
         .catch(() => undefined);
     }
   };
-  const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); } };
-  const record = (k: 'voice' | 'circle') => {
-    // Демо-запись: голосовое и кружок на устройстве — expo-audio / expo-camera в dev build (этап 10).
-    setRecording(k);
-    setTimeout(() => {
-      setRecording(null);
-      if (k === 'voice') push({ kind: 'voice', duration: '0:03' });
-      else push({ kind: 'circle', media: 'krug', duration: '0:05' });
-    }, 1200);
+  const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); setInputH(44); } };
+  // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
+  // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
+  const startRec = () => { setRecording(recMode); setRecStart(nowMs()); };
+  const stopRec = () => {
+    if (!recording) return;
+    const sec = Math.max(1, Math.round((nowMs() - recStart) / 1000));
+    const dur = `0:${String(Math.min(59, sec)).padStart(2, '0')}`;
+    if (recording === 'voice') push({ kind: 'voice', duration: dur });
+    else push({ kind: 'circle', media: 'krug', duration: dur });
+    setRecording(null);
+  };
+  const sendPoll = () => {
+    if (!poll) return;
+    const options = poll.options.map((o) => o.trim()).filter(Boolean);
+    if (!poll.q.trim() || options.length < 2) return;
+    push({ kind: 'poll', text: poll.q.trim(), poll: { question: poll.q.trim(), options: options.map((o) => ({ text: o, votes: 0 })) } });
+    setPoll(null);
+    setTray(false);
   };
   const sendPicked = () => {
     picked.forEach((pid) => {
@@ -139,7 +161,7 @@ export default function ChatScreen() {
     ? (details && canSee('friend', 'location', details.privacy) && details.now ? `${person?.name.toUpperCase()} ДЕЛИТСЯ ГЕОЛОКАЦИЕЙ ДО ${details.now.sharingUntil}` : null)
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
-  const shownMedia = MEDIA.filter((m) => kind === 'all' || (kind === 'video') === m.video);
+  const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -201,39 +223,61 @@ export default function ChatScreen() {
 
       {check.ok && (
         <View style={[styles.composer, { paddingBottom: tray ? 10 : 14 + insets.bottom }]}>
-          <Pressable onPress={() => setTray(!tray)} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Фото и видео">
-            <Ic d={GALLERY_IC} size={20} color={tray ? colors.paper : colors.ink} />
+          <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
+            <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
           </Pressable>
-          <TextInput value={recording ? (recording === 'voice' ? '● Запись голосового…' : '● Снимаю кружок…') : text} editable={!recording} onChangeText={setText} onSubmitEditing={sendText}
-            placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, recording && { color: colors.accentText }]} accessibilityLabel="Сообщение" returnKeyType="send" />
-          {text.trim() ? (
+          {recording ? (
+            <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
+              <View style={styles.recDot} />
+              <Text style={styles.recText}>{recording === 'voice' ? 'Голосовое' : 'Кружок'} · отпусти, чтобы отправить</Text>
+            </View>
+          ) : (
+            <TextInput value={text} onChangeText={setText} multiline
+              onContentSizeChange={(ev) => setInputH(Math.max(44, Math.min(132, ev.nativeEvent.contentSize.height)))}
+              onKeyPress={(ev) => { const ne = ev.nativeEvent as { key: string; shiftKey?: boolean }; if (Platform.OS === 'web' && ne.key === 'Enter' && !ne.shiftKey) { ev.preventDefault?.(); sendText(); } }}
+              placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, { height: text ? inputH : 44 }]} accessibilityLabel="Сообщение" />
+          )}
+          {text.trim() && !recording ? (
             <Pressable onPress={sendText} style={[styles.iconBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]} accessibilityRole="button" accessibilityLabel="Отправить">
-              <Ic d={SEND_IC} size={20} color={colors.ink} w={2.2} />
+              <Ic d={SEND_IC} size={19} color={colors.ink} w={2} />
             </Pressable>
           ) : (
-            <>
-              <Pressable onPress={() => record('circle')} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Записать кружок"><Ic d={CIRCLE_IC} size={20} color={colors.ink} /></Pressable>
-              <Pressable onPress={() => record('voice')} style={[styles.iconBtn, { backgroundColor: recording === 'voice' ? colors.accent : colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Записать голосовое">
-                <Ic d={MIC_IC} size={20} color={recording === 'voice' ? colors.ink : colors.paper} />
-              </Pressable>
-            </>
+            <Pressable onPress={() => setRecMode(recMode === 'voice' ? 'circle' : 'voice')} onLongPress={startRec} onPressOut={stopRec} delayLongPress={220}
+              style={[styles.iconBtn, { backgroundColor: recording ? colors.accent : colors.ink, borderColor: recording ? colors.accent : colors.ink }, recording && { transform: [{ scale: 1.25 }] }]}
+              accessibilityRole="button" accessibilityLabel={recMode === 'voice' ? 'Голосовое: удерживай, чтобы записать. Нажми — переключить на кружок' : 'Кружок: удерживай, чтобы записать. Нажми — переключить на голосовое'}>
+              <Ic d={recMode === 'voice' ? MIC_IC : CIRCLE_IC} size={20} color={recording ? colors.ink : colors.paper} w={1.9} />
+            </Pressable>
           )}
         </View>
       )}
 
-      {tray && check.ok && (
+      {tray && check.ok && !poll && (
         <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={styles.seg}>
-              {([['all', 'Всё'], ['photo', 'Фото'], ['video', 'Видео']] as const).map(([k, label]) => (
-                <Pressable key={k} onPress={() => setKind(k)} style={[styles.segItem, kind === k && styles.segOn]} accessibilityRole="radio" accessibilityState={{ selected: kind === k }}>
-                  <Text style={[styles.segText, kind === k && { fontFamily: fonts.body600 }]}>{label}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Pressable onPress={() => setAlbumsOpen(!albumsOpen)} style={styles.album} accessibilityRole="button" accessibilityLabel="Выбрать альбом" accessibilityState={{ expanded: albumsOpen }}>
+              <Text style={styles.albumText}>{ALBUMS.find(([k]) => k === album)?.[1]}</Text>
+              <Ic d={albumsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} size={16} color={colors.ink} w={2.2} />
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={() => setPoll({ q: '', options: ['', ''] })} style={styles.trayBtn} accessibilityRole="button">
+              <Ic d={POLL_IC} size={16} color={colors.ink} w={2.2} /><Text style={styles.trayBtnText}>Опрос</Text>
+            </Pressable>
+          </View>
+          {albumsOpen && (
+            <View style={styles.albums}>
+              {ALBUMS.map(([k, label]) => (
+                <Pressable key={k} onPress={() => { setAlbum(k); setAlbumsOpen(false); }} style={[styles.albumRow, album === k && { backgroundColor: colors.sand2 }]} accessibilityRole="menuitem">
+                  <Text style={[styles.albumText, album === k && { fontFamily: fonts.body700 }]}>{label}</Text>
+                  {album === k && <Ic d={IC.check} size={16} color={colors.ink} w={2.4} />}
                 </Pressable>
               ))}
             </View>
-            <Pressable onPress={camera} style={styles.cam} accessibilityRole="button"><Ic d="M4 8h3l2-3h6l2 3h3v11H4zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" size={16} color={colors.paper} w={2} /><Text style={styles.camText}>Камера</Text></Pressable>
-          </View>
+          )}
           <View style={styles.grid}>
+            <Pressable onPress={camera} style={[styles.thumb, styles.camTile]} accessibilityRole="button" accessibilityLabel="Камера">
+              <View style={styles.camLens}><Ic d={CAM_IC} size={26} color={colors.paper} w={1.8} /></View>
+              <Text style={styles.camText}>Камера</Text>
+            </Pressable>
             {shownMedia.map((md) => {
               const pos = picked.indexOf(md.id);
               const on = pos >= 0;
@@ -248,6 +292,27 @@ export default function ChatScreen() {
           </View>
           <Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {poll && (
+        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.sheetTitle, { flex: 1, fontSize: 19 }]}>Опрос</Text>
+            <Pressable onPress={() => setPoll(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Отменить опрос"><Ic d={IC.close} size={18} color={colors.ink} w={2.2} /></Pressable>
+          </View>
+          <TextInput value={poll.q} onChangeText={(q) => setPoll({ ...poll, q })} placeholder="Вопрос: куда после?" placeholderTextColor={colors.muted3} style={styles.pollInput} accessibilityLabel="Вопрос" maxLength={120} />
+          {poll.options.map((o, i) => (
+            <TextInput key={i} value={o} onChangeText={(t) => setPoll({ ...poll, options: poll.options.map((x, j) => (j === i ? t : x)) })} placeholder={`Вариант ${i + 1}`} placeholderTextColor={colors.muted3}
+              style={styles.pollInput} accessibilityLabel={`Вариант ${i + 1}`} maxLength={60} />
+          ))}
+          {poll.options.length < 6 && (
+            <Pressable onPress={() => setPoll({ ...poll, options: [...poll.options, ''] })} style={{ alignSelf: 'flex-start', paddingVertical: 4 }} accessibilityRole="button"><Text style={styles.addOption}>+ Вариант</Text></Pressable>
+          )}
+          <Pressable onPress={sendPoll} disabled={!poll.q.trim() || poll.options.filter((o) => o.trim()).length < 2}
+            style={[styles.sendAll, (!poll.q.trim() || poll.options.filter((o) => o.trim()).length < 2) && { backgroundColor: colors.sand }]} accessibilityRole="button">
+            <Text style={styles.sendAllText}>Отправить опрос</Text>
           </Pressable>
         </View>
       )}
@@ -339,16 +404,24 @@ const styles = StyleSheet.create({
   hereText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
   closed: { padding: 12, borderRadius: 14, backgroundColor: colors.sand },
   closedText: { textAlign: 'center', fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  composer: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.paper },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingTop: 10, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.paper },
   iconBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minWidth: 0, height: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
+  input: { flex: 1, minWidth: 0, height: 44, paddingHorizontal: 16, paddingTop: 11, paddingBottom: 11, borderRadius: 22, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
   tray: { paddingHorizontal: 12, paddingTop: 10, gap: 10, backgroundColor: colors.paper },
-  seg: { flex: 1, flexDirection: 'row', gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.sand },
-  segItem: { flex: 1, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  segOn: { backgroundColor: colors.card, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  segText: { fontFamily: fonts.body500, fontSize: 13, color: colors.ink },
-  cam: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 42, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.ink },
-  camText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
+  recBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 0, paddingBottom: 0 },
+  recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
+  recText: { fontFamily: fonts.body500, fontSize: 14, color: colors.accentText },
+  album: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  albumText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
+  albums: { borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
+  albumRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 44, paddingHorizontal: 14 },
+  trayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  trayBtnText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
+  camTile: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  camLens: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' },
+  camText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.paper },
+  pollInput: { height: 46, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
+  addOption: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   thumb: { width: '32.6%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' },
   thumbImg: { width: '100%', height: '100%' },

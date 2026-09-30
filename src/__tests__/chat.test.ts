@@ -54,3 +54,13 @@ describe('чат события и медиа', () => {
     expect(b.total).toBe(10);
   });
 });
+
+describe('список чатов', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { sortChats } = require('../chat/rules') as typeof import('../chat/rules');
+  it('закреп сверху, дальше от новых к старым', () => {
+    const list = [{ id: 'a', time: '11:08' }, { id: 'b', time: 'вчера' }, { id: 'c', time: '18:10' }, { id: 'd', time: '17:40' }];
+    expect(sortChats(list, {}).map((x) => x.id)).toEqual(['c', 'd', 'a', 'b']);
+    expect(sortChats(list, { b: true }).map((x) => x.id)).toEqual(['b', 'c', 'd', 'a']);
+  });
+});

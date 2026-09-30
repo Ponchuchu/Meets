@@ -34,6 +34,17 @@ export interface MeetupForm {
   invited: string[];
   plusOne: boolean;
   items: MeetupItem[];
+  /** Точка, выбранная на карте. Нет — центр района. */
+  point?: { lat: number; lon: number } | null;
+  entrance?: string;
+  floor?: string;
+  apt?: string;
+}
+
+/** «Абая 44 · подъезд 2 · этаж 5 · кв. 41» — как в доставке. */
+export function fullAddress(f: Pick<MeetupForm, 'address' | 'entrance' | 'floor' | 'apt'>): string {
+  return [f.address.trim(), f.entrance?.trim() && `подъезд ${f.entrance.trim()}`, f.floor?.trim() && `этаж ${f.floor.trim()}`, f.apt?.trim() && `кв. ${f.apt.trim()}`]
+    .filter(Boolean).join(' · ');
 }
 
 export function meetupStart(dayOffset: number, time: string, now: Date): string {
@@ -49,13 +60,14 @@ export function validateMeetup(f: MeetupForm): string | null {
 
 export function buildMeetup(f: MeetupForm, now: Date, id = `meet-${Date.now()}`): EventItem {
   const start = meetupStart(f.dayOffset, f.time, now);
-  const point = DISTRICTS[f.district] ?? DISTRICTS['Алмалы'];
+  const point = f.point ?? DISTRICTS[f.district] ?? DISTRICTS['Алмалы'];
+  const addr = fullAddress(f);
   return {
     id, title: f.title.trim(), category: KIND_CATEGORY[f.kind], tags: [], startsAt: start,
     endsAt: new Date(new Date(start).getTime() + 3 * 3600000).toISOString(), isLong: false,
     venueName: f.place || null,
     // Адрес целиком — только у меня и у принявших; в общих данных — район.
-    address: f.address ? `${f.place} · ${f.address}` : `${f.place} · ${f.district}`,
+    address: addr ? (f.place ? `${f.place} · ${addr}` : addr) : `${f.place} · ${f.district}`,
     addressNote: 'точный адрес видят только гости, которые приняли приглашение',
     lat: point.lat, lon: point.lon, needsPin: false,
     priceMin: 0, priceMax: 0, isFree: true, about: f.note, organizer: 'Ты', sourceUrl: null, source: undefined,

@@ -20,7 +20,7 @@ function webglOk(): boolean {
 }
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, bottomInset = 0 } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0 } = props;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -63,6 +63,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       m.addControl(new lib.AttributionControl({ compact: true }), 'bottom-left');
       // Масштаб — наружу, не чаще кадра: пины меняют размер и подписи.
       let raf = 0;
+      m.on('moveend', () => { const c = m.getCenter(); onCenter?.(c.lat, c.lng); });
       m.on('zoom', () => {
         if (raf) return;
         raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });

@@ -1,11 +1,12 @@
-// «Чаты» — design/png/Chats.png: фильтры, новые заявки, чаты событий и личные.
+// «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные, заявки.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type Chat } from '../../src/data';
-import { CAT_ICON } from '../../src/map/icons';
+import { sortChats } from '../../src/chat/rules';
+import { CAT_COLOR, CAT_ICON, catFg } from '../../src/map/icons';
 import { useApp } from '../../src/state/app';
 import { useChat } from '../../src/state/chat';
 import { usePlans } from '../../src/state/plans';
@@ -14,7 +15,6 @@ import { Avatar } from '../../src/ui/Avatar';
 import { Ic, IC } from '../../src/ui/Ic';
 
 type Filter = 'all' | 'events' | 'direct' | 'requests';
-const ICON_BG: Record<string, string> = { music: colors.accent };
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
@@ -35,8 +35,13 @@ export default function ChatsScreen() {
     return mine ? { text: mine.text || (mine.kind === 'voice' ? 'Голосовое' : mine.kind === 'circle' ? 'Кружок' : mine.kind === 'photo' ? 'Фото' : mine.kind === 'video' ? 'Видео' : ''), time: mine.time } : { text: c.lastText, time: c.lastTime };
   };
   const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
-  const eventChats = chats.filter((c) => c.kind === 'event' && match(c));
-  const direct = chats.filter((c) => c.kind === 'direct' && match(c) && !(c.personId && chat.blocked[c.personId]));
+  const list = sortChats(
+    chats
+      .filter((c) => match(c) && !(c.personId && chat.blocked[c.personId]))
+      .filter((c) => filter === 'all' || (filter === 'events' ? c.kind === 'event' : filter === 'direct' ? c.kind === 'direct' : false))
+      .map((c) => ({ ...c, l: last(c), time: last(c).time })),
+    chat.pinned,
+  );
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
   return (
@@ -62,7 +67,6 @@ export default function ChatsScreen() {
 
       {(filter === 'all' || filter === 'requests') && pending.length > 0 && (
         <>
-          <Text style={styles.cap}>НОВЫЕ ЗАЯВКИ</Text>
           {pending.map((r) => {
             const p = people.find((x) => x.id === r.personId);
             if (!p) return null;
@@ -96,48 +100,38 @@ export default function ChatsScreen() {
       )}
       {filter === 'requests' && pending.length === 0 && <Text style={styles.sub}>Новых заявок нет.</Text>}
 
-      {(filter === 'all' || filter === 'events') && eventChats.length > 0 && (
-        <>
-          <Text style={styles.cap}>ЧАТЫ СОБЫТИЙ</Text>
-          <View>
-            {eventChats.map((c, i) => {
-              const e = events.find((x) => x.id === c.eventId);
-              const bg = e ? ICON_BG[e.category] ?? colors.ink : colors.ink;
-              const l = last(c);
-              const n = unread(c);
-              return (
-                <Pressable key={c.id} onPress={() => open(c.id)} style={[styles.row, i < eventChats.length - 1 && styles.line]} accessibilityRole="button" accessibilityLabel={`${c.title}. ${l.text}`}>
-                  <View style={[styles.evIcon, { backgroundColor: bg }]}><Ic d={e ? CAT_ICON[e.category] : IC.chevron} size={20} color={bg === colors.ink ? colors.paper : colors.ink} w={2} /></View>
-                  <View style={{ flex: 1, gap: 2 }}><Text style={styles.name} numberOfLines={1}>{c.title}</Text><Text style={styles.sub} numberOfLines={1}>{l.text}</Text></View>
-                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                    <Text style={styles.time}>{l.time}</Text>
-                    {n > 0 && <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>}
+      {list.length > 0 && (
+        <View>
+          {list.map((c, i) => {
+            const e = c.kind === 'event' ? events.find((x) => x.id === c.eventId) : undefined;
+            const p = c.kind === 'direct' ? people.find((x) => x.id === c.personId) : undefined;
+            const n = unread(c);
+            const pin = !!chat.pinned[c.id];
+            return (
+              <Pressable key={c.id} onPress={() => open(c.id)} onLongPress={() => chat.togglePin(c.id)} delayLongPress={350}
+                style={({ pressed }) => [styles.row, i < list.length - 1 && styles.line, pressed && { opacity: 0.7 }]}
+                accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.text}${pin ? '. Закреплён' : ''}`}
+                accessibilityActions={[{ name: 'longpress', label: pin ? 'Открепить' : 'Закрепить' }]} onAccessibilityAction={() => chat.togglePin(c.id)}>
+                {p ? <Avatar p={p} size={48} ring={p.isFriend ? colors.friend : undefined} /> : (
+                  <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
+                    <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={21} color={e ? catFg(e.category) : colors.paper} w={2} />
                   </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
+                )}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.name} numberOfLines={1}>{c.title}</Text>
+                  <Text style={styles.sub} numberOfLines={1}>{c.l.text}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                  <Text style={styles.time}>{c.l.time}</Text>
+                  {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
+                    : pin ? <Ic d="M9 4h6l-1 5 3 3v2H7v-2l3-3zM12 14v6" size={14} color={colors.muted} w={2} /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       )}
-
-      {(filter === 'all' || filter === 'direct') && direct.length > 0 && (
-        <>
-          <Text style={styles.cap}>ЛИЧНЫЕ</Text>
-          <View>
-            {direct.map((c, i) => {
-              const p = people.find((x) => x.id === c.personId);
-              const l = last(c);
-              return (
-                <Pressable key={c.id} onPress={() => open(c.id)} style={[styles.row, i < direct.length - 1 && styles.line]} accessibilityRole="button" accessibilityLabel={`${c.title}. ${l.text}`}>
-                  {p && <Avatar p={p} size={46} ring={p.isFriend ? colors.friend : undefined} />}
-                  <View style={{ flex: 1, gap: 2 }}><Text style={styles.name}>{c.title}</Text><Text style={styles.sub} numberOfLines={1}>{l.text}</Text></View>
-                  <Text style={styles.time}>{l.time}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      )}
+      {list.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
     </ScrollView>
   );
 }
@@ -163,7 +157,7 @@ const styles = StyleSheet.create({
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   line: { borderBottomWidth: 1, borderBottomColor: colors.line },
-  evIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  evIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   time: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted },
   unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   unreadText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },

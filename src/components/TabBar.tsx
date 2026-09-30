@@ -68,7 +68,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           if (!active && !e.defaultPrevented) navigation.navigate(route.name);
         };
         return (
-          <Pressable key={route.key} onPress={onPress} style={[styles.tab, active && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={tab.label}>
+          <Pressable key={route.key} onPress={onPress} style={[styles.tab, route.name === 'foryou' && { flex: 1.45 }, active && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={tab.label}>
             {route.name === 'foryou' && freshFeed && activeKey !== 'foryou' && (
               <View style={styles.dot} accessibilityLabel="Есть новые карточки" />
             )}
@@ -96,13 +96,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   wrap: { backgroundColor: colors.paper, paddingHorizontal: 12, justifyContent: 'flex-end' },
   bar: {
-    flexDirection: 'row', height: 64, padding: 5, borderRadius: 32, backgroundColor: colors.cardAlt,
+    flexDirection: 'row', height: 64, padding: 4, borderRadius: 32, backgroundColor: colors.cardAlt,
     borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)',
     shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 27, position: 'relative' },
+  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 27, position: 'relative', paddingHorizontal: 1 },
   tabOn: { backgroundColor: colors.sand2 },
-  label: { fontSize: 10.5, maxWidth: '96%' },
+  label: { fontSize: 10, letterSpacing: -0.3, maxWidth: '100%' },
   dot: {
     // 9 px точка + 2 px отбивка цветом paper (в макете box-shadow 0 0 0 2px).
     position: 'absolute', top: 5, left: '50%', marginLeft: 7, width: 13, height: 13, borderRadius: 6.5,

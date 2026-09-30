@@ -25,6 +25,8 @@ export interface MapCanvasProps {
   bottomInset?: number;
   /** Масштаб карты меняется — пины подстраивают размер и подписи. */
   onZoom?: (zoom: number) => void;
+  /** Центр карты после перемещения — для выбора точки «как в доставке». */
+  onCenter?: (lat: number, lon: number) => void;
 }
 
 export interface MapCanvasHandle {

@@ -14,6 +14,9 @@ interface ChatState {
   reported: Record<string, true>;
   read: Record<string, number>; // chatId → сколько непрочитанных уже видели
   requests: Record<string, 'accepted' | 'later'>;
+  /** Закреплённые чаты — наверху списка. */
+  pinned: Record<string, true>;
+  togglePin: (chatId: string) => void;
   send: (m: Message) => void;
   unsend: (id: string) => void;
   vote: (messageId: string, i: number) => void;
@@ -28,7 +31,13 @@ interface ChatState {
 export const useChat = create<ChatState>()(
   persist(
     (set) => ({
-      sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {},
+      sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {}, pinned: {},
+      togglePin: (id) => set((s) => {
+        const pinned = { ...s.pinned };
+        if (pinned[id]) delete pinned[id];
+        else pinned[id] = true;
+        return { pinned };
+      }),
       send: (m) => set((s) => ({ sent: [...s.sent, m] })),
       unsend: (id) => set((s) => ({ sent: s.sent.filter((m) => m.id !== id) })),
       vote: (id, i) => set((s) => ({ votes: { ...s.votes, [id]: i } })),

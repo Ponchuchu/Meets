@@ -15,6 +15,9 @@ interface SocialState {
   stickers: Record<string, string>; // personId → когда отправлен последний
   invitesSent: { personId: string; eventId: string | 'own'; at: string }[];
   linkInvited: boolean;
+  /** Как я подписал друга: «Игорёк», «Денчик». Видно только мне. */
+  nicknames: Record<string, string>;
+  setNickname: (personId: string, name: string) => void;
   answer: (personId: string, a: RequestAnswer) => void;
   toggleRequest: (personId: string) => void;
   removeFriend: (personId: string) => void;
@@ -28,7 +31,13 @@ interface SocialState {
 export const useSocial = create<SocialState>()(
   persist(
     (set) => ({
-      answered: {}, sent: {}, removed: {}, hidden: {}, reported: {}, stickers: {}, invitesSent: [], linkInvited: false,
+      answered: {}, sent: {}, removed: {}, hidden: {}, reported: {}, stickers: {}, invitesSent: [], linkInvited: false, nicknames: {},
+      setNickname: (id, name) => set((s) => {
+        const nicknames = { ...s.nicknames };
+        if (name.trim()) nicknames[id] = name.trim().slice(0, 24);
+        else delete nicknames[id];
+        return { nicknames };
+      }),
       answer: (id, a) => set((s) => ({ answered: { ...s.answered, [id]: a } })),
       toggleRequest: (id) => set((s) => {
         const sent = { ...s.sent };
@@ -51,4 +60,9 @@ export const useSocial = create<SocialState>()(
 export function isFriendNow(p: { id: string; isFriend: boolean }, s: Pick<SocialState, 'answered' | 'removed'>): boolean {
   if (s.removed[p.id]) return false;
   return p.isFriend || s.answered[p.id] === 'accepted';
+}
+
+/** Имя друга с учётом моей подписи. */
+export function displayName(p: { id: string; name: string }, nicknames: Record<string, string>): string {
+  return nicknames[p.id] ?? p.name;
 }

@@ -77,3 +77,16 @@ export function vote(options: { text: string; votes: number }[], mine: number | 
   const next = options.map((o, i) => ({ ...o, votes: o.votes - (mine === i ? 1 : 0) + (pick === i ? 1 : 0) }));
   return { options: next, mine: pick, total: next.reduce((a, b) => a + b.votes, 0) };
 }
+
+/** Ключ свежести для списка чатов: «18:10» — сегодня (минуты), «вчера» — раньше, дата — ещё раньше. */
+export function recencyKey(time: string): number {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+  if (/^вчера/i.test(time.trim())) return -1;
+  return -2;
+}
+
+/** Один список чатов: закреплённые сверху, дальше от новых к старым. */
+export function sortChats<T extends { id: string; time: string }>(list: T[], pinned: Record<string, true>): T[] {
+  return [...list].sort((a, b) => Number(!!pinned[b.id]) - Number(!!pinned[a.id]) || recencyKey(b.time) - recencyKey(a.time));
+}
