@@ -224,10 +224,10 @@ var DAILY_LIMIT = 4;
 var QUIET_FROM = 23;
 var QUIET_TO = 9;
 var FRIEND_NEAR_COOLDOWN_MS = 3 * 36e5;
-var STICKER_COOLDOWN_MS = 10 * 6e4;
+var STICKER_COOLDOWN_MS = 3e4;
 var REMINDER_BEFORE_MS = 2 * 36e5;
 var INSTANT = ["message", "sticker", "invite", "cancelled", "staff"];
-var OUTSIDE_LIMIT = ["message", "cancelled", "staff"];
+var OUTSIDE_LIMIT = ["message", "sticker", "cancelled", "staff"];
 function isQuiet(at) {
   const h = almaty(at).getUTCHours();
   return h >= QUIET_FROM || h < QUIET_TO;

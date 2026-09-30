@@ -21,18 +21,16 @@ export function FiltersSheet({ f, set, reset, onShow, showText }: {
         <Text style={styles.cap}>ЦЕНА</Text>
         <View style={styles.box}>
           <View style={[styles.line, styles.sep]}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name}>Только бесплатные</Text>
-              <Text style={styles.hint}>вход свободный или донат</Text>
-            </View>
-            <Switch on={f.free} onChange={(free) => set({ free })} label="Только бесплатные" />
+            <Text style={[styles.name, { flex: 1 }]}>Только бесплатные</Text>
+            <Switch on={f.free} onChange={(free) => set(free ? { free } : { free, max: f.max === 0 ? 5000 : f.max })} label="Только бесплатные" />
           </View>
-          <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, gap: 4, opacity: f.free ? 0.4 : 1 }}>
+          <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, gap: 4 }}>
             <View style={styles.budgetHead}>
               <Text style={styles.name}>Бюджет</Text>
               <Text style={styles.budget}>{priceLabel}</Text>
             </View>
-            <Slider value={f.max} min={0} max={MAX_PRICE} step={500} onChange={(max) => set({ max })} disabled={f.free} label="Максимальная цена билета" />
+            {/* Довёл бюджет до нуля — это и есть «Только бесплатные». */}
+            <Slider value={f.free ? 0 : f.max} min={0} max={MAX_PRICE} step={500} onChange={(max) => set(max === 0 ? { max, free: true } : { max, free: false })} label="Максимальная цена билета" />
             <View style={styles.scale}>
               {['0 ₸', '10 000', '20 000+'].map((t) => <Text key={t} style={styles.scaleText}>{t}</Text>)}
             </View>
@@ -60,17 +58,11 @@ export function FiltersSheet({ f, set, reset, onShow, showText }: {
         <Text style={styles.cap}>НА КАРТЕ</Text>
         <View style={styles.box}>
           <View style={[styles.line, styles.sep]}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name}>Друзья</Text>
-              <Text style={styles.hint}>только те, кто сам включил геолокацию</Text>
-            </View>
+            <Text style={[styles.name, { flex: 1 }]}>Друзья</Text>
             <Switch on={f.friends} onChange={(friends) => set({ friends })} label="Друзья" />
           </View>
           <View style={styles.line}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name}>Где ищут компанию</Text>
-              <Text style={styles.hint}>покажем, куда можно прийти одному</Text>
-            </View>
+            <Text style={[styles.name, { flex: 1 }]}>Где ищут компанию</Text>
             <Switch on={f.company} onChange={(company) => set({ company })} label="Где ищут компанию" />
           </View>
         </View>
@@ -93,7 +85,6 @@ const styles = StyleSheet.create({
   line: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
   sep: { borderBottomWidth: 1, borderBottomColor: colors.sand },
   name: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
-  hint: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
   budgetHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   budget: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   scale: { flexDirection: 'row', justifyContent: 'space-between' },

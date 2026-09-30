@@ -21,8 +21,10 @@ export interface MapCanvasProps {
   markers: MapMarker[];
   /** Сообщает, получилось ли показать настоящую карту (false — работает подложка). */
   onMode?: (mode: 'mapbox' | 'static') => void;
-  /** Отступ снизу для логотипа и атрибуции Mapbox — чтобы их не закрывала карточка (требование Mapbox). */
+  /** Отступ снизу для кнопки атрибуции Mapbox — чтобы её не закрывала карточка. */
   bottomInset?: number;
+  /** Масштаб карты меняется — пины подстраивают размер и подписи. */
+  onZoom?: (zoom: number) => void;
 }
 
 export interface MapCanvasHandle {

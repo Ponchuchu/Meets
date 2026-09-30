@@ -7,10 +7,12 @@ import { colors, fonts } from '../../theme';
 import { calendarCells, dayName, monthsTitle, weekend } from '../calendar';
 
 const WEEK = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+/** Цвет иконки погоды под датой: солнце — тёплое, дождь — синий, облака — серые. */
+const SKY_COLOR = { sun: '#D98A00', part: '#B07A1E', cloud: '#6B675F', rain: '#2E6FA8' } as const;
 
-export function CalendarCard({ now, events, forecast, from, to, pending, onPick, onPreset, onShow, showText }: {
+export function CalendarCard({ now, events, forecast, from, to, pending, onPick, onPreset, onShow, onReset, showText }: {
   now: Date; events: EventItem[]; forecast: DayWeather[]; from: number; to: number; pending: boolean;
-  onPick: (offset: number) => void; onPreset: (from: number, to: number) => void; onShow: () => void; showText: string;
+  onPick: (offset: number) => void; onPreset: (from: number, to: number) => void; onShow: () => void; onReset: () => void; showText: string;
 }) {
   const cells = calendarCells(now, events);
   const [sat, sun] = weekend(now);
@@ -31,7 +33,11 @@ export function CalendarCard({ now, events, forecast, from, to, pending, onPick,
       </View>
       <View style={styles.head}>
         <Text style={styles.month}>{monthsTitle(cells)}</Text>
-        <Text style={styles.wxTitle}>ПОГОДА НА 7 ДНЕЙ</Text>
+        {(from !== 0 || to !== 0) && (
+          <Pressable onPress={onReset} hitSlop={10} style={styles.reset} accessibilityRole="button" accessibilityLabel="Сбросить даты на сегодня">
+            <Text style={styles.resetText}>Сбросить</Text>
+          </Pressable>
+        )}
       </View>
       <View style={styles.grid}>
         {WEEK.map((d, i) => <Text key={d} style={[styles.wd, i >= 5 && { color: colors.accentText }]}>{d}</Text>)}
@@ -63,8 +69,8 @@ export function CalendarCard({ now, events, forecast, from, to, pending, onPick,
                 <Text style={[styles.num, { color: fg, fontFamily: isEnd || c.offset === 0 ? fonts.display700 : fonts.display600 }]}>{c.day}</Text>
                 {w ? (
                   <View style={styles.wxRow}>
-                    <Svg width={11} height={11} viewBox="0 0 24 24">
-                      <Path d={SKY_PATHS[w.sky]} stroke={fg} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    <Svg width={12} height={12} viewBox="0 0 24 24">
+                      <Path d={SKY_PATHS[w.sky]} stroke={isEnd ? fg : SKY_COLOR[w.sky]} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                     </Svg>
                     <Text style={[styles.wxT, { color: fg }]}>{tempLabel(w.temp)}</Text>
                   </View>
@@ -90,9 +96,10 @@ const styles = StyleSheet.create({
   presets: { flexDirection: 'row', gap: 6 },
   preset: { flex: 1, height: 38, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   presetText: { fontFamily: fonts.body600, fontSize: 13 },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, minHeight: 28 },
   month: { fontFamily: fonts.display600, fontSize: 16, color: colors.ink },
-  wxTitle: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.4, color: colors.muted },
+  reset: { height: 28, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, justifyContent: 'center' },
+  resetText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   wd: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.5, color: colors.muted },
   cellWrap: { width: `${100 / 7}%`, height: 50 },

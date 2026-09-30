@@ -79,7 +79,9 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
         <View style={{ alignItems: align, gap: 6 }}>
-          <View style={[styles.sticker, { backgroundColor: st.bg, transform: [{ rotate: `${st.rot}deg` }] }]}><Text style={[styles.stickerText, { color: st.fg }]}>{m.text}</Text></View>
+          {st.look === 'big'
+            ? <Text style={{ fontSize: 64, lineHeight: 76, transform: [{ rotate: `${st.rot}deg` }] }}>{m.text}</Text>
+            : <View style={[styles.sticker, { backgroundColor: st.bg, transform: [{ rotate: `${st.rot}deg` }] }, st.look === 'outline' && { borderColor: st.fg }]}><Text style={[styles.stickerText, { color: st.fg }]}>{m.text}</Text></View>}
           <Text style={styles.cap}>СТИКЕР С КАРТЫ · {m.time}</Text>
         </View>
       );

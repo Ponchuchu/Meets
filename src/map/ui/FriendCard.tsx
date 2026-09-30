@@ -1,8 +1,8 @@
 // Карточка друга на карте (MapFocus / MapMoving) и шторка «Позвать …» (MapInvite).
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
-import type { FriendSpot, Person, PersonDetails } from '../../data/types';
+import type { FriendSpot, Person } from '../../data/types';
 import type { InviteIdea } from '../../people/inviteFor';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
@@ -10,55 +10,97 @@ import { Ic, IC } from '../../ui/Ic';
 import { CAT_ICON } from '../icons';
 import { planWhen } from '../../profile/ui/Plans';
 
-export const STICKERS: { label: string; bg: string; fg: string; rot: number }[] = [
-  { label: 'ГО?', bg: colors.accent, fg: colors.ink, rot: -4 },
-  { label: 'ТЫ ГДЕ?', bg: colors.friend, fg: '#FFFFFF', rot: 3 },
-  { label: 'КОФЕ?', bg: colors.sand, fg: colors.ink, rot: -2 },
-  { label: 'ЖДУ', bg: colors.softGreen, fg: colors.ink, rot: 4 },
-  { label: 'ПРИВЕТ', bg: colors.ink, fg: colors.paper, rot: -3 },
+export interface Sticker {
+  label: string;
+  bg: string;
+  fg: string;
+  rot: number;
+  /** solid — плашка, outline — контур, tape — «скотч» с тенью, big — крупный смайлик без плашки. */
+  look: 'solid' | 'outline' | 'tape' | 'big';
+}
+
+const s = (label: string, bg: string, fg: string, rot: number, look: Sticker['look'] = 'solid'): Sticker => ({ label, bg, fg, rot, look });
+
+/** Стикеры другу: кидать можно сколько угодно, у него приходят пуши (правила частоты — src/notify/rules.ts). */
+export const STICKERS: Sticker[] = [
+  s('ГО?', colors.accent, colors.ink, -4),
+  s('ТЫ ГДЕ?', colors.friend, '#FFFFFF', 3),
+  s('ВЫХОДИ', colors.ink, '#F2B632', -3, 'tape'),
+  s('КОФЕ?', colors.sand, colors.ink, -2),
+  s('ЖДУ', colors.softGreen, colors.ink, 4),
+  s('ОПАЗДЫВАЮ', '#F2B632', colors.ink, -5, 'tape'),
+  s('Я ТУТ', '#FFFFFF', colors.accent, 2, 'outline'),
+  s('ЕДУ', '#179C87', '#FFFFFF', -3),
+  s('БАЗА', colors.ink, colors.paper, 5),
+  s('КРИНЖ', '#8B4FD8', '#FFFFFF', -6, 'tape'),
+  s('ХАЙП', '#D8362A', '#FFFFFF', 4),
+  s('АЛЛО??', '#FFFFFF', colors.ink, -2, 'outline'),
+  s('ШАШЛЫК?', '#E07A2C', colors.ink, 3),
+  s('ТАНЦУЕМ', '#C23B74', '#FFFFFF', -4),
+  s('СКУЧАЮ', colors.softPink, colors.ink, 2),
+  s('ПРИВЕТ', colors.ink, colors.paper, -3),
+  s('🔥', 'transparent', colors.ink, -8, 'big'),
+  s('👀', 'transparent', colors.ink, 6, 'big'),
+  s('🫡', 'transparent', colors.ink, -4, 'big'),
+  s('😭', 'transparent', colors.ink, 5, 'big'),
+  s('🤙', 'transparent', colors.ink, -6, 'big'),
+  s('💃', 'transparent', colors.ink, 4, 'big'),
 ];
+
+export function StickerView({ st, size = 'md' }: { st: Sticker; size?: 'md' | 'lg' }) {
+  const big = st.look === 'big';
+  const h = size === 'lg' ? 44 : 40;
+  return (
+    <View style={[
+      styles.sticker, { height: h, transform: [{ rotate: `${st.rot}deg` }] },
+      big ? styles.stickerBig : { backgroundColor: st.bg },
+      st.look === 'outline' && { borderColor: st.fg, borderWidth: 2.5 },
+      st.look === 'tape' && styles.stickerTape,
+    ]}>
+      <Text style={[big ? styles.stickerEmoji : styles.stickerText, { color: st.fg }]}>{st.label}</Text>
+    </View>
+  );
+}
 
 const cardIn = new Keyframe({ 0: { opacity: 0, transform: [{ translateY: 60 }] }, 100: { opacity: 1, transform: [{ translateY: 0 }] } }).duration(300);
 
-export function FriendCard({ p, d, spot, ring, onProfile, onPlan, onSticker, onWrite, onInvite }: {
-  p: Person; d: PersonDetails | undefined; spot: FriendSpot; ring: string;
-  onProfile: () => void; onPlan: () => void; onSticker: (i: number) => void; onWrite: () => void; onInvite: () => void;
+/** «обновлено 2 мин назад», «обновлено только что». */
+export function updatedText(min: number | undefined): string {
+  const m = min ?? 1;
+  if (m < 1) return 'обновлено только что';
+  if (m < 60) return `обновлено ${m} мин назад`;
+  return `обновлено ${Math.floor(m / 60)} ч назад`;
+}
+
+export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInvite }: {
+  p: Person; spot: FriendSpot; ring: string;
+  onProfile: () => void; onSticker: (i: number) => void; onWrite: () => void; onInvite: () => void;
 }) {
   const moving = spot.state === 'moving';
-  const status = moving ? `${(spot.vehicle ?? 'в пути').toUpperCase()} · ОБНОВЛЯЕТСЯ ВЖИВУЮ`
-    : spot.state === 'paused' ? 'ГЕОЛОКАЦИЯ НА ПАУЗЕ' : `НА МЕСТЕ · ОБНОВЛЕНО ${spot.minutesAgo ?? 1} МИН НАЗАД`;
+  const status = spot.state === 'paused' ? 'геолокация на паузе' : updatedText(spot.minutesAgo);
   return (
     <Animated.View entering={cardIn} style={styles.card}>
-      <View style={styles.top}>
+      <Pressable onPress={onProfile} style={styles.top} accessibilityRole="link" accessibilityLabel={`Профиль: ${p.name}`}>
         <Avatar p={p} size={52} ring={ring} style={{ borderWidth: 3 }} />
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 4 }}>
           <Text style={styles.name}>{p.name}</Text>
-          <Text style={styles.place} numberOfLines={1}>{spot.place}</Text>
+          <View style={styles.statusRow}>
+            {moving && spot.speedKmh != null && <View style={styles.speed}><Text style={styles.speedText}>{spot.speedKmh} КМ/Ч</Text></View>}
+            <Text style={styles.status}>{status}</Text>
+          </View>
         </View>
-        <Pressable onPress={onProfile} hitSlop={10} accessibilityRole="link"><Text style={styles.link}>Профиль</Text></Pressable>
-      </View>
-      <View style={styles.statusRow}>
-        {moving && <View style={styles.speed}><Text style={styles.speedText}>{spot.speedKmh} КМ/Ч</Text></View>}
-        <Text style={styles.status}>{status}</Text>
-      </View>
-      {d?.planLine && (
-        <Pressable onPress={onPlan} style={styles.plan} accessibilityRole="button">
-          <View style={[styles.planSq, { backgroundColor: d.planLine.color }]} />
-          <Text style={styles.planText}>{d.planLine.text}</Text>
-          <Ic d={IC.chevron} size={16} color={colors.muted} w={2} />
-        </Pressable>
-      )}
-      <View style={styles.stickers} accessibilityLabel="Кинуть стикер">
-        {STICKERS.map((s, i) => (
-          <Pressable key={s.label} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${s.label}»`}
-            style={({ pressed }) => [styles.sticker, { backgroundColor: s.bg, transform: [{ rotate: `${s.rot}deg` }, { scale: pressed ? 0.92 : 1 }] }]}>
-            <Text style={[styles.stickerText, { color: s.fg }]}>{s.label}</Text>
+      </Pressable>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
+        {STICKERS.map((st, i) => (
+          <Pressable key={st.label} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
+            style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}>
+            <StickerView st={st} />
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable onPress={onWrite} style={[styles.btn, { borderWidth: 1.5, borderColor: colors.ink }]} accessibilityRole="button"><Text style={styles.btnText}>Написать</Text></Pressable>
-        <Pressable onPress={onInvite} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Позвать куда-то</Text></Pressable>
+        <Pressable onPress={onInvite} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Позвать</Text></Pressable>
       </View>
     </Animated.View>
   );
@@ -125,9 +167,12 @@ const styles = StyleSheet.create({
   plan: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.paper },
   planSq: { width: 28, height: 28, borderRadius: 9 },
   planText: { flex: 1, fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 18, color: colors.ink },
-  stickers: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  sticker: { height: 40, paddingHorizontal: 10, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  stickerText: { fontFamily: fonts.display800, fontSize: 13 },
+  stickers: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 6, paddingHorizontal: 2 },
+  sticker: { paddingHorizontal: 10, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  stickerBig: { paddingHorizontal: 2, borderWidth: 0, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
+  stickerTape: { borderRadius: 3, borderWidth: 0, shadowOpacity: 0.28, shadowRadius: 2, shadowOffset: { width: 2, height: 2 } },
+  stickerText: { fontFamily: fonts.display800, fontSize: 13, letterSpacing: 0.3 },
+  stickerEmoji: { fontSize: 28, lineHeight: 34 },
   btn: { flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   sheetTitle: { fontFamily: fonts.display700, fontSize: 22, letterSpacing: -0.2, color: colors.ink },

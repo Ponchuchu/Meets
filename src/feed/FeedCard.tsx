@@ -61,7 +61,7 @@ export function FeedCard({ e, people, now, saved, onSave, dx, stamp, height, top
           <Text style={[styles.cat, { color: fg }]}>{CAT_LABEL[e.category]}</Text>
           <Pressable onPress={onSave} disabled={!top} hitSlop={6} accessibilityRole="button" accessibilityState={{ selected: saved }}
             accessibilityLabel={saved ? 'Убрать из сохранённых' : 'Сохранить на потом'}
-            style={[styles.save, { backgroundColor: saved ? colors.accent : 'rgba(251,250,246,0.85)' }]}>
+            style={[styles.save, { backgroundColor: saved ? '#F2B632' : 'rgba(251,250,246,0.85)' }]}>
             <Ic d={IC.bookmark} size={18} color={colors.ink} w={2} fill={saved ? colors.ink : 'none'} />
           </Pressable>
         </View>

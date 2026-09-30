@@ -20,7 +20,7 @@ function webglOk(): boolean {
 }
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, bottomInset = 0 } = props;
+  const { theme, camera, markers, onMode, onZoom, bottomInset = 0 } = props;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -61,6 +61,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         return;
       }
       m.addControl(new lib.AttributionControl({ compact: true }), 'bottom-left');
+      // Масштаб — наружу, не чаще кадра: пины меняют размер и подписи.
+      let raf = 0;
+      m.on('zoom', () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
+      });
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
       m.touchZoomRotate.disableRotation();
       map.current = m;
@@ -118,6 +124,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
 
   return (
     <View style={StyleSheet.absoluteFill}>
+      {/* Логотип Mapbox спрятан по просьбе владельца; атрибуция остаётся в кнопке «i». */}
+      <style>{'.mapboxgl-ctrl-logo{display:none!important}'}</style>
       <div ref={host} style={{ position: 'absolute', inset: 0 }} />
       {markers.map((mk) => {
         const entry = elements.current.get(mk.id);

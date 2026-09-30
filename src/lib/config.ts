@@ -8,3 +8,6 @@ export const config = {
   /** 'demo' — принудительно без сети; 'auto' — Supabase, при ошибке демо. */
   dataMode: (process.env.EXPO_PUBLIC_DATA_MODE as 'demo' | 'auto' | undefined) || 'auto',
 };
+
+/** Адрес для ссылок «Поделиться»: страница события открывает приложение или web-версию. */
+export const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://ryadom.app';

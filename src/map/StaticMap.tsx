@@ -1,15 +1,16 @@
 // Подложка «бумага» без Mapbox: та же картинка MapBase, пины ставятся по Web Mercator.
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { MapBase } from '../components/MapBase';
 import { project } from './projection';
 import type { MapCanvasHandle, MapCanvasProps } from './types';
 
-export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function StaticMap({ theme, camera: initial, markers }, ref) {
+export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function StaticMap({ theme, camera: initial, markers, onZoom }, ref) {
   const [size, setSize] = useState({ w: 390, h: 844 });
   // Подложка тоже умеет «лететь»: сдвигаем камеру (пины пересчитываются, картинка остаётся фоном).
   const [camera, setCamera] = useState(initial);
   useImperativeHandle(ref, () => ({ flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })) }));
+  useEffect(() => { onZoom?.(camera.zoom); }, [camera.zoom, onZoom]);
   return (
     <View style={StyleSheet.absoluteFill} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none"><MapBase theme={theme} width="100%" height="100%" /></View>

@@ -27,7 +27,8 @@ export interface Invite {
 
 /** Лимит новых разговоров с незнакомыми в день (PRODUCT.md, раздел 5). */
 export const NEW_CHATS_PER_DAY = 10;
-export const MAX_MOODS = 2;
+/** Причин «зачем идёшь» — сколько угодно из списка. */
+export const MAX_MOODS = 4;
 
 interface PlansState {
   going: Record<string, string>; // eventId → когда нажал

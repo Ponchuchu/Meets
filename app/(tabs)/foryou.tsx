@@ -1,4 +1,4 @@
-// «Для тебя» — design/png/Feed.png. Бесконечная колода: после каждого свайпа пересчитывается (модуль reco).
+// «Рекомендации» (бывш. «Для тебя») — design/png/Feed.png. Бесконечная колода: после каждого свайпа пересчитывается (модуль reco).
 import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,7 +72,7 @@ export default function ForYouScreen() {
     return d;
   }, [taste, events, decided, history.length, now, enter]);
 
-  const cardTop = Math.max(50, insets.top + 6) + 66;
+  const cardTop = Math.max(50, insets.top + 6) + 52;
   const screenH = H || winH - TAB_BAR_HEIGHT - Math.max(0, insets.bottom - 20);
   const cardW = W - 32;
   const cardH = Math.max(380, Math.min(500, screenH - cardTop - 138));
@@ -164,8 +164,7 @@ export default function ForYouScreen() {
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       <View style={[styles.head, { top: Math.max(50, insets.top + 6) }]}>
-        <Text style={styles.h1} accessibilityRole="header">Для тебя</Text>
-        <Text style={styles.sub}>Алматы · сегодня и на неделе</Text>
+        <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
 
       <View style={{ position: 'absolute', left: 16, top: cardTop, width: cardW, height: cardH }}>
@@ -214,7 +213,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#EFEBE2', overflow: 'hidden' },
   head: { position: 'absolute', left: 16, right: 16, gap: 2 },
   h1: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, lineHeight: 33, color: colors.ink },
-  sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
   empty: { textAlign: 'center', marginTop: 200, fontFamily: fonts.body400, fontSize: 15, color: colors.muted },
   controls: { position: 'absolute', left: 16, right: 16, flexDirection: 'row' },
   ctl: { flex: 1, alignItems: 'center', gap: 6 },

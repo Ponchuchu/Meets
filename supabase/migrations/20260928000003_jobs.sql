@@ -47,7 +47,7 @@ language sql stable security definer set search_path = public, extensions as $$
   where a.status = 'going'
     and e.starts_at between now() - interval '1 hour' and now() + interval '6 hours'
     and l.updated_at > now() - interval '15 minutes'
-    and not m.invisible and m.share_until > now()
+    and not m.invisible
     and v.geog is not null and st_dwithin(l.geog, v.geog, 200)
     and not exists (select 1 from public.attendance x where x.user_id = l.user_id and x.event_id = e.id and x.status = 'going');
 $$;

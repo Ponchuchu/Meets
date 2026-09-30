@@ -49,10 +49,13 @@ describe('частота', () => {
     expect(decide({ kind: 'friendNear', at: noon, about: 'b' }, sent).send).toBe(true);
     expect(decide({ kind: 'friendNear', at: at('2026-09-28T13:00:00'), about: 'a' }, sent).send).toBe(true);
   });
-  it('стикеры от одного друга — раз в 10 минут', () => {
-    const sent: SentPush[] = [{ kind: 'sticker', at: at('2026-09-28T11:55:00'), about: 'a' }];
-    expect(decide({ kind: 'sticker', at: noon, about: 'a' }, sent)).toEqual({ send: false, reason: 'stickerCooldown', retryAt: at('2026-09-28T12:05:00') });
+  it('стикеры без лимита: серия от одного друга — один пуш за 30 секунд', () => {
+    const sent: SentPush[] = [{ kind: 'sticker', at: at('2026-09-28T11:59:50'), about: 'a' }];
+    expect(decide({ kind: 'sticker', at: noon, about: 'a' }, sent)).toEqual({ send: false, reason: 'stickerCooldown', retryAt: at('2026-09-28T12:00:20') });
+    expect(decide({ kind: 'sticker', at: at('2026-09-28T12:00:30'), about: 'a' }, sent).send).toBe(true);
     expect(decide({ kind: 'sticker', at: noon, about: 'b' }, sent).send).toBe(true);
+    const full: SentPush[] = Array.from({ length: 4 }, (_, i) => ({ kind: 'invite', at: at(`2026-09-28T1${i}:00:00`) }));
+    expect(decide({ kind: 'sticker', at: noon, about: 'c' }, full).send).toBe(true);
   });
   it('настройки выключают вид пушей', () => {
     expect(decide({ kind: 'weekend', at: at('2026-10-01T18:00:00') }, [])).toEqual({ send: false, reason: 'prefs' });

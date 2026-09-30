@@ -138,7 +138,7 @@ alter table public.locations_last enable row level security;
 drop policy if exists locations_self on public.locations_last;
 create policy locations_self on public.locations_last for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
--- Друзьям — точка друга, только если он делится, не невидимка и не в зоне дома; точность ~50 м.
+-- Друзьям — точка друга, если он не невидимка и не в зоне дома; точность ~50 м.
 create or replace function public.friend_locations()
 returns table (user_id uuid, lat double precision, lon double precision, speed real, heading real, updated_at timestamptz)
 language sql stable security definer set search_path = public, extensions as $$
@@ -151,7 +151,6 @@ language sql stable security definer set search_path = public, extensions as $$
   join public.marker_settings m on m.user_id = l.user_id
   where public.is_friend(auth.uid(), l.user_id)
     and not m.invisible
-    and m.share_until is not null and m.share_until > now()
     and (m.home_geog is null or not st_dwithin(l.geog, m.home_geog, 300));
 $$;
 grant execute on function public.friend_locations() to authenticated;
@@ -177,7 +176,7 @@ create policy attendance_friends on public.attendance for select using (
 create table if not exists public.company_requests (
   user_id uuid not null references auth.users (id) on delete cascade,
   event_id uuid not null references public.events (id) on delete cascade,
-  moods text[] not null default '{}' check (cardinality(moods) <= 2),
+  moods text[] not null default '{}' check (cardinality(moods) <= 8),
   visibility text not null default 'all' check (visibility in ('all', 'fof')),
   note text check (char_length(note) <= 80),
   created_at timestamptz not null default now(),

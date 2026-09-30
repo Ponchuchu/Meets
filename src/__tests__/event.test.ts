@@ -56,9 +56,9 @@ describe('ищу компанию и лимиты', () => {
     expect(activeCompany(r, jazz, NOW)).toBe(true);
     expect(activeCompany(r, jazz, at('2026-09-28T19:31:00'))).toBe(false);
   });
-  it('не больше двух «зачем иду»', () => {
-    usePlans.getState().lookForCompany({ eventId: 'jazz', moods: ['music', 'meet', 'walk'], visibility: 'all', note: '' });
-    expect(usePlans.getState().company.jazz.moods).toEqual(['music', 'meet']);
+  it('«зачем иду» — можно выбрать все причины', () => {
+    usePlans.getState().lookForCompany({ eventId: 'jazz', moods: ['music', 'meet', 'walk', 'notalone'], visibility: 'all', note: '' });
+    expect(usePlans.getState().company.jazz.moods).toEqual(['music', 'meet', 'walk', 'notalone']);
   });
   it('не больше 10 новых разговоров в день', () => {
     const { startChat } = usePlans.getState();
@@ -101,4 +101,18 @@ describe('создать встречу', () => {
 
 it('в демо есть все, кто ищет компанию на джазе', () => {
   for (const l of jazz.lookers ?? []) expect(PEOPLE.find((p) => p.id === l.personId)).toBeTruthy();
+});
+
+describe('поделиться событием', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { eventLink, shareText, shareUrl } = require('../event/share') as typeof import('../event/share');
+  it('ссылки для мессенджеров', () => {
+    const link = eventLink('jazz');
+    const text = shareText('Джаз во дворе', 'сегодня в 19:30');
+    expect(link).toMatch(/\/event\/jazz$/);
+    expect(shareUrl('telegram', text, link)).toBe(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    expect(shareUrl('whatsapp', text, link)).toContain('https://wa.me/?text=');
+    expect(shareUrl('threads', text, link)).toContain('threads.net/intent/post');
+    expect(shareUrl('instagram', text, link)).toContain('instagram.com');
+  });
 });

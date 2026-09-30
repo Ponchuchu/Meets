@@ -22,3 +22,13 @@ export const CAT_LABEL: Record<Category, string> = {
   music: 'МУЗЫКА', concert: 'КОНЦЕРТ', party: 'ВЕЧЕРИНКА', standup: 'СТЕНДАП', art: 'ВЫСТАВКА', theatre: 'ТЕАТР',
   hike: 'ГОРЫ', games: 'НАСТОЛКИ', food: 'ЕДА', sport: 'СПОРТ', bike: 'ВЕЛО', talks: 'ЛЕКЦИЯ', lecture: 'ЛЕКЦИЯ', meetup: 'ВСТРЕЧА',
 };
+
+/** Цвет точки по категории: карта читается с одного взгляда. Тёплые — музыка и вечер, холодные — спорт и горы. */
+export const CAT_COLOR: Record<Category, string> = {
+  music: '#F0521F', concert: '#D8362A', party: '#8B4FD8', standup: '#F2B632', art: '#2E86A8', theatre: '#C23B74',
+  hike: '#3F8F4E', games: '#5A6BDB', food: '#E07A2C', sport: '#179C87', bike: '#179C87', talks: '#6B5E4E',
+  lecture: '#6B5E4E', meetup: '#17161A',
+};
+
+/** Иконка поверх цвета: на светлых (стендап) — тёмная, на остальных — белая. */
+export const catFg = (c: Category) => (c === 'standup' ? '#17161A' : '#FFFFFF');

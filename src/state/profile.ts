@@ -4,13 +4,41 @@ import { persist } from 'zustand/middleware';
 import { deviceStorage } from './storage';
 
 export type SpeedMode = 'exact' | 'approx' | 'simple';
-export type Ring = 'blue' | 'orange' | 'green' | 'ink';
-export const RING_COLORS: Record<Ring, string> = { blue: '#2447B8', orange: '#F0521F', green: '#2F8F5B', ink: '#17161A' };
+export type Ring = 'blue' | 'orange' | 'green' | 'ink' | 'fire' | 'acid' | 'zebra' | 'gold' | 'candy';
+
+/** Кольцо значка: основной цвет + узор. Узор — пунктир, двойное кольцо или свечение. */
+export interface RingStyle { name: string; color: string; second?: string; dashed?: boolean; glow?: boolean }
+export const RING_STYLES: Record<Ring, RingStyle> = {
+  blue: { name: 'Синее', color: '#2447B8' },
+  orange: { name: 'Рыжее', color: '#F0521F' },
+  green: { name: 'Зелёное', color: '#2F8F5B' },
+  ink: { name: 'Чёрное', color: '#17161A' },
+  fire: { name: 'Огонь', color: '#F0521F', second: '#F2B632', glow: true },
+  acid: { name: 'Кислота', color: '#B6F23A', second: '#17161A', glow: true },
+  zebra: { name: 'Зебра', color: '#17161A', second: '#FFFFFF', dashed: true },
+  gold: { name: 'Золото', color: '#D9A21B', second: '#FFF1B8' },
+  candy: { name: 'Карамель', color: '#E0487E', second: '#8B4FD8', dashed: true },
+};
+export const RING_COLORS: Record<Ring, string> = Object.fromEntries(Object.entries(RING_STYLES).map(([k, v]) => [k, v.color])) as Record<Ring, string>;
+
+/** Статусы над значком — готовые наклейки, без своего текста. «НА СОБЫТИИ» ставится сам по «Я на месте». */
+export interface StatusSticker { label: string; bg: string; fg: string; rot: number }
+export const STATUS_STICKERS: StatusSticker[] = [
+  { label: 'СВОБОДЕН', bg: '#17161A', fg: '#B6F23A', rot: -3 },
+  { label: 'ИЩУ ДВИЖ', bg: '#F0521F', fg: '#17161A', rot: 2 },
+  { label: 'ТУСИМ', bg: '#8B4FD8', fg: '#FFFFFF', rot: -4 },
+  { label: 'ЗА КОФЕ', bg: '#EADFB8', fg: '#17161A', rot: 3 },
+  { label: 'ГУЛЯЮ', bg: '#179C87', fg: '#FFFFFF', rot: -2 },
+  { label: 'ЕБ#$%У', bg: '#F2B632', fg: '#17161A', rot: 5 },
+  { label: 'НЕ ТРОГАТЬ', bg: '#D8362A', fg: '#FFFFFF', rot: -5 },
+  { label: 'ЗАНЯТ', bg: '#FFFFFF', fg: '#17161A', rot: 2 },
+];
+export const statusSticker = (label: string) => STATUS_STICKERS.find((x) => x.label === label.toUpperCase()) ?? STATUS_STICKERS[0];
 
 export interface MarkerSettings {
   showMoving: boolean;
   speedMode: SpeedMode;
-  status: string; // «Свободен», свой текст до 24 знаков
+  status: string; // одна из STATUS_STICKERS
   ring: Ring;
   inside: 'photo' | 'letter';
   shareUntil: string | null; // «Делиться 2 часа»
@@ -53,7 +81,7 @@ interface ProfileState {
 }
 
 export const DEFAULT_MARKER: MarkerSettings = {
-  showMoving: true, speedMode: 'exact', status: 'Свободен', ring: 'blue', inside: 'photo', shareUntil: null, invisible: false,
+  showMoving: true, speedMode: 'exact', status: 'СВОБОДЕН', ring: 'blue', inside: 'photo', shareUntil: null, invisible: false,
 };
 
 export const DEFAULT_SETTINGS: Settings = {

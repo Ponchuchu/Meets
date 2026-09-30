@@ -35,13 +35,14 @@ export const DAILY_LIMIT = 4;
 export const QUIET_FROM = 23;
 export const QUIET_TO = 9;
 export const FRIEND_NEAR_COOLDOWN_MS = 3 * 3600e3;
-export const STICKER_COOLDOWN_MS = 10 * 60e3;
+/** Стикеры кидать можно без лимита; пуш — не чаще раза в 30 с от одного друга, чтобы серия не звенела десять раз. */
+export const STICKER_COOLDOWN_MS = 30e3;
 export const REMINDER_BEFORE_MS = 2 * 3600e3;
 
 /** «Сразу»: сообщения, стикеры, приглашения, отмена события. В тихие часы приходят без звука. */
 const INSTANT: PushKind[] = ['message', 'sticker', 'invite', 'cancelled', 'staff'];
-/** В дневной лимит не входят сообщения, отмена того, куда ты идёшь, и рабочие пуши команде. */
-const OUTSIDE_LIMIT: PushKind[] = ['message', 'cancelled', 'staff'];
+/** В дневной лимит не входят сообщения и стикеры, отмена того, куда ты идёшь, и рабочие пуши команде. */
+const OUTSIDE_LIMIT: PushKind[] = ['message', 'sticker', 'cancelled', 'staff'];
 
 export function isQuiet(at: Date): boolean {
   const h = almaty(at).getUTCHours();

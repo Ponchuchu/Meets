@@ -1,4 +1,4 @@
-// Таб-бар по design/screens/TabBar.dc.html: 5 колонок, полоска 24×3 у активной, точка «новое», бейджи.
+// Таб-бар: плавающая закруглённая капсула в стиле iOS, у активной вкладки — светлая «таблетка». Точка «новое», бейджи.
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useEffect } from 'react';
@@ -14,9 +14,9 @@ import { Icon, type IconName } from './Icon';
 
 const TABS: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Карта', icon: 'map' },
-  foryou: { label: 'Для тебя', icon: 'foryou' },
+  foryou: { label: 'Рекомендации', icon: 'foryou' },
   chats: { label: 'Чаты', icon: 'chats' },
-  people: { label: 'Люди', icon: 'people' },
+  people: { label: 'Друзья', icon: 'people' },
   me: { label: 'Профиль', icon: 'me' },
 };
 
@@ -56,7 +56,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const activeKey = state.routes[state.index]?.name;
 
   return (
-    <View style={[styles.bar, { height: TAB_BAR_HEIGHT + Math.max(0, insets.bottom - 20), paddingBottom: Math.max(0, insets.bottom - 20) }]} accessibilityRole="tablist">
+    <View style={[styles.wrap, { height: TAB_BAR_HEIGHT + Math.max(0, insets.bottom - 20), paddingBottom: Math.max(8, insets.bottom - 12) }]}>
+    <View style={styles.bar} accessibilityRole="tablist">
       {state.routes.map((route, i) => {
         const tab = TABS[route.name];
         if (!tab) return null;
@@ -67,8 +68,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           if (!active && !e.defaultPrevented) navigation.navigate(route.name);
         };
         return (
-          <Pressable key={route.key} onPress={onPress} style={styles.tab} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={tab.label}>
-            <View style={[styles.stripe, { backgroundColor: active ? colors.accent : 'transparent' }]} />
+          <Pressable key={route.key} onPress={onPress} style={[styles.tab, active && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={tab.label}>
             {route.name === 'foryou' && freshFeed && activeKey !== 'foryou' && (
               <View style={styles.dot} accessibilityLabel="Есть новые карточки" />
             )}
@@ -84,35 +84,36 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             )}
             {route.name === 'me' && <PlanPulse />}
             <Icon name={tab.icon} color={color} />
-            <Text style={[styles.label, { color, fontFamily: active ? fonts.body600 : fonts.body500 }]}>{tab.label}</Text>
+            <Text style={[styles.label, { color, fontFamily: active ? fonts.body600 : fonts.body500 }]} numberOfLines={1} adjustsFontSizeToFit>{tab.label}</Text>
           </Pressable>
         );
       })}
+    </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { backgroundColor: colors.paper, paddingHorizontal: 12, justifyContent: 'flex-end' },
   bar: {
-    flexDirection: 'row',
-    backgroundColor: colors.paper,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
+    flexDirection: 'row', height: 64, padding: 5, borderRadius: 32, backgroundColor: colors.cardAlt,
+    borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)',
+    shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10,
   },
-  tab: { flex: 1, alignItems: 'center', paddingTop: 12, gap: 4, position: 'relative' },
-  stripe: { position: 'absolute', top: -1, width: 24, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
-  label: { fontSize: 11 },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 27, position: 'relative' },
+  tabOn: { backgroundColor: colors.sand2 },
+  label: { fontSize: 10.5, maxWidth: '96%' },
   dot: {
     // 9 px точка + 2 px отбивка цветом paper (в макете box-shadow 0 0 0 2px).
-    position: 'absolute', top: 7, left: '50%', marginLeft: 7, width: 13, height: 13, borderRadius: 6.5,
+    position: 'absolute', top: 5, left: '50%', marginLeft: 7, width: 13, height: 13, borderRadius: 6.5,
     backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.paper, zIndex: 2,
   },
   badge: {
-    position: 'absolute', top: 4, left: '50%', marginLeft: 3, minWidth: 22, height: 22, paddingHorizontal: 5,
+    position: 'absolute', top: 1, left: '50%', marginLeft: 3, minWidth: 22, height: 22, paddingHorizontal: 5,
     borderRadius: 11, alignItems: 'center', justifyContent: 'center', zIndex: 2,
-    borderWidth: 2, borderColor: colors.paper,
+    borderWidth: 2, borderColor: colors.cardAlt,
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10 },
-  ring: { position: 'absolute', top: 0, left: '50%', marginLeft: -24, width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.accent },
+  ring: { position: 'absolute', top: 4, left: '50%', marginLeft: -24, width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.accent },
   plus: { position: 'absolute', top: -18, left: '50%', marginLeft: 9, fontFamily: fonts.display800, fontSize: 15, color: colors.accent },
 });

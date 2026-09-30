@@ -89,6 +89,8 @@ export const SwipeCard = forwardRef<SwipeHandle, {
       if (busy.value) return;
       if (Math.abs(ev.translationX) < TAP && Math.abs(ev.translationY) < TAP) {
         dx.value = 0; dy.value = 0; rot.value = 0;
+        // Тап по закладке (правый верхний угол) — только «в избранное», карточку не открываем.
+        if (ev.x > width - 72 && ev.y < 76) return;
         scheduleOnRN(onTap);
       } else if (ev.translationX > THRESHOLD) fly('go');
       else if (ev.translationX < -THRESHOLD) fly('skip');

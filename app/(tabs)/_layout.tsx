@@ -11,9 +11,9 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper } }}>
       <Tabs.Screen name="index" options={{ title: 'Карта' }} />
-      <Tabs.Screen name="foryou" options={{ title: 'Для тебя' }} />
+      <Tabs.Screen name="foryou" options={{ title: 'Рекомендации' }} />
       <Tabs.Screen name="chats" options={{ title: 'Чаты' }} />
-      <Tabs.Screen name="people" options={{ title: 'Люди' }} />
+      <Tabs.Screen name="people" options={{ title: 'Друзья' }} />
       <Tabs.Screen name="me" options={{ title: 'Профиль' }} />
     </Tabs>
   );

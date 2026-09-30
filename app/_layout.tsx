@@ -33,7 +33,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper }, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }} />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { photo } from '../data/photos';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
-import { CAT_ICON } from './icons';
+import { CAT_COLOR, CAT_ICON, catFg } from './icons';
 import type { Phase } from './lifecycle';
 
 export type PinKind = 'hot' | 'popular' | 'labeled' | 'plain';
@@ -41,49 +41,59 @@ function formatK(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',').replace(',0', '')}K` : String(n);
 }
 
-export function EventPin({ e, kind, phase, label, showCompany, dark, onPress }: {
+export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1 }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
+  /** Масштаб от зума карты (src/map/zoom.ts). */
+  scale?: number;
+  /** Сколько событий в этой точке: больше одного — бейдж с числом, тап открывает список. */
+  count?: number;
 }) {
   const soon = phase === 'soon';
   // Пульсирует только разовое событие «идёт сейчас»; выставки и маркеты открыты весь день — без пульса.
   const live = phase === 'live' && !e.isLong;
   const outline = dark ? colors.ink : colors.cardAlt;
-  const size = kind === 'hot' ? 44 : kind === 'popular' ? 48 : kind === 'labeled' ? 40 : soon ? 38 : 32;
-  const radius = kind === 'hot' ? 15 : kind === 'popular' ? 16 : kind === 'labeled' ? 14 : 10;
-  const bg = kind === 'hot' ? colors.accent : dark ? colors.paper : colors.ink;
-  const fg = kind === 'hot' || dark ? colors.ink : colors.paper;
-  const ring = kind === 'hot' ? colors.ink : outline;
+  const size = kind === 'hot' ? 44 : kind === 'popular' ? 46 : kind === 'labeled' ? 40 : soon ? 38 : 34;
+  const radius = kind === 'hot' ? 15 : kind === 'popular' ? 16 : kind === 'labeled' ? 14 : 11;
+  const bg = CAT_COLOR[e.category];
+  const fg = catFg(e.category);
+  // Свои и дружеские события сегодня — с тёмной обводкой, остальные — со светлой.
+  const ring = kind === 'hot' ? (dark ? colors.paper : colors.ink) : outline;
   const looking = e.lookingCount;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${label ? `, ${label}` : ''}`} style={styles.anchor} hitSlop={6}>
-      {kind === 'popular' && <View pointerEvents="none" style={[styles.halo, { backgroundColor: dark ? 'rgba(243,240,232,0.08)' : 'rgba(23,22,26,0.06)' }]} />}
-      {live && <Pulse size={size + 22} color={kind === 'hot' ? colors.accent : dark ? colors.paper : colors.ink} />}
-      <View style={{ width: size + 6, height: size + 6, borderRadius: radius + 3, backgroundColor: ring, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-          <Ico d={CAT_ICON[e.category]} size={kind === 'plain' ? (soon ? 18 : 16) : kind === 'popular' ? 22 : 20} color={fg} w={kind === 'hot' ? 2.2 : 2} />
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.anchor} hitSlop={6}>
+      <View style={[styles.anchor, { transform: [{ scale }] }]}>
+        {kind === 'popular' && <View pointerEvents="none" style={[styles.halo, { backgroundColor: dark ? 'rgba(243,240,232,0.08)' : 'rgba(23,22,26,0.06)' }]} />}
+        {live && <Pulse size={size + 22} color={bg} />}
+        <View style={{ width: size + 6, height: size + 6, borderRadius: radius + 3, backgroundColor: ring, alignItems: 'center', justifyContent: 'center', opacity: e.isLong && kind === 'plain' ? 0.9 : 1 }}>
+          <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ico d={CAT_ICON[e.category]} size={kind === 'plain' ? (soon ? 18 : 17) : kind === 'popular' ? 22 : 20} color={fg} w={kind === 'hot' ? 2.2 : 2} />
+          </View>
         </View>
+        {count > 1 && (
+          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 4, top: -size / 2 - 8, borderColor: outline }]}>
+            <Text style={styles.stackText}>{count}</Text>
+          </View>
+        )}
+        {kind === 'popular' && count === 1 && (
+          <Tag x={size / 2 + 12} y={-size / 2 - 9} align="right">
+            <View style={styles.count}><Text style={styles.countText}>{formatK(e.goingCount)}</Text></View>
+          </Tag>
+        )}
+        {label && (
+          <Tag x={size / 2 + 11} y={-11}>
+            <View style={[styles.label, { backgroundColor: dark ? colors.paper : colors.ink }]}>
+              <Text style={[styles.labelText, { color: dark ? colors.ink : colors.paper }]}>{label}</Text>
+            </View>
+          </Tag>
+        )}
+        {showCompany && looking > 0 && (
+          <Tag x={kind === 'plain' ? 4 : -size / 2 - 12} y={kind === 'plain' ? -size / 2 - 12 : size / 2 - 10}>
+            <View style={[styles.looking, { backgroundColor: colors.cardAlt, borderColor: colors.ink }]}>
+              <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>
+            </View>
+          </Tag>
+        )}
       </View>
-      {kind === 'popular' && (
-        <Tag x={size / 2 + 12} y={-size / 2 - 9} align="right">
-          <View style={styles.count}><Text style={styles.countText}>{formatK(e.goingCount)}</Text></View>
-        </Tag>
-      )}
-      {label && (kind === 'hot' || kind === 'labeled') && (
-        <Tag x={size / 2 + 11} y={-11}>
-          <View style={[styles.label, { backgroundColor: dark ? colors.paper : colors.ink }]}>
-            <Text style={[styles.labelText, { color: dark ? colors.ink : colors.paper }]}>{label}</Text>
-          </View>
-        </Tag>
-      )}
-      {showCompany && looking > 0 && (
-        <Tag x={kind === 'plain' ? 4 : -size / 2 - 12} y={kind === 'plain' ? -size / 2 - 12 : size / 2 - 10}>
-          <View style={[styles.looking, kind === 'hot'
-            ? { backgroundColor: colors.cardAlt, borderColor: colors.ink }
-            : { backgroundColor: colors.accent, borderColor: outline }]}>
-            <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>
-          </View>
-        </Tag>
-      )}
     </Pressable>
   );
 }
@@ -166,6 +176,8 @@ const styles = StyleSheet.create({
   letterText: { fontFamily: fonts.body700, fontSize: 12, color: colors.ink },
   speed: { height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: colors.friend, flexDirection: 'row', alignItems: 'center', gap: 3 },
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
+  stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
   ago: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5, backgroundColor: colors.cardAlt },
   agoText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.muted },
   meHalo: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.1)', alignItems: 'center', justifyContent: 'center' },

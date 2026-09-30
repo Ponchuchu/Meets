@@ -52,7 +52,7 @@ export function Plans({ going, invites, saved, now }: { going: PlanRow[]; invite
       <Segments<Tab> label="Мои планы" value={tab} onChange={setTab}
         options={[['going', `Иду · ${going.length}`], ['invites', `Зовут · ${invites.length}`], ['saved', `Сохранено · ${saved.length}`]]} />
       {rows.length === 0 && (
-        <Text style={styles.empty}>{tab === 'going' ? 'Пока пусто — свайпни вправо в «Для тебя» или нажми «Я иду» на событии.' : tab === 'invites' ? 'Никто пока не позвал. Позови сам — это работает.' : 'Закладка на карточке сохраняет сюда «может быть».'}</Text>
+        <Text style={styles.empty}>{tab === 'going' ? 'Пока пусто — свайпни вправо в «Рекомендациях» или нажми «Я иду» на событии.' : tab === 'invites' ? 'Никто пока не позвал. Позови сам — это работает.' : 'Закладка на карточке сохраняет сюда «может быть».'}</Text>
       )}
       {rows.map((r, i) => {
         const w = planWhen(r.e, now);

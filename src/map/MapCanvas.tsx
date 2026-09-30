@@ -18,7 +18,7 @@ try {
 }
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, bottomInset = 0 } = props;
+  const { theme, camera, markers, onMode, onZoom, bottomInset = 0 } = props;
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -40,8 +40,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         rotateEnabled={false}
         pitchEnabled={false}
         scaleBarEnabled={false}
-        logoPosition={{ bottom: bottomInset + 8, left: 8 }}
-        attributionPosition={{ bottom: bottomInset + 8, left: 90 }}
+        logoEnabled={false}
+        attributionPosition={{ bottom: bottomInset + 8, left: 8 }}
+        onCameraChanged={(st: { properties: { zoom: number } }) => onZoom?.(st.properties.zoom)}
         onDidFinishLoadingMap={() => onMode?.('mapbox')}
         onMapLoadingError={() => { setFailed(true); onMode?.('static'); }}
       >

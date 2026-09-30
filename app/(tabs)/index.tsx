@@ -16,14 +16,19 @@ import { phaseOf, whenLabel } from '../../src/map/lifecycle';
 import { MapCanvas } from '../../src/map/MapCanvas';
 import { EventPin, FocusPin, FriendPin, MePin, type PinKind } from '../../src/map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../src/map/ui/FriendCard';
-import { accusative, genitive } from '../../src/lib/names';
+import { StackSheet } from '../../src/map/ui/StackSheet';
+import { fxFor, WeatherFx } from '../../src/map/ui/WeatherFx';
+import { detailOf, focusZoom, groupByPoint, pinScale, pxToLat, showPinLabel } from '../../src/map/zoom';
+import { accusative } from '../../src/lib/names';
+import { timeNow, useChat } from '../../src/state/chat';
+import { uid } from '../../src/lib/uid';
+import { Dismissible } from '../../src/ui/Dismissible';
 import { ideasForTwo } from '../../src/people/inviteFor';
-import { canSee, canSendSticker } from '../../src/people/visibility';
+import { canSee } from '../../src/people/visibility';
 import { tasteFrom } from '../../src/reco';
 import { useFeed } from '../../src/state/feed';
 import { useSession } from '../../src/state/session';
 import { useSocial } from '../../src/state/social';
-import { Ic, IC } from '../../src/ui/Ic';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 import { autoTheme } from '../../src/map/style';
 import { ALMATY_CAMERA, type MapCanvasHandle, type MapMarker } from '../../src/map/types';
@@ -38,7 +43,7 @@ import { useProfile } from '../../src/state/profile';
 import { colors, fonts } from '../../src/theme';
 import { Backdrop, BottomSheet, DropCard } from '../../src/ui/sheet';
 
-type Sheet = null | 'calendar' | 'filters' | 'search';
+type Sheet = null | 'calendar' | 'filters' | 'search' | 'stack';
 
 function pinKind(e: EventItem, today: number, going: boolean): PinKind {
   const isToday = dayIndex(e.startsAt) === today;
@@ -67,6 +72,10 @@ export default function MapScreen() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
+  const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
+  // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
+  const [cardHidden, setCardHidden] = useState(false);
+  const [stack, setStack] = useState<EventItem[]>([]);
   const flyY = useSharedValue(0);
   const flyStyle = useAnimatedStyle(() => ({ transform: [{ translateY: flyY.value }, { scale: 1 - 0.15 * Math.min(1, -flyY.value / 300) }] }));
   const social = useSocial();
@@ -99,10 +108,16 @@ export default function MapScreen() {
   const focusSpot = spots.find((x) => x.personId === focusId);
   const focusPerson = people.find((x) => x.id === focusId);
 
-  // Тап по другу: карта сдвигается к нему (он выше карточки), остальное бледнеет.
+  // Тап по другу: карта приближается к нему (он выше карточки), остальное бледнеет.
   useEffect(() => {
-    if (focusSpot) mapRef.current?.flyTo(focusSpot.lat - 0.0035, focusSpot.lon);
-  }, [focusSpot]);
+    if (!focusSpot) return;
+    const z = focusZoom(zoom);
+    mapRef.current?.flyTo(focusSpot.lat - pxToLat(110, z, focusSpot.lat), focusSpot.lon, z);
+  }, [focusSpot]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Выключили «Друзья» в фильтрах — карточка друга закрывается вместе с точками.
+  useEffect(() => {
+    if (!filters.friends && focusId) focusFriend(null);
+  }, [filters.friends, focusId, focusFriend]);
 
 
   const today = dayIndex(clock);
@@ -113,21 +128,38 @@ export default function MapScreen() {
   const visible = useMemo(() => visibleEvents(events, filters, clock, going), [events, filters, clock, going]);
   const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock, going.has(e.id)) !== 'hidden'), [events, clock, going]);
 
-  const selected = visible.find((e) => e.id === selectedId)
+  const selected = cardHidden ? undefined : visible.find((e) => e.id === selectedId)
     ?? visible.find((e) => pinKind(e, today, going.has(e.id)) === 'hot')
     ?? visible.find((e) => e.friendsGoing.length > 0)
     ?? visible[0];
 
+  const detail = detailOf(zoom);
+  const scale = pinScale(zoom);
+  // Тап по точке: приближаемся к ней, карточка снизу — точка остаётся видна над ней.
+  const openPin = useCallback((e: EventItem, group: EventItem[]) => {
+    const z = focusZoom(zoom);
+    mapRef.current?.flyTo(e.lat - pxToLat(110, z, e.lat), e.lon, z);
+    setCardHidden(false);
+    if (group.length > 1) { setStack(group); setSheet('stack'); return; }
+    select(e.id);
+    setSheet(null);
+  }, [zoom, select]);
+
   const markers: MapMarker[] = useMemo(() => {
-    const list: MapMarker[] = visible.map((e) => {
+    const list: MapMarker[] = groupByPoint(visible).map((group) => {
+      // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
+      const e = group.find((x) => x.id === selectedId)
+        ?? group.find((x) => pinKind(x, today, going.has(x.id)) === 'hot')
+        ?? group[0];
       const k0 = pinKind(e, today, going.has(e.id));
       const kind = k0 === 'popular' && !popularBigger ? 'plain' : k0;
+      const important = kind === 'hot' || kind === 'labeled';
       return {
         id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
         node: (
           <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-          <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={kind === 'hot' || kind === 'labeled' ? pinLabel(e, today) : undefined}
-            showCompany={filters.company} dark={dark} onPress={() => { select(e.id); setSheet(null); }} />
+          <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={showPinLabel(detail, important) ? pinLabel(e, today) : undefined}
+            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)} />
           </View>
         ),
       };
@@ -147,7 +179,7 @@ export default function MapScreen() {
     }
     if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin onPress={() => router.push('/marker')} /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, select, going, popularBigger, focusId, bubble, details, social.removed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -168,29 +200,26 @@ export default function MapScreen() {
     if (e.isLong && occursOnDay(e, today)) d = 0;
     setFilters({ from: d, to: d, cats: [], free: false, max: 20000 });
     select(e.id);
+    setCardHidden(false);
     setSheet(null);
-    mapRef.current?.flyTo(e.lat, e.lon);
+    const z = focusZoom(zoom);
+    mapRef.current?.flyTo(e.lat - pxToLat(110, z, e.lat), e.lon, z);
   };
 
-  // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Не чаще раза в 10 минут.
+  // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
   const sendSticker = (i: number) => {
     if (!focusPerson || fly) return;
     const st = STICKERS[i];
-    // Лимиты считаем по настоящему времени (демо-часы только для вида карты).
-    if (!canSendSticker(social.stickers[focusPerson.id], new Date())) {
-      showToast({ text: `${focusPerson.name} уже получил стикер. Следующий — через 10 минут` });
-      return;
-    }
     social.sticker(focusPerson.id);
-    setFly({ ...st, x: 28 + i * 66 });
+    useChat.getState().send({ id: uid(`dm-${focusPerson.id}-st`), chatId: `dm-${focusPerson.id}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
+    setFly({ ...st, x: 40 });
     flyY.set(0);
     flyY.set(withTiming(-300, { duration: 650, easing: Easing.bezier(0.2, 0.9, 0.4, 1) }));
     setTimeout(() => {
       setFly(null);
       setBubble({ id: focusPerson.id, ...st });
-      showToast({ text: `«${st.label}» ушёл: ${focusPerson.name} увидит на карте и в чате`, cta: 'Чат', onCta: () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${focusPerson.id}` } }) });
     }, 700);
-    setTimeout(() => setBubble(null), 3400);
+    setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), 3400);
   };
 
   const topY = Math.max(50, insets.top + 6);
@@ -198,7 +227,8 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]}>
-      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={selected ? 170 : 0} />
+      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={selected ? 170 : 0} onZoom={setZoom} />
+      <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       {sheet === 'calendar' && <Backdrop onPress={() => { setSheet(null); setPending(false); }} opacity={0.32} label="Закрыть календарь" />}
 
@@ -221,13 +251,14 @@ export default function MapScreen() {
             onPick={pickDay}
             onPreset={(from, to) => { setFilters({ from, to }); setPending(false); }}
             onShow={() => { setSheet(null); setPending(false); }}
+            onReset={() => { setFilters({ from: 0, to: 0 }); setPending(false); }}
             showText={showLabel(count)}
           />
         </DropCard>
       )}
 
       {sheet !== 'calendar' && !focusId && (
-        <View style={[styles.side, { bottom: selected ? 244 : 96 }]}>
+        <View style={[styles.side, { bottom: selected ? 244 : 110 }]}>
           <Pressable onPress={() => router.push('/create')} style={styles.sideBtn} accessibilityRole="button" accessibilityLabel="Создать встречу">
             <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M12 5v14M5 12h14" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" /></Svg>
           </Pressable>
@@ -237,23 +268,15 @@ export default function MapScreen() {
         </View>
       )}
 
-      {focusId && focusPerson && (
-        <View style={[styles.banner, { top: topY + 62 }]}>
-          <Text style={styles.bannerText}>Показываю {genitive(focusPerson.name)}</Text>
-          <Pressable onPress={() => { focusFriend(null); setSheet(null); }} style={styles.bannerX} accessibilityRole="button" accessibilityLabel="Показать всех на карте">
-            <Ic d={IC.close} size={13} color="#FFFFFF" w={2.4} />
-          </Pressable>
-        </View>
-      )}
-
-      {focusId && focusPerson && focusSpot && !inviteOpen && (
+      {focusId && focusPerson && focusSpot && !inviteOpen && sheet === null && filters.friends && (
         <View style={styles.card}>
-          <FriendCard p={focusPerson} d={detailsOf(focusPerson.id)} spot={focusSpot} ring={focusSpot.state === 'paused' ? '#8C8577' : colors.friend}
-            onProfile={() => router.push({ pathname: '/person/[id]', params: { id: focusPerson.id } })}
-            onPlan={() => { const ev = detailsOf(focusPerson.id)?.planLine?.eventId; if (ev) router.push({ pathname: '/event/[id]', params: { id: ev } }); else router.push({ pathname: '/person/[id]', params: { id: focusPerson.id } }); }}
-            onSticker={(i) => sendSticker(i)}
-            onWrite={() => router.push({ pathname: '/chat/[id]', params: { id: `dm-${focusPerson.id}` } })}
-            onInvite={() => setInviteOpen(true)} />
+          <Dismissible key={focusPerson.id} label={focusPerson.name} onDismiss={() => focusFriend(null)}>
+            <FriendCard p={focusPerson} spot={focusSpot} ring={focusSpot.state === 'paused' ? '#8C8577' : colors.friend}
+              onProfile={() => router.push({ pathname: '/person/[id]', params: { id: focusPerson.id } })}
+              onSticker={(i) => sendSticker(i)}
+              onWrite={() => router.push({ pathname: '/chat/[id]', params: { id: `dm-${focusPerson.id}` } })}
+              onInvite={() => setInviteOpen(true)} />
+          </Dismissible>
         </View>
       )}
 
@@ -263,10 +286,21 @@ export default function MapScreen() {
         </Animated.View>
       )}
 
-      {selected && sheet !== 'filters' && !focusId && (
+      {selected && sheet === null && !focusId && (
         <View style={styles.card}>
-          <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} dotColor={cardDot(selected)} people={people} onOpen={() => openEvent(selected)} />
+          <Dismissible key={selected.id} label={selected.title} onDismiss={() => setCardHidden(true)}>
+            <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} dotColor={cardDot(selected)} people={people} onOpen={() => openEvent(selected)} />
+          </Dismissible>
         </View>
+      )}
+
+      {sheet === 'stack' && stack.length > 0 && (
+        <>
+          <Backdrop onPress={() => setSheet(null)} label="Закрыть список" />
+          <BottomSheet label="События в этом месте">
+            <StackSheet events={stack} now={clock} onPick={(e) => { select(e.id); setCardHidden(false); setSheet(null); }} />
+          </BottomSheet>
+        </>
       )}
 
       {sheet === 'filters' && (
@@ -316,9 +350,6 @@ const styles = StyleSheet.create({
   side: { position: 'absolute', right: 14, gap: 8 },
   sideBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
-  banner: { position: 'absolute', left: 16, height: 38, paddingLeft: 12, paddingRight: 6, borderRadius: 19, backgroundColor: colors.friend, flexDirection: 'row', alignItems: 'center', gap: 10, shadowColor: colors.friend, shadowOpacity: 0.25, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
-  bannerText: { fontFamily: fonts.body600, fontSize: 13, color: '#FFFFFF' },
-  bannerX: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   fly: { position: 'absolute', bottom: 160, height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', zIndex: 80 },
   flyText: { fontFamily: fonts.display800, fontSize: 13 },
 });

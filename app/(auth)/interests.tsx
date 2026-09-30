@@ -28,7 +28,7 @@ export default function Interests() {
       gap={16}
       top={<Steps step={2} onBack={back} />}
       title="Что вытаскивает тебя из дома?"
-      subtitle="С этого начнётся «Для тебя». Дальше подборка подстроится под твои свайпы сама."
+      subtitle="С этого начнутся «Рекомендации». Дальше подборка подстроится под твои свайпы сама."
       footer={<Button label="Дальше" variant="dark" disabled={!ok} onPress={() => router.push('/rhythm')} />}
     >
       <Appear index={1}>

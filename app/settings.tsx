@@ -78,9 +78,6 @@ export default function SettingsScreen() {
           <Row title="Кто видит мои планы" sub="Друзья видят все планы, остальные — только если ищешь компанию">
             <Segments label="Кто видит мои планы" value={s.plansVisible} onChange={(plansVisible) => set({ plansVisible })} options={[['all', 'Все'], ['friends', 'Друзья'], ['nobody', 'Никто']]} />
           </Row>
-          <Row title="Где я сейчас — для друзей" sub="Включается на 2 часа и выключается сама">
-            <Segments label="Где я сейчас" value={s.whereNow} onChange={(whereNow) => set({ whereNow })} options={[['off', 'Выкл'], ['2h', 'На 2 часа'], ['always', 'Всегда']]} />
-          </Row>
           <Row title="Кто может мне писать" sub="Друзья и те, кто идёт на те же события">
             <Segments label="Кто может писать" value={s.whoCanWrite} onChange={(whoCanWrite) => set({ whoCanWrite })} options={[['all', 'Все'], ['friends', 'Друзья'], ['common', 'С общими']]} />
           </Row>
