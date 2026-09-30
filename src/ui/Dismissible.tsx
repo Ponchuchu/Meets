@@ -1,4 +1,5 @@
-// Карточка поверх карты, которую можно смахнуть вниз или закрыть крестиком — остаётся чистая карта.
+// Карточка поверх карты: смахнуть вниз (или влево/вправо, если horizontal) — закрыть, крестик — закрыть,
+// потянуть вверх — раскрыть целиком (onExpand). Отпустил не дотянув — пружина возвращает на место.
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -8,21 +9,50 @@ import { colors } from '../theme';
 import { Ic, IC } from './Ic';
 
 const THRESHOLD = 70;
+const SIDE = 90;
+const UP = 60;
+const BACK = { damping: 18, stiffness: 220 };
 
-export function Dismissible({ children, onDismiss, label }: { children: ReactNode; onDismiss: () => void; label: string }) {
+export function Dismissible({ children, onDismiss, onExpand, horizontal, label }: {
+  children: ReactNode; onDismiss: () => void; onExpand?: () => void; horizontal?: boolean; label: string;
+}) {
+  const x = useSharedValue(0);
   const y = useSharedValue(0);
   const close = () => {
     y.set(withTiming(320, { duration: 200 }, (done) => { if (done) scheduleOnRN(onDismiss); }));
   };
   const pan = Gesture.Pan()
-    .activeOffsetY(12)
-    .failOffsetX([-20, 20])
-    .onChange((e) => { y.set(Math.max(0, e.translationY)); })
+    .activeOffsetY([-12, 12])
+    .activeOffsetX(horizontal ? [-14, 14] : [-1000, 1000])
+    .failOffsetX(horizontal ? [-1000, 1000] : [-20, 20])
+    .onChange((e) => {
+      if (horizontal) x.set(e.translationX);
+      // Вверх тянется туго (резинка), вниз — свободно.
+      y.set(e.translationY > 0 ? e.translationY : onExpand ? e.translationY * 0.45 : 0);
+    })
     .onEnd((e) => {
-      if (e.translationY > THRESHOLD || e.velocityY > 800) y.set(withTiming(320, { duration: 180 }, (done) => { if (done) scheduleOnRN(onDismiss); }));
-      else y.set(withSpring(0, { damping: 18, stiffness: 220 }));
+      if (horizontal && (Math.abs(e.translationX) > SIDE || Math.abs(e.velocityX) > 900)) {
+        const dir = e.translationX + e.velocityX * 0.1 > 0 ? 1 : -1;
+        x.set(withTiming(dir * 520, { duration: 200 }, (done) => { if (done) scheduleOnRN(onDismiss); }));
+        return;
+      }
+      if (onExpand && (e.translationY < -UP || e.velocityY < -700)) {
+        y.set(withTiming(-40, { duration: 120 }, () => { y.set(withSpring(0, BACK)); }));
+        x.set(withSpring(0, BACK));
+        scheduleOnRN(onExpand);
+        return;
+      }
+      if (e.translationY > THRESHOLD || e.velocityY > 800) {
+        y.set(withTiming(320, { duration: 180 }, (done) => { if (done) scheduleOnRN(onDismiss); }));
+        return;
+      }
+      x.set(withSpring(0, BACK));
+      y.set(withSpring(0, BACK));
     });
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }], opacity: 1 - Math.min(0.6, y.get() / 400) }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.get() }, { translateY: y.get() }, { rotate: `${x.get() / 40}deg` }],
+    opacity: 1 - Math.min(0.6, Math.max(Math.abs(x.get()) / 500, Math.max(0, y.get()) / 400)),
+  }));
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={style}>

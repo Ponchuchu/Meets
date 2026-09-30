@@ -1,4 +1,4 @@
-// «Мой значок на карте»: статус-наклейка, кольцо с узором, невидимка. Внутри всегда фото профиля.
+// «Мой значок на карте»: панк-наклейка статуса, живое кольцо (пламя, радуга, неон…), невидимка. Внутри всегда фото профиля.
 // Скорость показывается сама, когда ты в пути; геолокацией управляет невидимка.
 import { router } from 'expo-router';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -6,34 +6,12 @@ import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapBase } from '../src/components/MapBase';
 import { photo } from '../src/data/photos';
-import { RING_STYLES, STATUS_STICKERS, statusSticker, useProfile, type Ring, type RingStyle } from '../src/state/profile';
+import { RingView, StatusTag } from '../src/profile/ui/MarkerArt';
+import { RING_STYLES, STATUS_STICKERS, statusSticker, useProfile, type Ring } from '../src/state/profile';
 import { useSession } from '../src/state/session';
 import { colors, fonts } from '../src/theme';
 import { BackButton } from '../src/ui/kit';
 import { Cap, Group, SwitchRow } from '../src/ui/Section';
-
-/** Кольцо с узором: сплошное, двойное (второй цвет внутри), пунктир поверх второго цвета, свечение. */
-export function RingView({ r, size, children }: { r: RingStyle; size: number; children?: React.ReactNode }) {
-  const w = Math.max(3, Math.round(size / 14));
-  return (
-    <View style={[{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: r.second ?? '#FFFFFF' },
-      r.glow && { shadowColor: r.color, shadowOpacity: 0.9, shadowRadius: size / 5, shadowOffset: { width: 0, height: 0 }, elevation: 8 }]}>
-      <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: w, borderColor: r.color, borderStyle: r.dashed ? 'dashed' : 'solid' }} />
-      <View style={{ width: size - w * 2 - (r.second ? 4 : 2), height: size - w * 2 - (r.second ? 4 : 2), borderRadius: size, overflow: 'hidden', backgroundColor: colors.softGreen, alignItems: 'center', justifyContent: 'center' }}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
-function StatusTag({ label, big }: { label: string; big?: boolean }) {
-  const st = statusSticker(label);
-  return (
-    <View style={[styles.tag, big && styles.tagBig, { backgroundColor: st.bg, transform: [{ rotate: `${st.rot}deg` }] }, st.bg === '#FFFFFF' && { borderWidth: 2, borderColor: colors.ink }]}>
-      <Text style={[styles.tagText, big && { fontSize: 15 }, { color: st.fg }]}>{st.label}</Text>
-    </View>
-  );
-}
 
 export default function MarkerScreen() {
   const insets = useSafeAreaInsets();
@@ -110,14 +88,11 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
   preview: { height: 230, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, backgroundColor: '#EFEBE2', marginTop: 8 },
   me: { position: 'absolute', left: '50%', top: 110, marginLeft: -33, alignItems: 'center' },
-  bubble: { position: 'absolute', top: -46, left: 44 },
-  tag: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 4, shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 0, shadowOffset: { width: 2, height: 2 }, elevation: 2 },
-  tagBig: { paddingHorizontal: 12, paddingVertical: 8 },
-  tagText: { fontFamily: fonts.display800, fontSize: 13, letterSpacing: 0.5 },
+  bubble: { position: 'absolute', top: -48, left: 46 },
   inv: { position: 'absolute', left: 16, right: 16, top: 96, padding: 12, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center' },
   invText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tagCell: { minHeight: 52, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  tagCell: { minHeight: 60, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   tagCellOn: { borderColor: colors.ink },
   rings: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ringCell: { width: '31%', flexGrow: 1, paddingVertical: 10, borderRadius: 16, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: colors.card, alignItems: 'center', gap: 6 },

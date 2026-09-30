@@ -1,9 +1,11 @@
-// «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные, заявки.
+// «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
+// Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabInset } from '../../src/components/TabBar';
 import { data, eventsSnapshot, type Chat } from '../../src/data';
 import { sortChats } from '../../src/chat/rules';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../src/map/icons';
@@ -18,6 +20,7 @@ type Filter = 'all' | 'events' | 'direct' | 'requests';
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
+  const tabPad = useTabInset() + 16;
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
   const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
@@ -45,7 +48,7 @@ export default function ChatsScreen() {
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: 40, gap: 14 }}>
+    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
         <Text style={styles.h1} accessibilityRole="header">Чаты</Text>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
@@ -53,19 +56,42 @@ export default function ChatsScreen() {
         </Pressable>
       </View>
       {search != null && <TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Найти чат или сообщение" placeholderTextColor={colors.muted3} style={styles.search} accessibilityLabel="Поиск по чатам" />}
-      <View style={styles.filters}>
-        {([['all', 'Все'], ['events', 'События'], ['direct', 'Личные'], ['requests', 'Заявки']] as [Filter, string][]).map(([k, label]) => {
-          const on = filter === k;
-          return (
-            <Pressable key={k} onPress={() => setFilter(k)} style={[styles.chip, on && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-              <Text style={[styles.chipText, on && { color: colors.paper }]}>{label}</Text>
-              {k === 'requests' && pending.length > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{pending.length}</Text></View>}
-            </Pressable>
-          );
-        })}
-      </View>
+      {filter === 'requests' ? (
+        <Pressable onPress={() => setFilter('all')} style={styles.reqHead} accessibilityRole="button" accessibilityLabel="Назад к чатам">
+          <Ic d={IC.back} size={20} color={colors.ink} w={2} />
+          <Text style={styles.reqTitle}>Запросы</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.filters}>
+          {([['all', 'Все'], ['events', 'События'], ['direct', 'Личные']] as [Filter, string][]).map(([k, label]) => {
+            const on = filter === k;
+            return (
+              <Pressable key={k} onPress={() => setFilter(k)} style={[styles.chip, on && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                <Text style={[styles.chipText, on && { color: colors.paper }]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
-      {(filter === 'all' || filter === 'requests') && pending.length > 0 && (
+      {filter !== 'requests' && pending.length > 0 && (
+        <Pressable onPress={() => setFilter('requests')} style={({ pressed }) => [styles.reqRow, pressed && { opacity: 0.75 }]} accessibilityRole="button" accessibilityLabel={`Запросы: ${pending.length}`}>
+          <View style={{ flexDirection: 'row' }}>
+            {pending.slice(0, 3).map((r, i) => {
+              const p = people.find((x) => x.id === r.personId);
+              return p ? <Avatar key={r.id} p={p} size={34} style={{ marginLeft: i ? -12 : 0, borderWidth: 2, borderColor: colors.paper }} /> : null;
+            })}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>Запросы</Text>
+            <Text style={styles.sub} numberOfLines={1}>Хотят в чат события или написать тебе</Text>
+          </View>
+          <View style={styles.badge}><Text style={styles.badgeText}>{pending.length}</Text></View>
+          <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
+        </Pressable>
+      )}
+
+      {filter === 'requests' && pending.length > 0 && (
         <>
           {pending.map((r) => {
             const p = people.find((x) => x.id === r.personId);
@@ -100,7 +126,7 @@ export default function ChatsScreen() {
       )}
       {filter === 'requests' && pending.length === 0 && <Text style={styles.sub}>Новых заявок нет.</Text>}
 
-      {list.length > 0 && (
+      {list.length > 0 && filter !== 'requests' && (
         <View>
           {list.map((c, i) => {
             const e = c.kind === 'event' ? events.find((x) => x.id === c.eventId) : undefined;
@@ -145,8 +171,11 @@ const styles = StyleSheet.create({
   filters: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 13, borderRadius: 17, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card },
   chipText: { fontFamily: fonts.body500, fontSize: 13.5, color: colors.ink },
-  badge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  badge: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
+  reqHead: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44 },
+  reqTitle: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink },
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
   request: { padding: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 12 },
   name: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },

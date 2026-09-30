@@ -14,6 +14,9 @@ export const SKY_PATHS: Record<Sky, string> = {
   rain: 'M7 15.5a4 4 0 01-.5-7.97A6 6 0 0118 6.5a4.5 4.5 0 01-.5 9zM8 22l1.2-2.5M12 22l1.2-2.5M16 22l1.2-2.5',
 };
 
+/** Цвет иконки погоды: солнце — тёплое, дождь — синий, облака — серые. */
+export const SKY_COLOR: Record<Sky, string> = { sun: '#D98A00', part: '#B07A1E', cloud: '#6B675F', rain: '#2E6FA8' };
+
 export const DEMO_FORECAST: DayWeather[] = [
   { sky: 'sun', temp: 18, text: 'ясно' },
   { sky: 'part', temp: 16, text: 'переменная облачность' },
@@ -25,6 +28,13 @@ export const DEMO_FORECAST: DayWeather[] = [
 ];
 
 export const tempLabel = (t: number) => `${t > 0 ? '+' : ''}${t}°`;
+
+/** Погода прямо сейчас в Алматы: Open-Meteo, без ключа. */
+export const OPEN_METEO_NOW = 'https://api.open-meteo.com/v1/forecast?latitude=43.2389&longitude=76.8897&current=temperature_2m,weather_code&timezone=Asia%2FAlmaty';
+
+export function nowFromOpenMeteo(p: { current: { temperature_2m: number; weather_code: number } }): DayWeather {
+  return { ...skyOf(p.current.weather_code), temp: Math.round(p.current.temperature_2m) };
+}
 
 /** Ответ Open-Meteo (daily), как его кладёт в weather_cache Edge Function weather. */
 export interface OpenMeteoDaily {

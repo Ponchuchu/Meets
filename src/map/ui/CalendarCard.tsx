@@ -1,17 +1,13 @@
-// Календарь с погодой на 7 дней — выпадающая карточка на карте (MapCalendar).
+// Календарь — выпадающая карточка на карте (MapCalendar). Погода — отдельным чипом под датой, не здесь.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import type { EventItem } from '../../data/types';
-import { SKY_PATHS, tempLabel, type DayWeather } from '../../data/weather';
 import { colors, fonts } from '../../theme';
 import { calendarCells, dayName, monthsTitle, weekend } from '../calendar';
 
 const WEEK = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-/** Цвет иконки погоды под датой: солнце — тёплое, дождь — синий, облака — серые. */
-const SKY_COLOR = { sun: '#D98A00', part: '#B07A1E', cloud: '#6B675F', rain: '#2E6FA8' } as const;
 
-export function CalendarCard({ now, events, forecast, from, to, pending, onPick, onPreset, onShow, onReset, showText }: {
-  now: Date; events: EventItem[]; forecast: DayWeather[]; from: number; to: number; pending: boolean;
+export function CalendarCard({ now, events, from, to, pending, onPick, onPreset, onShow, onReset, showText }: {
+  now: Date; events: EventItem[]; from: number; to: number; pending: boolean;
   onPick: (offset: number) => void; onPreset: (from: number, to: number) => void; onShow: () => void; onReset: () => void; showText: string;
 }) {
   const cells = calendarCells(now, events);
@@ -49,7 +45,6 @@ export function CalendarCard({ now, events, forecast, from, to, pending, onPick,
           const isEnd = c.offset === lo || c.offset === top;
           const inR = c.offset >= lo && c.offset <= top;
           const band = inR && lo !== top;
-          const w = c.offset >= 0 ? forecast[c.offset] : undefined;
           const fg = isEnd ? colors.paper : c.past ? '#B3AC9E' : c.weekday >= 5 ? colors.accentText : colors.ink;
           const dot = isEnd ? colors.accent : colors.ink;
           return (
@@ -63,18 +58,11 @@ export function CalendarCard({ now, events, forecast, from, to, pending, onPick,
                 onPress={() => onPick(c.offset)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: inR, disabled: c.past }}
-                accessibilityLabel={`${dayName(c.offset, now)}${c.offset === 0 ? ', сегодня' : ''}${w ? `, ${tempLabel(w.temp)}, ${w.text}` : ''}`}
+                accessibilityLabel={`${dayName(c.offset, now)}${c.offset === 0 ? ', сегодня' : ''}`}
                 style={[styles.cell, isEnd && { backgroundColor: colors.ink }, c.offset === 0 && !isEnd && styles.todayRing]}
               >
                 <Text style={[styles.num, { color: fg, fontFamily: isEnd || c.offset === 0 ? fonts.display700 : fonts.display600 }]}>{c.day}</Text>
-                {w ? (
-                  <View style={styles.wxRow}>
-                    <Svg width={12} height={12} viewBox="0 0 24 24">
-                      <Path d={SKY_PATHS[w.sky]} stroke={isEnd ? fg : SKY_COLOR[w.sky]} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                    </Svg>
-                    <Text style={[styles.wxT, { color: fg }]}>{tempLabel(w.temp)}</Text>
-                  </View>
-                ) : !c.past ? (
+                {!c.past ? (
                   <View style={styles.dots}>
                     {[1, 2, 3].map((k) => <View key={k} style={[styles.dot, { backgroundColor: dot, opacity: c.density >= k ? 1 : 0.15 }]} />)}
                   </View>
@@ -106,8 +94,6 @@ const styles = StyleSheet.create({
   cell: { height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 2 },
   todayRing: { borderWidth: 1.5, borderColor: colors.ink },
   num: { fontSize: 15 },
-  wxRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
-  wxT: { fontFamily: fonts.mono600, fontSize: 9 },
   dots: { flexDirection: 'row', gap: 2, height: 4 },
   dot: { width: 4, height: 4, borderRadius: 2 },
   show: { height: 50, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

@@ -1,4 +1,4 @@
-// «Друзья»: заявки (если есть) → «Рекомендации» (друзья друзей и контакты) / «Друзья · N» и планы друзей.
+// «Друзья»: заявки (если есть) → «Рекомендации» (три человека, «Все» раскрывает список) → «Друзья · N» → планы друзей.
 // «Добавить друга»: поиск по имени или нику, приглашение ссылкой, Bump — телефоны рядом.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabInset } from '../../src/components/TabBar';
 import { data, eventsSnapshot, type EventItem, type Person } from '../../src/data';
 import { PERSON_DETAILS } from '../../src/data/demo';
 import { APP_URL } from '../../src/lib/config';
@@ -18,11 +19,9 @@ import { displayName, isFriendNow, useSocial } from '../../src/state/social';
 import { colors, fonts } from '../../src/theme';
 import { Avatar } from '../../src/ui/Avatar';
 import { Ic, IC } from '../../src/ui/Ic';
-import { Segments } from '../../src/ui/kit';
 import { Backdrop, BottomSheet } from '../../src/ui/sheet';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 
-type Tab = 'reco' | 'friends';
 type Sheet = null | 'add' | 'bump' | { rename: Person };
 
 /** Откуда рекомендация: общие друзья или номер из контактов телефона. */
@@ -30,8 +29,9 @@ const REASON: Record<string, string> = { ainura: 'в твоих контакта
 
 export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
+  const tabPad = useTabInset() + 16;
   const now = clockNow();
-  const [tab, setTab] = useState<Tab>('friends');
+  const [allReco, setAllReco] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
@@ -63,7 +63,7 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: 40, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
         <View style={styles.head}>
           <Text style={styles.h1} accessibilityRole="header">Друзья</Text>
           <Pressable onPress={() => setSheet('add')} style={styles.addBtn} accessibilityRole="button" accessibilityLabel="Добавить друга">
@@ -95,12 +95,19 @@ export default function FriendsScreen() {
           </Animated.View>
         )}
 
-        <Segments<Tab> label="Друзья" value={tab} onChange={setTab} options={[['reco', 'Рекомендации'], ['friends', `Друзья · ${friends.length}`]]} />
-
-        {tab === 'reco' ? (
+        {suggestions.length > 0 && (
+          <View style={[styles.row, { marginTop: 4 }]}>
+            <Text style={styles.h2}>Рекомендации</Text>
+            {suggestions.length > 3 && (
+              <Pressable onPress={() => setAllReco(!allReco)} hitSlop={10} style={styles.allBtn} accessibilityRole="button" accessibilityState={{ expanded: allReco }}>
+                <Text style={styles.allText}>{allReco ? 'Свернуть' : `Все · ${suggestions.length}`}</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+        {suggestions.length > 0 && (
           <View style={{ gap: 8 }}>
-            {suggestions.length === 0 && <Text style={styles.sub}>Новых рекомендаций пока нет.</Text>}
-            {suggestions.map((p) => {
+            {(allReco ? suggestions : suggestions.slice(0, 3)).map((p) => {
               const sent = !!social.sent[p.id];
               return (
                 <View key={p.id} style={styles.card}>
@@ -118,8 +125,13 @@ export default function FriendsScreen() {
               );
             })}
           </View>
-        ) : (
-          <>
+        )}
+
+        <>
+            <View style={[styles.row, { justifyContent: 'flex-start', gap: 8, marginTop: 6 }]}>
+              <Text style={styles.h2}>Друзья</Text>
+              <View style={[styles.count, { backgroundColor: colors.sand2 }]}><Text style={styles.countText}>{friends.length}</Text></View>
+            </View>
             <View style={{ gap: 2 }}>
               {friends.map((p) => (
                 <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={styles.friendRow} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
@@ -162,14 +174,13 @@ export default function FriendsScreen() {
                 </ScrollView>
               </>
             )}
-          </>
-        )}
+        </>
       </ScrollView>
 
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet label={sheet === 'add' ? 'Добавить друга' : sheet === 'bump' ? 'Bump' : 'Переименовать'} style={{ gap: 14, paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'add' ? 'Добавить друга' : sheet === 'bump' ? 'Bump' : 'Переименовать'} style={{ gap: 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'add' && <AddFriend people={people} social={social} onInvite={() => { setSheet(null); inviteLink(); }} onBump={() => setSheet('bump')} onOpen={(id) => { setSheet(null); openPerson(id); }} />}
             {sheet === 'bump' && <Bump candidates={suggestions} onAdd={(p) => { social.toggleRequest(p.id); setSheet(null); show({ text: `Заявка ушла: ${p.name}` }); }} />}
             {typeof sheet === 'object' && sheet && 'rename' in sheet && (
@@ -278,6 +289,8 @@ function Rename({ p, value, onSave }: { p: Person; value: string; onSave: (v: st
 }
 
 const styles = StyleSheet.create({
+  allBtn: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.sand2, justifyContent: 'center' },
+  allText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   h1: { flex: 1, fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, color: colors.ink },

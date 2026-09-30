@@ -22,11 +22,17 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
+  const z = useRef(camera.zoom);
 
   useImperativeHandle(ref, () => ({
     flyTo: (lat, lon, zoom) => {
       if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 });
       else staticRef.current?.flyTo(lat, lon, zoom);
+    },
+    zoomBy: (d) => {
+      z.current = Math.max(10, Math.min(18, z.current + d));
+      if (cam.current) cam.current.setCamera({ zoomLevel: z.current, animationDuration: 300 });
+      else staticRef.current?.zoomBy(d);
     },
   }));
 
@@ -42,7 +48,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         scaleBarEnabled={false}
         logoEnabled={false}
         attributionPosition={{ bottom: bottomInset + 8, left: 8 }}
-        onCameraChanged={(st: { properties: { zoom: number; center: number[] } }) => onZoom?.(st.properties.zoom)}
+        onCameraChanged={(st: { properties: { zoom: number; center: number[] } }) => { z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }}
         onMapIdle={(st: { properties: { center: number[] } }) => onCenter?.(st.properties.center[1], st.properties.center[0])}
         onDidFinishLoadingMap={() => onMode?.('mapbox')}
         onMapLoadingError={() => { setFailed(true); onMode?.('static'); }}

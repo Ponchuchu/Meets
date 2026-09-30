@@ -4,7 +4,8 @@ import { track } from '../../src/analytics';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../src/chat/rules';
 import { Bubble } from '../../src/chat/ui/Bubble';
@@ -26,7 +27,10 @@ import { isFriendNow, useSocial } from '../../src/state/social';
 import { colors, fonts } from '../../src/theme';
 import { Avatar } from '../../src/ui/Avatar';
 import { Ic, IC } from '../../src/ui/Ic';
-import { Backdrop, BottomSheet } from '../../src/ui/sheet';
+import { Backdrop, BottomSheet, SwipeDown } from '../../src/ui/sheet';
+import { StaticMap } from '../../src/map/StaticMap';
+import { updatedText } from '../../src/map/ui/FriendCard';
+import type { FriendSpot } from '../../src/data/types';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 
 // Иконки в стиле lucide, 1.9: скрепка, микрофон-капсула, «кружок» (объектив в круге), самолётик.
@@ -60,6 +64,8 @@ export default function ChatScreen() {
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId });
+  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  const spot = spots.find((x) => x.personId === personId);
   const chat = useChat();
   const social = useSocial();
   const plans = usePlans();
@@ -157,8 +163,8 @@ export default function ChatScreen() {
   const status = isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
     : friend ? 'в друзьях · онлайн' : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
-  const banner = isEvent ? null : friend
-    ? (details && canSee('friend', 'location', details.privacy) && details.now ? `${person?.name.toUpperCase()} ДЕЛИТСЯ ГЕОЛОКАЦИЕЙ ДО ${details.now.sharingUntil}` : null)
+  // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
+  const banner = isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
   const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
@@ -190,7 +196,11 @@ export default function ChatScreen() {
         )}
       </View>
 
-      <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 16 }}>
+      {/* Потянул ленту — клавиатура и вложения сворачиваются, как в Telegram. */}
+      <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 16, flexGrow: 1, justifyContent: 'flex-end' }}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled" alwaysBounceVertical
+        onScrollBeginDrag={() => { if (tray) { setTray(false); setAlbumsOpen(false); } }}
+        onTouchEnd={() => { if (Platform.OS === 'web') return; Keyboard.dismiss(); }}>
         {banner && <View style={styles.banner}><Text style={styles.bannerText}>{banner}</Text></View>}
         {isEvent && chatMeta?.meetPoint && (
           <View style={styles.pin}>
@@ -252,7 +262,9 @@ export default function ChatScreen() {
       )}
 
       {tray && check.ok && !poll && (
-        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+        <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
+        <SwipeDown onClose={() => { setTray(false); setAlbumsOpen(false); }} style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+          <View style={styles.grab} />
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setAlbumsOpen(!albumsOpen)} style={styles.album} accessibilityRole="button" accessibilityLabel="Выбрать альбом" accessibilityState={{ expanded: albumsOpen }}>
               <Text style={styles.albumText}>{ALBUMS.find(([k]) => k === album)?.[1]}</Text>
@@ -293,11 +305,14 @@ export default function ChatScreen() {
           <Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
           </Pressable>
-        </View>
+        </SwipeDown>
+        </Animated.View>
       )}
 
       {poll && (
-        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+        <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
+        <SwipeDown onClose={() => setPoll(null)} style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+          <View style={styles.grab} />
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.sheetTitle, { flex: 1, fontSize: 19 }]}>Опрос</Text>
             <Pressable onPress={() => setPoll(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Отменить опрос"><Ic d={IC.close} size={18} color={colors.ink} w={2.2} /></Pressable>
@@ -314,7 +329,8 @@ export default function ChatScreen() {
             style={[styles.sendAll, (!poll.q.trim() || poll.options.filter((o) => o.trim()).length < 2) && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={styles.sendAllText}>Отправить опрос</Text>
           </Pressable>
-        </View>
+        </SwipeDown>
+        </Animated.View>
       )}
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 90 + insets.bottom }} />}
@@ -322,8 +338,8 @@ export default function ChatScreen() {
       {sheet && person && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={0.35} label="Закрыть" />
-          <BottomSheet label={sheet === 'menu' ? 'Действия' : person.name} style={{ paddingBottom: 30 + insets.bottom }}>
-            {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} requested={!!social.sent[person.id]}
+          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'menu' ? 'Действия' : person.name} style={{ paddingBottom: 30 + insets.bottom }}>
+            {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} spot={spot} requested={!!social.sent[person.id]}
               onClose={() => setSheet(null)} onProfile={() => router.push({ pathname: '/person/[id]', params: { id: person.id } })}
               onMap={() => { focusFriend(person.id); router.push('/'); }} onAdd={() => social.toggleRequest(person.id)} /> : (
               <>
@@ -343,11 +359,13 @@ export default function ChatScreen() {
   );
 }
 
-function PersonSheet({ p, friend, details, requested, onClose, onProfile, onMap, onAdd }: {
-  p: Person; friend: boolean; details?: import('../../src/data/types').PersonDetails; requested: boolean;
+function PersonSheet({ p, friend, details, spot, requested, onClose, onProfile, onMap, onAdd }: {
+  p: Person; friend: boolean; details?: import('../../src/data/types').PersonDetails; spot?: FriendSpot; requested: boolean;
   onClose: () => void; onProfile: () => void; onMap: () => void; onAdd: () => void;
 }) {
-  const sees = friend && details && canSee('friend', 'location', details.privacy) && details.now;
+  const sees = friend && details && canSee('friend', 'location', details.privacy) && (spot || details.now);
+  // Где он — берём с карты (точка друга), а не из профиля.
+  const place = spot?.place ?? details?.now?.place;
   const her = p.name.endsWith('а') ? 'её' : 'его';
   const she = p.name.endsWith('а') ? 'она' : 'он';
   return (
@@ -361,10 +379,22 @@ function PersonSheet({ p, friend, details, requested, onClose, onProfile, onMap,
         <Pressable onPress={onClose} style={styles.round} accessibilityRole="button" accessibilityLabel="Закрыть"><Ic d={IC.close} size={16} color={colors.ink} w={2.2} /></Pressable>
       </View>
       {sees ? (
-        <View style={styles.nowCard}>
-          <View style={styles.nowIcon}><Ic d={IC.pin} c={[[12, 9, 2.5]]} size={18} color="#FFFFFF" w={2} /></View>
-          <View style={{ flex: 1 }}><Text style={styles.nowTitle}>Сейчас: {details!.now!.place}</Text><Text style={styles.status}>на месте · обновлено 2 мин назад · до {details!.now!.sharingUntil}</Text></View>
-        </View>
+        <Pressable onPress={onMap} style={({ pressed }) => [styles.nowCard, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel={`${place ?? ''}. Открыть на карте`}>
+          {spot && (
+            <View style={styles.miniMap} pointerEvents="none">
+              <StaticMap theme="paper" camera={{ lat: spot.lat, lon: spot.lon, zoom: 15 }} markers={[{ id: 'p', lat: spot.lat, lon: spot.lon, node: (
+                <View style={{ marginLeft: -20, marginTop: -20 }}><Avatar p={p} size={40} ring={colors.friend} style={{ borderWidth: 3 }} /></View>
+              ) }]} />
+            </View>
+          )}
+          <View style={styles.nowRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nowTitle} numberOfLines={1}>{place ?? 'На карте'}</Text>
+              <Text style={styles.status}>{updatedText(spot?.minutesAgo ?? 2)}</Text>
+            </View>
+            <View style={styles.mapGo}><Ic d={IC.chevron} size={18} color={colors.paper} w={2.2} /></View>
+          </View>
+        </Pressable>
       ) : (
         <View style={styles.hidden}>
           <View style={styles.lock}><Ic d={IC.lock} size={18} color={colors.ink} w={2} /></View>
@@ -376,9 +406,7 @@ function PersonSheet({ p, friend, details, requested, onClose, onProfile, onMap,
       )}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable onPress={onProfile} style={[styles.sheetBtn, { borderWidth: 1.5, borderColor: colors.ink }]} accessibilityRole="button"><Text style={styles.sheetBtnText}>Профиль</Text></Pressable>
-        {sees ? (
-          <Pressable onPress={onMap} style={[styles.sheetBtn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.sheetBtnText, { color: colors.paper }]}>Показать на карте</Text></Pressable>
-        ) : !friend ? (
+        {!friend ? (
           <Pressable onPress={onAdd} style={[styles.sheetBtn, { backgroundColor: requested ? colors.sand : colors.ink }]} accessibilityRole="button"><Text style={[styles.sheetBtnText, { color: requested ? colors.ink : colors.paper }]}>{requested ? 'Заявка ушла' : 'Добавить в друзья'}</Text></Pressable>
         ) : null}
       </View>
@@ -432,8 +460,11 @@ const styles = StyleSheet.create({
   sendAll: { height: 44, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   sendAllText: { fontFamily: fonts.body600, fontSize: 15, color: colors.paper },
   sheetTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink },
-  nowCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: colors.friend, backgroundColor: colors.card },
-  nowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
+  nowCard: { borderRadius: 20, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  miniMap: { height: 130, overflow: 'hidden' },
+  nowRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  mapGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line2, marginBottom: 2 },
   nowTitle: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   hidden: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2 },
   lock: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },

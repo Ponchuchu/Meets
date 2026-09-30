@@ -1,13 +1,15 @@
-// «Мои планы»: Иду · Зовут · Сохранено — сразу под шапкой профиля.
+// «Планы» в профиле: Иду · Зовут · Сохранено — карусель карточек-афиш. Без рамки и текстовых подсказок:
+// пустая вкладка — одна «призрачная» карточка-действие.
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import type { EventItem, Person } from '../../data/types';
 import { almaty, dayIndex } from '../../lib/clock';
 import { CAT_ICON } from '../../map/icons';
+import { Avatar } from '../../ui/Avatar';
 import { colors, fonts } from '../../theme';
 import { Ic, IC } from '../../ui/Ic';
-import { Segments } from '../../ui/kit';
 
 const COVER: Partial<Record<EventItem['category'], string>> = {
   music: colors.accent, art: colors.sand, games: colors.softGreen, food: colors.softYellow, sport: colors.softBlue, bike: colors.softBlue,
@@ -36,70 +38,106 @@ export interface PlanRow {
   sub: string;
   tag?: { text: string; bg: string; fg: string };
   invite?: { fromName: string; onYes: () => void; onNo: () => void };
+  faces?: Person[];
 }
 
 type Tab = 'going' | 'invites' | 'saved';
+const TABS: [Tab, string][] = [['going', 'Иду'], ['invites', 'Зовут'], ['saved', 'Сохранено']];
+const GHOST: Record<Tab, { text: string; icon: string; to: '/foryou' | '/create' }> = {
+  going: { text: 'Выбрать в рекомендациях', icon: 'M5 12h14M13 6l6 6-6 6', to: '/foryou' },
+  invites: { text: 'Позвать друзей самому', icon: 'M12 5v14M5 12h14', to: '/create' },
+  saved: { text: 'Сохраняй закладкой на карточке', icon: 'M6 3.5h12v17l-6-4-6 4z', to: '/foryou' },
+};
 
 export function Plans({ going, invites, saved, now }: { going: PlanRow[]; invites: PlanRow[]; saved: PlanRow[]; now: Date }) {
-  const [tab, setTab] = useState<Tab>('going');
+  const [tab, setTab] = useState<Tab>(going.length || !invites.length ? 'going' : 'invites');
   const rows = tab === 'going' ? going : tab === 'invites' ? invites : saved;
+  const count = { going: going.length, invites: invites.length, saved: saved.length };
+  const ghost = GHOST[tab];
   return (
-    <View style={styles.card}>
+    <View style={{ gap: 12 }}>
       <View style={styles.head}>
-        <Text style={styles.h2}>Мои планы</Text>
-        <Pressable onPress={() => router.push('/foryou')} hitSlop={8} accessibilityRole="link"><Text style={styles.link}>Найти ещё</Text></Pressable>
+        <Text style={styles.h2}>Планы</Text>
+        <View style={styles.tabs} accessibilityRole="tablist">
+          {TABS.map(([k, label]) => {
+            const on = k === tab;
+            return (
+              <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, on && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={`${label}: ${count[k]}`}>
+                <Text style={[styles.tabText, on && { color: colors.paper }]}>{label}</Text>
+                {count[k] > 0 && <Text style={[styles.tabN, on && { color: colors.accent }]}>{count[k]}</Text>}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-      <Segments<Tab> label="Мои планы" value={tab} onChange={setTab}
-        options={[['going', `Иду · ${going.length}`], ['invites', `Зовут · ${invites.length}`], ['saved', `Сохранено · ${saved.length}`]]} />
-      {rows.length === 0 && (
-        <Text style={styles.empty}>{tab === 'going' ? 'Пока пусто — свайпни вправо в «Рекомендациях» или нажми «Я иду» на событии.' : tab === 'invites' ? 'Никто пока не позвал. Позови сам — это работает.' : 'Закладка на карточке сохраняет сюда «может быть».'}</Text>
-      )}
-      {rows.map((r, i) => {
-        const w = planWhen(r.e, now);
-        const bg = r.e.coverColor ?? COVER[r.e.category] ?? colors.ink;
-        const dark = bg === colors.ink;
-        return (
-          <Pressable key={r.e.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: r.e.id } })}
-            style={[styles.row, i < rows.length - 1 && styles.line]} accessibilityRole="button" accessibilityLabel={`${r.e.title}, ${w.text}`}>
-            <View style={[styles.icon, { backgroundColor: bg }]}><Ic d={r.e.meetup ? IC.home : CAT_ICON[r.e.category]} size={18} color={dark ? colors.paper : colors.ink} w={2} /></View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[styles.when, w.today && { color: colors.accentText }]}>{w.text}</Text>
-              <View style={styles.titleRow}>
-                <Text style={styles.title} numberOfLines={1}>{r.e.title}</Text>
-                {r.tag && <View style={[styles.tag, { backgroundColor: r.tag.bg }]}><Text style={[styles.tagText, { color: r.tag.fg }]}>{r.tag.text}</Text></View>}
-              </View>
-              <Text style={styles.sub} numberOfLines={1}>{r.sub}</Text>
+      <ScrollView key={tab} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 4, paddingRight: 16 }}>
+        {rows.map((r, i) => {
+          const w = planWhen(r.e, now);
+          const bg = r.e.coverColor ?? COVER[r.e.category] ?? colors.ink;
+          const dark = bg === colors.ink || bg === colors.accent;
+          return (
+            <Animated.View key={r.e.id} entering={FadeIn.delay(i * 50).duration(220)} style={styles.card}>
+              <Pressable onPress={() => router.push({ pathname: '/event/[id]', params: { id: r.e.id } })} accessibilityRole="button" accessibilityLabel={`${r.e.title}, ${w.text}`}>
+                <View style={[styles.cover, { backgroundColor: bg }]}>
+                  <View style={styles.bigIcon} pointerEvents="none"><Ic d={r.e.meetup ? IC.home : CAT_ICON[r.e.category]} size={84} color={dark ? 'rgba(255,255,255,0.22)' : 'rgba(23,22,26,0.12)'} w={1.6} /></View>
+                  <View style={[styles.when, w.today && { backgroundColor: colors.ink }]}><Text style={[styles.whenText, w.today && { color: colors.paper }]}>{w.text}</Text></View>
+                  {r.tag && <View style={[styles.tag, { backgroundColor: r.tag.bg }]}><Text style={[styles.tagText, { color: r.tag.fg }]}>{r.tag.text}</Text></View>}
+                </View>
+                <View style={styles.body}>
+                  <Text style={styles.title} numberOfLines={2}>{r.e.title}</Text>
+                  <View style={styles.subRow}>
+                    {!!r.faces?.length && (
+                      <View style={{ flexDirection: 'row', marginRight: 2 }}>
+                        {r.faces.slice(0, 3).map((p, j) => <Avatar key={p.id} p={p} size={22} style={{ marginLeft: j ? -7 : 0, borderWidth: 1.5, borderColor: colors.card }} />)}
+                      </View>
+                    )}
+                    <Text style={styles.sub} numberOfLines={1}>{r.sub}</Text>
+                  </View>
+                </View>
+              </Pressable>
               {r.invite && (
                 <View style={styles.inviteRow}>
-                  <Pressable onPress={r.invite.onYes} style={[styles.inviteBtn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.inviteText, { color: colors.paper }]}>Иду</Text></Pressable>
-                  <Pressable onPress={r.invite.onNo} style={[styles.inviteBtn, { borderWidth: 1.5, borderColor: colors.ink }]} accessibilityRole="button"><Text style={styles.inviteText}>Не смогу</Text></Pressable>
+                  <Pressable onPress={r.invite.onYes} style={[styles.inviteBtn, { backgroundColor: colors.ink }]} accessibilityRole="button" accessibilityLabel={`Иду: ${r.e.title}`}><Text style={[styles.inviteText, { color: colors.paper }]}>Иду</Text></Pressable>
+                  <Pressable onPress={r.invite.onNo} style={[styles.inviteBtn, { backgroundColor: colors.sand2 }]} accessibilityRole="button" accessibilityLabel={`Не смогу: ${r.e.title}`}><Text style={styles.inviteText}>Не смогу</Text></Pressable>
                 </View>
               )}
-            </View>
-            <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
-          </Pressable>
-        );
-      })}
+            </Animated.View>
+          );
+        })}
+        <Pressable onPress={() => router.push(ghost.to)} style={({ pressed }) => [styles.ghost, rows.length > 0 && styles.ghostSmall, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={ghost.text}>
+          <View style={styles.ghostIcon}><Ic d={ghost.icon} size={20} color={colors.ink} w={2.2} /></View>
+          <Text style={styles.ghostText}>{ghost.text}</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
 
+const CARD_W = 214;
 const styles = StyleSheet.create({
-  card: { borderRadius: 24, borderWidth: 1.5, borderColor: colors.ink, backgroundColor: colors.card, padding: 14, gap: 12 },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   h2: { fontFamily: fonts.display700, fontSize: 21, color: colors.ink },
-  link: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
-  empty: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, color: colors.muted, paddingVertical: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  line: { borderBottomWidth: 1, borderBottomColor: colors.sand },
-  icon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  when: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.5, color: colors.muted },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { flexShrink: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
-  tag: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  tabs: { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 18, backgroundColor: colors.sand2 },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 11, borderRadius: 15 },
+  tabOn: { backgroundColor: colors.ink },
+  tabText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
+  tabN: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted },
+  card: { width: CARD_W, borderRadius: 22, backgroundColor: colors.card, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
+  cover: { height: 104, padding: 10, justifyContent: 'space-between', overflow: 'hidden' },
+  bigIcon: { position: 'absolute', right: -14, bottom: -18 },
+  when: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.9)' },
+  whenText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.4, color: colors.ink },
+  tag: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 5 },
   tagText: { fontFamily: fonts.mono600, fontSize: 9, letterSpacing: 0.4 },
-  sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
-  inviteRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  inviteBtn: { height: 36, paddingHorizontal: 16, borderRadius: 18, justifyContent: 'center' },
+  body: { padding: 12, gap: 6, minHeight: 84 },
+  title: { fontFamily: fonts.display700, fontSize: 16, lineHeight: 19, color: colors.ink },
+  subRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sub: { flex: 1, fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
+  inviteRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingBottom: 12 },
+  inviteBtn: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   inviteText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
+  ghost: { width: CARD_W, minHeight: 188, borderRadius: 22, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16 },
+  ghostSmall: { width: 132 },
+  ghostIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand2, alignItems: 'center', justifyContent: 'center' },
+  ghostText: { textAlign: 'center', fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
 });

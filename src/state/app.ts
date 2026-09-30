@@ -1,4 +1,5 @@
 // Локальное состояние интерфейса (Zustand): счётчики на таб-баре.
+import { useEffect } from 'react';
 import { create } from 'zustand';
 
 interface AppState {
@@ -13,6 +14,10 @@ interface AppState {
   removePlan: () => void;
   seenPlans: () => void;
   seenFeed: () => void;
+  /** Сколько шторок/полноэкранных карточек открыто — таб-бар в это время уезжает вниз. */
+  covers: number;
+  cover: () => void;
+  uncover: () => void;
 }
 
 export const useApp = create<AppState>((set) => ({
@@ -24,4 +29,16 @@ export const useApp = create<AppState>((set) => ({
   removePlan: () => set((s) => ({ newPlans: Math.max(0, s.newPlans - 1) })),
   seenPlans: () => set({ newPlans: 0 }),
   seenFeed: () => set({ freshFeed: false }),
+  covers: 0,
+  cover: () => set((s) => ({ covers: s.covers + 1 })),
+  uncover: () => set((s) => ({ covers: Math.max(0, s.covers - 1) })),
 }));
+
+/** Пока компонент смонтирован и on=true — таб-бар спрятан (шторка, раскрытая карточка). */
+export function useCoverTabBar(on = true) {
+  useEffect(() => {
+    if (!on) return;
+    useApp.getState().cover();
+    return () => useApp.getState().uncover();
+  }, [on]);
+}

@@ -230,10 +230,10 @@ export function demoProfile(): MyProfile {
       { iso: 'TR', name: 'Турция', note: 'ещё нет', got: false }, { iso: 'AE', name: 'ОАЭ', note: 'ещё нет', got: false },
     ],
     timeline: [
-      { date: 'СБ 26', title: 'Кинопоказ во дворе', meta: 'с Игорем и Денисом · +1 место' },
-      { date: 'ЧТ 24', title: 'Настолки без своей компании', meta: '+2 друга: Ерлан, Мира' },
-      { date: 'ВС 20', title: 'Утро на Кок-Тобе', meta: 'значок «Выше города»' },
-      { date: 'ПТ 11', title: 'Лекция в Ташкенте', meta: 'новый город и страна' },
+      { date: 'СБ 26', title: 'Кинопоказ во дворе', category: 'talks', place: 'Двор на Жибек Жолы', with: ['igor', 'denis'] },
+      { date: 'ЧТ 24', title: 'Настолки', category: 'games', place: 'Антикафе на Толе би' },
+      { date: 'ВС 20', title: 'Утро на Кок-Тобе', category: 'hike', place: 'Кок-Тобе', meta: 'Значок «Выше города»' },
+      { date: 'ПТ 11', title: 'Лекция в Ташкенте', category: 'lecture', place: 'Ташкент', meta: 'Новый город и страна' },
     ],
     badgeProgress: { opener: 1, above: 1, host: 1, countries3: 3, cities5: 5, regular: 3, night: 2, districts: 6, conqueror: 1, jazz: 1, games: 2 },
     invitesToMe: [{ eventId: 'games', fromId: 'denis' }],
@@ -335,5 +335,6 @@ export function createDemoSource(): DataSource {
     getMyProfile: async () => demoProfile(),
     getPersonDetails: async (id) => PERSON_DETAILS[id] ?? null,
     getForecast: async () => DEMO_FORECAST,
+    getWeatherNow: async () => DEMO_FORECAST[0],
   };
 }

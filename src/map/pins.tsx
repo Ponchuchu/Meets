@@ -41,12 +41,14 @@ function formatK(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',').replace(',0', '')}K` : String(n);
 }
 
-export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1 }: {
+export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
   /** Масштаб от зума карты (src/map/zoom.ts). */
   scale?: number;
   /** Сколько событий в этой точке: больше одного — бейдж с числом, тап открывает список. */
   count?: number;
+  /** Выбранная точка: крупнее, с оранжевой обводкой и подписью. Остальные — без текста, чтобы не налезали. */
+  selected?: boolean;
 }) {
   const soon = phase === 'soon';
   // Пульсирует только разовое событие «идёт сейчас»; выставки и маркеты открыты весь день — без пульса.
@@ -57,11 +59,11 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
   const bg = CAT_COLOR[e.category];
   const fg = catFg(e.category);
   // Свои и дружеские события сегодня — с тёмной обводкой, остальные — со светлой.
-  const ring = kind === 'hot' ? (dark ? colors.paper : colors.ink) : outline;
+  const ring = selected ? colors.accent : kind === 'hot' ? (dark ? colors.paper : colors.ink) : outline;
   const looking = e.lookingCount;
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.anchor} hitSlop={6}>
-      <View style={[styles.anchor, { transform: [{ scale }] }]}>
+      <View style={[styles.anchor, { transform: [{ scale: selected ? Math.max(1.1, scale * 1.2) : scale }] }]}>
         {kind === 'popular' && <View pointerEvents="none" style={[styles.halo, { backgroundColor: dark ? 'rgba(243,240,232,0.08)' : 'rgba(23,22,26,0.06)' }]} />}
         {live && <Pulse size={size + 22} color={bg} />}
         <View style={{ width: size + 6, height: size + 6, borderRadius: radius + 3, backgroundColor: ring, alignItems: 'center', justifyContent: 'center', opacity: e.isLong && kind === 'plain' ? 0.9 : 1 }}>
@@ -74,7 +76,7 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
             <Text style={styles.stackText}>{count}</Text>
           </View>
         )}
-        {kind === 'popular' && count === 1 && (
+        {kind === 'popular' && count === 1 && selected && (
           <Tag x={size / 2 + 12} y={-size / 2 - 9} align="right">
             <View style={styles.count}><Text style={styles.countText}>{formatK(e.goingCount)}</Text></View>
           </Tag>
@@ -86,7 +88,7 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
             </View>
           </Tag>
         )}
-        {showCompany && looking > 0 && (
+        {showCompany && looking > 0 && !label && (
           <Tag x={kind === 'plain' ? 4 : -size / 2 - 12} y={kind === 'plain' ? -size / 2 - 12 : size / 2 - 10}>
             <View style={[styles.looking, { backgroundColor: colors.cardAlt, borderColor: colors.ink }]}>
               <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>

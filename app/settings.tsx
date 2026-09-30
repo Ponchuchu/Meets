@@ -132,7 +132,7 @@ export default function SettingsScreen() {
       {confirm && (
         <>
           <Backdrop onPress={() => setConfirm(null)} label="Закрыть" />
-          <BottomSheet label={confirm === 'delete' ? 'Удалить аккаунт' : 'Выйти'} style={{ paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setConfirm(null)} label={confirm === 'delete' ? 'Удалить аккаунт' : 'Выйти'} style={{ paddingBottom: 30 + insets.bottom }}>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <Image source={photo(draft.photo ?? 'danil')} style={{ width: 48, height: 48, borderRadius: 16 }} />
               <Text style={[styles.h1, { fontSize: 22, flex: 1 }]}>{confirm === 'delete' ? 'Удалить аккаунт?' : 'Выйти из аккаунта?'}</Text>

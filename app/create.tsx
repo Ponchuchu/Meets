@@ -190,7 +190,7 @@ export default function CreateScreen() {
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet label="Выбор" style={{ paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setSheet(null)} label="Выбор" style={{ paddingBottom: 30 + insets.bottom }}>
             {sheet === 'date' && (
               <>
                 <Text style={styles.sheetTitle}>Когда</Text>

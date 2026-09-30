@@ -4,7 +4,7 @@ import { almaty } from '../lib/clock';
 import { DEFAULT_PRIVACY } from '../people/visibility';
 import { colors } from '../theme';
 import { requireUser, supabase, withTimeout } from './client';
-import { fromOpenMeteo, type DayWeather, type OpenMeteoDaily } from './weather';
+import { fromOpenMeteo, nowFromOpenMeteo, OPEN_METEO_NOW, type DayWeather, type OpenMeteoDaily } from './weather';
 import type { Chat, FriendRequest, FriendSpot, Message, MessageKind, Person, PersonDetails } from './types';
 
 const TINTS = [colors.sand, colors.softGreen, colors.softYellow];
@@ -270,4 +270,10 @@ export async function getForecast(): Promise<DayWeather[]> {
   if (!data) throw new Error('no-weather');
   const d = almaty(new Date());
   return fromOpenMeteo(data.payload as OpenMeteoDaily, d.toISOString().slice(0, 10));
+}
+
+export async function getWeatherNow(): Promise<DayWeather> {
+  const res = await withTimeout(fetch(OPEN_METEO_NOW), 4000);
+  if (!res.ok) throw new Error(`weather ${res.status}`);
+  return nowFromOpenMeteo(await res.json());
 }
