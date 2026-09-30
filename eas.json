@@ -7,14 +7,22 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_DATA_MODE": "auto" },
-      "ios": { "simulator": false },
-      "android": { "buildType": "apk" }
+      "env": {
+        "EXPO_PUBLIC_DATA_MODE": "auto"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "channel": "production",
@@ -23,8 +31,9 @@
   },
   "submit": {
     "production": {
-      "ios": { "ascAppId": "" },
-      "android": { "track": "internal" }
+      "android": {
+        "track": "internal"
+      }
     }
   }
 }

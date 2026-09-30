@@ -1,13 +1,14 @@
 // Сборщик событий. Запуск: GitHub Actions каждые 2 часа с 08:00 до 00:00 по Алматы (.github/workflows/worker.yml).
 //   node worker/src/index.ts            — все включённые Telegram-источники → черновики в базе
 //   node worker/src/index.ts --demo     — посты из worker/fixtures, печать черновиков, без записи в базу
-// Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY.
+// Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { understand } from './ai.ts';
 import { createDb } from './db.ts';
 import { processPosts, summary, type Outcome } from './pipeline.ts';
+import { fetchSite } from './sites.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
 import type { RawPost, Source } from './types.ts';
 import { geocode, type VenueRow } from './venues.ts';
@@ -53,11 +54,24 @@ async function live() {
     return demo();
   }
   const db = createDb(url, key);
-  const [sources, venues, known] = await Promise.all([db.sources(), db.venues(), db.known()]);
+  const load = () => Promise.all([db.sources(), db.venues(), db.known()]);
+  let loaded: Awaited<ReturnType<typeof load>>;
+  try {
+    loaded = await load();
+  } catch (err) {
+    // Таблиц сборщика ещё нет (миграции не применены) — не падаем каждые 2 часа, а подсказываем, что сделать.
+    if (/PGRST205|Could not find the table/.test((err as Error).message)) {
+      console.log('В базе ещё нет таблиц сборщика. Примени supabase/apply-all.sql (docs/KEYS.md) — до этого сборщик ничего не пишет.');
+      return;
+    }
+    throw err;
+  }
+  const [sources, venues, known] = loaded;
   let drafts = 0;
   for (const source of sources) {
     try {
-      const fresh = await db.savePosts(await fetchChannel(source.handle, source.id, source.cursor));
+      const fetched = source.kind === 'site' ? await fetchSite(source.handle, source.id) : await fetchChannel(source.handle, source.id, source.cursor);
+      const fresh = await db.savePosts(fetched);
       console.log(`${source.title}: новых постов ${fresh.length}`);
       const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known });
       for (const r of results) {
@@ -74,7 +88,8 @@ async function live() {
         }
       }
       print(results);
-      const lastId = fresh.at(-1)?.externalId ?? source.cursor;
+      // У сайтов нет сквозной нумерации — повторы отсекает база по адресу страницы.
+      const lastId = source.kind === 'site' ? source.cursor : (fresh.at(-1)?.externalId ?? source.cursor);
       await db.touchSource(source.id, lastId);
     } catch (err) {
       console.error(`${source.title}: ${(err as Error).message}`);
