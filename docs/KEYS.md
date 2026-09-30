@@ -114,3 +114,17 @@
 | Google Play Console ($25) | Публикация в Google Play | play.google.com/console | EAS |
 | Аккаунт Expo | Сборки для телефона, пуши | expo.dev | Токен `EXPO_TOKEN` — в переменные облачной среды. Для пушей: projectId проекта EAS (этап 10), ключи FCM v1 (Android) и APNs (iOS) — в expo.dev → Credentials. `EXPO_ACCESS_TOKEN` (если включишь защиту пушей) — в Supabase → Edge Functions → Secrets |
 | SMS-шлюз (Mobizon.kz или SMSC.kz) | Коды по SMS | Договор, имя отправителя, шаблон OTP | Ключ шлюза — Supabase → Edge Functions → Secrets; функцию Send SMS Hook добавлю, когда будет договор |
+
+## APK для Android (поставить приложение на свой телефон)
+
+Один раз:
+1. Зарегистрируйся на **expo.dev** (бесплатно).
+2. expo.dev → аватар справа вверху → **Account settings** → **Access tokens** → **Create token**. Назови, например, `github`, скопируй токен.
+3. GitHub → репозиторий `ryadom` → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Имя: `EXPO_TOKEN`, значение — токен. Сохранить. (Токен никому не пересылай, в чат тоже.)
+
+Каждый раз, когда хочешь свежую версию:
+1. GitHub → **Actions** → слева **Android APK** → справа **Run workflow** → зелёная **Run workflow**.
+2. Через 15–20 минут на expo.dev → проект **ryadom** → **Builds** появится сборка. Открой её **на телефоне** и нажми **Install** (или скачай APK).
+3. Android спросит разрешение «установка из неизвестных источников» — разреши для браузера.
+
+Карта Mapbox в APK настоящая. Если сборка упадёт — напиши мне, посмотрю лог.
