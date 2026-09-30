@@ -1,0 +1,39 @@
+# Кто смотрит изменения в какой части кода (GitHub сам зовёт его на ревью PR). Правила — CONTRIBUTING.md.
+# Как заполнить: замените @Ponchuchu у нужной зоны на GitHub-ник друга (например @friend).
+# Последнее подходящее правило главнее, поэтому общий «*» стоит первым.
+
+*                           @Ponchuchu
+
+# ——— А: приложение (экраны, навигация, анимации, сборки) ———
+/app/                       @Ponchuchu
+/src/ui/                    @Ponchuchu
+/src/components/            @Ponchuchu
+/src/theme/                 @Ponchuchu
+/src/map/                   @Ponchuchu
+/src/feed/                  @Ponchuchu
+/src/event/                 @Ponchuchu
+/src/profile/               @Ponchuchu
+/src/chat/ui/               @Ponchuchu
+/src/admin/ui/              @Ponchuchu
+/src/state/                 @Ponchuchu
+/app.json                   @Ponchuchu
+/eas.json                   @Ponchuchu
+
+# ——— Б: данные и сервер (база, функции, сборщик, логика без экранов) ———
+/supabase/                  @Ponchuchu
+/worker/                    @Ponchuchu
+/src/data/                  @Ponchuchu
+/src/auth/                  @Ponchuchu
+/src/admin/api.ts           @Ponchuchu
+/src/analytics/             @Ponchuchu
+/src/reco/                  @Ponchuchu
+/src/notify/                @Ponchuchu
+/src/server/                @Ponchuchu
+/src/chat/rules.ts          @Ponchuchu
+/src/people/visibility.ts   @Ponchuchu
+
+# ——— Общее: смотрят оба ———
+/src/data/types.ts          @Ponchuchu
+/package.json               @Ponchuchu
+/package-lock.json          @Ponchuchu
+/.github/                   @Ponchuchu

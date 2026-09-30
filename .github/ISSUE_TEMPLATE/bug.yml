@@ -1,0 +1,30 @@
+name: Баг
+description: Что-то работает не так
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Где
+      options: [Приложение (экран, анимация), Данные и сервер, Не знаю]
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить
+      placeholder: "1. Открыть «Для тебя»\n2. Свайпнуть вправо\n3. …"
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: Что ожидал и что случилось
+    validations: { required: true }
+  - type: input
+    id: device
+    attributes:
+      label: Устройство и версия
+      placeholder: "Android 14, dev build / web, Chrome"
+  - type: textarea
+    id: shots
+    attributes:
+      label: Скриншоты или видео

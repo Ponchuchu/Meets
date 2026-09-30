@@ -1,0 +1,20 @@
+name: Задача
+description: Новая функция, доработка или переделка
+labels: [task]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Зона
+      options: [А — приложение, Б — данные и сервер, Общее (types.ts, зависимости)]
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: Что нужно
+      description: Коротко, с точки зрения человека в приложении. Ссылка на макет или раздел docs/, если есть.
+    validations: { required: true }
+  - type: textarea
+    id: done
+    attributes:
+      label: Как понять, что готово

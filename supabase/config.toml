@@ -1,0 +1,12 @@
+# Настройки для Supabase CLI (npm run functions:deploy). Проект: xkpchsommtilristiesu.
+project_id = "xkpchsommtilristiesu"
+
+# deck — с входом (JWT приложения); weather и notify зовёт только база с секретом CRON_SECRET.
+[functions.deck]
+verify_jwt = true
+
+[functions.weather]
+verify_jwt = false
+
+[functions.notify]
+verify_jwt = false

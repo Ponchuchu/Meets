@@ -1,0 +1,22 @@
+# Сборщик событий: каждые 2 часа с 08:00 до 00:00 по Алматы (UTC+5). Без секретов — демо-прогон на fixtures.
+name: worker
+on:
+  schedule:
+    - cron: '0 3-19/2 * * *'
+  workflow_dispatch:
+concurrency: worker
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Сбор и разбор постов
+        run: node worker/src/index.ts
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

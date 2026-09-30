@@ -1,0 +1,6 @@
+{
+  "name": "ryadom-worker",
+  "private": true,
+  "type": "module",
+  "description": "Сборщик событий: запуск node worker/src/index.ts (Node 22.18+, без зависимостей)"
+}

@@ -1,0 +1,26 @@
+# Создаёт и обновляет метки задач из .github/labels.yml.
+name: labels
+on:
+  push:
+    branches: [main]
+    paths: ['.github/labels.yml']
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Метки
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import re, subprocess
+          for line in open('.github/labels.yml'):
+              m = re.search(r'name: ([^,]+), color: (\w+), description: "([^"]*)"', line)
+              if not m: continue
+              name, color, desc = m.groups()
+              subprocess.run(['gh', 'label', 'create', name.strip(), '--color', color, '--description', desc, '--force'], check=True)
+          PY
