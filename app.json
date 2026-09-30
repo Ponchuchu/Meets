@@ -76,7 +76,8 @@
           "cameraPermission": "Чтобы снять фото или кружок для чата."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "./plugins/with-gradle-name.js"
     ],
     "experiments": {
       "typedRoutes": true
