@@ -205,7 +205,7 @@ export default function PersonScreen() {
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet label={sheet === 'report' ? 'Пожаловаться' : 'Убрать из друзей'} style={{ paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'report' ? 'Пожаловаться' : 'Убрать из друзей'} style={{ paddingBottom: 30 + insets.bottom }}>
             {sheet === 'report' ? (
               <>
                 <Text style={styles.h2}>Пожаловаться на {p.name === 'Айнура' ? 'Айнуру' : p.name}</Text>

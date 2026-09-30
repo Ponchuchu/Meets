@@ -6,14 +6,14 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
-import { TAB_BAR_HEIGHT } from '../../src/components/TabBar';
+import { tabGap, tabInset } from '../../src/components/TabBar';
 import { data, eventsSnapshot, type EventItem } from '../../src/data';
 import { EventPage } from '../../src/event/EventPage';
 import { SwipeCard, type SwipeHandle } from '../../src/feed/SwipeCard';
 import { now as clockNow } from '../../src/lib/clock';
 import { formatWhen } from '../../src/lib/format';
 import { buildDeck, makeSignal, tasteFrom } from '../../src/reco';
-import { useApp } from '../../src/state/app';
+import { useApp, useCoverTabBar } from '../../src/state/app';
 import { track } from '../../src/analytics';
 import { useFeed } from '../../src/state/feed';
 import { usePlans } from '../../src/state/plans';
@@ -53,6 +53,7 @@ export default function ForYouScreen() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
   const opened = useRef(new Set<string>());
+  useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
 
   // Вкус = ответы регистрации + свайпы. Колода пересчитывается после каждого решения.
@@ -73,11 +74,13 @@ export default function ForYouScreen() {
   }, [taste, events, decided, history.length, now, enter]);
 
   const cardTop = Math.max(50, insets.top + 6) + 52;
-  const screenH = H || winH - TAB_BAR_HEIGHT - Math.max(0, insets.bottom - 20);
+  // Таб-бар плавает поверх: карточки и кнопки — над ним, раскрытое событие — на весь экран.
+  const fullH = H || winH;
+  const screenH = fullH - tabInset(insets.bottom) + 10;
   const cardW = W - 32;
   const cardH = Math.max(380, Math.min(500, screenH - cardTop - 138));
   // Центр иконки «Профиль» на таб-баре относительно центра карточки.
-  const target = { x: W * 0.9 - (16 + cardW / 2), y: screenH + 24 - (cardTop + cardH / 2) };
+  const target = { x: W - 16 - 28 - (16 + cardW / 2), y: fullH - tabGap(insets.bottom) - 31 - (cardTop + cardH / 2) };
 
   const showToast = (t: ToastData | null, ms = 4000) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -142,7 +145,7 @@ export default function ForYouScreen() {
     left: 16 * (1 - p.value),
     top: cardTop * (1 - p.value),
     width: cardW + 32 * p.value,
-    height: cardH + (screenH - cardH) * p.value,
+    height: cardH + (fullH - cardH) * p.value,
     borderRadius: 26 * (1 - p.value),
     opacity: 0.6 + 0.4 * p.value,
   }));
@@ -199,7 +202,7 @@ export default function ForYouScreen() {
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
-          <Animated.View style={[{ position: 'absolute', width: W, height: screenH }, clipInner]}>
+          <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
             <EventPage e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} />
           </Animated.View>

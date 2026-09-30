@@ -35,6 +35,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
+    zoomBy: (d) => {
+      if (map.current) map.current.easeTo({ zoom: map.current.getZoom() + d, duration: 300 });
+      else staticRef.current?.zoomBy(d);
+    },
   }));
 
   useEffect(() => {

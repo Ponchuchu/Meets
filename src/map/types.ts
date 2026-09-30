@@ -31,6 +31,8 @@ export interface MapCanvasProps {
 
 export interface MapCanvasHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void;
+  /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
+  zoomBy: (delta: number) => void;
 }
 
 // Алматы: стартовая камера — центр так, чтобы джаз на Панфилова был посередине, как в макете.

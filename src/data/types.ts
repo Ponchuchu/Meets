@@ -152,7 +152,13 @@ export interface FriendSpot {
 export interface TimelineItem {
   date: string; // «СБ 26»
   title: string;
-  meta: string;
+  /** Необязательная приписка — только факты: значок, новый город. */
+  meta?: string;
+  eventId?: string;
+  category?: Category;
+  place?: string;
+  /** С кем был (id друзей) — аватарки в хронике. */
+  with?: string[];
 }
 
 /** Моя история для профиля: открытый город, значки, хроника. */
@@ -220,4 +226,6 @@ export interface DataSource {
   getPersonDetails(id: string): Promise<PersonDetails | null>;
   /** Погода на 7 дней с сегодняшнего: Open-Meteo через кэш на сервере. */
   getForecast(): Promise<import('./weather').DayWeather[]>;
+  /** Погода сейчас (Open-Meteo current). */
+  getWeatherNow(): Promise<import('./weather').DayWeather>;
 }

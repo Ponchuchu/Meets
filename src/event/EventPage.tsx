@@ -297,7 +297,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
-          <BottomSheet label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'company' && <CompanySheet e={e} when={whenTitle(e, now).toLowerCase()} now={now} people={people} onClose={() => setSheet(null)} onWrite={write} />}
             {sheet === 'invite' && (
               <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} onSend={(ids) => {

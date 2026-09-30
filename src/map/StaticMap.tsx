@@ -9,7 +9,10 @@ export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function St
   const [size, setSize] = useState({ w: 390, h: 844 });
   // Подложка тоже умеет «лететь»: сдвигаем камеру (пины пересчитываются, картинка остаётся фоном).
   const [camera, setCamera] = useState(initial);
-  useImperativeHandle(ref, () => ({ flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })) }));
+  useImperativeHandle(ref, () => ({
+    flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })),
+    zoomBy: (d) => setCamera((c) => ({ ...c, zoom: Math.max(10, Math.min(18, c.zoom + d)) })),
+  }));
   useEffect(() => { onZoom?.(camera.zoom); }, [camera.zoom, onZoom]);
   useEffect(() => { onCenter?.(camera.lat, camera.lon); }, [camera.lat, camera.lon, onCenter]);
   return (
