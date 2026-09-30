@@ -72,7 +72,8 @@
     "test": "jest",
     "build:web": "expo export -p web",
     "shots": "NODE_USE_ENV_PROXY=1 node scripts/shots.mjs",
-    "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs"
+    "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs",
+    "db:bundle": "node scripts/bundle-sql.mjs"
   },
   "private": true,
   "jest": {

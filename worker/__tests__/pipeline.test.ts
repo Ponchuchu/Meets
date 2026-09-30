@@ -4,6 +4,7 @@ import { findDuplicate, similarity } from '../src/dedupe.ts';
 import { autoPublish, buildDraft } from '../src/draft.ts';
 import { classify, extract, parsePrice, parseWhen } from '../src/heuristics.ts';
 import { processPosts, summary } from '../src/pipeline.ts';
+import { parseSxodimEvent, parseSxodimList } from '../src/sites.ts';
 import { htmlToText, parseChannel } from '../src/telegram.ts';
 import type { RawPost, Source } from '../src/types.ts';
 import { isVague, matchVenue, type VenueRow } from '../src/venues.ts';
@@ -105,5 +106,17 @@ describe('весь проход на примерах', () => {
     expect(summary(res)).toEqual({ posts: 9, events: 4, ad: 1, meme: 1, not_almaty: 1, duplicate: 1, cancel: 1, unclear: 0, published: 0 });
     const cancel = res.find((r) => r.kind === 'cancel');
     expect(cancel).toMatchObject({ of: { id: 'jazz' }, sure: false });
+  });
+});
+
+describe('Сайт sxodim.com', () => {
+  it('страница события → пост с датой, местом и ценой', () => {
+    const post = parseSxodimEvent(fx('sxodim-event.html'), 'https://sxodim.com/almaty/event/koncert-dosekesh', 's');
+    expect(post).toMatchObject({ externalId: 'koncert-dosekesh', images: [expect.stringContaining('sxodim.com/uploads')] });
+    expect(post!.text).toContain('Когда: 2026-10-30T19:00:00+05:00');
+    expect(post!.text).toContain('ул. Барибаева, 36');
+    expect(post!.text).toContain('Цена: от 30000 ₸');
+    expect(parseSxodimList('<a href="https://sxodim.com/almaty/event/a-b">x</a><a href="https://sxodim.com/almaty/event/a-b">y</a>')).toEqual(['https://sxodim.com/almaty/event/a-b']);
+    expect(parseSxodimEvent('<html></html>', 'u', 's')).toBeNull();
   });
 });

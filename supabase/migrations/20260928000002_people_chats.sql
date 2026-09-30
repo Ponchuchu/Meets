@@ -491,7 +491,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- Broadcast геолокации: канал «loc:<id>». Писать — только в свой, читать — только друзьям владельца.
-alter table if exists realtime.messages enable row level security;
+-- RLS на realtime.messages Supabase включает сам (таблица принадлежит ему — alter из SQL Editor запрещён).
 drop policy if exists loc_broadcast_write on realtime.messages;
 create policy loc_broadcast_write on realtime.messages for insert to authenticated with check (
   realtime.topic() = 'loc:' || auth.uid()::text
