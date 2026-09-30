@@ -16,6 +16,10 @@ export interface Draft {
   times: TimeSlot[];
   withWho: WithWho;
   budget: Budget;
+  /** Правки профиля на устройстве (поверх того, что пришло с сервера). */
+  about?: string;
+  handle?: string;
+  instagram?: string;
 }
 
 // Значения по умолчанию — как в макете: 3 интереса, будни вечером + выходные днём, с друзьями, до 5 000 ₸.

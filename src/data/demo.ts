@@ -204,6 +204,41 @@ export const FRIEND_SPOTS: FriendSpot[] = [
 ];
 export const MY_SPOT = { lat: 43.2533, lon: 76.9409 };
 
+// Архив: где я уже был (для хроники профиля). Даты — назад от «сегодня», чтобы демо не старело.
+const WD = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+export function archiveEvents(base = now()): EventItem[] {
+  const past = (d: number, hh: number) => at(-d, hh, 0, base);
+  const list: DemoSeed[] = [
+    { id: 'past-kino', title: 'Кинопоказ во дворе', category: 'talks', startsAt: past(4, 20), endsAt: past(4, 22),
+      venueName: 'Двор на Жибек Жолы', address: 'Двор на Жибек Жолы, 50', lat: 43.2618, lon: 76.9391,
+      priceMin: 0, priceMax: 0, isFree: true, cover: null,
+      about: 'Проектор на стене дома, пледы и старое кино. Соседи принесли чай.', friendsGoing: ['igor', 'denis'], lookingCount: 0, goingCount: 40 },
+    { id: 'past-dinner', title: 'Ужин у Игоря', category: 'meetup', startsAt: past(5, 19), endsAt: past(5, 23),
+      venueName: 'У Игоря', address: 'Жибек Жолы, 115', lat: 43.2601, lon: 76.9344,
+      priceMin: 0, priceMax: 0, isFree: true, cover: null, organizer: 'Игорь',
+      about: 'Игорь позвал на плов. Засиделись до ночи, договорились про поход.', friendsGoing: ['igor', 'denis', 'anton'], lookingCount: 0, goingCount: 4,
+      meetup: { kind: 'Ужин', plusOne: false, invited: ['denis', 'anton'], items: [] } },
+    { id: 'past-games', title: 'Настолки', category: 'games', startsAt: past(6, 20), endsAt: past(6, 23),
+      venueName: 'Антикафе', address: 'Антикафе, Толе би, 64', lat: 43.2551, lon: 76.9310,
+      priceMin: 2000, priceMax: 2000, isFree: false, cover: null,
+      about: 'Пришёл один, ведущий посадил за стол к новым людям.', friendsGoing: [], lookingCount: 0, goingCount: 22 },
+    { id: 'past-koktobe', title: 'Утро на Кок-Тобе', category: 'hike', startsAt: past(10, 7), endsAt: past(10, 10),
+      venueName: 'Кок-Тобе', address: 'Кок-Тобе, смотровая', lat: 43.2330, lon: 76.9760,
+      priceMin: 0, priceMax: 0, isFree: true, cover: 'hike',
+      about: 'Встречали рассвет над городом.', friendsGoing: ['timur'], lookingCount: 0, goingCount: 12 },
+  ];
+  return list.map((e) => ({ tags: [], organizer: null, isLong: false, ...e, origin: 'demo', visibility: e.meetup ? 'friends' : 'public', needsPin: false, sourceUrl: null }));
+}
+
+function archiveTimeline(base = now()): MyProfile['timeline'] {
+  const label = (iso: string) => { const d = almaty(iso); return `${WD[d.getUTCDay()]} ${d.getUTCDate()}`; };
+  const meta: Record<string, string> = { 'past-koktobe': 'Значок «Выше города»' };
+  return archiveEvents(base).map((e) => ({
+    date: label(e.startsAt), title: e.title, eventId: e.id, category: e.category, place: e.venueName ?? undefined,
+    with: e.friendsGoing, meta: meta[e.id],
+  }));
+}
+
 // Моя история (демо): 185 сот с событиями вокруг центра, 37 открыто → 20% города, уровень 4.
 function demoCells(): { all: string[]; visited: string[] } {
   const center = latLngToCell(43.2465, 76.9280, 8);
@@ -229,12 +264,12 @@ export function demoProfile(): MyProfile {
       { iso: 'KG', name: 'Кыргызстан', note: '1 город', got: true }, { iso: 'GE', name: 'Грузия', note: 'ещё нет', got: false },
       { iso: 'TR', name: 'Турция', note: 'ещё нет', got: false }, { iso: 'AE', name: 'ОАЭ', note: 'ещё нет', got: false },
     ],
-    timeline: [
-      { date: 'СБ 26', title: 'Кинопоказ во дворе', category: 'talks', place: 'Двор на Жибек Жолы', with: ['igor', 'denis'] },
-      { date: 'ЧТ 24', title: 'Настолки', category: 'games', place: 'Антикафе на Толе би' },
-      { date: 'ВС 20', title: 'Утро на Кок-Тобе', category: 'hike', place: 'Кок-Тобе', meta: 'Значок «Выше города»' },
-      { date: 'ПТ 11', title: 'Лекция в Ташкенте', category: 'lecture', place: 'Ташкент', meta: 'Новый город и страна' },
+    nights: [
+      { lat: 43.2428, lon: 76.9562, label: 'Дом', count: 214 },
+      { lat: 43.2601, lon: 76.9344, label: 'У Игоря', count: 6 },
+      { lat: 43.2382, lon: 76.9051, label: 'У Дениса', count: 3 },
     ],
+    timeline: [...archiveTimeline(), { date: 'ПТ 11', title: 'Лекция в Ташкенте', category: 'lecture', place: 'Ташкент', meta: 'Новый город и страна' }],
     badgeProgress: { opener: 1, above: 1, host: 1, countries3: 3, cities5: 5, regular: 3, night: 2, districts: 6, conqueror: 1, jazz: 1, games: 2 },
     invitesToMe: [{ eventId: 'games', fromId: 'denis' }],
   };

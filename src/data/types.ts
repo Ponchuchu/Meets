@@ -175,6 +175,8 @@ export interface MyProfile {
   cities: { name: string; note: string; pct: number }[];
   countries: { iso: string; name: string; note: string; got: boolean }[];
   timeline: TimelineItem[];
+  /** Где ночевал — видно только мне (полноэкранная «Моя карта»). */
+  nights?: { lat: number; lon: number; label: string; count: number }[];
   badgeProgress: Record<string, number>;
   /** Меня зовут: id события и кто зовёт. */
   invitesToMe: { eventId: string; fromId: string }[];

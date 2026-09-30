@@ -1,4 +1,4 @@
-// «Друзья»: заявки (если есть) → «Рекомендации» (три человека, «Все» раскрывает список) → «Друзья · N» → планы друзей.
+// «Друзья»: заявки (если есть) → «Рекомендации» (листаемые карточки) → «Друзья · N» → планы друзей.
 // «Добавить друга»: поиск по имени или нику, приглашение ссылкой, Bump — телефоны рядом.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -31,7 +31,6 @@ export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const tabPad = useTabInset() + 16;
   const now = clockNow();
-  const [allReco, setAllReco] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
@@ -95,35 +94,33 @@ export default function FriendsScreen() {
           </Animated.View>
         )}
 
+        {/* Рекомендации — листаемые карточки, как «Рекомендации для вас» в Instagram. */}
         {suggestions.length > 0 && (
-          <View style={[styles.row, { marginTop: 4 }]}>
+          <View style={{ gap: 10, marginTop: 4 }}>
             <Text style={styles.h2}>Рекомендации</Text>
-            {suggestions.length > 3 && (
-              <Pressable onPress={() => setAllReco(!allReco)} hitSlop={10} style={styles.allBtn} accessibilityRole="button" accessibilityState={{ expanded: allReco }}>
-                <Text style={styles.allText}>{allReco ? 'Свернуть' : `Все · ${suggestions.length}`}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-        {suggestions.length > 0 && (
-          <View style={{ gap: 8 }}>
-            {(allReco ? suggestions : suggestions.slice(0, 3)).map((p) => {
-              const sent = !!social.sent[p.id];
-              return (
-                <View key={p.id} style={styles.card}>
-                  <Pressable onPress={() => openPerson(p.id)} style={styles.cardMain} accessibilityRole="link">
-                    <Avatar p={p} size={48} radius={16} />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.name}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-                      <Text style={styles.sub}>{REASON[p.id] ?? PERSON_DETAILS[p.id]?.suggestNote ?? 'общий знакомый'}</Text>
-                    </View>
-                  </Pressable>
-                  <Pressable onPress={() => social.toggleRequest(p.id)} style={[styles.dark, sent && { backgroundColor: colors.sand }]} accessibilityRole="button" accessibilityState={{ selected: sent }}>
-                    <Text style={[styles.darkText, sent && { color: colors.ink }]}>{sent ? 'Заявка ушла' : 'Добавить'}</Text>
-                  </Pressable>
-                </View>
-              );
-            })}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={148} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginHorizontal: -16 }}>
+              <View style={{ width: 6 }} />
+              {suggestions.map((p, i) => {
+                const sent = !!social.sent[p.id];
+                return (
+                  <Animated.View key={p.id} entering={FadeIn.delay(i * 60)} style={styles.sCard}>
+                    <Pressable onPress={() => social.hide(p.id)} hitSlop={8} style={styles.sHide} accessibilityRole="button" accessibilityLabel={`Скрыть: ${p.name}`}>
+                      <Ic d={IC.close} size={12} color={colors.muted} w={2.4} />
+                    </Pressable>
+                    <Pressable onPress={() => openPerson(p.id)} style={{ alignItems: 'center', gap: 8 }} accessibilityRole="link" accessibilityLabel={p.name}>
+                      <Avatar p={p} size={76} />
+                      <View style={{ alignItems: 'center', gap: 2 }}>
+                        <Text style={styles.name} numberOfLines={1}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
+                        <Text style={[styles.sub, { textAlign: 'center' }]} numberOfLines={2}>{REASON[p.id] ?? PERSON_DETAILS[p.id]?.suggestNote ?? 'общий знакомый'}</Text>
+                      </View>
+                    </Pressable>
+                    <Pressable onPress={() => social.toggleRequest(p.id)} style={[styles.sBtn, sent && { backgroundColor: colors.sand2 }]} accessibilityRole="button" accessibilityState={{ selected: sent }} accessibilityLabel={sent ? `Заявка ушла: ${p.name}` : `Добавить: ${p.name}`}>
+                      <Text style={[styles.darkText, sent && { color: colors.ink }]}>{sent ? 'Заявка ушла' : 'Добавить'}</Text>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
 
@@ -289,8 +286,9 @@ function Rename({ p, value, onSave }: { p: Person; value: string; onSave: (v: st
 }
 
 const styles = StyleSheet.create({
-  allBtn: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.sand2, justifyContent: 'center' },
-  allText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
+  sCard: { width: 138, padding: 12, paddingTop: 16, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', gap: 12, justifyContent: 'space-between' },
+  sHide: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  sBtn: { alignSelf: 'stretch', height: 36, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   h1: { flex: 1, fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, color: colors.ink },

@@ -1,12 +1,14 @@
 // Таб-бар: плавающая полупрозрачная капсула поверх экрана (карта видна сквозь неё и вокруг).
-// Активная вкладка — тёмная «таблетка» с иконкой и подписью; она плавно переезжает пружиной, как в iOS.
-// Остальные вкладки — только иконки, поэтому длинное «Рекомендации» не обрезается.
+// Активная вкладка — тёмная «таблетка» по ширине подписи; переезжает пружиной, иконка «закрашивается» снизу вверх.
+// Остальные вкладки — только иконки. Таблетку можно вести пальцем по капсуле — вкладки переключаются на лету.
 // Когда открыта шторка или раскрытая карточка — капсула уезжает вниз.
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { scheduleOnRN } from 'react-native-worklets';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { data } from '../data';
@@ -65,38 +67,48 @@ function PlanPulse() {
   );
 }
 
-function Tab({ i, pos, inW, outW, name, active, onPress, badge }: {
-  i: number; pos: SharedValue<number>; inW: number; outW: number; name: string; active: boolean; onPress: () => void; badge?: React.ReactNode;
+const ICON = 24;
+const GAP = 7;
+const PADX = 16;
+/** Примерная ширина подписи, пока не измерили настоящую (Golos 600, 12.5 px). */
+const guessW = (t: string) => Math.round(t.length * 7.2);
+
+/** Раскладка для выбранной вкладки: активная — по ширине подписи, остальные делят остаток поровну. */
+function layout(n: number, active: number, total: number, labelW: number) {
+  const out = Math.min(total - n * 40, PADX * 2 + ICON + GAP + labelW);
+  const inn = (total - out) / (n - 1);
+  const widths = Array.from({ length: n }, (_, i) => (i === active ? out : inn));
+  return { widths, x: inn * active, w: out };
+}
+
+function Tab({ name, width, on, active, onPress, badge, count }: {
+  name: string; width: SharedValue<number>; on: SharedValue<number>; active: boolean; onPress: () => void; badge?: React.ReactNode; count?: number;
 }) {
   const tab = TABS[name];
-  const bounce = useSharedValue(1);
-  const tilt = useSharedValue(0);
+  // Заливка «поднимается» снизу вверх, когда вкладка становится активной, и уходит, когда нет.
+  const fill = useSharedValue(active ? 1 : 0);
   useEffect(() => {
-    if (!active) return;
-    // Иконка «подпрыгивает» при выборе: сжатие → пружина, лёгкий наклон.
-    bounce.set(withSequence(withTiming(0.78, { duration: 90 }), withSpring(1, { damping: 7, stiffness: 260 })));
-    tilt.set(withSequence(withTiming(-10, { duration: 110 }), withSpring(0, { damping: 6, stiffness: 200 })));
-  }, [active, bounce, tilt]);
-  const box = useAnimatedStyle(() => {
-    const d = Math.min(1, Math.abs(pos.get() - i));
-    return { width: interpolate(d, [0, 1], [outW, inW]) };
-  });
-  const label = useAnimatedStyle(() => {
-    const d = Math.min(1, Math.abs(pos.get() - i));
-    return { opacity: interpolate(d, [0, 0.6], [1, 0], 'clamp'), maxWidth: interpolate(d, [0, 1], [outW - 36, 0]), marginLeft: interpolate(d, [0, 1], [7, 0]) };
-  });
-  const icon = useAnimatedStyle(() => ({ transform: [{ scale: bounce.get() }, { rotate: `${tilt.get()}deg` }] }));
-  const light = useAnimatedStyle(() => ({ opacity: 1 - Math.min(1, Math.abs(pos.get() - i)) }));
+    fill.set(active ? withDelay(90, withTiming(1, { duration: 380, easing: Easing.out(Easing.cubic) })) : withTiming(0, { duration: 160 }));
+  }, [active, fill]);
+  const box = useAnimatedStyle(() => ({ width: width.get() }));
+  const label = useAnimatedStyle(() => ({ opacity: on.get(), maxWidth: on.get() * 140, marginLeft: on.get() * GAP }));
+  const dark = useAnimatedStyle(() => ({ opacity: 1 - on.get() }));
+  const light = useAnimatedStyle(() => ({ opacity: on.get() }));
+  const rise = useAnimatedStyle(() => ({ height: ICON * fill.get() }));
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={tab.label}>
+    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={count ? `${tab.label}, ${count} новых` : tab.label}>
       {({ pressed }) => (
-        <Animated.View style={[styles.tab, box, { transform: [{ scale: pressed ? 0.92 : 1 }] }]}>
-          <Animated.View style={icon}>
-            <Icon name={tab.icon} color={colors.ink} />
-            <Animated.View style={[StyleSheet.absoluteFill, light]}><Icon name={tab.icon} color={colors.paper} strokeWidth={2} /></Animated.View>
-          </Animated.View>
-          <Animated.View style={[{ overflow: 'hidden' }, label]}>
+        <Animated.View style={[styles.tab, box, { transform: [{ scale: pressed ? 0.94 : 1 }] }]}>
+          <View style={{ width: ICON, height: ICON }}>
+            <Animated.View style={[StyleSheet.absoluteFill, dark]}><Icon name={tab.icon} color={colors.ink} /></Animated.View>
+            <Animated.View style={[StyleSheet.absoluteFill, light]}><Icon name={tab.icon} color={colors.paper} /></Animated.View>
+            <Animated.View style={[styles.rise, rise]}>
+              <View style={styles.riseInner}><Icon name={tab.icon} color={colors.paper} filled detail={colors.ink} /></View>
+            </Animated.View>
+          </View>
+          <Animated.View style={[styles.labelBox, label]}>
             <Text style={styles.label} numberOfLines={1}>{tab.label}</Text>
+            {!!count && <View style={styles.count}><Text style={styles.countText}>{count}</Text></View>}
           </Animated.View>
           {badge}
         </Animated.View>
@@ -117,49 +129,81 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const routes = state.routes.filter((r) => TABS[r.name]);
   const activeKey = state.routes[state.index]?.name;
   const idx = Math.max(0, routes.findIndex((r) => r.name === activeKey));
+  const countOf = (name: string) => (name === 'chats' ? unread : name === 'me' ? newPlans : 0);
 
-  // Ширины: неактивные — квадраты под иконку, активная забирает остаток под иконку + подпись.
   const barW = Math.min(width - SIDE * 2, 460);
-  const inW = Math.min(54, (barW - PAD * 2) / 6.6);
-  const outW = barW - PAD * 2 - inW * (routes.length - 1);
+  const total = barW - PAD * 2;
+  // Настоящие ширины подписей меряем невидимым текстом (шрифт может отличаться от оценки).
+  const [measured, setMeasured] = useState<Record<string, number>>({});
+  const labelW = (name: string) => (measured[name] ?? guessW(TABS[name].label)) + (countOf(name) ? 24 : 0);
+  const L = layout(routes.length, idx, total, labelW(routes[idx]?.name ?? 'index'));
 
-  const pos = useSharedValue(idx);
-  useEffect(() => { pos.set(withSpring(idx, SPRING)); }, [idx, pos]);
+  // Пять вкладок фиксированы — по общему значению ширины и «включённости» на каждую.
+  const w0 = useSharedValue(L.widths[0] ?? 0); const w1 = useSharedValue(L.widths[1] ?? 0); const w2 = useSharedValue(L.widths[2] ?? 0);
+  const w3 = useSharedValue(L.widths[3] ?? 0); const w4 = useSharedValue(L.widths[4] ?? 0);
+  const o0 = useSharedValue(idx === 0 ? 1 : 0); const o1 = useSharedValue(idx === 1 ? 1 : 0); const o2 = useSharedValue(idx === 2 ? 1 : 0);
+  const o3 = useSharedValue(idx === 3 ? 1 : 0); const o4 = useSharedValue(idx === 4 ? 1 : 0);
+  const ws = [w0, w1, w2, w3, w4];
+  const os = [o0, o1, o2, o3, o4];
+  const px = useSharedValue(L.x);
+  const pw = useSharedValue(L.w);
+  const key = L.widths.map((x) => x.toFixed(1)).join(',');
+  useEffect(() => {
+    L.widths.forEach((w, i) => { ws[i].set(withSpring(w, SPRING)); os[i].set(withTiming(i === idx ? 1 : 0, { duration: i === idx ? 260 : 140 })); });
+    px.set(withSpring(L.x, SPRING));
+    pw.set(withSpring(L.w, SPRING));
+  }, [key, idx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const hide = useSharedValue(0);
   useEffect(() => { hide.set(withTiming(covers > 0 ? 1 : 0, { duration: covers > 0 ? 200 : 260 })); }, [covers, hide]);
-
-  const pill = useAnimatedStyle(() => ({ width: outW, transform: [{ translateX: pos.get() * inW }] }));
+  const pill = useAnimatedStyle(() => ({ width: pw.get(), transform: [{ translateX: px.get() }] }));
   const wrap = useAnimatedStyle(() => ({ opacity: 1 - hide.get(), transform: [{ translateY: hide.get() * (BAR_H + 40) }] }));
+
+  const go = (i: number) => {
+    const route = routes[i];
+    if (!route || route.name === activeKey) return;
+    const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!e.defaultPrevented) navigation.navigate(route.name);
+  };
+  // Держишь таблетку и ведёшь пальцем — вкладка под пальцем включается сразу («хоп»), как в iOS.
+  const dragTo = (x: number) => {
+    let acc = 0;
+    for (let i = 0; i < L.widths.length; i++) {
+      acc += L.widths[i];
+      if (x < acc) { go(i); return; }
+    }
+    go(L.widths.length - 1);
+  };
+  const drag = Gesture.Pan().activeOffsetX([-10, 10]).failOffsetY([-14, 14])
+    .onUpdate((e) => { scheduleOnRN(dragTo, e.x - PAD); });
 
   return (
     <Animated.View pointerEvents={covers > 0 ? 'none' : 'box-none'} style={[styles.wrap, { bottom: tabGap(insets.bottom) }, wrap]}>
-      <View style={[styles.bar, { width: barW }, Platform.OS === 'web' ? GLASS_WEB : null]} accessibilityRole="tablist">
-        <Animated.View pointerEvents="none" style={[styles.pill, pill]} />
-        {routes.map((route, i) => {
-          const active = route.name === activeKey;
-          const onPress = () => {
-            const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!active && !e.defaultPrevented) navigation.navigate(route.name);
-          };
-          const badge = (
-            <>
-              {route.name === 'foryou' && freshFeed && !active && <View style={styles.dot} accessibilityLabel="Есть новые карточки" />}
-              {route.name === 'chats' && unread > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.accent }]} accessibilityLabel={`${unread} непрочитанных`}>
-                  <Text style={[styles.badgeText, { color: colors.ink }]}>{unread}</Text>
-                </View>
-              )}
-              {route.name === 'me' && newPlans > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.accent }]} accessibilityLabel={`Новых планов: ${newPlans}`}>
-                  <Text style={[styles.badgeText, { color: colors.ink }]}>{newPlans}</Text>
-                </View>
-              )}
-              {route.name === 'me' && <PlanPulse />}
-            </>
-          );
-          return <Tab key={route.key} i={i} pos={pos} inW={inW} outW={outW} name={route.name} active={active} onPress={onPress} badge={badge} />;
-        })}
+      <View style={styles.measure} pointerEvents="none">
+        {routes.map((r) => (
+          <Text key={r.key} style={styles.label} onLayout={(e) => {
+            const w = Math.ceil(e.nativeEvent.layout.width);
+            if (w && measured[r.name] !== w) setMeasured((m) => ({ ...m, [r.name]: w }));
+          }}>{TABS[r.name].label}</Text>
+        ))}
       </View>
+      <GestureDetector gesture={drag}>
+        <View style={[styles.bar, { width: barW }, Platform.OS === 'web' ? GLASS_WEB : null]} accessibilityRole="tablist">
+          <Animated.View pointerEvents="none" style={[styles.pill, pill]} />
+          {routes.map((route, i) => {
+            const active = route.name === activeKey;
+            const n = countOf(route.name);
+            // Непрочитанное у неактивной вкладки — маленькая точка; у активной число стоит рядом с подписью.
+            const badge = (
+              <>
+                {!active && ((route.name === 'foryou' && freshFeed) || n > 0) && <View style={styles.dot} accessibilityElementsHidden />}
+                {route.name === 'me' && <PlanPulse />}
+              </>
+            );
+            return <Tab key={route.key} name={route.name} width={ws[i]} on={os[i]} active={active} onPress={() => go(i)} badge={badge} count={n} />;
+          })}
+        </View>
+      </GestureDetector>
     </Animated.View>
   );
 }
@@ -175,16 +219,13 @@ const styles = StyleSheet.create({
   pill: { position: 'absolute', left: PAD, top: PAD, bottom: PAD, borderRadius: (BAR_H - PAD * 2) / 2, backgroundColor: colors.ink },
   tab: { height: BAR_H - PAD * 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 26, position: 'relative' },
   label: { fontFamily: fonts.body600, fontSize: 12.5, letterSpacing: -0.25, color: colors.paper },
-  dot: {
-    position: 'absolute', top: 7, right: 9, width: 11, height: 11, borderRadius: 5.5,
-    backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.cardAlt, zIndex: 2,
-  },
-  badge: {
-    position: 'absolute', top: 1, right: 2, minWidth: 20, height: 20, paddingHorizontal: 4,
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center', zIndex: 2,
-    borderWidth: 2, borderColor: colors.cardAlt,
-  },
-  badgeText: { fontFamily: fonts.mono600, fontSize: 9.5 },
+  labelBox: { flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  measure: { position: 'absolute', opacity: 0, left: -1000, flexDirection: 'row' },
+  rise: { position: 'absolute', left: 0, right: 0, bottom: 0, overflow: 'hidden' },
+  riseInner: { position: 'absolute', left: 0, bottom: 0, width: ICON, height: ICON },
+  count: { marginLeft: 6, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  countText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
+  dot: { position: 'absolute', top: 12, left: '50%', marginLeft: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, zIndex: 2 },
   ring: { position: 'absolute', top: 2, left: '50%', marginLeft: -24, width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.accent },
   plus: { position: 'absolute', top: -20, right: 0, fontFamily: fonts.display800, fontSize: 15, color: colors.accent },
 });

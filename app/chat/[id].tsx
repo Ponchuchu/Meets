@@ -231,7 +231,7 @@ export default function ChatScreen() {
         {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}
       </ScrollView>
 
-      {check.ok && (
+      {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: tray ? 10 : 14 + insets.bottom }]}>
           <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
@@ -273,6 +273,9 @@ export default function ChatScreen() {
             <View style={{ flex: 1 }} />
             <Pressable onPress={() => setPoll({ q: '', options: ['', ''] })} style={styles.trayBtn} accessibilityRole="button">
               <Ic d={POLL_IC} size={16} color={colors.ink} w={2.2} /><Text style={styles.trayBtnText}>Опрос</Text>
+            </Pressable>
+            <Pressable onPress={() => { setTray(false); setAlbumsOpen(false); }} style={styles.trayClose} hitSlop={6} accessibilityRole="button" accessibilityLabel="Закрыть вложения">
+              <Ic d={IC.close} size={15} color={colors.ink} w={2.3} />
             </Pressable>
           </View>
           {albumsOpen && (
@@ -444,6 +447,7 @@ const styles = StyleSheet.create({
   albums: { borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
   albumRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 44, paddingHorizontal: 14 },
   trayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  trayClose: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.sand2, alignItems: 'center', justifyContent: 'center' },
   trayBtnText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
   camTile: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', gap: 6 },
   camLens: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' },

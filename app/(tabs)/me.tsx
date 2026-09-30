@@ -1,5 +1,4 @@
 // Профиль — одна страница (design/png/Me.png, MeBadges.png). Ничего не проваливается в отдельные экраны.
-import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -7,16 +6,16 @@ import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, TextInp
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../src/components/TabBar';
-import { data, eventsSnapshot, type EventItem } from '../../src/data';
+import type { EventItem } from '../../src/data';
 import { photo } from '../../src/data/photos';
 import { now as clockNow } from '../../src/lib/clock';
 import { badgeRow, badgeStates, sortBadges } from '../../src/profile/badges';
 import { cityPercent, levelOf, levelProgress, nextLevelHint } from '../../src/profile/city';
 import { CityMap } from '../../src/profile/ui/CityMap';
-import { Plans, withFriends, type PlanRow } from '../../src/profile/ui/Plans';
+import { Plans } from '../../src/profile/ui/Plans';
+import { usePlanRows } from '../../src/profile/usePlanRows';
 import type { Interest } from '../../src/reco/startTaste';
 import { useApp } from '../../src/state/app';
-import { usePlans } from '../../src/state/plans';
 import { RING_STYLES, statusSticker, useProfile } from '../../src/state/profile';
 import { RingView, StatusTag } from '../../src/profile/ui/MarkerArt';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../src/map/icons';
@@ -46,13 +45,6 @@ const PHOTO_OPTS: [string, string, string][] = [
   ['camera', 'Сделать снимок', 'M4 8h3l2-3h6l2 3h3v11H4zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z'],
 ];
 
-/** «от Дениса», «от Игоря», «от Айнуры». */
-function genitive(name: string): string {
-  if (/ь$/.test(name)) return name.slice(0, -1) + 'я';
-  if (/[ая]$/.test(name)) return name.slice(0, -1) + (/[гкхжшщч]а$/.test(name) ? 'и' : 'ы');
-  if (/й$/.test(name)) return name.slice(0, -1) + 'я';
-  return name + 'а';
-}
 
 type Sheet = null | 'badges' | 'interests' | 'edit' | { day: TimelineItem };
 type MapTab = 'city' | 'cities' | 'countries';
@@ -70,41 +62,9 @@ export default function MeScreen() {
   const draft = useSession((s) => s.draft);
   const update = useSession((s) => s.update);
   const finish = useSession((s) => s.finish);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: me } = useQuery({ queryKey: ['myProfile'], queryFn: () => data.getMyProfile() });
-  const { going, saved, meetups, declined, go, decline } = usePlans();
+  const { events, people, me, byId, goingRows, inviteRows, savedRows } = usePlanRows(now);
   const arrivals = useProfile((s) => s.arrivals);
   const marker = useProfile((s) => s.marker);
-  const addPlan = useApp((s) => s.addPlan);
-
-  const all = useMemo(() => [...meetups, ...events], [meetups, events]);
-  const byId = (id: string) => all.find((e) => e.id === id);
-  const upcoming = (e: EventItem | undefined): e is EventItem => !!e && new Date(e.endsAt ?? e.startsAt).getTime() + 7200e3 > now.getTime();
-
-  const goingRows: PlanRow[] = Object.entries(going)
-    .map(([id, at]) => ({ e: byId(id), at }))
-    .filter((x): x is { e: EventItem; at: string } => upcoming(x.e))
-    .sort((a, b) => a.e.startsAt.localeCompare(b.e.startsAt))
-    .map(({ e, at }) => ({
-      e,
-      sub: e.meetup ? `${e.meetup.invited.length} из ${e.meetup.invited.length} приняли` : withFriends(e, people),
-      faces: e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p),
-      tag: e.meetup ? { text: 'ОРГАНИЗУЮ', bg: colors.accent, fg: colors.ink }
-        : now.getTime() - new Date(at).getTime() < 3 * 3600e3 ? { text: 'НОВОЕ', bg: colors.ink, fg: colors.paper } : undefined,
-    }));
-  const inviteRows: PlanRow[] = (me?.invitesToMe ?? [])
-    .filter((i) => !going[i.eventId] && !declined[i.eventId])
-    .map((i) => ({ i, e: byId(i.eventId), from: people.find((p) => p.id === i.fromId) }))
-    .filter((x) => upcoming(x.e))
-    .map(({ i, e, from }) => ({
-      e: e!,
-      sub: `${from?.name ?? 'Друг'} зовёт`,
-      faces: from ? [from] : [],
-      tag: { text: `ОТ ${genitive(from?.name ?? '').toUpperCase()}`, bg: colors.friend, fg: '#FFFFFF' },
-      invite: { fromName: from?.name ?? '', onYes: () => { go(i.eventId); addPlan(); }, onNo: () => decline(i.eventId) },
-    }));
-  const savedRows: PlanRow[] = Object.keys(saved).map(byId).filter(upcoming).map((e) => ({ e, sub: `${e.isFree ? 'бесплатно' : `от ${(e.priceMin ?? 0).toLocaleString('ru-RU')} ₸`} · решишь позже` }));
 
   const visited = useMemo(() => [...new Set([...(me?.visitedCells ?? []), ...arrivals.map((a) => a.cell)])], [me, arrivals]);
   const eventCells = me?.eventCells ?? [];
@@ -132,7 +92,10 @@ export default function MeScreen() {
       if (!res.canceled && res.assets[0]) update({ photo: res.assets[0].uri });
     } catch { /* нет камеры — ничего не меняем */ }
   };
-  const share = () => Share.share({ message: `Я в «рядом.» — @${me?.handle ?? 'danil'}. Пойдём куда-нибудь вместе?` }).catch(() => {});
+  const handle = draft.handle || me?.handle || 'danil';
+  const about = draft.about ?? me?.about ?? '';
+  const insta = (draft.instagram ?? me?.instagram ?? '').replace(/^@/, '');
+  const share = () => Share.share({ message: `Я в «рядом.» — @${handle}. Пойдём куда-нибудь вместе?` }).catch(() => {});
 
   return (
     <View style={styles.root}>
@@ -152,14 +115,14 @@ export default function MeScreen() {
           <View style={{ flex: 1, gap: 4, paddingTop: 6 }}>
             <Text style={styles.name}>{draft.name || 'Данил'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.handleText}>@{me?.handle ?? 'danil'}</Text>
-              {me?.instagram !== null && (
-                <Pressable onPress={() => Linking.openURL(`https://instagram.com/${me?.instagram ?? me?.handle ?? 'danil'}`).catch(() => {})} hitSlop={12} style={styles.insta} accessibilityRole="link" accessibilityLabel="Instagram">
+              <Text style={styles.handleText}>@{handle}</Text>
+              {!!insta && (
+                <Pressable onPress={() => Linking.openURL(`https://instagram.com/${insta}`).catch(() => {})} hitSlop={12} style={styles.insta} accessibilityRole="link" accessibilityLabel="Instagram">
                   <Ic d={PHOTO_OPTS[0][2]} size={15} color={colors.ink} w={2} />
                 </Pressable>
               )}
             </View>
-            {!!me?.about && <Text style={styles.about}>{me.about}</Text>}
+            {!!about && <Text style={styles.about}>{about}</Text>}
           </View>
         </View>
         {menu && (
@@ -173,12 +136,12 @@ export default function MeScreen() {
           </Animated.View>
         )}
 
-        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} />
-
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Pressable onPress={() => setSheet('edit')} style={styles.halfBtn} accessibilityRole="button"><Text style={styles.halfText}>Изменить профиль</Text></Pressable>
           <Pressable onPress={share} style={styles.halfBtn} accessibilityRole="button"><Text style={styles.halfText}>Поделиться</Text></Pressable>
         </View>
+
+        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} onCalendar={() => router.push('/plans')} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {[[String((me?.stats.events ?? 0) + arrivals.length), 'событий'], [String(visited.length), 'мест'], [String(me?.stats.friends ?? 0), 'друзей']].map(([n, l]) => (
             <View key={l} style={styles.stat}><Text style={styles.statN}>{n}</Text><Text style={styles.statL}>{l}</Text></View>
@@ -190,8 +153,11 @@ export default function MeScreen() {
           options={[['city', `Алматы · ${pct}%`], ['cities', `Города · ${me?.cities.length ?? 0}`], ['countries', `Страны · ${me?.countries.filter((c) => c.got).length ?? 0}`]]} />
         {mapTab === 'city' && (
           <>
-            <View style={styles.cityCard}>
-              <Text style={styles.cityCap}>АЛМАТЫ ОТКРЫТ</Text>
+            <Pressable onPress={() => router.push('/mymap')} style={({ pressed }) => [styles.cityCard, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Алматы открыт на ${pct}%. Открыть мою карту`}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.cityCap}>АЛМАТЫ ОТКРЫТ</Text>
+                <View style={styles.openChip}><Text style={styles.openChipText}>Открыть карту</Text><Ic d="M7 17L17 7M9 7h8v8" size={12} color={colors.ink} w={2.4} /></View>
+              </View>
               <View style={styles.cityTop}>
                 <Text style={styles.pct}>{pct}%</Text>
                 <View style={{ alignItems: 'flex-end' }}>
@@ -208,7 +174,7 @@ export default function MeScreen() {
                 {hint && <Text style={styles.levelText}>{hint}</Text>}
               </View>
               <CityMap visited={visited} hot={hot} />
-            </View>
+            </Pressable>
             <View style={{ gap: 12, paddingHorizontal: 2 }}>
               {me?.districts.map((d) => (
                 <View key={d.name} style={styles.district}>
@@ -269,7 +235,7 @@ export default function MeScreen() {
             const faces = (t.with ?? []).map((id) => people.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
             const cat = t.category;
             return (
-              <Pressable key={`${t.date}-${t.title}`} onPress={() => (t.eventId && byId(t.eventId) ? router.push({ pathname: '/event/[id]', params: { id: t.eventId } }) : setSheet({ day: t }))}
+              <Pressable key={`${t.date}-${t.title}`} onPress={() => (t.eventId ? router.push({ pathname: '/event/[id]', params: { id: t.eventId } }) : setSheet({ day: t }))}
                 style={({ pressed }) => [styles.tl, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`${t.date}: ${t.title}`}>
                 <View style={styles.tlDateBox}>
                   <Text style={styles.tlDay}>{day ?? ''}</Text>
@@ -306,7 +272,8 @@ export default function MeScreen() {
             return (
               <Pressable key={k} onPress={() => openInterest(k)} style={({ pressed }) => [styles.tile, { backgroundColor: CAT_COLOR[ic], transform: [{ scale: pressed ? 0.97 : 1 }] }]}
                 accessibilityRole="button" accessibilityLabel={`${INTEREST_LABEL[k]}: ${n} на неделе. Показать на карте`}>
-                <Ic d={CAT_ICON[ic]} size={22} color={catFg(ic)} w={2} />
+                <View style={styles.tileBig} pointerEvents="none"><Ic d={CAT_ICON[ic]} size={86} color={catFg(ic)} w={1.4} /></View>
+                <View style={styles.tileIcon}><Ic d={CAT_ICON[ic]} size={20} color={catFg(ic)} w={2.2} /></View>
                 <Text style={[styles.tileName, { color: catFg(ic) }]} numberOfLines={1}>{INTEREST_LABEL[k]}</Text>
                 <Text style={[styles.tileN, { color: catFg(ic) }]}>{n ? `${n} на неделе` : 'скоро будет'}</Text>
               </Pressable>
@@ -409,7 +376,14 @@ export default function MeScreen() {
             {sheet === 'edit' && (
               <>
                 <Text style={styles.h2}>Изменить профиль</Text>
-                <TextInput value={draft.name} onChangeText={(name) => update({ name })} style={styles.input} placeholder="Имя" placeholderTextColor={colors.muted3} accessibilityLabel="Имя" />
+                <Text style={styles.fieldCap}>ИМЯ</Text>
+                <TextInput value={draft.name} onChangeText={(name) => update({ name })} style={styles.input} placeholder="Имя" placeholderTextColor={colors.muted3} accessibilityLabel="Имя" maxLength={40} />
+                <Text style={styles.fieldCap}>НИК</Text>
+                <TextInput value={draft.handle ?? me?.handle ?? ''} onChangeText={(h) => update({ handle: h.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase() })} style={styles.input} placeholder="ник латиницей" placeholderTextColor={colors.muted3} accessibilityLabel="Ник" autoCapitalize="none" maxLength={30} />
+                <Text style={styles.fieldCap}>О СЕБЕ</Text>
+                <TextInput value={about} onChangeText={(t) => update({ about: t })} style={[styles.input, { height: 88, paddingTop: 14, textAlignVertical: 'top' }]} multiline placeholder="Что любишь, куда ходишь" placeholderTextColor={colors.muted3} accessibilityLabel="О себе" maxLength={140} />
+                <Text style={styles.fieldCap}>INSTAGRAM</Text>
+                <TextInput value={draft.instagram ?? me?.instagram ?? ''} onChangeText={(t) => update({ instagram: t.trim() })} style={styles.input} placeholder="@ник" placeholderTextColor={colors.muted3} accessibilityLabel="Instagram" autoCapitalize="none" maxLength={31} />
                 <Pressable onPress={() => setSheet(null)} style={styles.suggestBtn} accessibilityRole="button"><Text style={styles.suggestBtnText}>Готово</Text></Pressable>
               </>
             )}
@@ -435,6 +409,9 @@ const styles = StyleSheet.create({
   menu: { marginTop: -8, marginHorizontal: 4, alignSelf: 'flex-start', backgroundColor: colors.ink, borderRadius: 16, padding: 6 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingHorizontal: 12, borderRadius: 12 },
   menuText: { fontFamily: fonts.body500, fontSize: 14, color: colors.paper },
+  fieldCap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.6, color: colors.muted, marginBottom: -8 },
+  openChip: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 28, paddingHorizontal: 11, borderRadius: 14, backgroundColor: colors.paper },
+  openChipText: { fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
   halfBtn: { flex: 1, height: 46, borderRadius: 16, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   halfText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   stat: { flex: 1, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 2 },
@@ -482,8 +459,10 @@ const styles = StyleSheet.create({
   tlBadgeText: { fontFamily: fonts.body600, fontSize: 11.5, color: colors.ink },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tile: { width: '48.8%', flexGrow: 1, minHeight: 96, borderRadius: 20, padding: 14, justifyContent: 'space-between', gap: 6 },
-  tileName: { fontFamily: fonts.display700, fontSize: 15.5 },
+  tile: { width: '48.8%', flexGrow: 1, minHeight: 112, borderRadius: 22, padding: 14, justifyContent: 'space-between', gap: 6, overflow: 'hidden' },
+  tileBig: { position: 'absolute', right: -18, bottom: -20, opacity: 0.16, transform: [{ rotate: '-12deg' }] },
+  tileIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.28)', alignItems: 'center', justifyContent: 'center' },
+  tileName: { fontFamily: fonts.display800, fontSize: 17, letterSpacing: -0.3 },
   tileN: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.4, opacity: 0.85 },
   link: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

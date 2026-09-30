@@ -49,7 +49,7 @@ const GHOST: Record<Tab, { text: string; icon: string; to: '/foryou' | '/create'
   saved: { text: 'Сохраняй закладкой на карточке', icon: 'M6 3.5h12v17l-6-4-6 4z', to: '/foryou' },
 };
 
-export function Plans({ going, invites, saved, now }: { going: PlanRow[]; invites: PlanRow[]; saved: PlanRow[]; now: Date }) {
+export function Plans({ going, invites, saved, now, onCalendar }: { going: PlanRow[]; invites: PlanRow[]; saved: PlanRow[]; now: Date; onCalendar?: () => void }) {
   const [tab, setTab] = useState<Tab>(going.length || !invites.length ? 'going' : 'invites');
   const rows = tab === 'going' ? going : tab === 'invites' ? invites : saved;
   const count = { going: going.length, invites: invites.length, saved: saved.length };
@@ -58,6 +58,14 @@ export function Plans({ going, invites, saved, now }: { going: PlanRow[]; invite
     <View style={{ gap: 12 }}>
       <View style={styles.head}>
         <Text style={styles.h2}>Планы</Text>
+        {onCalendar && (
+          <Pressable onPress={onCalendar} style={({ pressed }) => [styles.cal, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Планы в календаре">
+            <Ic d="M4 6.5A1.5 1.5 0 015.5 5h13A1.5 1.5 0 0120 6.5v12a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5zM4 10h16M8.5 3v4M15.5 3v4" size={16} color={colors.ink} w={2} />
+            <Text style={styles.calText}>Календарь</Text>
+          </Pressable>
+        )}
+      </View>
+      <View style={{ paddingHorizontal: 4 }}>
         <View style={styles.tabs} accessibilityRole="tablist">
           {TABS.map(([k, label]) => {
             const on = k === tab;
@@ -118,7 +126,9 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   h2: { fontFamily: fonts.display700, fontSize: 21, color: colors.ink },
   tabs: { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 18, backgroundColor: colors.sand2 },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 11, borderRadius: 15 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, height: 34, paddingHorizontal: 8, borderRadius: 15 },
+  cal: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  calText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
   tabOn: { backgroundColor: colors.ink },
   tabText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
   tabN: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted },

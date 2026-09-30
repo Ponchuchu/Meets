@@ -1,6 +1,7 @@
 // Фильтр — шторка на карте (MapFilters): цена, категории, слои.
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../../theme';
+import { Ic } from '../../ui/Ic';
 import { Slider, Switch } from '../../ui/controls';
 import { FILTER_CATS, MAX_PRICE, type MapFilters } from '../filters';
 
@@ -14,7 +15,10 @@ export function FiltersSheet({ f, set, reset, onShow, showText }: {
     <ScrollView style={{ maxHeight: 640 }} contentContainerStyle={{ gap: 16 }} showsVerticalScrollIndicator={false}>
       <View style={styles.head}>
         <Text style={styles.title} accessibilityRole="header">Фильтры</Text>
-        <Pressable onPress={reset} hitSlop={8} accessibilityRole="button"><Text style={styles.reset}>Сбросить</Text></Pressable>
+        <Pressable onPress={reset} hitSlop={6} accessibilityRole="button" accessibilityLabel="Сбросить фильтры" style={({ pressed }) => [styles.resetBtn, pressed && { backgroundColor: colors.sand }]}>
+          <Ic d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" size={15} color={colors.ink} w={2.2} />
+          <Text style={styles.reset}>Сбросить</Text>
+        </Pressable>
       </View>
 
       <View style={styles.block}>
@@ -78,7 +82,8 @@ export function FiltersSheet({ f, set, reset, onShow, showText }: {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: fonts.display700, fontSize: 22, letterSpacing: -0.2, color: colors.ink },
-  reset: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink, textDecorationLine: 'underline' },
+  resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.sand2 },
+  reset: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
   block: { gap: 8 },
   cap: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted },
   box: { borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
