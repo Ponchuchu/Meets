@@ -1,0 +1,30 @@
+# Сборка APK для Android одной кнопкой: GitHub → Actions → «Android APK» → Run workflow.
+# Нужен секрет EXPO_TOKEN (docs/KEYS.md). Сама сборка идёт в облаке Expo (EAS, ~15–20 мин);
+# ссылка на APK — в логе этого запуска и на expo.dev → Builds. Открой её на телефоне и установи.
+name: Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Проверить токен Expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Нет секрета EXPO_TOKEN. Как добавить — docs/KEYS.md, раздел «APK для Android»."
+            exit 1
+          fi
+      - name: Собрать APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait

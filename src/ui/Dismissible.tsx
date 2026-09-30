@@ -10,11 +10,13 @@ import { Ic, IC } from './Ic';
 
 const THRESHOLD = 70;
 const SIDE = 90;
-const UP = 60;
+const UP = 36;
 const BACK = { damping: 18, stiffness: 220 };
 
-export function Dismissible({ children, onDismiss, onExpand, horizontal, label }: {
+export function Dismissible({ children, onDismiss, onExpand, horizontal, label, closeButton = true }: {
   children: ReactNode; onDismiss: () => void; onExpand?: () => void; horizontal?: boolean; label: string;
+  /** Крестик в углу. На карте его нет — карточку смахивают. */
+  closeButton?: boolean;
 }) {
   const x = useSharedValue(0);
   const y = useSharedValue(0);
@@ -28,7 +30,7 @@ export function Dismissible({ children, onDismiss, onExpand, horizontal, label }
     .onChange((e) => {
       if (horizontal) x.set(e.translationX);
       // Вверх тянется туго (резинка), вниз — свободно.
-      y.set(e.translationY > 0 ? e.translationY : onExpand ? e.translationY * 0.45 : 0);
+      y.set(e.translationY > 0 ? e.translationY : onExpand ? e.translationY * 0.7 : 0);
     })
     .onEnd((e) => {
       if (horizontal && (Math.abs(e.translationX) > SIDE || Math.abs(e.velocityX) > 900)) {
@@ -36,7 +38,7 @@ export function Dismissible({ children, onDismiss, onExpand, horizontal, label }
         x.set(withTiming(dir * 520, { duration: 200 }, (done) => { if (done) scheduleOnRN(onDismiss); }));
         return;
       }
-      if (onExpand && (e.translationY < -UP || e.velocityY < -700)) {
+      if (onExpand && (e.translationY < -UP || e.velocityY < -500)) {
         y.set(withTiming(-40, { duration: 120 }, () => { y.set(withSpring(0, BACK)); }));
         x.set(withSpring(0, BACK));
         scheduleOnRN(onExpand);
@@ -58,15 +60,20 @@ export function Dismissible({ children, onDismiss, onExpand, horizontal, label }
       <Animated.View style={style}>
         <View style={styles.handleZone} pointerEvents="none"><View style={styles.handle} /></View>
         {children}
-        <Pressable onPress={close} style={styles.x} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Закрыть: ${label}`}>
-          <Ic d={IC.close} size={14} color={colors.ink} w={2.4} />
-        </Pressable>
+        {closeButton ? (
+          <Pressable onPress={close} style={styles.x} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Закрыть: ${label}`}>
+            <Ic d={IC.close} size={14} color={colors.ink} w={2.4} />
+          </Pressable>
+        ) : (
+          <Pressable onPress={close} style={styles.srOnly} accessibilityRole="button" accessibilityLabel={`Закрыть: ${label}`} />
+        )}
       </Animated.View>
     </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create({
+  srOnly: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   handleZone: { position: 'absolute', top: 6, left: 0, right: 0, alignItems: 'center', zIndex: 2 },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.line2 },
   x: { position: 'absolute', top: -14, right: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', zIndex: 3, shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },

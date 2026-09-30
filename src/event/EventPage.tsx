@@ -69,6 +69,9 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
   const canArrive = going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
+  // Прошедшее (открыли из хроники): вместо кнопок — «Было · с кем».
+  const past = endMs < now.getTime();
+  const was = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
   const removePlan = useApp((s) => s.removePlan);
 
   const show = (t: ToastData | null, ms = 4000) => {
@@ -281,6 +284,15 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 108 + insets.bottom }} />}
 
+      {past ? (
+        <View style={[styles.bar, { paddingBottom: 28 + Math.max(0, insets.bottom - 20) }]}>
+          {was.length > 0 && <View style={{ flexDirection: 'row' }}>{was.slice(0, 4).map((p, i) => <Avatar key={p.id} p={p} size={36} ring={colors.friend} style={{ marginLeft: i ? -10 : 0 }} />)}</View>}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.actionText}>{e.meetup ? `${e.meetup.kind} · было` : 'Ты был здесь'}</Text>
+            <Text style={styles.pastSub} numberOfLines={1}>{was.length ? `с ${was.map((p) => p.withName ?? p.name).join(', ')}` : 'один — и это тоже было круто'}</Text>
+          </View>
+        </View>
+      ) : (
       <View style={[styles.bar, { paddingBottom: 28 + Math.max(0, insets.bottom - 20) }]}>
         <Pressable onPress={() => setSheet('invite')} style={styles.inviteBtn} accessibilityRole="button" accessibilityLabel="Позвать друга">
           <Ic d={IC.userPlus} c={[[9, 8, 3.5]]} size={22} color={colors.ink} />
@@ -293,6 +305,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
           <Text style={[styles.actionText, { color: going ? colors.ink : colors.paper }]}>{going ? 'Ты идёшь' : 'Я иду'}</Text>
         </Pressable>
       </View>
+      )}
 
       {sheet && (
         <>
@@ -386,6 +399,7 @@ function Row({ icon, title, sub, action }: { icon: ReactNode; title: string; sub
 }
 
 const styles = StyleSheet.create({
+  pastSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   root: { flex: 1, backgroundColor: colors.paper },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },

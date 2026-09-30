@@ -11,7 +11,6 @@ import { data, eventsSnapshot, type EventItem } from '../../src/data';
 import { EventPage } from '../../src/event/EventPage';
 import { SwipeCard, type SwipeHandle } from '../../src/feed/SwipeCard';
 import { now as clockNow } from '../../src/lib/clock';
-import { formatWhen } from '../../src/lib/format';
 import { buildDeck, makeSignal, tasteFrom } from '../../src/reco';
 import { useApp, useCoverTabBar } from '../../src/state/app';
 import { track } from '../../src/analytics';
@@ -23,12 +22,6 @@ import { Ic, IC } from '../../src/ui/Ic';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 
 const STACK = 3;
-
-function goText(e: EventItem, names: string[], now: Date): string {
-  const what = e.short ? e.short.toLowerCase() : `«${e.title}»`;
-  const when = formatWhen(e.startsAt, now).toLowerCase().replace(' · ', ' ');
-  return `В планах: ${what}, ${when}${names.length ? `. ${names.join(' и ')} ${names.length > 1 ? 'тоже идут' : 'тоже идёт'}` : ''}`;
-}
 
 export default function ForYouScreen() {
   const insets = useSafeAreaInsets();
@@ -97,11 +90,8 @@ export default function ForYouScreen() {
       go(e.id);
       addPlan();
       pulsePlan();
-      const names = e.friendsGoing.map((id) => people.find((p) => p.id === id)?.name).filter(Boolean) as string[];
-      showToast({ text: goText(e, names, now), cta: 'Отменить', onCta: doUndo }, 4000);
-    } else {
-      showToast({ text: `Мимо: «${e.title}»`, cta: 'Вернуть', onCta: doUndo, timerMs: 5000 }, 5000);
     }
+    // Без всплывашек после свайпа: вернуть карточку можно средней кнопкой.
   };
 
   // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.

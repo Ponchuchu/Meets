@@ -1,11 +1,14 @@
-// Мини-карточка события внизу карты: категория, время, цена, название, адрес, друзья, «Открыть».
+// Мини-карточка события внизу карты: слева плитка категории (или фото), справа когда, название, где и кто идёт.
+// Без кнопок: тап или «потянуть вверх» — событие раскрывается из карточки на весь экран; смахнуть — закрыть.
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { photo } from '../../data/photos';
 import type { EventItem, Person } from '../../data/types';
 import { formatPrice } from '../../lib/format';
 import { colors, fonts } from '../../theme';
-import { CAT_LABEL } from '../icons';
+import { Avatar } from '../../ui/Avatar';
+import { Ic } from '../../ui/Ic';
+import { CAT_COLOR, CAT_ICON, CAT_LABEL, catFg } from '../icons';
 
 export function socialLine(e: EventItem, people: Person[]): string {
   const names = e.friendsGoing.map((id) => people.find((p) => p.id === id)?.name).filter(Boolean) as string[];
@@ -18,53 +21,44 @@ export function socialLine(e: EventItem, people: Person[]): string {
   return 'Можно прийти одному';
 }
 
-export function EventCard({ e, when, dotColor, people, onOpen }: { e: EventItem; when: string; dotColor: string; people: Person[]; onOpen: () => void }) {
+export function EventCard({ e, when, people, onOpen }: { e: EventItem; when: string; dotColor?: string; people: Person[]; onOpen: () => void }) {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
+  const bg = CAT_COLOR[e.category];
   return (
     <Animated.View key={e.id} entering={FadeInDown.duration(260)}>
-      <Pressable onPress={onOpen} style={styles.card} accessibilityRole="button" accessibilityLabel={`${e.title}. ${when}. Открыть`}>
-        <View style={styles.meta}>
-          <View style={styles.metaLeft}>
-            <View style={[styles.dot, { backgroundColor: dotColor }]} />
-            <Text style={styles.metaText} numberOfLines={1}>{CAT_LABEL[e.category]} · {when}</Text>
+      <Pressable onPress={onOpen} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]} accessibilityRole="button" accessibilityLabel={`${e.title}. ${when}. Открыть событие`} accessibilityHint="Потяни вверх, чтобы раскрыть">
+        <View style={[styles.tile, { backgroundColor: bg }]}>
+          {e.cover ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} /> : <Ic d={CAT_ICON[e.category]} size={30} color={catFg(e.category)} w={1.9} />}
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={styles.meta} numberOfLines={1}>{CAT_LABEL[e.category]} · {when}</Text>
+          <Text style={styles.title} numberOfLines={2}>{e.title}</Text>
+          <Text style={styles.address} numberOfLines={1}>{e.venueName ?? e.address.split(',')[0]} · {formatPrice(e.priceMin, e.priceMax, e.isFree)}</Text>
+          <View style={styles.bottom}>
+            {friends.length > 0 && (
+              <View style={{ flexDirection: 'row' }}>
+                {friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={22} ring={colors.friend} style={{ marginLeft: i ? -7 : 0 }} />)}
+              </View>
+            )}
+            <Text style={styles.social} numberOfLines={1}>{socialLine(e, people)}</Text>
           </View>
-          <Text style={styles.price}>{formatPrice(e.priceMin, e.priceMax, e.isFree)}</Text>
         </View>
-        <Text style={styles.title} numberOfLines={2}>{e.title}</Text>
-        <Text style={styles.address} numberOfLines={1}>{e.address}</Text>
-        <View style={styles.bottom}>
-          {friends.length > 0 && (
-            <View style={styles.faces}>
-              {friends.slice(0, 3).map((p) => p.photo ? (
-                <Image key={p.id} source={photo(p.photo)} style={styles.face} />
-              ) : (
-                <View key={p.id} style={[styles.face, { backgroundColor: p.tint, alignItems: 'center', justifyContent: 'center' }]}>
-                  <Text style={{ fontFamily: fonts.body700, fontSize: 11, color: colors.ink }}>{p.initial}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          <Text style={styles.social} numberOfLines={1}>{socialLine(e, people)}</Text>
-          <View style={styles.open}><Text style={styles.openText}>Открыть</Text></View>
-        </View>
+        <View style={styles.up} accessibilityElementsHidden><Ic d="M6 15l6-6 6 6" size={16} color={colors.muted2} w={2.4} /></View>
       </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.cardAlt, borderRadius: 22, padding: 16, gap: 4, shadowColor: colors.ink, shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  meta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  dot: { width: 8, height: 8, borderRadius: 2 },
-  metaText: { fontFamily: fonts.mono500, fontSize: 11, letterSpacing: 0.66, color: colors.muted, flexShrink: 1 },
-  price: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.66, color: colors.ink },
-  title: { fontFamily: fonts.display700, fontSize: 23, letterSpacing: -0.46, lineHeight: 26.5, paddingTop: 2, color: colors.ink },
-  address: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  bottom: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  faces: { flexDirection: 'row', paddingRight: 8 },
-  face: { width: 30, height: 30, marginRight: -8, borderRadius: 15, borderWidth: 2, borderColor: colors.friend, outlineColor: colors.cardAlt },
-  social: { flex: 1, fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  open: { height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.ink, justifyContent: 'center' },
-  openText: { fontFamily: fonts.body600, fontSize: 14, color: colors.paper },
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.cardAlt, borderRadius: 26, padding: 12, paddingTop: 18,
+    shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6,
+  },
+  tile: { width: 84, height: 96, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  meta: { fontFamily: fonts.mono500, fontSize: 10.5, letterSpacing: 0.5, color: colors.muted },
+  title: { fontFamily: fonts.display700, fontSize: 19, letterSpacing: -0.3, lineHeight: 22, color: colors.ink },
+  address: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted2 },
+  bottom: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 },
+  social: { flex: 1, fontFamily: fonts.body500, fontSize: 12.5, color: colors.ink },
+  up: { position: 'absolute', top: 2, right: 14 },
 });

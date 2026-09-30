@@ -2,8 +2,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { EventPage } from '../../src/event/EventPage';
+import { useCoverTabBar } from '../../src/state/app';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { data, eventsSnapshot, type EventItem } from '../../src/data';
@@ -43,6 +46,7 @@ import { useProfile } from '../../src/state/profile';
 import { colors, fonts } from '../../src/theme';
 import { useTabInset } from '../../src/components/TabBar';
 import { Ic } from '../../src/ui/Ic';
+import { glass } from '../../src/ui/glass';
 import { Backdrop, BottomSheet, DropCard } from '../../src/ui/sheet';
 
 type Sheet = null | 'calendar' | 'filters' | 'search' | 'stack';
@@ -64,6 +68,13 @@ function pinLabel(e: EventItem): string {
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const tabPad = useTabInset();
+  const { width: W, height: winH } = useWindowDimensions();
+  const [H, setH] = useState(0);
+  // Раскрытие события из мини-карточки: прямоугольник карточки растёт до всего экрана (~360 мс).
+  const [open, setOpen] = useState<EventItem | null>(null);
+  const [cardRect, setCardRect] = useState({ x: 12, y: 600, w: 366, h: 150 });
+  const ex = useSharedValue(0);
+  useCoverTabBar(!!open);
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [pending, setPending] = useState(false); // в календаре выбрано начало диапазона, ждём конец
@@ -196,7 +207,24 @@ export default function MapScreen() {
     else { setFilters({ to: d }); setPending(false); }
   }, [pending, filters.from, setFilters]);
 
-  const openEvent = (e: EventItem) => router.push({ pathname: '/event/[id]', params: { id: e.id } });
+  const openEvent = (e: EventItem) => {
+    setOpen(e);
+    ex.set(0);
+    ex.set(withTiming(1, { duration: 360, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
+  };
+  const closeEvent = () => {
+    ex.set(withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, (done) => { if (done) scheduleOnRN(setOpen, null); }));
+  };
+  const fullH = H || winH;
+  const clip = useAnimatedStyle(() => {
+    const p = ex.get();
+    return {
+      left: cardRect.x * (1 - p), top: cardRect.y * (1 - p),
+      width: cardRect.w + (W - cardRect.w) * p, height: cardRect.h + (fullH - cardRect.h) * p,
+      borderRadius: 26 * (1 - p), opacity: Math.min(1, 0.4 + p * 1.5),
+    };
+  });
+  const clipInner = useAnimatedStyle(() => ({ left: -cardRect.x * (1 - ex.get()), top: -cardRect.y * (1 - ex.get()) }));
 
   const pickFromSearch = (e: EventItem) => {
     // Событие может быть не в выбранных датах — переключаем дату на его день.
@@ -227,10 +255,9 @@ export default function MapScreen() {
   };
 
   const topY = Math.max(50, insets.top + 6);
-  const cardDot = (e: EventItem) => (pinKind(e, today, going.has(e.id)) === 'hot' ? colors.accent : e.isLong ? colors.sand : colors.ink);
 
   return (
-    <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]}>
+    <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 170 : 0)} onZoom={setZoom} />
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -265,7 +292,7 @@ export default function MapScreen() {
 
       {sheet !== 'calendar' && !focusId && (
         <View style={[styles.side, { bottom: tabPad + (selected ? 200 : 12) }]}>
-          <View style={styles.zoom}>
+          <View style={[styles.zoom, glass]}>
             <Pressable onPress={() => mapRef.current?.zoomBy(1)} style={({ pressed }) => [styles.zoomBtn, pressed && { backgroundColor: colors.sand2 }]} accessibilityRole="button" accessibilityLabel="Приблизить карту">
               <Ic d="M12 5v14M5 12h14" size={20} color={colors.ink} w={2} />
             </Pressable>
@@ -274,7 +301,7 @@ export default function MapScreen() {
               <Ic d="M5 12h14" size={20} color={colors.ink} w={2} />
             </Pressable>
           </View>
-          <Pressable onPress={() => me && mapRef.current?.flyTo(me.lat, me.lon, 14)} style={styles.sideBtn} accessibilityRole="button" accessibilityLabel="Показать, где я">
+          <Pressable onPress={() => me && mapRef.current?.flyTo(me.lat, me.lon, 14)} style={[styles.sideBtn, glass]} accessibilityRole="button" accessibilityLabel="Показать, где я">
             <Svg width={19} height={19} viewBox="0 0 24 24"><Path d="M20 4L4 11l7 2 2 7z" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
           </Pressable>
         </View>
@@ -282,7 +309,7 @@ export default function MapScreen() {
 
       {focusId && focusPerson && focusSpot && !inviteOpen && sheet === null && filters.friends && (
         <View style={[styles.card, { bottom: tabPad }]}>
-          <Dismissible key={focusPerson.id} label={focusPerson.name} onDismiss={() => focusFriend(null)}>
+          <Dismissible key={focusPerson.id} closeButton={false} label={focusPerson.name} onDismiss={() => focusFriend(null)}>
             <FriendCard p={focusPerson} spot={focusSpot} ring={focusSpot.state === 'paused' ? '#8C8577' : colors.friend}
               onProfile={() => router.push({ pathname: '/person/[id]', params: { id: focusPerson.id } })}
               onSticker={(i) => sendSticker(i)}
@@ -299,9 +326,9 @@ export default function MapScreen() {
       )}
 
       {selected && sheet === null && !focusId && (
-        <View style={[styles.card, { bottom: tabPad }]}>
-          <Dismissible key={selected.id} label={selected.title} horizontal onDismiss={() => setCardHidden(true)} onExpand={() => openEvent(selected)}>
-            <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} dotColor={cardDot(selected)} people={people} onOpen={() => openEvent(selected)} />
+        <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
+          <Dismissible key={selected.id} label={selected.title} horizontal closeButton={false} onDismiss={() => setCardHidden(true)} onExpand={() => openEvent(selected)}>
+            <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} people={people} onOpen={() => openEvent(selected)} />
           </Dismissible>
         </View>
       )}
@@ -310,7 +337,7 @@ export default function MapScreen() {
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть список" />
           <BottomSheet onClose={() => setSheet(null)} label="События в этом месте">
-            <StackSheet events={stack} now={clock} onPick={(e) => { select(e.id); setCardHidden(false); setSheet(null); }} />
+            <StackSheet events={stack} now={clock} onPick={(e) => { select(e.id); setCardHidden(false); setSheet(null); openEvent(e); }} />
           </BottomSheet>
         </>
       )}
@@ -348,6 +375,14 @@ export default function MapScreen() {
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, top: topY + 112 }} />}
 
+      {open && (
+        <Animated.View style={[styles.clip, clip]}>
+          <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
+            <EventPage e={open} now={clock} onClose={closeEvent} />
+          </Animated.View>
+        </Animated.View>
+      )}
+
       {sheet === 'search' && (
         <SearchOverlay events={upcoming} whenOf={(e) => whenLabel(e, clock)} onPick={pickFromSearch} onClose={() => setSheet(null)} />
       )}
@@ -360,11 +395,12 @@ const styles = StyleSheet.create({
   top: { position: 'absolute', left: 16, right: 16 },
   calendar: { position: 'absolute', left: 12, right: 12 },
   side: { position: 'absolute', right: 14, gap: 10, alignItems: 'center' },
-  zoom: { width: 44, borderRadius: 22, backgroundColor: colors.cardAlt, overflow: 'hidden', shadowColor: colors.ink, shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  zoom: { width: 44, borderRadius: 22, overflow: 'hidden' },
   zoomBtn: { width: 44, height: 46, alignItems: 'center', justifyContent: 'center' },
   zoomLine: { height: 1, marginHorizontal: 10, backgroundColor: colors.line },
-  sideBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  sideBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
+  clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },
   fly: { position: 'absolute', height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', zIndex: 80 },
   flyText: { fontFamily: fonts.display800, fontSize: 13 },
 });

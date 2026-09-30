@@ -96,30 +96,28 @@ export default function ChatsScreen() {
           {pending.map((r) => {
             const p = people.find((x) => x.id === r.personId);
             if (!p) return null;
-            if (r.kind === 'join') {
-              return (
-                <View key={r.id} style={styles.request}>
-                  <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <Avatar p={p} size={44} ring={p.isFriend ? colors.friend : undefined} />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.name}>{r.title}</Text>
-                      <Text style={styles.sub}>{r.sub}</Text>
-                      {r.quote && <Text style={styles.quote}>{r.quote}</Text>}
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Pressable onPress={() => { chat.answerRequest(r.id, 'accepted'); if (!plans.going.bike) { plans.go('bike'); addPlan(); } }} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Принять</Text></Pressable>
-                    <Pressable onPress={() => chat.answerRequest(r.id, 'later')} style={[styles.btn, { borderWidth: 1, borderColor: colors.line2 }]} accessibilityRole="button"><Text style={styles.btnText}>Не сейчас</Text></Pressable>
+            // Все запросы — одна карточка: кто, что хочет, цитата и две кнопки.
+            const join = r.kind === 'join';
+            return (
+              <View key={r.id} style={styles.request}>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <Avatar p={p} size={44} ring={p.isFriend ? colors.friend : undefined} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.name}>{r.title}</Text>
+                    <Text style={styles.sub}>{r.sub}</Text>
+                    {r.quote && <Text style={styles.quote}>{r.quote}</Text>}
                   </View>
                 </View>
-              );
-            }
-            return (
-              <Pressable key={r.id} onPress={() => { chat.answerRequest(r.id, 'accepted'); open(`dm-${p.id}`); }} style={styles.answerRow} accessibilityRole="button">
-                <Avatar p={p} size={40} />
-                <View style={{ flex: 1, gap: 2 }}><Text style={styles.name}>{r.title}</Text><Text style={styles.sub}>{r.sub}</Text></View>
-                <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
-              </Pressable>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Pressable onPress={() => {
+                    chat.answerRequest(r.id, 'accepted');
+                    if (join) { if (!plans.going.bike) { plans.go('bike'); addPlan(); } } else open(`dm-${p.id}`);
+                  }} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button">
+                    <Text style={[styles.btnText, { color: colors.paper }]}>{join ? 'Принять' : 'Ответить'}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => chat.answerRequest(r.id, 'later')} style={[styles.btn, { backgroundColor: colors.sand2 }]} accessibilityRole="button"><Text style={styles.btnText}>Не сейчас</Text></Pressable>
+                </View>
+              </View>
             );
           })}
         </>
