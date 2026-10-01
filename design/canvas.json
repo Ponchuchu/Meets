@@ -54,7 +54,7 @@
     "EventPage.dc.html": {"x": 2140, "y": 17830, "w": 390, "h": 1500, "title": "Шаблон события (компонент)", "is_interactive": true},
 
     "V2Flow.dc.html": {"x": 0, "y": 260, "w": 1800, "h": 1200, "title": "v2 · Что куда нажимается", "page": "v2"},
-    "V2Why.dc.html": {"x": 1880, "y": 260, "w": 1800, "h": 1460, "title": "v2 · Что мешает сейчас и что меняем", "page": "v2"},
+    "V2Why.dc.html": {"x": 1880, "y": 260, "w": 1800, "h": 1260, "title": "v2 · Что мешает сейчас и что меняем", "page": "v2"},
 
     "V2Afisha.dc.html": {"x": 0, "y": 2240, "w": 390, "h": 844, "title": "А1 · Афиша: рядом с домом", "page": "v2", "is_interactive": true},
     "V2AfishaPin.dc.html": {"x": 470, "y": 2240, "w": 390, "h": 844, "title": "А2 · Тап по точке", "page": "v2", "is_interactive": true},
