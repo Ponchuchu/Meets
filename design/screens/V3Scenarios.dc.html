@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
 <style>body{margin:0;background:#E9E5DB}</style>
 </helmet>
-<div style="width: 1800px; height: 1660px; box-sizing: border-box; padding: 40px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif; display: flex; flex-direction: column; gap: 26px">
+<div style="width: 1800px; height: 1680px; box-sizing: border-box; padding: 40px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif; display: flex; flex-direction: column; gap: 26px">
 
 <div style="display: flex; align-items: flex-end; justify-content: space-between">
 <div style="display: flex; flex-direction: column; gap: 8px">
@@ -66,7 +66,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1660}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1680}}'>
 class Component extends DCLogic {
   renderVals() {
     const I = {
@@ -117,24 +117,26 @@ class Component extends DCLogic {
       scenarios: [
         sc(1, 'Написать сообщение', 2, [st('tab', 'Чаты', I.chat, 'V3Chats.dc.html'), st('screen', 'Лицо друга сверху', I.face, 'V3ChatsFriend.dc.html'), st('act', 'Написать', I.chat, 'V3Chat.dc.html')], 'Незнакомому: профиль → «Написать» → уходит как запрос. Он отвечает — открывается обычный чат.'),
         sc(2, 'Найти знакомого среди друзей друга', 3, [st('tab', 'Чаты', I.chat, 'V3Chats.dc.html'), st('screen', '+ Найти', I.plus, 'V3FindPeople.dc.html'), st('screen', 'Друзья Игоря', I.people, 'V3FriendsOf.dc.html'), st('act', '+ в друзья', I.plus, 'V3FriendsOf.dc.html')], 'Сверху — общие друзья и те, кто идёт туда же. Список видно, только если друг это разрешил.'),
-        sc(3, 'Что рядом в ближайшие сутки', 2, [st('tab', 'Карта', I.map, 'V3Map.dc.html'), st('screen', 'Пин', I.pin, 'V3MapPin.dc.html'), st('act', 'Пойду', I.check, 'V3MapPin.dc.html')], 'Карта по умолчанию показывает 24 часа. Другая дата — фильтр → «Выходные» или день в сетке.'),
+        sc(3, 'Что рядом сейчас или в субботу', 2, [st('tab', 'Карта', I.map, 'V3Map.dc.html'), st('screen', 'Чипс «Сейчас · +21°»', I.clock, 'V3MapDays.dc.html'), st('screen', 'Сб 3 · дождь', I.pin, 'V3MapRain.dc.html'), st('act', 'Пойду', I.check, 'V3MapPin.dc.html')], 'День и погода — один чипс. Выбрал субботу — пины субботы, лица друзей на тех, куда они идут, и дождь на карте.'),
         sc(4, 'Скучно', 1, [st('tab', 'Подборка', I.feed, 'V3Feed.dc.html'), st('gest', 'Свайп вправо', I.swipe, 'V3Feed.dc.html'), st('screen', '+1 на «Планах»', I.plans, 'V3Plans.dc.html')], 'Карточка сама улетает во вкладку «Планы». Подсказок текстом нет — учит анимация.'),
         sc(5, 'Уровень и награды', 2, [st('tab', 'Профиль', I.me, 'V3Me.dc.html'), st('screen', 'Уровень 6', I.flame, 'V3Quests.dc.html'), st('act', 'Забрать +20', I.flame, 'V3Quests.dc.html'), st('screen', 'Новый уровень', I.gift, 'V3LevelUp.dc.html')], 'Огоньки за реальные дела: сходил, позвал, познакомился. Награды — стикеры и кольцо вокруг аватара.'),
-        sc(6, 'Где друг', 2, [st('tab', 'Карта', I.map, 'V3Map.dc.html'), st('screen', 'Аватар со значком', I.coffee, 'V3MapFriend.dc.html'), st('act', 'Стикер «Го?»', I.sticker, 'V3MapFriend.dc.html')], 'Значок на аватаре: кофе, горы, работа, в пути, событие. Без подписей «в кофейне».'),
+        sc(6, 'Где друг и встретиться', 2, [st('tab', 'Карта', I.map, 'V3Map.dc.html'), st('screen', 'Лицо со значком', I.coffee, 'V3MapFriend.dc.html'), st('act', 'Точка «тут, 20:30»', I.pin, 'V3MapPoint.dc.html')], 'Значок на лице: кофе, горы, работа, в пути. «Точка» — метка на карте и время, у друга она появится в чате с кнопкой «Иду».'),
         sc(7, 'Ответить на приглашение', 1, [st('gest', 'Пуш «Игорь зовёт»', I.bell, 'V3Notify.dc.html'), st('act', 'Пойду', I.check, 'V3Notify.dc.html'), st('other', 'Игорь узнал', I.face, 'V3Chat.dc.html')], 'Ответ прямо из пуша, без открытия приложения. Он же появится в чате и в «Планах».'),
         sc(8, 'Мои планы', 1, [st('tab', 'Планы', I.plans, 'V3Plans.dc.html'), st('screen', 'Зовут', I.check, 'V3Plans.dc.html'), st('screen', 'День → событие', I.clock, 'V3EventGoing.dc.html')], 'Сверху неделя с точками, ниже «Зовут», дальше по дням. У каждого — кто идёт и кто ещё думает.'),
         sc(9, 'Познакомиться с классной девушкой', 3, [st('screen', 'Событие · Идут', I.people, 'V3Event.dc.html'), st('screen', 'Лицо с рукой', I.hand, 'V3Person.dc.html'), st('act', 'Написать', I.chat, 'V3PersonWrite.dc.html'), st('act', 'Отправить', I.send, 'V3PersonWrite.dc.html'), st('other', 'Она: «Ответить»', I.chat, 'V3ChatRequest.dc.html')], 'Рука — «ищет компанию», повод уже есть: «вы оба на джазе». После события — «Планы → Были» и «+» на её лице.'),
-        sc(10, 'Новичок: что тут есть?', 4, [st('screen', 'Карта на сутки', I.map, 'V3FirstRun.dc.html'), st('gest', '4 подсказки', I.spark, 'V3FirstRun.dc.html'), st('act', 'Понятно', I.check, 'V3Map.dc.html')], 'Подсветка вкладок по очереди, одна фраза на каждую. «Пропустить» — всегда. Без регистрации до первого «Пойду».')
+        sc(10, 'Новичок: что тут есть?', 5, [st('screen', 'Карта на сутки', I.map, 'V3FirstRun.dc.html'), st('gest', '5 подсказок', I.spark, 'V3FirstRun.dc.html'), st('gest', 'Подсказка на экране', I.spark, 'V3FeedHint.dc.html'), st('act', 'Понятно', I.check, 'V3Map.dc.html')], 'Сначала 5 подсветок: день и погода, потом вкладки. Дальше на каждом экране один раз — своя подсказка. Без регистрации до первого «Пойду».')
       ],
       critique: [
         { was: 'Друзья и чаты прятались во вкладке «Люди»', now: 'Чаты — вкладка, друзья — лица сверху со статусами' },
         { was: 'Фразы «хотят дружить 2 Ерлан и Мира»', now: 'Лица с синим «+» — одно касание' },
         { was: '«Алматы открыт на 20%» — непонятная цифра', now: 'Мини-карта «Где был · 12» с иконками мест' },
-        { was: 'Полоса дат съедала карту', now: '24 часа по умолчанию, даты — в фильтре' },
+        { was: 'Полоса дат съедала карту', now: 'День и погода — один чипс, лента дней по тапу' },
         { was: 'В событии видно только друзей', now: 'Видно всех; рука — «ищет компанию»' },
         { was: 'Незнакомцу писали напрямую', now: 'Только запросом: ответить / удалить / пожаловаться' },
         { was: 'Приглашение в чате и в Планах жили отдельно', now: 'Одно приглашение — ответ виден в обоих местах' },
-        { was: 'Профиль был экраном настроек', now: 'Фото листаются, уровень, где был, интересы' }
+        { was: 'Профиль был экраном настроек', now: 'Фото листаются, уровень, где был, интересы' },
+        { was: '«На карте» рядом с мини-картой, «Где я» и «Стикер» в чате', now: 'Мини-карта сама кнопка; в чате «+»: Позвать · Точка · Фото' },
+        { was: 'Даты в фильтре: Сегодня / Завтра / Выходные', now: 'Фильтр только про «что»: категории, цена, порядок' }
       ],
       rules: [
         { icon: I.layers, text: 'Один главный жест или кнопка на экран' },

@@ -13,6 +13,10 @@
 body{margin:0;background:#E9E5DB}
 @keyframes v3Slide{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
 .v3slide{animation:v3Slide 420ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes v3Spot{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.55)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+@keyframes v3Swipe{0%{transform:translate(0,0) rotate(0deg);opacity:0}15%{opacity:1}70%{transform:translate(150px,-14px) rotate(14deg);opacity:1}100%{transform:translate(170px,-16px) rotate(16deg);opacity:0}}
+@keyframes v3HintIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.v3hint{animation:v3HintIn 300ms cubic-bezier(.2,.8,.2,1) 120ms both}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
@@ -124,9 +128,21 @@ body{margin:0;background:#E9E5DB}
 <div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px; z-index: 5">
 <dc-import name="V3TabBar" active="plans" plans="{{inviteCount}}" chats="3" hint-size="390px,96px"></dc-import>
 </div>
+
+<sc-if value="{{hintOn}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; overflow: hidden; z-index: 40">
+<span aria-hidden="true" style="position: absolute; left: 8px; top: 188px; width: 374px; height: 198px; border-radius: 24px; box-shadow: 0 0 0 1400px rgba(23,22,26,0.74)"></span>
+<span aria-hidden="true" style="position: absolute; left: 8px; top: 188px; width: 374px; height: 198px; border-radius: 24px; border: 2.5px solid #F0521F; box-sizing: border-box; animation: v3Spot 1.6s ease-in-out infinite"></span>
+<div class="v3hint" style="position: absolute; left: 24px; right: 24px; top: 404px; padding: 18px; border-radius: 22px; background: #FBFAF6; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 14px 34px rgba(23,22,26,0.3)">
+<span style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 13px; background: #17161A; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4M12 13v5M9.5 15.5h5"></path></svg></span><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Тебя зовут</span></span>
+<span style="font-size: 15.5px; line-height: 1.4; color: #3A3833">Галочка — пойду, крестик — не смогу. Друг сразу узнает</span>
+<button type="button" onClick="{{closeHint}}" style="height: 46px; border-radius: 14px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; color: #17161A">Понятно</button>
+</div>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["soon","past"],"default":"soon"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["soon","past"],"default":"soon"},"hint":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -181,7 +197,7 @@ class Component extends DCLogic {
     const days = [
       { day: 'СЕГОДНЯ', items: [item({ title: 'Джаз во дворе', time: '19:30', tint: '#F0521F', iconFg: '#17161A', icon: I.music, href: 'V3EventGoing.dc.html', people: [person(P.igor, '', '', 'ok'), person(P.denis, '', '', 'ok'), person(P.anton, '', '', 'wait')], company: true, companyN: '6' })] },
       { day: 'ПЯТНИЦА', items: fri },
-      { day: 'СУББОТА', items: [item({ title: 'Кок-Жайляу', time: '08:00', tint: '#D9E4D2', iconFg: '#17161A', icon: I.hike, href: 'V3EventGoing.dc.html', people: [person('', 'Т', '#D9E4D2', 'ok')], company: true, companyN: '3' })] }
+      { day: 'СУББОТА', items: [item({ title: 'Кок-Жайляу', time: '08:00', tint: '#D9E4D2', iconFg: '#17161A', icon: I.hike, href: 'V3EventGoing.dc.html', people: [person('../assets/timur.jpg', '', '', 'ok')], company: true, companyN: '3' })] }
     ];
     if (sun.length) days.push({ day: 'ВОСКРЕСЕНЬЕ', items: sun });
     const busy = { 2: true, 3: true, 4: !!accepted.find((v) => v.day === 'sun') };
@@ -203,11 +219,13 @@ class Component extends DCLogic {
       return { name, hasPhoto: !!photo, noPhoto: !photo, photo: photo || '', initial: name[0], tint: tint || '#E7E2D6', icon: done ? WAIT : UP, bg: done ? '#E7E2D6' : '#2447B8', fg: done ? '#17161A' : '#FBFAF6', aria: done ? 'Запрос отправлен' : 'Добавить в друзья: ' + name, add: add(id, name) };
     };
     const past = [
-      { title: 'Стендап на Абая', when: 'ВС 27.09', tint: '#17161A', iconFg: '#F3F0E8', icon: I.mic, pts: '40', met: [met('ainura', 'Айнура', P.ainura), met('erlan', 'Ерлан', '', '#EADFB8'), met('mira', 'Мира', '', '#D6E0EE')] },
+      { title: 'Стендап на Абая', when: 'ВС 27.09', tint: '#17161A', iconFg: '#F3F0E8', icon: I.mic, pts: '40', met: [met('ainura', 'Айнура', P.ainura), met('erlan', 'Ерлан', '../assets/erlan.jpg'), met('mira', 'Мира', '../assets/mira.jpg')] },
       { title: 'Квартирник', when: 'ПТ 25.09', tint: '#EADFB8', iconFg: '#17161A', icon: I.music, pts: '25', met: [met('sasha', 'Саша', '', '#D9E4D2'), met('alya', 'Аля', '', '#E5D3DC')] }
     ];
     const tab = (key, label) => ({ label, on: s.tab === key ? 'true' : 'false', bg: s.tab === key ? '#17161A' : 'transparent', fg: s.tab === key ? '#F3F0E8' : '#3A3833', pick: () => this.setState({ tab: key }) });
     return {
+      hintOn: !!this.props.hint && this.props.hint !== 'false' && !this.state.hintClosed,
+      closeHint: () => this.setState({ hintClosed: true }),
       tabs: [tab('soon', 'Скоро'), tab('past', 'Были')],
       isSoon: s.tab === 'soon',
       isPast: s.tab === 'past',

@@ -16,6 +16,10 @@ body{margin:0;background:#E9E5DB}
 @keyframes v3Pill{0%{transform:translateY(-12px);opacity:0}15%{transform:translateY(0);opacity:1}85%{opacity:1}100%{opacity:0}}
 .v3up{animation:v3Up 260ms cubic-bezier(.2,.8,.2,1) both}
 .v3pop{animation:v3Pop 380ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes v3Spot{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.55)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+@keyframes v3Swipe{0%{transform:translate(0,0) rotate(0deg);opacity:0}15%{opacity:1}70%{transform:translate(150px,-14px) rotate(14deg);opacity:1}100%{transform:translate(170px,-16px) rotate(16deg);opacity:0}}
+@keyframes v3HintIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.v3hint{animation:v3HintIn 300ms cubic-bezier(.2,.8,.2,1) 120ms both}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
@@ -73,7 +77,9 @@ body{margin:0;background:#E9E5DB}
 </div>
 
 <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 96px; box-sizing: border-box; padding: 12px 16px 26px; background: #FBFAF6; border-top: 1px solid #DDD8CC; display: flex; gap: 10px">
+<sc-if value="{{isGoing}}" hint-placeholder-val="{{ false }}">
 <button type="button" onClick="{{openFriends}}" aria-label="Позвать друзей" style="width: 58px; height: 56px; border-radius: 16px; border: 1px solid #CFC9BB; background: #FBFAF6; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M19 8v6M16 11h6"></path></svg></button>
+</sc-if>
 <sc-if value="{{notGoing}}" hint-placeholder-val="{{ true }}">
 <button type="button" onClick="{{openHow}}" style="flex-grow: 1; height: 56px; border-radius: 16px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Пойду</button>
 </sc-if>
@@ -127,9 +133,21 @@ body{margin:0;background:#E9E5DB}
 <button type="button" onClick="{{send}}" style="height: 56px; border-radius: 16px; border: 0; background: {{sendBg}}; color: {{sendFg}}; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">{{sendLabel}}</button>
 </div>
 </sc-if>
+
+<sc-if value="{{hintOn}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; overflow: hidden; z-index: 40">
+<span aria-hidden="true" style="position: absolute; left: 8px; top: 410px; width: 374px; height: 222px; border-radius: 22px; box-shadow: 0 0 0 1400px rgba(23,22,26,0.74)"></span>
+<span aria-hidden="true" style="position: absolute; left: 8px; top: 410px; width: 374px; height: 222px; border-radius: 22px; border: 2.5px solid #F0521F; box-sizing: border-box; animation: v3Spot 1.6s ease-in-out infinite"></span>
+<div class="v3hint" style="position: absolute; left: 24px; right: 24px; top: 150px; padding: 18px; border-radius: 22px; background: #FBFAF6; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 14px 34px rgba(23,22,26,0.3)">
+<span style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 13px; background: #17161A; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 013 0V11M11 10.5V4a1.5 1.5 0 013 0v6.5M14 10V5.5a1.5 1.5 0 013 0V13M17 9.5a1.5 1.5 0 013 0V14a7 7 0 01-7 7h-1a6 6 0 01-5-2.7L4.5 15a1.6 1.6 0 012.6-1.8L8 14.5"></path></svg></span><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Кто идёт</span></span>
+<span style="font-size: 15.5px; line-height: 1.4; color: #3A3833">Синее кольцо — друзья. Рука — ищет компанию: ей можно написать</span>
+<button type="button" onClick="{{closeHint}}" style="height: 46px; border-radius: 14px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; color: #17161A">Понятно</button>
+</div>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["none","how","friends","going"],"default":"none"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["none","how","friends","going"],"default":"none"},"hint":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -157,12 +175,12 @@ class Component extends DCLogic {
       { name: 'Игорь', photo: '../assets/igor.jpg', friend: true, href: 'V3Person.dc.html' },
       { name: 'Денис', photo: '../assets/denis.jpg', friend: true, href: 'V3Person.dc.html' },
       { name: 'Айнура', photo: '../assets/ainura.jpg', seeking: true, href: 'V3Person.dc.html' },
-      { name: 'Ерлан', initial: 'Е', tint: '#EADFB8', seeking: true, href: 'V3Person.dc.html' },
-      { name: 'Мира', initial: 'М', tint: '#D6E0EE', seeking: true, href: 'V3Person.dc.html' },
+      { name: 'Ерлан', photo: '../assets/erlan.jpg', seeking: true, href: 'V3Person.dc.html' },
+      { name: 'Мира', photo: '../assets/mira.jpg', seeking: true, href: 'V3Person.dc.html' },
       { name: 'Саша', initial: 'С', tint: '#D9E4D2', href: 'V3Person.dc.html' },
       { name: 'Аля', initial: 'А', tint: '#E5D3DC', href: 'V3Person.dc.html' },
       { name: 'Марат', initial: 'М', tint: '#EADFB8', seeking: true, href: 'V3Person.dc.html' },
-      { name: 'Дина', initial: 'Д', tint: '#D6E0EE', href: 'V3Person.dc.html' },
+      { name: 'Даниэль', photo: '../assets/daniel.jpg', href: 'V3Person.dc.html' },
       { name: 'все', initial: '+29', tint: '#E7E2D6', href: 'V3Person.dc.html', more: true }
     ];
     const list = going ? [{ name: 'Ты', photo: '../assets/danil.jpg', me: true, seeking: s.mode === 'company', href: 'V3Me.dc.html' }].concat(base.slice(0, 8)).concat([{ ...base[9], name: 'все', initial: '+30' }]) : base;
@@ -192,7 +210,7 @@ class Component extends DCLogic {
       { id: 'igor', name: 'Игорь', photo: '../assets/igor.jpg', already: true },
       { id: 'denis', name: 'Денис', photo: '../assets/denis.jpg', already: true },
       { id: 'anton', name: 'Антон', photo: '../assets/anton.jpg' },
-      { id: 'timur', name: 'Тимур', initial: 'Т' }
+      { id: 'timur', name: 'Тимур', photo: '../assets/timur.jpg' }
     ];
     const friends = fr.map((f) => {
       const on = s.picked.includes(f.id) || !!f.already;
@@ -207,6 +225,8 @@ class Component extends DCLogic {
     const n = s.picked.length;
     const goingLabels = { friends: 'Иду с друзьями', company: 'Иду · ищу компанию', simple: 'Иду' };
     return {
+      hintOn: !!this.props.hint && this.props.hint !== 'false' && !this.state.hintClosed,
+      closeHint: () => this.setState({ hintClosed: true }),
       people,
       goingCount: String(going ? 39 : 38),
       hows, friends,

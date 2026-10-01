@@ -513,7 +513,7 @@
       "x": 0,
       "y": 260,
       "w": 1800,
-      "h": 1660,
+      "h": 1680,
       "title": "v3 · 10 сценариев, тапы и самокритика",
       "page": "v3"
     },
@@ -538,12 +538,12 @@
       "y": 2440,
       "w": 390,
       "h": 844,
-      "title": "К1 · Карта: ближайшие 24 часа",
+      "title": "К1 · Карта: сейчас, погода на карте",
       "page": "v3",
       "is_interactive": true
     },
     "V3MapPin.dc.html": {
-      "x": 470,
+      "x": 1880,
       "y": 2440,
       "w": 390,
       "h": 844,
@@ -552,7 +552,7 @@
       "is_interactive": true
     },
     "V3MapFriend.dc.html": {
-      "x": 940,
+      "x": 2350,
       "y": 2440,
       "w": 390,
       "h": 844,
@@ -561,25 +561,25 @@
       "is_interactive": true
     },
     "V3Filter.dc.html": {
-      "x": 1410,
+      "x": 3290,
       "y": 2440,
       "w": 390,
       "h": 844,
-      "title": "К4 · Фильтр: даты внутри",
+      "title": "К4 · Фильтр без дат: что, цена, порядок",
       "page": "v3",
       "is_interactive": true
     },
     "V3MapPlus.dc.html": {
-      "x": 1880,
+      "x": 3760,
       "y": 2440,
       "w": 390,
       "h": 844,
-      "title": "К5 · Кнопка «+»",
+      "title": "К5 · Кнопка «+»: точка или событие",
       "page": "v3",
       "is_interactive": true
     },
     "V3FirstRun.dc.html": {
-      "x": 2350,
+      "x": 4230,
       "y": 2440,
       "w": 390,
       "h": 844,
@@ -588,7 +588,7 @@
       "is_interactive": true
     },
     "V3Feed.dc.html": {
-      "x": 2820,
+      "x": 4700,
       "y": 2440,
       "w": 390,
       "h": 844,
@@ -606,7 +606,7 @@
       "is_interactive": true
     },
     "V3EventHow.dc.html": {
-      "x": 470,
+      "x": 940,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -615,7 +615,7 @@
       "is_interactive": true
     },
     "V3EventFriends.dc.html": {
-      "x": 940,
+      "x": 1410,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -624,7 +624,7 @@
       "is_interactive": true
     },
     "V3EventGoing.dc.html": {
-      "x": 1410,
+      "x": 1880,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -633,7 +633,7 @@
       "is_interactive": true
     },
     "V3Person.dc.html": {
-      "x": 1880,
+      "x": 2350,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -642,7 +642,7 @@
       "is_interactive": true
     },
     "V3PersonWrite.dc.html": {
-      "x": 2350,
+      "x": 2820,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -651,7 +651,7 @@
       "is_interactive": true
     },
     "V3PersonFriend.dc.html": {
-      "x": 2820,
+      "x": 3290,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -660,7 +660,7 @@
       "is_interactive": true
     },
     "V3FriendsOf.dc.html": {
-      "x": 3290,
+      "x": 3760,
       "y": 3800,
       "w": 390,
       "h": 844,
@@ -678,7 +678,7 @@
       "is_interactive": true
     },
     "V3ChatsFriend.dc.html": {
-      "x": 470,
+      "x": 940,
       "y": 5160,
       "w": 390,
       "h": 844,
@@ -687,7 +687,7 @@
       "is_interactive": true
     },
     "V3Chat.dc.html": {
-      "x": 940,
+      "x": 1410,
       "y": 5160,
       "w": 390,
       "h": 844,
@@ -696,16 +696,16 @@
       "is_interactive": true
     },
     "V3ChatTray.dc.html": {
-      "x": 1410,
+      "x": 1880,
       "y": 5160,
       "w": 390,
       "h": 844,
-      "title": "Ч4 · Плюс в чате",
+      "title": "Ч4 · Плюс в чате: позвать, точка, фото",
       "page": "v3",
       "is_interactive": true
     },
     "V3Requests.dc.html": {
-      "x": 1880,
+      "x": 2820,
       "y": 5160,
       "w": 390,
       "h": 844,
@@ -714,7 +714,7 @@
       "is_interactive": true
     },
     "V3ChatRequest.dc.html": {
-      "x": 2350,
+      "x": 3290,
       "y": 5160,
       "w": 390,
       "h": 844,
@@ -723,7 +723,7 @@
       "is_interactive": true
     },
     "V3FindPeople.dc.html": {
-      "x": 2820,
+      "x": 3760,
       "y": 5160,
       "w": 390,
       "h": 844,
@@ -741,7 +741,7 @@
       "is_interactive": true
     },
     "V3PlansPast.dc.html": {
-      "x": 470,
+      "x": 940,
       "y": 6520,
       "w": 390,
       "h": 844,
@@ -750,7 +750,7 @@
       "is_interactive": true
     },
     "V3Me.dc.html": {
-      "x": 940,
+      "x": 1410,
       "y": 6520,
       "w": 390,
       "h": 844,
@@ -759,7 +759,7 @@
       "is_interactive": true
     },
     "V3Quests.dc.html": {
-      "x": 1410,
+      "x": 1880,
       "y": 6520,
       "w": 390,
       "h": 844,
@@ -768,7 +768,7 @@
       "is_interactive": true
     },
     "V3LevelUp.dc.html": {
-      "x": 1880,
+      "x": 2350,
       "y": 6520,
       "w": 390,
       "h": 844,
@@ -777,11 +777,92 @@
       "is_interactive": true
     },
     "V3TabBar.dc.html": {
-      "x": 2350,
+      "x": 2820,
       "y": 6520,
       "w": 390,
       "h": 96,
       "title": "Таб-бар v3: Карта · Подборка · Планы · Чаты · Профиль",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3MapDays.dc.html": {
+      "x": 470,
+      "y": 2440,
+      "w": 390,
+      "h": 844,
+      "title": "К1а · День и погода: лента на 2 недели",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3MapRain.dc.html": {
+      "x": 940,
+      "y": 2440,
+      "w": 390,
+      "h": 844,
+      "title": "К1б · Суббота: дождь, друзья на пинах",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3MapSnow.dc.html": {
+      "x": 1410,
+      "y": 2440,
+      "w": 390,
+      "h": 844,
+      "title": "К1в · Первый снег",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3MapPoint.dc.html": {
+      "x": 2820,
+      "y": 2440,
+      "w": 390,
+      "h": 844,
+      "title": "К3а · Точка: «тут, в 20:30»",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3FeedHint.dc.html": {
+      "x": 5170,
+      "y": 2440,
+      "w": 390,
+      "h": 844,
+      "title": "П1а · Подсказка: как листать",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3EventHint.dc.html": {
+      "x": 470,
+      "y": 3800,
+      "w": 390,
+      "h": 844,
+      "title": "С1а · Подсказка: кто идёт",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3ChatsHint.dc.html": {
+      "x": 470,
+      "y": 5160,
+      "w": 390,
+      "h": 844,
+      "title": "Ч1а · Подсказка: друзья и значки",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3ChatInvite.dc.html": {
+      "x": 2350,
+      "y": 5160,
+      "w": 390,
+      "h": 844,
+      "title": "Ч4а · Позвать: куда?",
+      "page": "v3",
+      "is_interactive": true
+    },
+    "V3PlansHint.dc.html": {
+      "x": 470,
+      "y": 6520,
+      "w": 390,
+      "h": 844,
+      "title": "Пл1а · Подсказка: тебя зовут",
       "page": "v3",
       "is_interactive": true
     }
@@ -915,8 +996,8 @@
     },
     "v3_map": {
       "kind": "title1",
-      "maxW": 3210,
-      "text": "Карта и Подборка: что рядом в ближайшие сутки",
+      "maxW": 5560,
+      "text": "Карта и Подборка: сейчас или любой день, погода прямо на карте",
       "w": 240,
       "x": 0,
       "y": 2180,
@@ -924,7 +1005,7 @@
     },
     "v3_go": {
       "kind": "title1",
-      "maxW": 3680,
+      "maxW": 4150,
       "text": "Событие и люди: видно всех, незнакомым — запросом",
       "w": 240,
       "x": 0,
@@ -933,8 +1014,8 @@
     },
     "v3_chat": {
       "kind": "title1",
-      "maxW": 3210,
-      "text": "Чаты: друзья сверху, запросы, приглашения внутри",
+      "maxW": 4150,
+      "text": "Чаты: друзья сверху, запросы, позвать и точка внутри",
       "w": 240,
       "x": 0,
       "y": 4900,
@@ -942,7 +1023,7 @@
     },
     "v3_mine": {
       "kind": "title1",
-      "maxW": 2740,
+      "maxW": 3210,
       "text": "Планы, профиль, уровень",
       "w": 240,
       "x": 0,
@@ -1043,7 +1124,16 @@
     "V3Me.dc.html",
     "V3Quests.dc.html",
     "V3LevelUp.dc.html",
-    "V3TabBar.dc.html"
+    "V3TabBar.dc.html",
+    "V3MapDays.dc.html",
+    "V3MapRain.dc.html",
+    "V3MapSnow.dc.html",
+    "V3MapPoint.dc.html",
+    "V3FeedHint.dc.html",
+    "V3EventHint.dc.html",
+    "V3ChatsHint.dc.html",
+    "V3ChatInvite.dc.html",
+    "V3PlansHint.dc.html"
   ],
   "pages": [
     {

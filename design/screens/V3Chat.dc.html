@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Чат v3: приглашение, стикер, голос, запрос</title>
+<title>Чат v3: приглашение и точка внутри, без дублей</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -29,9 +29,6 @@ body{margin:0;background:#E9E5DB}
 </span>
 <span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">{{name}}</span>
 </a>
-<sc-if value="{{isFriendChat}}" hint-placeholder-val="{{ true }}">
-<a href="V3MapFriend.dc.html" aria-label="Где Игорь на карте" style="width: 44px; height: 44px; border-radius: 50%; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"></path></svg></a>
-</sc-if>
 <sc-if value="{{isRequest}}" hint-placeholder-val="{{ false }}">
 <button type="button" aria-label="Ещё" style="width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#17161A" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg></button>
 </sc-if>
@@ -41,44 +38,56 @@ body{margin:0;background:#E9E5DB}
 
 <sc-if value="{{isFriendChat}}" hint-placeholder-val="{{ true }}">
 <span style="align-self: center; padding: 4px 10px; border-radius: 10px; background: #E7E2D6; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #3A3833">ВЧЕРА</span>
-<img src="../assets/hike.jpg" alt="Фото от Игоря" style="align-self: flex-start; width: 200px; height: 140px; border-radius: 20px 20px 20px 6px; object-fit: cover; display: block">
-<span style="align-self: flex-start; display: flex; align-items: center; gap: 10px; width: 200px; padding: 8px 12px 8px 8px; box-sizing: border-box; border-radius: 22px 22px 22px 6px; background: #FBFAF6; border: 1px solid #E3DED3">
-<span style="width: 34px; height: 34px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="#F3F0E8" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></span>
-<svg width="104" height="26" viewBox="0 0 104 26" aria-hidden="true"><g fill="#17161A"><rect x="0" y="10" width="3" height="6" rx="1.5"></rect><rect x="7" y="6" width="3" height="14" rx="1.5"></rect><rect x="14" y="2" width="3" height="22" rx="1.5"></rect><rect x="21" y="8" width="3" height="10" rx="1.5"></rect><rect x="28" y="4" width="3" height="18" rx="1.5"></rect></g><g fill="#B9B2A3"><rect x="35" y="9" width="3" height="8" rx="1.5"></rect><rect x="42" y="5" width="3" height="16" rx="1.5"></rect><rect x="49" y="10" width="3" height="6" rx="1.5"></rect><rect x="56" y="3" width="3" height="20" rx="1.5"></rect><rect x="63" y="8" width="3" height="10" rx="1.5"></rect><rect x="70" y="11" width="3" height="4" rx="1.5"></rect><rect x="77" y="6" width="3" height="14" rx="1.5"></rect><rect x="84" y="9" width="3" height="8" rx="1.5"></rect><rect x="91" y="11" width="3" height="4" rx="1.5"></rect><rect x="98" y="10" width="3" height="6" rx="1.5"></rect></g></svg>
-<span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #55524C">0:07</span>
-</span>
+<img src="../assets/hike.jpg" alt="Фото от Игоря" style="align-self: flex-start; width: 180px; height: 120px; border-radius: 20px 20px 20px 6px; object-fit: cover; display: block; flex-shrink: 0">
 <span style="align-self: flex-end; max-width: 270px; padding: 9px 13px; border-radius: 18px 18px 6px 18px; background: #17161A; color: #F3F0E8; font-size: 15px; line-height: 1.35">Огонь</span>
 
 <span style="align-self: center; padding: 4px 10px; border-radius: 10px; background: #E7E2D6; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #3A3833">СЕГОДНЯ</span>
-<span style="align-self: flex-start; max-width: 270px; padding: 9px 13px; border-radius: 18px 18px 18px 6px; background: #FBFAF6; border: 1px solid #E3DED3; font-size: 15px; line-height: 1.35">В пятницу кино в парке, го?</span>
 
-<div style="align-self: flex-start; width: 264px; border-radius: 20px 20px 20px 6px; overflow: hidden; background: #FBFAF6; border: 1px solid #E3DED3">
-<a href="V3Event.dc.html" style="display: flex; align-items: flex-end; justify-content: space-between; height: 86px; padding: 10px 12px; box-sizing: border-box; background: #17161A; color: #F3F0E8; text-decoration: none">
-<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800; line-height: 0.95; text-transform: uppercase">Кино<br>в парке</span>
-<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity: 0.5"><path d="M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4"></path></svg>
+<div style="align-self: flex-start; width: 250px; flex-shrink: 0; border-radius: 20px 20px 20px 6px; overflow: hidden; background: #FBFAF6; border: 1px solid #E3DED3">
+<a href="V3Event.dc.html" style="display: flex; align-items: flex-end; justify-content: space-between; height: 64px; padding: 10px 12px; box-sizing: border-box; background: #17161A; color: #F3F0E8; text-decoration: none">
+<span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800; line-height: 0.95; text-transform: uppercase">Кино в парке</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">ПТ 21:00</span>
 </a>
-<div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px">
-<span style="display: flex; align-items: center; justify-content: space-between">
-<span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600">ПТ 21:00 · 0 ₸</span>
-<span style="display: flex"><img src="../assets/igor.jpg" alt="" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid #FBFAF6"><img src="../assets/denis.jpg" alt="" style="width: 24px; height: 24px; margin-left: -8px; border-radius: 50%; object-fit: cover; border: 2px solid #FBFAF6"><sc-if value="{{going}}" hint-placeholder-val="{{ false }}"><img class="v3inx" src="../assets/danil.jpg" alt="" style="width: 24px; height: 24px; margin-left: -8px; border-radius: 50%; object-fit: cover; border: 2px solid #F0521F; box-sizing: border-box"></sc-if></span>
-</span>
+<div style="padding: 8px 10px 10px">
 <sc-if value="{{notAnswered}}" hint-placeholder-val="{{ true }}">
-<span style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
-<button type="button" onClick="{{decline}}" style="height: 44px; border-radius: 14px; border: 0; background: #E7E2D6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14.5px; font-weight: 600">Не смогу</button>
-<button type="button" onClick="{{accept}}" style="height: 44px; border-radius: 14px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14.5px; font-weight: 700">Пойду</button>
+<span style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+<button type="button" onClick="{{decline}}" style="height: 40px; border-radius: 12px; border: 0; background: #E7E2D6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600">Не смогу</button>
+<button type="button" onClick="{{accept}}" style="height: 40px; border-radius: 12px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 700">Пойду</button>
 </span>
 </sc-if>
 <sc-if value="{{going}}" hint-placeholder-val="{{ false }}">
-<a href="V3Plans.dc.html" class="v3inx" style="height: 44px; border-radius: 14px; background: #D9E4D2; color: #17161A; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14.5px; font-weight: 700"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Идёшь · в Планах</a>
+<a href="V3Plans.dc.html" class="v3inx" style="height: 40px; border-radius: 12px; background: #D9E4D2; color: #17161A; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Идёшь · в Планах</a>
 </sc-if>
 <sc-if value="{{declined}}" hint-placeholder-val="{{ false }}">
-<span class="v3inx" style="height: 44px; border-radius: 14px; background: #E7E2D6; color: #55524C; display: flex; align-items: center; justify-content: center; font-size: 14.5px; font-weight: 600">Не пойдёшь</span>
+<span class="v3inx" style="height: 40px; border-radius: 12px; background: #E7E2D6; color: #55524C; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">Не пойдёшь</span>
 </sc-if>
 </div>
 </div>
 
-<sc-if value="{{going}}" hint-placeholder-val="{{ false }}">
-<span class="v3inx" style="align-self: flex-end; width: 92px; height: 92px; border-radius: 26px; background: #F0521F; transform: rotate(-8deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #FBFAF6, 0 8px 18px rgba(23,22,26,0.15); font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; color: #17161A; margin: 6px 8px 4px 0">Го!</span>
+<div style="align-self: flex-start; width: 250px; flex-shrink: 0; border-radius: 20px 20px 20px 6px; overflow: hidden; background: #FBFAF6; border: 1px solid #E3DED3">
+<a href="V3MapPoint.dc.html" style="position: relative; display: block; height: 104px">
+<img src="../assets/tower.jpg" alt="Место встречи" style="width: 250px; height: 104px; object-fit: cover; display: block">
+<span style="position: absolute; left: 10px; top: 10px; height: 28px; padding: 0 10px 0 6px; border-radius: 14px; background: #F0521F; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: #17161A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"></path></svg>Тут · 20:30</span>
+</a>
+<div style="padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; justify-content: space-between; gap: 6px"><span style="font-size: 14.5px; font-weight: 700">Urbo Coffee</span><span style="display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #3A3833"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3A3833" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 4.5a1.5 1.5 0 110 .01M10 21l2-6 3 3v3M9 12l2-3.5 3 1 2 3.5M11 8.5L8 10l-1 3"></path></svg>8 мин</span></span>
+<sc-if value="{{pointOpen}}" hint-placeholder-val="{{ true }}">
+<span style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+<a href="V3MapPoint.dc.html" style="height: 40px; border-radius: 12px; background: #E7E2D6; color: #17161A; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none">Маршрут</a>
+<button type="button" onClick="{{pointYes}}" style="height: 40px; border-radius: 12px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 700">Иду</button>
+</span>
+</sc-if>
+<sc-if value="{{pointDone}}" hint-placeholder-val="{{ false }}">
+<span class="v3inx" style="height: 40px; border-radius: 12px; background: #D9E4D2; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Идёшь · Игорь видит</span>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{sentInvite}}" hint-placeholder-val="{{ false }}">
+<div class="v3inx" style="align-self: flex-end; width: 230px; flex-shrink: 0; border-radius: 20px 20px 6px 20px; overflow: hidden; background: #FBFAF6; border: 1px solid #E3DED3">
+<span style="display: flex; align-items: flex-end; justify-content: space-between; height: 56px; padding: 10px 12px; box-sizing: border-box; background: {{sent.bg}}; color: {{sent.fg}}"><span style="font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 800; text-transform: uppercase; line-height: 1">{{sent.title}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">{{sent.when}}</span></span>
+<span style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 40px; font-size: 13.5px; font-weight: 600; color: #55524C"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2"></path></svg>Ждём ответ</span>
+</div>
 </sc-if>
 </sc-if>
 
@@ -97,18 +106,34 @@ body{margin:0;background:#E9E5DB}
 </div>
 
 <sc-if value="{{showTray}}" hint-placeholder-val="{{ false }}">
-<div class="v3up" style="position: absolute; left: 12px; right: 12px; bottom: 96px; padding: 10px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 10px 30px rgba(23,22,26,0.18); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; z-index: 6">
-<sc-for list="{{tray}}" as="t" hint-placeholder-count="4">
-<a href="{{t.href}}" style="height: 72px; border-radius: 16px; background: {{t.bg}}; color: #17161A; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; font-size: 12px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg>{{t.label}}</a>
-</sc-for>
+<div class="v3up" style="position: absolute; left: 12px; right: 12px; bottom: 96px; padding: 10px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 10px 30px rgba(23,22,26,0.18); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; z-index: 6">
+<button type="button" onClick="{{openPicker}}" style="height: 76px; border-radius: 16px; border: 0; background: #FCE3D6; color: #17161A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4M12 13v5M9.5 15.5h5"></path></svg>Позвать</button>
+<a href="V3MapPoint.dc.html" style="height: 76px; border-radius: 16px; background: #F0521F; color: #17161A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-decoration: none; font-size: 13px; font-weight: 700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"></path></svg>Точка</a>
+<button type="button" style="height: 76px; border-radius: 16px; border: 0; background: #F3F0E8; color: #17161A; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4zM12 10a3.5 3.5 0 110 7 3.5 3.5 0 010-7z"></path></svg>Фото</button>
 </div>
 </sc-if>
 
 <sc-if value="{{showComposer}}" hint-placeholder-val="{{ true }}">
 <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 88px; box-sizing: border-box; padding: 10px 12px 26px; display: flex; align-items: center; gap: 8px; background: #F3F0E8; border-top: 1px solid #DDD8CC">
-<button type="button" onClick="{{toggleTray}}" aria-label="Позвать, фото, стикер, где я" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: {{plusBg}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{plusFg}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="transform: rotate({{plusRot}}deg); transition: transform 200ms ease"><path d="M12 5v14M5 12h14"></path></svg></button>
+<button type="button" onClick="{{toggleTray}}" aria-label="Позвать, точка, фото" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: {{plusBg}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{plusFg}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="transform: rotate({{plusRot}}deg); transition: transform 200ms ease"><path d="M12 5v14M5 12h14"></path></svg></button>
 <span style="flex-grow: 1; height: 44px; border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box; padding: 0 6px 0 16px; display: flex; align-items: center; font-size: 15px; color: #8F897C">Сообщение<span style="flex-grow: 1"></span><span aria-label="Стикеры" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3A3833" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v11l-5 5H5zM14 20v-5h5M9 10h.01M15 10h.01M9.5 13.5c.8.7 1.6 1 2.5 1"></path></svg></span></span>
 <button type="button" aria-label="Голосовое" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: #17161A; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a3 3 0 013 3v5a3 3 0 01-6 0V6a3 3 0 013-3zM5 11a7 7 0 0014 0M12 18v3"></path></svg></button>
+</div>
+</sc-if>
+
+<sc-if value="{{showPicker}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{closePicker}}" aria-label="Закрыть" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; border: 0; background: rgba(23,22,26,0.36); z-index: 7"></button>
+<div class="v3up" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 30px; border-radius: 24px 24px 0 0; background: #FBFAF6; display: flex; flex-direction: column; gap: 10px; z-index: 8">
+<span style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: #CFC9BB"></span>
+<span style="display: flex; align-items: center; gap: 10px; padding: 2px 0 4px"><img src="../assets/igor.jpg" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2.5px solid #2447B8; box-sizing: border-box"><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700">Куда?</span></span>
+<sc-for list="{{options}}" as="o" hint-placeholder-count="4">
+<button type="button" onClick="{{o.pick}}" style="display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 18px; border: 1px solid #DDD8CC; background: #FBFAF6; text-align: left; font-family: 'Golos Text', sans-serif; color: #17161A">
+<sc-if value="{{o.hasPhoto}}" hint-placeholder-val="{{ false }}"><img src="{{o.photo}}" alt="" style="width: 52px; height: 52px; border-radius: 14px; object-fit: cover; flex-shrink: 0"></sc-if>
+<sc-if value="{{o.noPhoto}}" hint-placeholder-val="{{ true }}"><span style="width: 52px; height: 52px; border-radius: 14px; background: {{o.bg}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{o.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{o.icon}}"></path></svg></span></sc-if>
+<span style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0"><span style="font-size: 15.5px; font-weight: 700">{{o.title}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #3A3833">{{o.when}}</span></span>
+<sc-if value="{{o.mine}}" hint-placeholder-val="{{ true }}"><span style="height: 26px; padding: 0 9px 0 7px; border-radius: 13px; background: #D9E4D2; display: flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>иду</span></sc-if>
+</button>
+</sc-for>
 </div>
 </sc-if>
 
@@ -121,15 +146,15 @@ body{margin:0;background:#E9E5DB}
 </sc-if>
 
 <sc-if value="{{pill}}" hint-placeholder-val="{{ false }}">
-<span style="position: absolute; left: 50%; top: 116px; margin-left: -88px; width: 176px; height: 36px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13.5px; font-weight: 600; animation: v3Pill 1800ms ease both; z-index: 8"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{pillText}}</span>
+<span style="position: absolute; left: 50%; top: 116px; transform: translateX(-50%); height: 36px; padding: 0 16px 0 12px; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13.5px; font-weight: 600; white-space: nowrap; animation: v3Pill 1800ms ease both; z-index: 9"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{pillText}}</span>
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["friend","request"],"default":"friend"},"tray":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["friend","request"],"default":"friend"},"tray":{"editor":"boolean","default":false},"picker":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { answer: '', tray: !!props.tray, accepted: false, pill: '' };
+    this.state = { answer: '', tray: !!props.tray, picker: !!props.picker, accepted: false, point: false, sent: null, pill: '' };
     this.timers = [];
   }
   componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
@@ -141,12 +166,19 @@ class Component extends DCLogic {
     const s = this.state;
     const req = this.props.mode === 'request';
     const reqOpen = req && !s.accepted;
-    const tray = [
-      { label: 'Позвать', href: 'V3EventHow.dc.html', bg: '#FCE3D6', icon: 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4M12 13v5M9.5 15.5h5' },
-      { label: 'Фото', href: '#', bg: '#F3F0E8', icon: 'M4 7h3l2-3h6l2 3h3v13H4zM12 10a3.5 3.5 0 110 7 3.5 3.5 0 010-7z' },
-      { label: 'Стикер', href: '#', bg: '#F3F0E8', icon: 'M5 4h14v11l-5 5H5zM14 20v-5h5M9 10h.01M15 10h.01M9.5 13.5c.8.7 1.6 1 2.5 1' },
-      { label: 'Где я', href: '#', bg: '#D6E0EE', icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z' }
+    const I = {
+      music: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z',
+      dice: 'M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      hike: 'M3 20l6-10 4 6 3-4 5 8z'
+    };
+    const opts = [
+      { title: 'Джаз во дворе', when: 'СЕГОДНЯ 19:30', bg: '#F0521F', fg: '#17161A', icon: I.music, mine: true },
+      { title: 'Настолки', when: 'ПТ 20:00', bg: '#D6E0EE', fg: '#17161A', icon: I.dice, mine: true },
+      { title: 'Кок-Жайляу', when: 'СБ 08:00', bg: '#D9E4D2', fg: '#17161A', icon: I.hike, mine: true },
+      { title: 'Ночь в музее', when: 'СБ 19:00', photo: '../assets/museum.jpg', bg: '#17161A', fg: '#F3F0E8', icon: I.music, mine: false }
     ];
+    const options = opts.map((o) => ({ ...o, hasPhoto: !!o.photo, noPhoto: !o.photo, photo: o.photo || '', pick: () => { this.setState({ picker: false, tray: false, sent: o }); this.flash('Приглашение у Игоря'); } }));
+    const sent = s.sent || opts[0];
     return {
       isFriendChat: !req,
       isRequest: req,
@@ -154,18 +186,25 @@ class Component extends DCLogic {
       name: req ? 'Айнура' : 'Игорь',
       photo: req ? '../assets/ainura.jpg' : '../assets/igor.jpg',
       ring: req ? 'transparent' : '#2447B8',
-      badge: req ? 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z' : 'M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8zM17 10h1.5a2.5 2.5 0 010 5H17',
+      badge: req ? I.music : 'M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8zM17 10h1.5a2.5 2.5 0 010 5H17',
       badgeBg: req ? '#F0521F' : '#C77A12',
       profileHref: req ? 'V3Person.dc.html' : 'V3PersonFriend.dc.html',
       listBottom: reqOpen ? '92' : '88',
       notAnswered: !s.answer,
       going: s.answer === 'yes',
-      notGoing: s.answer !== 'yes',
       declined: s.answer === 'no',
       accept: () => { this.setState({ answer: 'yes' }); this.flash('Игорь узнает'); },
       decline: () => this.setState({ answer: 'no' }),
-      showTray: s.tray && !reqOpen,
-      tray,
+      pointOpen: !s.point,
+      pointDone: s.point,
+      pointYes: () => { this.setState({ point: true }); this.flash('Игорь видит, что ты идёшь'); },
+      sentInvite: !!s.sent,
+      sent: { title: sent.title, when: sent.when.replace('СЕГОДНЯ ', ''), bg: sent.photo ? '#17161A' : sent.bg, fg: sent.photo ? '#F3F0E8' : sent.fg },
+      showTray: s.tray && !reqOpen && !s.picker,
+      showPicker: s.picker && !reqOpen,
+      options,
+      openPicker: () => this.setState({ picker: true }),
+      closePicker: () => this.setState({ picker: false }),
       toggleTray: () => this.setState({ tray: !this.state.tray }),
       plusBg: s.tray ? '#17161A' : '#E7E2D6',
       plusFg: s.tray ? '#F3F0E8' : '#17161A',

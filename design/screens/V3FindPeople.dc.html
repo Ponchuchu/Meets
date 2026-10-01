@@ -62,7 +62,7 @@ body{margin:0;background:#E9E5DB}
 <sc-for list="{{fof}}" as="f" hint-placeholder-count="3">
 <div style="display: flex; align-items: center; gap: 12px">
 <a href="V3Person.dc.html" style="display: flex; align-items: center; gap: 12px; flex-grow: 1; min-width: 0; text-decoration: none; color: #17161A">
-<span style="width: 50px; height: 50px; border-radius: 50%; background: {{f.tint}}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0">{{f.initial}}</span>
+<sc-if value="{{f.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{f.photo}}" alt="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; flex-shrink: 0"></sc-if><sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 50px; height: 50px; border-radius: 50%; background: {{f.tint}}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0">{{f.initial}}</span></sc-if>
 <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
 <span style="font-size: 15.5px; font-weight: 700">{{f.name}}</span>
 <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3A3833"><span style="display: flex"><sc-for list="{{f.via}}" as="v" hint-placeholder-count="2"><img src="{{v}}" alt="" style="width: 20px; height: 20px; margin-right: -6px; border-radius: 50%; object-fit: cover; border: 2px solid #F3F0E8"></sc-for></span><span style="margin-left: 6px">{{f.mutual}}</span></span>
@@ -99,14 +99,14 @@ class Component extends DCLogic {
         { label: 'Рядом', bg: '#17161A', fg: '#F3F0E8', icon: 'M12 10a2 2 0 110 4 2 2 0 010-4zM8 8a5.5 5.5 0 000 8M16 8a5.5 5.5 0 010 8M5 5a9.5 9.5 0 000 14M19 5a9.5 9.5 0 010 14' }
       ],
       groups: [
-        { title: 'Джаз во дворе', when: '19:30', tint: '#F0521F', iconFg: '#17161A', icon: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', people: [person('ainura', 'Айнура', P.ainura, '', true), person('erlan', 'Ерлан', '', '#EADFB8', true), person('mira', 'Мира', '', '#D6E0EE', true), person('marat', 'Марат', '', '#EADFB8', true), person('sasha', 'Саша', '', '#D9E4D2')] },
+        { title: 'Джаз во дворе', when: '19:30', tint: '#F0521F', iconFg: '#17161A', icon: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', people: [person('ainura', 'Айнура', P.ainura, '', true), person('erlan', 'Ерлан', '../assets/erlan.jpg', '', true), person('mira', 'Мира', '../assets/mira.jpg', '', true), person('marat', 'Марат', '', '#EADFB8', true), person('sasha', 'Саша', '', '#D9E4D2')] },
         { title: 'Настолки', when: 'ПТ 20:00', tint: '#D6E0EE', iconFg: '#17161A', icon: 'M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zM9 9h.01M15 15h.01M15 9h.01M9 15h.01', people: [person('dina', 'Дина', '', '#E5D3DC', true), person('alya', 'Аля', '', '#E5D3DC', true), person('ruslan', 'Руслан', '', '#D9E4D2')] }
       ],
       fof: [
-        { id: 'kamila', name: 'Камила', tint: '#E5D3DC', via: [P.igor, P.denis], mutual: '2 общих' },
-        { id: 'arman', name: 'Арман', tint: '#D6E0EE', via: [P.anton], mutual: '1 общий' },
+        { id: 'kamila', name: 'Камила', photo: '../assets/kamila.jpg', tint: '#E5D3DC', via: [P.igor, P.denis], mutual: '2 общих' },
+        { id: 'daniel', name: 'Даниэль', photo: '../assets/daniel.jpg', tint: '#D6E0EE', via: [P.anton], mutual: '1 общий' },
         { id: 'zhanna', name: 'Жанна', tint: '#EADFB8', via: [P.igor, P.anton], mutual: '2 общих' }
-      ].map((f) => { const on = !!added[f.id]; return { ...f, initial: f.name[0], ...btn(f.id, f.name), bg: on ? '#E7E2D6' : '#D6E0EE', fg: on ? '#17161A' : '#2447B8' }; })
+      ].map((f) => { const on = !!added[f.id]; return { ...f, hasPhoto: !!f.photo, noPhoto: !f.photo, photo: f.photo || '', initial: f.name[0], ...btn(f.id, f.name), bg: on ? '#E7E2D6' : '#D6E0EE', fg: on ? '#17161A' : '#2447B8' }; })
     };
   }
 }

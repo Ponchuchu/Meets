@@ -14,6 +14,10 @@ body{margin:0;background:#E9E5DB}
 @keyframes v2Ring{0%{transform:scale(0.5);opacity:0.9}100%{transform:scale(1.9);opacity:0}}
 @keyframes v2Plus{0%{transform:translateY(8px);opacity:0}25%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
 @keyframes v2Bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes v3Spot{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.55)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+@keyframes v3Swipe{0%{transform:translate(0,0) rotate(0deg);opacity:0}15%{opacity:1}70%{transform:translate(150px,-14px) rotate(14deg);opacity:1}100%{transform:translate(170px,-16px) rotate(16deg);opacity:0}}
+@keyframes v3HintIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.v3hint{animation:v3HintIn 300ms cubic-bezier(.2,.8,.2,1) 120ms both}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
@@ -64,9 +68,23 @@ body{margin:0;background:#E9E5DB}
 <span aria-hidden="true" style="position: absolute; left: 167px; top: 762px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #F0521F; box-sizing: border-box; animation: v2Ring 900ms ease-out both; z-index: 30; pointer-events: none"></span>
 <span aria-hidden="true" style="position: absolute; left: 182px; top: 740px; font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800; color: #F0521F; animation: v2Plus 900ms ease-out both; z-index: 30; pointer-events: none">+1</span>
 </sc-if>
+
+<sc-if value="{{hintOn}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; overflow: hidden; z-index: 40">
+<span aria-hidden="true" style="position: absolute; left: 12px; top: 96px; width: 366px; height: 488px; border-radius: 28px; box-shadow: 0 0 0 1400px rgba(23,22,26,0.74)"></span>
+<span aria-hidden="true" style="position: absolute; left: 12px; top: 96px; width: 366px; height: 488px; border-radius: 28px; border: 2.5px solid #F0521F; box-sizing: border-box; animation: v3Spot 1.6s ease-in-out infinite"></span>
+<span aria-hidden="true" style="position: absolute; left: 110px; top: 330px; width: 56px; height: 56px; border-radius: 50%; background: rgba(251,250,246,0.92); box-shadow: 0 6px 18px rgba(23,22,26,0.35); display: flex; align-items: center; justify-content: center; animation: v3Swipe 1.8s cubic-bezier(.4,0,.2,1) infinite"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 013 0V11M11 10.5V4a1.5 1.5 0 013 0v6.5M14 10V5.5a1.5 1.5 0 013 0V13M17 9.5a1.5 1.5 0 013 0V14a7 7 0 01-7 7h-1a6 6 0 01-5-2.7L4.5 15a1.6 1.6 0 012.6-1.8L8 14.5"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 250px; top: 150px; padding: 6px 14px; border: 3px solid #F0521F; border-radius: 10px; background: #F3F0E8; color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; transform: rotate(-12deg)">ПОЙДУ</span>
+<div class="v3hint" style="position: absolute; left: 24px; right: 24px; top: 600px; padding: 18px; border-radius: 22px; background: #FBFAF6; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 14px 34px rgba(23,22,26,0.3)">
+<span style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 13px; background: #17161A; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 3h9.5a2.5 2.5 0 012.5 2.5v10a2.5 2.5 0 01-2.5 2.5h-7a2.5 2.5 0 01-2.5-2.5zM5 7.5v10.5a3 3 0 003 3h8"></path></svg></span><span style="font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 700">Листай</span></span>
+<span style="font-size: 15.5px; line-height: 1.4; color: #3A3833">Вправо — пойду, влево — мимо. Всё, что «пойду», улетит в Планы</span>
+<button type="button" onClick="{{closeHint}}" style="height: 46px; border-radius: 14px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; color: #17161A">Понятно</button>
+</div>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"hint":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -79,10 +97,10 @@ class Component extends DCLogic {
   cards() {
     return [
       { id: 'jazz', cat: 'МУЗЫКА', title: 'Джаз во дворе', cover: '#F0521F', coverFg: '#17161A', when: 'Сегодня 19:30 · 0 ₸', place: 'Панфилова, 110', walk: '12 мин', social: 'Игорь, Денис', friends: true },
-      { id: 'standup', cat: 'ПОСМЕЯТЬСЯ', title: 'Открытый микрофон', cover: '#17161A', coverFg: '#F3F0E8', when: 'Пт 20:00 · 3 000 ₸', place: 'Бар на Абая', walk: '20 мин', social: '5 ищут компанию' },
-      { id: 'hike', cat: 'ГОРЫ', title: 'Кок-Жайляу', cover: '#17161A', coverFg: '#F3F0E8', photo: '../assets/hike.jpg', when: 'Сб 08:00 · 0 ₸', place: 'Медеуское ущелье', walk: '35 мин', social: 'Тимур · 3 ищут компанию' },
-      { id: 'games', cat: 'НАСТОЛКИ', title: 'Настолки с новыми людьми', cover: '#D6E0EE', coverFg: '#17161A', when: 'Пт 20:00 · 1 500 ₸', place: 'Антикафе, Казыбек би', walk: '9 мин', social: 'Денис идёт' },
-      { id: 'anime', cat: 'ВЫСТАВКА', title: 'Токио в Алматы', cover: '#E5D3DC', coverFg: '#17161A', when: 'До вс · 2 500 ₸', place: 'ТРЦ, 3 этаж', walk: '25 мин', social: 'Антон уже там' }
+      { id: 'museum', cat: 'ВЫСТАВКА', title: 'Ночь в музее', cover: '#17161A', coverFg: '#F3F0E8', photo: '../assets/museum.jpg', when: 'Сб 19:00 · 3 000 ₸', place: 'Музей искусств', walk: '25 мин', social: 'Камила и ещё 40 идут' },
+      { id: 'standup', cat: 'ПОСМЕЯТЬСЯ', title: 'Открытый микрофон', cover: '#17161A', coverFg: '#F3F0E8', photo: '../assets/pub.jpg', when: 'Пт 20:00 · 3 000 ₸', place: 'Паб в старом особняке', walk: '14 мин', social: '5 ищут компанию' },
+      { id: 'ethno', cat: 'ФОТО', title: 'Этно-прогулка в горах', cover: '#17161A', coverFg: '#F3F0E8', photo: '../assets/ethno.jpg', when: 'Сб 11:00 · 0 ₸', place: 'Кок-Жайляу', walk: '40 мин', social: '6 ищут компанию' },
+      { id: 'games', cat: 'НАСТОЛКИ', title: 'Настолки с новыми людьми', cover: '#D6E0EE', coverFg: '#17161A', when: 'Пт 20:00 · 1 500 ₸', place: 'Антикафе, Казыбек би', walk: '9 мин', social: 'Денис идёт' }
     ];
   }
   card(i) { const l = this.cards(); return l[((i % l.length) + l.length) % l.length]; }
@@ -143,6 +161,8 @@ class Component extends DCLogic {
       });
     }
     return {
+      hintOn: !!this.props.hint && this.props.hint !== 'false' && !this.state.hintClosed,
+      closeHint: () => this.setState({ hintClosed: true }),
       stack,
       plansCount: String(s.plans),
       pulse: s.pulse,

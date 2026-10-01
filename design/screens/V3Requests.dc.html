@@ -78,7 +78,7 @@ class Component extends DCLogic {
     const set = (id, v) => () => this.setState({ st: { ...this.state.st, [id]: v } });
     const base = [
       { id: 'ainura', kind: 'msg', name: 'Айнура', photo: '../assets/ainura.jpg', context: 'тоже идёт на джаз', hasEvent: true, preview: 'Привет! Тоже на джаз? Иду одна, можно вместе', open: 'V3ChatRequest.dc.html', profile: 'V3Person.dc.html', after: 'V3Chat.dc.html', afterLabel: 'Открыть чат' },
-      { id: 'erlan', kind: 'friend', name: 'Ерлан', initial: 'Е', tint: '#EADFB8', context: '2 общих', hasMutual: true, open: 'V3Person.dc.html', profile: 'V3Person.dc.html', after: 'V3Chat.dc.html', afterLabel: 'Написать' }
+      { id: 'erlan', kind: 'friend', name: 'Ерлан', photo: '../assets/erlan.jpg', context: '2 общих', hasMutual: true, open: 'V3Person.dc.html', profile: 'V3Person.dc.html', after: 'V3Chat.dc.html', afterLabel: 'Написать' }
     ];
     const items = base.filter((r) => st[r.id] !== 'no').map((r) => {
       const ok = st[r.id] === 'yes';
