@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>v2: что мешает и что меняем</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 1800px; height: 1460px; box-sizing: border-box; padding: 48px 40px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">ПО ВИДЕО С ТЕЛЕФОНА И ПРОВЕРКЕ КОДА · 1 ОКТЯБРЯ</span>
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Что мешает сейчас — и что меняем в v2</h1>
+<span style="font-size: 18px; color: #3A3833">Цель человека одна: найти, куда пойти рядом с домом, и не идти одному. Всё, что этому не помогает, — убираем или прячем глубже.</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+<sc-for list="{{problems}}" as="p" hint-placeholder-count="9">
+<div style="padding: 20px; border-radius: 20px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 12px; align-items: baseline">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #8A3A12">{{p.n}}</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700; line-height: 1.2">{{p.title}}</span>
+</div>
+<span style="font-size: 14.5px; line-height: 1.45; color: #3A3833"><span style="font-weight: 600; color: #17161A">Сейчас: </span>{{p.now}}</span>
+<span style="font-size: 14.5px; line-height: 1.45; padding: 10px 12px; border-radius: 12px; background: #D9E4D2"><span style="font-weight: 700">В v2: </span>{{p.fix}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+<sc-for list="{{people}}" as="u" hint-placeholder-count="3">
+<div style="padding: 20px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; gap: 10px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F0521F">{{u.tag}}</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700">{{u.name}}</span>
+<span style="font-size: 15px; line-height: 1.45; color: #E4E0D6">{{u.about}}</span>
+<span style="font-size: 15px; line-height: 1.45"><span style="font-weight: 700; color: #F0521F">Нужно: </span>{{u.need}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="padding: 22px; border-radius: 20px; background: #FBFAF6; border: 1.5px solid #17161A; display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700">Правила интерфейса v2</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 24px; font-size: 15px; line-height: 1.45">
+<span><span style="font-weight: 700">Одно главное действие</span> на экране — оранжевая кнопка со словом</span>
+<span><span style="font-weight: 700">Подписи у всех вкладок.</span> Жест — только дублёр кнопки, не единственный путь</span>
+<span><span style="font-weight: 700">После действия — ответ словами:</span> «Ты идёшь · в Планах», «Денис увидит твой ответ»</span>
+<span><span style="font-weight: 700">Условие пишем на месте,</span> где оно работает, одной строкой</span>
+<span><span style="font-weight: 700">Расстояние словами:</span> «рядом с домом», без метров и километров</span>
+<span><span style="font-weight: 700">Основной текст от 15 px,</span> мелкие метки от 11 px; работает с крупным шрифтом в телефоне</span>
+<span><span style="font-weight: 700">Один календарь</span> и одно место для планов</span>
+<span><span style="font-weight: 700">Без мата и кринжа</span> в стикерах и статусах — приложение для всех возрастов</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1460}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const problems = [
+      { title: 'На карте не видно событий', now: 'на Android точки не рисуются (ошибка в коде), вместо них падают «листья». Иногда карта целиком пустая.', fix: 'точки всегда видны, рядом с домом — с временем. Внизу «Сегодня рядом с домом: 3» и кнопка «Списком».' },
+      { title: 'Вкладки без подписей', now: 'подписана только открытая вкладка. «Рекомендации» — и вкладка, и раздел в «Друзьях».', fix: 'подписи у всех: Афиша · Подборка · Планы · Люди · Профиль. Одно слово — одно место.' },
+      { title: '«Пойду» — и куда делось?', now: 'карточка улетает в «Профиль», подсказку убрали. Человек не знает, где теперь событие.', fix: 'карточка летит во вкладку «Планы», один раз подсказка «Всё, что Пойду, — здесь».' },
+      { title: 'Приглашения в четырёх местах', now: 'Профиль → Зовут, календарь планов, Чаты → Запросы, карточки в чате. Ответ в одном месте не виден в другом.', fix: 'одно место — «Планы → Ждут ответа». Ответил — друг видит это у себя в «Планах», карточка в чате обновляется.' },
+      { title: 'Три кнопки на событии', now: '«Я иду», «Ищу компанию», «Позвать» рядом — непонятно, что нажимать и чем они отличаются.', fix: 'одна кнопка «Пойду» → «Как пойдёшь?»: с друзьями, один — ищу компанию, просто отмечу.' },
+      { title: 'Профиль перегружен', now: 'планы, календарь, карта города, районы, значки, хроника, большие плашки интересов, значок, настройки — длинная лента.', fix: 'профиль — коротко о себе на один экран. Планы и хроника переехали в «Планы».' },
+      { title: 'Два календаря', now: 'один на карте (выбор даты), второй в профиле («Календарь планов»). Непонятно, чем отличаются.', fix: 'даты-чипсы на Афише и неделя в «Планах». Полный месяц — одна и та же шторка.' },
+      { title: 'Сложно найти людей', now: '«Рядом» и «По интересам» убрали, «Ищу компанию» потом нигде не видно, в чатах непонятные «Запросы».', fix: '«Ищут компанию» на каждом событии и карточка «Знакомства на твоих событиях» в «Людях».' },
+      { title: 'Мелочи, которые пугают', now: 'профиль моргает (0 событий → 14), белые вспышки, стикер с матом, 11 колец, «4 200 ИДУТ» вместо названия.', fix: 'данные грузятся до показа, 6 статусов без мата, 4 кольца, на карточке — название события.' }
+    ].map((p, i) => ({ ...p, n: String(i + 1).padStart(2, '0') }));
+    const people = [
+      { tag: '18–24 · ЛИСТАЕТ В ТРАНСПОРТЕ', name: 'Аружан, 21, студентка', about: 'Свайпает «Подборку», хочет новых людей, но боится идти одна.', need: 'видеть, кто ещё идёт один, и написать до события. Жалоба и блок — в один тап.' },
+      { tag: '25–40 · ПОСЛЕ РАБОТЫ', name: 'Тимур, 32, работает до 19:00', about: 'Открывает приложение в 18:30: что сегодня рядом с домом и кого позвать.', need: '«Сегодня рядом с домом: 3» сразу на Афише, время и цена в одну строку, «Позвать» одной кнопкой.' },
+      { tag: '40+ · БЕЗ ЖЕСТОВ', name: 'Галина, 47, ходит на концерты', about: 'Карту не любит, свайпы не знает, читает с крупным шрифтом.', need: '«Списком» вместо карты, подписи на вкладках, кнопки со словами и понятное «Ты идёшь ✓».' }
+    ];
+    return { problems, people };
+  }
+}
+</script>
+</body>
+</html>

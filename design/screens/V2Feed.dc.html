@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Подборка v2: свайпы, всё выбранное — в «Планах»</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+@keyframes v2Ring{0%{transform:scale(0.5);opacity:0.9}100%{transform:scale(1.9);opacity:0}}
+@keyframes v2Plus{0%{transform:translateY(8px);opacity:0}25%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+@keyframes v2Bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<div style="position: absolute; left: 16px; right: 16px; top: 52px; display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em">Подборка</h1>
+<span style="font-size: 13.5px; color: #55524C">вправо — пойду, влево — мимо</span>
+</div>
+
+<sc-for list="{{stack}}" as="c" hint-placeholder-count="2">
+<div onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.cancel}}" style="position: absolute; left: 16px; top: 100px; width: 358px; height: 480px; z-index: {{c.z}}; transform: {{c.tf}}; transform-origin: 50% 50%; transition: {{c.trans}}; opacity: {{c.op}}; touch-action: none; cursor: grab; user-select: none">
+<div style="width: 358px; height: 480px; border-radius: 26px; overflow: hidden; background: #FBFAF6; box-shadow: 0 14px 34px rgba(23,22,26,0.16); display: flex; flex-direction: column">
+<div style="position: relative; height: 268px; background: {{c.cover}}; color: {{c.coverFg}}; overflow: hidden; flex-shrink: 0">
+<sc-if value="{{c.hasPhoto}}" hint-placeholder-val="{{ false }}"><img src="{{c.photo}}" alt="" draggable="false" style="position: absolute; left: 0; top: 0; width: 358px; height: 268px; object-fit: cover"><span style="position: absolute; left: 0; top: 0; width: 358px; height: 268px; background: rgba(23,22,26,0.4)"></span></sc-if>
+<span style="position: absolute; left: 18px; top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em">{{c.cat}}</span>
+<span style="position: absolute; right: 14px; top: 14px; width: 40px; height: 40px; border-radius: 50%; background: rgba(251,250,246,0.88); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg></span>
+<span style="position: absolute; left: 18px; right: 18px; bottom: 20px; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; text-transform: uppercase">{{c.title}}</span>
+<span style="position: absolute; left: 22px; top: 70px; padding: 6px 14px; border: 3px solid #F0521F; border-radius: 10px; background: #F3F0E8; color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; transform: rotate(-12deg); opacity: {{c.goOp}}">ПОЙДУ</span>
+<span style="position: absolute; right: 22px; top: 70px; padding: 6px 14px; border: 3px solid #17161A; border-radius: 10px; background: #F3F0E8; color: #17161A; font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; transform: rotate(12deg); opacity: {{c.skipOp}}">МИМО</span>
+</div>
+<div style="padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 17px; font-weight: 700">{{c.when}}</span>
+<span style="font-size: 15px; color: #3A3833">{{c.place}}</span>
+<span style="font-size: 14px; line-height: 1.4; color: #55524C">{{c.about}}</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: {{c.socialColor}}">
+<sc-if value="{{c.hasFriends}}" hint-placeholder-val="{{ true }}"><span style="display: flex"><img src="../assets/igor.jpg" alt="" draggable="false" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box"><img src="../assets/denis.jpg" alt="" draggable="false" style="width: 26px; height: 26px; margin-left: -8px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box"></span></sc-if>{{c.social}}</span>
+</div>
+</div>
+</div>
+</sc-for>
+
+<div style="position: absolute; left: 0; right: 0; top: 596px; display: flex; justify-content: center; align-items: flex-start; gap: 34px">
+<button type="button" onClick="{{skip}}" aria-label="Мимо" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0; font-family: 'Golos Text', sans-serif">
+<span style="width: 64px; height: 64px; border-radius: 50%; background: #FBFAF6; box-shadow: 0 6px 16px rgba(23,22,26,0.14); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+<span style="font-size: 13px; font-weight: 600">Мимо</span></button>
+<button type="button" onClick="{{undo}}" aria-label="Вернуть прошлую карточку" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; padding: 10px 0 0; opacity: {{undoOp}}; font-family: 'Golos Text', sans-serif">
+<span style="width: 48px; height: 48px; border-radius: 50%; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 010 11H11"></path></svg></span>
+<span style="font-size: 13px; font-weight: 600">Вернуть</span></button>
+<button type="button" onClick="{{go}}" aria-label="Пойду" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0; font-family: 'Golos Text', sans-serif">
+<span style="width: 64px; height: 64px; border-radius: 50%; background: #F0521F; box-shadow: 0 6px 16px rgba(240,82,31,0.35); display: flex; align-items: center; justify-content: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span style="font-size: 13px; font-weight: 600">Пойду</span></button>
+</div>
+
+<sc-if value="{{showHint}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{hideHint}}" aria-label="Скрыть подсказку" style="position: absolute; left: 50px; right: 50px; bottom: 104px; height: 44px; padding: 0 12px 0 14px; border-radius: 14px; border: 0; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 8px; box-shadow: 0 10px 24px rgba(23,22,26,0.3); animation: v2Bob 2.4s ease-in-out infinite; z-index: 20; font-family: 'Golos Text', sans-serif; text-align: left">
+<span style="flex-grow: 1; font-size: 13.5px; line-height: 1.25">Всё, что «Пойду», — во вкладке «Планы»</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+<span style="position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px; margin-left: -6px; background: #17161A; transform: rotate(45deg)"></span>
+</button>
+</sc-if>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px; z-index: 5">
+<dc-import name="V2TabBar" active="feed" plans="{{plansCount}}" people="3" hint-size="390px,96px"></dc-import>
+</div>
+
+<sc-if value="{{pulse}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 167px; top: 762px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #F0521F; box-sizing: border-box; animation: v2Ring 900ms ease-out both; z-index: 30; pointer-events: none"></span>
+<span aria-hidden="true" style="position: absolute; left: 182px; top: 740px; font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800; color: #F0521F; animation: v2Plus 900ms ease-out both; z-index: 30; pointer-events: none">+1</span>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hint":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, dx: 0, dy: 0, drag: false, fly: null, settle: false, history: [], plans: 2, pulse: false, hint: props.hint ?? true };
+    this.timers = [];
+    this.sx = 0; this.sy = 0;
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  cards() {
+    return [
+      { id: 'jazz', cat: 'МУЗЫКА', title: 'Джаз во дворе', cover: '#F0521F', coverFg: '#17161A', when: 'Сегодня, 19:30 · бесплатно', place: 'Панфилова, 110 · рядом с домом', about: 'Трио играет во дворе старого дома. Можно прийти одному.', social: 'Игорь и Денис идут', friends: true },
+      { id: 'standup', cat: 'ПОСМЕЯТЬСЯ', title: 'Открытый микрофон', cover: '#17161A', coverFg: '#F3F0E8', when: 'Пятница, 20:00 · 3 000 ₸', place: 'Бар на Абая', about: 'Новые комики пробуют свежие шутки. Камерный зал на 60 мест.', social: '5 ищут компанию' },
+      { id: 'hike', cat: 'ГОРЫ', title: 'Поход на Кок-Жайляу', cover: '#17161A', coverFg: '#F3F0E8', photo: '../assets/hike.jpg', when: 'Суббота, 08:00 · бесплатно', place: 'Медеуское ущелье', about: '14 км туда и обратно, средняя сложность. Наверху плато с видом.', social: 'Тимур идёт · 3 ищут компанию' },
+      { id: 'games', cat: 'НАСТОЛКИ', title: 'Настолки без своей компании', cover: '#D6E0EE', coverFg: '#17161A', when: 'Пятница, 20:00 · 1 500 ₸', place: 'Антикафе, Казыбек би · рядом с домом', about: 'Сажают за стол к незнакомым, правила объясняют.', social: 'Денис идёт' },
+      { id: 'anime', cat: 'ВЫСТАВКА', title: 'Токио в Алматы', cover: '#E5D3DC', coverFg: '#17161A', when: 'До воскресенья, 11:00–21:00 · 2 500 ₸', place: 'ТРЦ, 3 этаж', about: 'Аниме-выставка: костюмы, мастер-классы, фотозоны.', social: 'Антон уже там' }
+    ];
+  }
+  card(i) { const l = this.cards(); return l[((i % l.length) + l.length) % l.length]; }
+  decide(kind) {
+    const s = this.state;
+    if (s.fly) return;
+    const c = this.card(s.idx);
+    this.setState({ fly: kind, drag: false });
+    this.later(() => {
+      const st = this.state;
+      const next = { idx: st.idx + 1, dx: 0, dy: 0, fly: null, settle: true, history: st.history.concat([{ id: c.id, kind }]) };
+      if (kind === 'go') { next.plans = st.plans + 1; next.pulse = true; }
+      this.setState(next);
+      this.later(() => this.setState({ settle: false }), 40);
+      this.later(() => this.setState({ pulse: false }), 950);
+    }, kind === 'go' ? 600 : 320);
+  }
+  renderVals() {
+    const s = this.state;
+    const stack = [];
+    for (let k = 1; k >= 0; k--) {
+      const c = this.card(s.idx + k);
+      const top = k === 0;
+      let tf = 'translateY(' + (k * 10) + 'px) scale(' + (1 - k * 0.05) + ')';
+      let trans = s.settle ? 'none' : 'transform 300ms cubic-bezier(.2,.8,.2,1)';
+      let op = '1';
+      if (top) {
+        if (s.fly === 'go') { tf = 'translate(0px, 449px) scale(0.08) rotate(6deg)'; trans = 'transform 600ms cubic-bezier(.55,0,.75,.3), opacity 600ms ease-in'; op = '0.6'; }
+        else if (s.fly === 'skip') { tf = 'translate(-560px, 60px) rotate(-22deg)'; trans = 'transform 320ms ease-in'; }
+        else if (s.drag) { tf = 'translate(' + s.dx + 'px, ' + s.dy + 'px) rotate(' + (s.dx / 18) + 'deg)'; trans = 'none'; }
+        else if (s.settle) { tf = 'translate(0px, 0px)'; trans = 'none'; }
+        else { tf = 'translate(0px, 0px)'; }
+      }
+      const clamp = (v) => Math.max(0, Math.min(1, v));
+      const goOp = top ? (s.fly === 'go' ? 1 : clamp(s.dx / 90)) : 0;
+      const skipOp = top ? (s.fly === 'skip' ? 1 : clamp(-s.dx / 90)) : 0;
+      const noop = () => {};
+      stack.push({
+        ...c,
+        z: top ? (s.fly === 'go' ? 10 : 3) : 2,
+        tf, trans, op,
+        hasPhoto: !!c.photo,
+        hasFriends: !!c.friends,
+        socialColor: c.friends ? '#2447B8' : '#8A3A12',
+        goOp: String(goOp),
+        skipOp: String(skipOp),
+        down: top ? (e) => { if (this.state.fly) return; this.sx = e.clientX; this.sy = e.clientY; this.setState({ drag: true, dx: 0, dy: 0 }); } : noop,
+        move: top ? (e) => { if (!this.state.drag) return; this.setState({ dx: e.clientX - this.sx, dy: (e.clientY - this.sy) * 0.4 }); } : noop,
+        up: top ? () => {
+          const st = this.state;
+          if (!st.drag) return;
+          if (Math.abs(st.dx) < 6 && Math.abs(st.dy) < 6) { this.setState({ drag: false }); return; }
+          if (st.dx > 90) this.decide('go');
+          else if (st.dx < -90) this.decide('skip');
+          else this.setState({ drag: false, dx: 0, dy: 0 });
+        } : noop,
+        cancel: top ? () => this.setState({ drag: false, dx: 0, dy: 0 }) : noop
+      });
+    }
+    return {
+      stack,
+      plansCount: String(s.plans),
+      pulse: s.pulse,
+      showHint: !!s.hint,
+      hideHint: () => this.setState({ hint: false }),
+      undoOp: s.history.length ? '1' : '0.4',
+      go: () => this.decide('go'),
+      skip: () => this.decide('skip'),
+      undo: () => {
+        const st = this.state;
+        if (st.fly || !st.history.length) return;
+        const last = st.history[st.history.length - 1];
+        this.setState({ idx: st.idx - 1, history: st.history.slice(0, -1), plans: last.kind === 'go' ? st.plans - 1 : st.plans, settle: true });
+        this.later(() => this.setState({ settle: false }), 40);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Планы v2: всё, куда идёшь и куда зовут</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+@keyframes v2Toast{0%{transform:translateY(-16px);opacity:0}12%{transform:translateY(0);opacity:1}88%{opacity:1}100%{opacity:0}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 52px 16px 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em">Планы</h1>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 14px; background: #E7E2D6; width: 196px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button type="button" onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="height: 38px; border-radius: 11px; border: 0; background: {{t.bg}}; box-shadow: {{t.shadow}}; font-family: 'Golos Text', sans-serif; font-size: 14.5px; font-weight: 600; color: #17161A">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isSoon}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+<span style="height: 64px; border-radius: 14px; background: {{d.bg}}; color: {{d.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; opacity: 0.8">{{d.wd}}</span>
+<span style="font-size: 17px; font-weight: 700">{{d.n}}</span>
+<span style="font-size: 10px; line-height: 8px; color: {{d.dotColor}}; letter-spacing: 1px">{{d.dots}}</span>
+</span>
+</sc-for>
+</div>
+
+<sc-if value="{{hasInvites}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; gap: 8px; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">Ждут твоего ответа <span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: #F0521F; font-family: 'JetBrains Mono', monospace; font-size: 12px; display: flex; align-items: center; justify-content: center">{{inviteCount}}</span></span>
+<sc-for list="{{invites}}" as="v" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1.5px solid #17161A">
+<div style="display: flex; gap: 12px; align-items: center">
+<img src="{{v.photo}}" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2.5px solid #2447B8; box-sizing: border-box; flex-shrink: 0">
+<span style="display: flex; flex-direction: column; gap: 1px; min-width: 0"><span style="font-size: 14px; color: #2447B8; font-weight: 600">{{v.who}} зовёт тебя</span><span style="font-size: 16.5px; font-weight: 700; line-height: 1.2">{{v.title}}</span><span style="font-size: 13.5px; color: #55524C">{{v.when}}</span></span>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{v.no}}" style="flex-grow: 1; flex-basis: 0; height: 46px; border-radius: 14px; border: 1px solid #CFC9BB; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">Не смогу</button>
+<button type="button" onClick="{{v.yes}}" style="flex-grow: 1; flex-basis: 0; height: 46px; border-radius: 14px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; color: #17161A">Пойду</button>
+</div>
+</div>
+</sc-for>
+<span style="font-size: 12.5px; color: #55524C; padding: 0 2px">{{inviteNote}}</span>
+</div>
+</sc-if>
+
+<sc-for list="{{days}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700; padding-top: 4px">{{g.title}}</span>
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+<a href="V2Event.dc.html" style="display: flex; gap: 12px; padding: 12px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; text-decoration: none; color: #17161A">
+<span style="width: 56px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 12px; background: {{r.bg}}; color: {{r.fg}}"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 600">{{r.time}}</span></span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 600; line-height: 1.25">{{r.title}}</span>
+<span style="font-size: 13.5px; color: #55524C">{{r.place}}</span>
+<span style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px">
+<sc-for list="{{r.chips}}" as="c" hint-placeholder-count="1">
+<span style="padding: 4px 9px; border-radius: 10px; background: {{c.bg}}; font-size: 12.5px; font-weight: 600; color: #17161A">{{c.text}}</span>
+</sc-for>
+</span>
+</span>
+</a>
+</sc-for>
+</div>
+</sc-for>
+
+<button type="button" style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; border: 1px dashed #B9B2A3; background: transparent; text-align: left; font-family: 'Golos Text', sans-serif; color: #17161A">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1"><span style="font-size: 15.5px; font-weight: 600">Сохранено на потом · 2</span><span style="font-size: 13.5px; color: #55524C">Стендап «Новые шутки», Аниме-выставка</span></span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+</sc-if>
+
+<sc-if value="{{isPast}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 14.5px; color: #3A3833">Ты был на 14 событиях. Отметь, с кем познакомился, — так знакомые станут друзьями.</span>
+<sc-for list="{{past}}" as="p" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<div style="display: flex; gap: 12px; align-items: center">
+<span style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 12px; background: #E7E2D6; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-size: 18px; font-weight: 700; line-height: 1">{{p.day}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600">{{p.mon}}</span></span>
+<span style="display: flex; flex-direction: column; gap: 1px; min-width: 0"><span style="font-size: 16px; font-weight: 600">{{p.title}}</span><span style="font-size: 13.5px; color: #55524C">{{p.sub}}</span></span>
+</div>
+<sc-if value="{{p.hasMet}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #F3F0E8">
+<img src="{{p.metPhoto}}" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover">
+<span style="flex-grow: 1; font-size: 14px">{{p.metText}}</span>
+<button type="button" onClick="{{p.add}}" style="white-space: nowrap; flex-shrink: 0; height: 38px; padding: 0 14px; border-radius: 19px; border: 0; background: {{p.addBg}}; color: {{p.addFg}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600">{{p.addLabel}}</button>
+</div>
+</sc-if>
+<sc-if value="{{p.askMet}}" hint-placeholder-val="{{ false }}">
+<button type="button" style="height: 42px; border-radius: 14px; border: 1px solid #CFC9BB; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 14.5px; font-weight: 600">С кем познакомился?</button>
+</sc-if>
+</div>
+</sc-for>
+</sc-if>
+</div>
+
+<sc-if value="{{showToast}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 16px; right: 16px; top: 52px; padding: 12px 14px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 24px rgba(23,22,26,0.3); animation: v2Toast 3.5s ease both">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7FD3A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+<span style="flex-grow: 1; font-size: 15px; font-weight: 500">{{toastText}}</span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px">
+<dc-import name="V2TabBar" active="plans" plans="{{badge}}" people="3" hint-size="390px,96px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["soon","past"],"default":"soon"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: props.tab ?? 'soon', answered: {}, added: {}, toast: null };
+    this.timer = null;
+  }
+  componentWillUnmount() { if (this.timer) clearTimeout(this.timer); }
+  say(text) {
+    if (this.timer) clearTimeout(this.timer);
+    this.setState({ toast: text });
+    this.timer = setTimeout(() => this.setState({ toast: null }), 3500);
+  }
+  renderVals() {
+    const s = this.state;
+    const invAll = [
+      { id: 'games', who: 'Денис', photo: '../assets/denis.jpg', title: 'Настолки без своей компании', when: 'Пт, 2 окт · 20:00 · Антикафе' },
+      { id: 'hike', who: 'Игорь', photo: '../assets/igor.jpg', title: 'Поход на Кок-Жайляу', when: 'Сб, 3 окт · 08:00 · Медеуское ущелье' }
+    ];
+    const pending = invAll.filter((v) => !s.answered[v.id]);
+    const answer = (v, yes) => () => {
+      this.setState({ answered: { ...s.answered, [v.id]: yes ? 'yes' : 'no' } });
+      this.say(yes ? v.who + ' увидит, что ты идёшь' : v.who + ' увидит, что ты не сможешь');
+    };
+    const invites = pending.map((v) => ({ ...v, yes: answer(v, true), no: answer(v, false) }));
+    const chip = (text, bg) => ({ text, bg });
+    const C = { friends: '#D6E0EE', company: '#EADFB8', wait: '#E5D3DC', plain: '#E7E2D6' };
+    const today = [
+      { time: '18:00', title: 'Вечер живой музыки в «Құт»', place: 'Тургута Озала, 178', chips: [chip('Просто отмечено', C.plain)] },
+      { time: '19:30', title: 'Джаз во дворе', place: 'Панфилова, 110 · рядом с домом', hot: true, chips: [chip('С Игорем и Денисом', C.friends), chip('Ищешь компанию · 2 написали', C.company)] }
+    ];
+    const fri = [];
+    if (s.answered.games === 'yes') fri.push({ time: '20:00', title: 'Настолки без своей компании', place: 'Антикафе, Казыбек би', chips: [chip('Идёшь с Денисом', C.friends)] });
+    const sat = [
+      { time: '10:00', title: 'Ярмарка ремесленников Ala Craft', place: 'Желтоксан, 137', chips: [chip('Позвал Антона · ждём ответа', C.wait)] }
+    ];
+    if (s.answered.hike === 'yes') sat.unshift({ time: '08:00', title: 'Поход на Кок-Жайляу', place: 'Медеуское ущелье', chips: [chip('Идёшь с Игорем', C.friends)] });
+    const mk = (r) => ({ ...r, bg: r.hot ? '#F0521F' : '#17161A', fg: r.hot ? '#17161A' : '#F3F0E8' });
+    const days = [
+      { title: 'Сегодня, чт 1 октября', rows: today.map(mk) },
+      ...(fri.length ? [{ title: 'Пятница, 2 октября', rows: fri.map(mk) }] : []),
+      { title: 'Суббота, 3 октября', rows: sat.map(mk) }
+    ];
+    const plansByDay = { 1: 2, 2: fri.length, 3: sat.length };
+    const wds = ['ЧТ', 'ПТ', 'СБ', 'ВС', 'ПН', 'ВТ', 'СР'];
+    const week = wds.map((wd, i) => {
+      const n = i + 1;
+      const k = plansByDay[n] || 0;
+      const isToday = n === 1;
+      return {
+        wd,
+        n: String(n),
+        dots: k ? '•'.repeat(Math.min(k, 3)) : (n === 2 && pending.some((v) => v.id === 'games') || n === 3 && pending.some((v) => v.id === 'hike') ? '◦' : ''),
+        dotColor: isToday ? '#17161A' : '#F0521F',
+        bg: isToday ? '#F0521F' : '#FBFAF6',
+        fg: '#17161A'
+      };
+    });
+    const past = [
+      { day: '27', mon: 'СЕН', title: 'Кинопоказ во дворе', sub: 'Двор на Жибек Жолы · с Игорем и Денисом', hasMet: true, metPhoto: '../assets/ainura.jpg', metText: 'Вы познакомились с Айнурой' },
+      { day: '26', mon: 'СЕН', title: 'Ужин у Игоря', sub: 'Встреча друзей · 5 человек', hasMet: false, askMet: false },
+      { day: '25', mon: 'СЕН', title: 'Настолки', sub: 'Антикафе · ты ходил один', hasMet: false, askMet: true }
+    ].map((p) => {
+      const on = !!s.added[p.title];
+      return {
+        ...p,
+        askMet: !!p.askMet,
+        addLabel: on ? 'Заявка отправлена' : 'В друзья',
+        addBg: on ? '#E7E2D6' : '#17161A',
+        addFg: on ? '#3A3833' : '#F3F0E8',
+        add: () => this.setState({ added: { ...s.added, [p.title]: true } })
+      };
+    });
+    const tabs = [{ key: 'soon', label: 'Скоро' }, { key: 'past', label: 'Были' }].map((t) => ({
+      ...t,
+      pressed: t.key === s.tab ? 'true' : 'false',
+      bg: t.key === s.tab ? '#FBFAF6' : 'transparent',
+      shadow: t.key === s.tab ? '0 1px 3px rgba(23,22,26,0.18)' : 'none',
+      pick: () => this.setState({ tab: t.key })
+    }));
+    return {
+      tabs,
+      isSoon: s.tab === 'soon',
+      isPast: s.tab === 'past',
+      week,
+      hasInvites: pending.length > 0,
+      inviteCount: String(pending.length),
+      invites,
+      inviteNote: 'Приглашение исчезнет, когда событие начнётся. Друг увидит твой ответ у себя в «Планах».',
+      days,
+      past,
+      badge: String(pending.length),
+      showToast: !!s.toast,
+      toastText: s.toast || ''
+    };
+  }
+}
+</script>
+</body>
+</html>

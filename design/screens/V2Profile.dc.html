@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Профиль v2: коротко о себе</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 52px 16px 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em">Профиль</h1>
+<a href="Settings.dc.html" aria-label="Настройки" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg></a>
+</div>
+
+<div style="display: flex; gap: 16px; align-items: center">
+<img src="../assets/danil.jpg" alt="Данил" style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box; flex-shrink: 0">
+<span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 700">Данил, 24</span>
+<span style="font-size: 14.5px; color: #3A3833">@fromvtk · Бостандык</span>
+<span style="font-size: 14.5px; color: #55524C">Джаз, настолки и горы по выходным</span>
+</span>
+</div>
+
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex-grow: 1; flex-basis: 0; height: 46px; border-radius: 14px; border: 1px solid #CFC9BB; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">Изменить</button>
+<button type="button" style="flex-grow: 1; flex-basis: 0; height: 46px; border-radius: 14px; border: 1px solid #CFC9BB; background: #FBFAF6; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600">Поделиться</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Что вытаскивает из дома</span><a href="Onboarding.dc.html" style="font-size: 14px; font-weight: 600; color: #17161A">Изменить</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #F0521F; display: flex; align-items: center; font-size: 14px; font-weight: 600">Живая музыка</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #EADFB8; display: flex; align-items: center; font-size: 14px; font-weight: 600">Посмеяться</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #D9E4D2; display: flex; align-items: center; font-size: 14px; font-weight: 600">Горы и природа</span>
+<span style="height: 36px; padding: 0 14px; border-radius: 18px; background: #D6E0EE; display: flex; align-items: center; font-size: 14px; font-weight: 600">Настолки</span>
+</div>
+</div>
+
+<button type="button" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 20px; border: 0; background: #17161A; color: #F3F0E8; text-align: left; font-family: 'Golos Text', sans-serif">
+<span style="display: flex; align-items: center; justify-content: space-between; width: 100%"><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Алматы открыт на 20%</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+<span style="position: relative; display: block; width: 100%; height: 8px; border-radius: 4px; background: #3A3833; overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 80%; border-radius: 4px; background: #F0521F"></span></span>
+<span style="font-size: 13.5px; color: #BDB8AD">Уровень 4 · Горожанин · ещё 6 мест до 25%. Места открываются кнопкой «Я на месте» на событии</span>
+</button>
+
+<a href="MeBadges.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; text-decoration: none; color: #17161A">
+<span style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 15.5px; font-weight: 600">Значки · 6 из 30</span>
+<span style="display: flex; gap: 8px">
+<span style="width: 40px; height: 40px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M15.5 8.5l-2 5-5 2 2-5z"></path></svg></span>
+<span style="width: 40px; height: 40px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-10 4 6 3-4 5 8z"></path></svg></span>
+<span style="width: 40px; height: 40px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg></span>
+<span style="width: 40px; height: 40px; border-radius: 50%; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B675F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"></path></svg></span>
+</span>
+</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</a>
+
+<a href="MarkerStyle.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; text-decoration: none; color: #17161A">
+<img src="../assets/danil.jpg" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box">
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 15.5px; font-weight: 600">Как меня видят друзья</span><span style="font-size: 13.5px; color: #55524C">Статус «Свободен» · на карте видят только друзья</span></span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</a>
+
+<div style="display: flex; flex-direction: column; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden">
+<a href="Suggest.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 15px 14px; border-bottom: 1px solid #DDD8CC; text-decoration: none; color: #17161A; font-size: 15.5px; font-weight: 500">Добавить событие на карту<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<a href="Settings.dc.html" style="display: flex; align-items: center; justify-content: space-between; padding: 15px 14px; border-bottom: 1px solid #DDD8CC; text-decoration: none; color: #17161A; font-size: 15.5px; font-weight: 500">Настройки и приватность<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+<span style="display: flex; align-items: center; justify-content: space-between; padding: 15px 14px; font-size: 15.5px; font-weight: 500">Помощь<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px">
+<dc-import name="V2TabBar" active="me" plans="2" people="3" hint-size="390px,96px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Люди v2: друзья, знакомства и сообщения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 52px 0 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em">Люди</h1>
+<div style="display: flex; gap: 8px">
+<button type="button" aria-label="Поиск по людям и сообщениям" style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid #DDD8CC; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M19 8v6M16 11h6"></path></svg>Добавить</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; padding: 0 16px"><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Друзья · 12</span><span style="font-size: 14px; font-weight: 600; color: #3A3833">Все</span></div>
+<div style="display: flex; gap: 14px; padding: 0 16px; overflow-x: auto">
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="5">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 5px; width: 64px; flex-shrink: 0">
+<span style="position: relative; width: 60px; height: 60px">
+<sc-if value="{{f.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{f.photo}}" alt="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #2447B8; box-sizing: border-box"></sc-if>
+<sc-if value="{{f.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 60px; height: 60px; border-radius: 50%; background: #D9E4D2; border: 3px solid #2447B8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700">{{f.initial}}</span></sc-if>
+<sc-if value="{{f.onMap}}" hint-placeholder-val="{{ false }}"><span aria-label="на карте" style="position: absolute; right: 0; bottom: 2px; width: 16px; height: 16px; border-radius: 50%; background: #2F8F5B; border: 3px solid #F3F0E8"></span></sc-if>
+</span>
+<span style="font-size: 13px; font-weight: 600">{{f.name}}</span>
+<span style="font-size: 11.5px; color: #55524C; text-align: center; line-height: 1.2">{{f.note}}</span>
+</span>
+</sc-for>
+</div>
+</div>
+
+<a href="V2EventCompany.dc.html" style="margin: 0 16px; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 20px; background: #17161A; color: #F3F0E8; text-decoration: none">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; color: #F0521F">ЗНАКОМСТВА НА ТВОИХ СОБЫТИЯХ</span>
+<span style="display: flex; align-items: center; gap: 12px">
+<span style="display: flex; flex-shrink: 0"><img src="../assets/ainura.jpg" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #17161A"><span style="width: 40px; height: 40px; margin-left: -12px; border-radius: 50%; background: #EADFB8; border: 2px solid #17161A; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: #17161A; font-weight: 700">Е</span><span style="width: 40px; height: 40px; margin-left: -12px; border-radius: 50%; background: #D6E0EE; border: 2px solid #17161A; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: #17161A; font-weight: 700">М</span></span>
+<span style="font-size: 16px; font-weight: 600; line-height: 1.3">4 человека идут на «Джаз во дворе» и ищут компанию</span>
+</span>
+<span style="display: flex; align-items: center; justify-content: space-between; gap: 10px"><span style="font-size: 13px; color: #BDB8AD; line-height: 1.35">Писать можно тем, кто идёт туда же, куда ты</span><span style="height: 38px; padding: 0 14px; border-radius: 19px; background: #F0521F; color: #17161A; display: flex; align-items: center; font-size: 14px; font-weight: 700; flex-shrink: 0">Смотреть</span></span>
+</a>
+
+<sc-if value="{{hasReq}}" hint-placeholder-val="{{ true }}">
+<div style="margin: 0 16px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<span style="display: flex; flex-shrink: 0"><span style="width: 40px; height: 40px; border-radius: 50%; background: #EADFB8; border: 2px solid #FBFAF6; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">Е</span><span style="width: 40px; height: 40px; margin-left: -12px; border-radius: 50%; background: #D6E0EE; border: 2px solid #FBFAF6; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">М</span></span>
+<span style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1; min-width: 0"><span style="font-size: 15.5px; font-weight: 600">Хотят дружить · {{reqCount}}</span><span style="font-size: 13.5px; color: #55524C">{{reqNames}}</span></span>
+<button type="button" onClick="{{acceptAll}}" style="height: 38px; padding: 0 14px; border-radius: 19px; border: 0; background: {{reqBtnBg}}; color: {{reqBtnFg}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; flex-shrink: 0">{{reqBtn}}</button>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; padding: 0 16px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700; padding-bottom: 4px">Сообщения</span>
+<sc-for list="{{chats}}" as="c" hint-placeholder-count="5">
+<a href="{{c.href}}" style="display: flex; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid #DDD8CC; text-decoration: none; color: #17161A">
+<sc-if value="{{c.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{c.photo}}" alt="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; flex-shrink: 0"></sc-if>
+<sc-if value="{{c.isEvent}}" hint-placeholder-val="{{ false }}"><span style="width: 50px; height: 50px; border-radius: 14px; background: {{c.tint}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.icon}}"></path></svg></span></sc-if>
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0">
+<span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.name}}</span><sc-if value="{{c.hasTag}}" hint-placeholder-val="{{ false }}"><span style="padding: 2px 7px; border-radius: 8px; background: #EADFB8; font-size: 11.5px; font-weight: 600; white-space: nowrap">{{c.tag}}</span></sc-if></span>
+<span style="font-size: 14px; color: #55524C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.last}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #55524C">{{c.time}}</span><sc-if value="{{c.hasUnread}}" hint-placeholder-val="{{ true }}"><span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: #F0521F; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{c.unread}}</span></sc-if></span>
+</a>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px">
+<dc-import name="V2TabBar" active="people" plans="2" people="3" hint-size="390px,96px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { req: {} };
+  }
+  renderVals() {
+    const s = this.state;
+    const friends = [
+      { name: 'Игорь', photo: '../assets/igor.jpg', note: 'в кофейне', onMap: true },
+      { name: 'Денис', photo: '../assets/denis.jpg', note: 'едет на джаз', onMap: true },
+      { name: 'Антон', photo: '../assets/anton.jpg', note: 'свободен', onMap: false },
+      { name: 'Тимур', initial: 'Т', note: 'в горах', onMap: false },
+      { name: 'Саша', initial: 'С', note: '', onMap: false }
+    ].map((f) => ({ ...f, hasPhoto: !!f.photo, noPhoto: !f.photo, onMap: !!f.onMap }));
+    const reqAll = [
+      { id: 'erlan', name: 'Ерлан, 27', initial: 'Е', tint: '#EADFB8', note: 'Познакомились на настолках' },
+      { id: 'mira', name: 'Мира, 22', initial: 'М', tint: '#D6E0EE', note: '2 общих друга' }
+    ];
+    const reqs = reqAll.map((r) => {
+      const st = s.req[r.id];
+      return {
+        ...r,
+        open: !st,
+        done: !!st,
+        doneText: st === 'yes' ? 'Теперь друзья' : 'Скрыто',
+        yes: () => this.setState({ req: { ...s.req, [r.id]: 'yes' } }),
+        no: () => this.setState({ req: { ...s.req, [r.id]: 'no' } })
+      };
+    });
+    const openCount = reqAll.filter((r) => !s.req[r.id]).length;
+    const chats = [
+      { name: 'Айнура', photo: '../assets/ainura.jpg', tag: 'знакомство · джаз', last: 'Тогда у входа в 19:15!', time: '18:12', unread: 2, href: 'V2Chat.dc.html' },
+      { name: 'Игорь', photo: '../assets/igor.jpg', last: 'Ты уже выходишь?', time: '18:10', unread: 1, href: 'DirectChat.dc.html' },
+      { name: 'Джаз во дворе', isEvent: true, tint: '#F0521F', icon: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', tag: 'чат события', last: 'Саша: займу столик у сцены', time: '18:02', unread: 0, href: 'EventChat.dc.html' },
+      { name: 'Денис', photo: '../assets/denis.jpg', last: 'Стикер «Го?»', time: '17:40', unread: 0, href: 'DirectChat.dc.html' },
+      { name: 'Настолки без своей компании', isEvent: true, tint: '#D6E0EE', icon: 'M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zM9 9h.01M15 15h.01M15 9h.01M9 15h.01', tag: 'чат события', last: 'Ерлан: кто берёт Каркассон?', time: '17:38', unread: 0, href: 'EventChat.dc.html' }
+    ].map((c) => ({ ...c, hasPhoto: !!c.photo, isEvent: !!c.isEvent, hasTag: !!c.tag, hasUnread: c.unread > 0, unread: String(c.unread) }));
+    const allDone = openCount === 0;
+    return {
+      friends, chats,
+      hasReq: true,
+      reqCount: String(reqAll.length),
+      reqNames: allDone ? 'Теперь вы друзья' : 'Ерлан и Мира',
+      reqBtn: allDone ? 'Готово' : 'Смотреть',
+      reqBtnBg: allDone ? '#E7E2D6' : '#17161A',
+      reqBtnFg: allDone ? '#3A3833' : '#F3F0E8',
+      acceptAll: () => this.setState({ req: { erlan: 'yes', mira: 'yes' } })
+    };
+  }
+}
+</script>
+</body>
+</html>

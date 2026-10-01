@@ -51,11 +51,36 @@
     "MapStyles.dc.html": {"x": 0, "y": 17830, "w": 1120, "h": 720, "title": "Стили карты"},
     "MapBase.dc.html": {"x": 1200, "y": 17830, "w": 390, "h": 844, "title": "Подложка карты (компонент)"},
     "TabBar.dc.html": {"x": 1670, "y": 17830, "w": 390, "h": 84, "title": "Таб-бар: Карта · Для тебя · Чаты · Люди · Профиль", "is_interactive": true},
-    "EventPage.dc.html": {"x": 2140, "y": 17830, "w": 390, "h": 1500, "title": "Шаблон события (компонент)", "is_interactive": true}
+    "EventPage.dc.html": {"x": 2140, "y": 17830, "w": 390, "h": 1500, "title": "Шаблон события (компонент)", "is_interactive": true},
+
+    "V2Flow.dc.html": {"x": 0, "y": 260, "w": 1800, "h": 1200, "title": "v2 · Что куда нажимается", "page": "v2"},
+    "V2Why.dc.html": {"x": 1880, "y": 260, "w": 1800, "h": 1460, "title": "v2 · Что мешает сейчас и что меняем", "page": "v2"},
+
+    "V2Afisha.dc.html": {"x": 0, "y": 2240, "w": 390, "h": 844, "title": "А1 · Афиша: рядом с домом", "page": "v2", "is_interactive": true},
+    "V2AfishaPin.dc.html": {"x": 470, "y": 2240, "w": 390, "h": 844, "title": "А2 · Тап по точке", "page": "v2", "is_interactive": true},
+    "V2AfishaList.dc.html": {"x": 940, "y": 2240, "w": 390, "h": 844, "title": "А3 · Списком", "page": "v2", "is_interactive": true},
+    "V2AfishaCalendar.dc.html": {"x": 1410, "y": 2240, "w": 390, "h": 844, "title": "А4 · Выбрать дату", "page": "v2", "is_interactive": true},
+    "V2AfishaFilter.dc.html": {"x": 1880, "y": 2240, "w": 390, "h": 844, "title": "А5 · Что показать", "page": "v2", "is_interactive": true},
+    "V2AfishaPlus.dc.html": {"x": 2350, "y": 2240, "w": 390, "h": 844, "title": "А6 · Кнопка «+»", "page": "v2", "is_interactive": true},
+    "V2Feed.dc.html": {"x": 2820, "y": 2240, "w": 390, "h": 844, "title": "П1 · Подборка: «Пойду» летит в Планы", "page": "v2", "is_interactive": true},
+
+    "V2Event.dc.html": {"x": 0, "y": 3590, "w": 390, "h": 844, "title": "С1 · Событие: одна кнопка «Пойду»", "page": "v2", "is_interactive": true},
+    "V2EventHow.dc.html": {"x": 470, "y": 3590, "w": 390, "h": 844, "title": "С2 · Как пойдёшь?", "page": "v2", "is_interactive": true},
+    "V2EventFriends.dc.html": {"x": 940, "y": 3590, "w": 390, "h": 844, "title": "С3 · Кого позвать", "page": "v2", "is_interactive": true},
+    "V2EventGoing.dc.html": {"x": 1410, "y": 3590, "w": 390, "h": 844, "title": "С4 · Ты идёшь, друзья позваны", "page": "v2", "is_interactive": true},
+    "V2EventCompany.dc.html": {"x": 1880, "y": 3590, "w": 390, "h": 844, "title": "С5 · Один: «Ищут компанию» открыто", "page": "v2", "is_interactive": true},
+    "V2EventPerson.dc.html": {"x": 2350, "y": 3590, "w": 390, "h": 844, "title": "С6 · Человек и правило чата", "page": "v2", "is_interactive": true},
+    "V2Chat.dc.html": {"x": 2820, "y": 3590, "w": 390, "h": 844, "title": "С7 · Чат знакомства", "page": "v2", "is_interactive": true},
+
+    "V2Plans.dc.html": {"x": 0, "y": 4940, "w": 390, "h": 844, "title": "Пл1 · Планы: ждут ответа и скоро", "page": "v2", "is_interactive": true},
+    "V2PlansPast.dc.html": {"x": 470, "y": 4940, "w": 390, "h": 844, "title": "Пл2 · Были: с кем познакомился", "page": "v2", "is_interactive": true},
+    "V2People.dc.html": {"x": 940, "y": 4940, "w": 390, "h": 844, "title": "Л1 · Люди: друзья, знакомства, сообщения", "page": "v2", "is_interactive": true},
+    "V2Profile.dc.html": {"x": 1410, "y": 4940, "w": 390, "h": 844, "title": "Пр1 · Профиль на один экран", "page": "v2", "is_interactive": true},
+    "V2TabBar.dc.html": {"x": 1880, "y": 4940, "w": 390, "h": 96, "title": "Таб-бар v2: подписи всегда", "page": "v2", "is_interactive": true}
   },
   "createdOnFiles": {"at": "2026-09-28T03:45:00Z", "v": 1},
   "designSystems": [],
-  "launch": {"view": "canvas"},
+  "launch": {"view": "canvas", "page": "v2"},
   "notes": {
     "row_signup": {"kind": "title1", "maxW": 2270, "text": "Вход и регистрация", "w": 240, "x": 0, "y": 1030},
     "row_main": {"kind": "title1", "maxW": 2740, "text": "Главный путь: карта → событие → компания", "w": 240, "x": 0, "y": 2280},
@@ -65,7 +90,11 @@
     "row_me": {"kind": "title1", "maxW": 1800, "text": "Профиль: планы, карта города, значки", "w": 240, "x": 0, "y": 10060},
     "row_logic": {"kind": "title1", "maxW": 3760, "text": "Логика продукта и рекомендации", "w": 240, "x": 0, "y": 13120},
     "row_pipe": {"kind": "title1", "maxW": 3830, "text": "Для команды: события и рекомендации", "w": 240, "x": 0, "y": 15840},
-    "row_map": {"kind": "title1", "maxW": 2530, "text": "Стиль карты и компоненты", "w": 240, "x": 0, "y": 17560}
+    "row_map": {"kind": "title1", "maxW": 2530, "text": "Стиль карты и компоненты", "w": 240, "x": 0, "y": 17560},
+    "v2_map": {"kind": "title1", "maxW": 3680, "text": "v2: найти рядом с домом → пойти → познакомиться", "w": 240, "x": 0, "y": 0, "page": "v2"},
+    "v2_find": {"kind": "title1", "maxW": 3210, "text": "Найти: Афиша и Подборка", "w": 240, "x": 0, "y": 1980, "page": "v2"},
+    "v2_go": {"kind": "title1", "maxW": 3210, "text": "Пойти и познакомиться: событие → чат", "w": 240, "x": 0, "y": 3330, "page": "v2"},
+    "v2_mine": {"kind": "title1", "maxW": 2270, "text": "Планы, люди, профиль", "w": 240, "x": 0, "y": 4680, "page": "v2"}
   },
   "order": [
     "Flow.dc.html",
@@ -108,8 +137,32 @@
     "MapStyles.dc.html",
     "MapBase.dc.html",
     "TabBar.dc.html",
-    "EventPage.dc.html"
+    "EventPage.dc.html",
+    "V2Flow.dc.html",
+    "V2Why.dc.html",
+    "V2Afisha.dc.html",
+    "V2AfishaPin.dc.html",
+    "V2AfishaList.dc.html",
+    "V2AfishaCalendar.dc.html",
+    "V2AfishaFilter.dc.html",
+    "V2AfishaPlus.dc.html",
+    "V2Feed.dc.html",
+    "V2Event.dc.html",
+    "V2EventHow.dc.html",
+    "V2EventFriends.dc.html",
+    "V2EventGoing.dc.html",
+    "V2EventCompany.dc.html",
+    "V2EventPerson.dc.html",
+    "V2Chat.dc.html",
+    "V2Plans.dc.html",
+    "V2PlansPast.dc.html",
+    "V2People.dc.html",
+    "V2Profile.dc.html",
+    "V2TabBar.dc.html"
   ],
-  "pages": [],
+  "pages": [
+    {"id": "v1", "name": "v1 · первый макет"},
+    {"id": "v2", "name": "v2 · простой путь"}
+  ],
   "title": "рядом — макет приложения"
 }
