@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Как добраться: пешком, такси, автобус</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4rtFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4rtDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes v4rtGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v4rtPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4rtIn{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4rtFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0; pointer-events: none">
+<sc-for list="{{segs}}" as="g" hint-placeholder-count="4">
+<path d="{{g.d}}" stroke="#FBFAF6" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+</sc-for>
+<sc-for list="{{segs}}" as="g" hint-placeholder-count="4">
+<path d="{{g.d}}" stroke="{{g.c}}" stroke-width="{{g.w}}" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{{g.dash}}" style="animation: {{g.anim}}"></path>
+</sc-for>
+<sc-for list="{{stops}}" as="b" hint-placeholder-count="3">
+<circle cx="{{b.x}}" cy="{{b.y}}" r="6" fill="#FBFAF6" stroke="#2447B8" stroke-width="3"></circle>
+</sc-for>
+</svg>
+
+<span aria-hidden="true" style="position: absolute; left: {{bubble.x}}px; top: {{bubble.y}}px; transform: translate(-50%, -50%); padding: 6px 10px; border-radius: 11px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap; box-shadow: 0 0 0 2px #FBFAF6; animation: v4rtFade 300ms ease both">{{bubble.t}}</span>
+
+<sc-if value="{{live}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 4px 10px rgba(23,22,26,0.3); offset-path: path('{{fullPath}}'); offset-rotate: 0deg; animation: v4rtGo 9s linear infinite"></span>
+<img aria-hidden="true" src="../assets/igor.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #2447B8, 0 0 0 5px #FBFAF6; offset-path: path('M342 120V158H270V294'); offset-rotate: 0deg; animation: v4rtGo 7s linear infinite">
+</sc-if>
+<sc-if value="{{notLive}}" hint-placeholder-val="{{ true }}">
+<div aria-hidden="true" style="position: absolute; left: 54px; top: 600px; width: 0; height: 0">
+<span style="position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(240,82,31,0.35); animation: v4rtPulse 1.8s ease-out infinite"></span>
+<span style="position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6"></span>
+</div>
+</sc-if>
+<div aria-hidden="true" style="position: absolute; left: 247px; top: 244px; width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 10px 22px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></div>
+
+<div style="position: absolute; left: 16px; top: 52px; width: 358px; box-sizing: border-box; padding: 12px 14px; border-radius: 20px; background: #FBFAF6; box-shadow: 0 8px 24px rgba(23,22,26,0.16); display: flex; align-items: center; gap: 12px">
+<a href="V4Point.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 14px; background: #F3F0E8; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<div style="flex: 1; min-width: 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Джаз во дворе · 20:30</div>
+<div style="margin-top: 2px; font-size: 13px; color: {{leaveColor}}; font-weight: 600">{{leaveLabel}}</div>
+</div>
+</div>
+<sc-if value="{{live}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 16px; top: 128px; width: 358px; box-sizing: border-box; padding: 10px 14px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; animation: v4rtIn 300ms ease both">
+<img src="../assets/igor.jpg" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover">
+<span>Игорь видит: ты будешь через {{mode.eta}} мин. Он — через 6.</span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 330px; box-sizing: border-box; padding: 12px 16px 26px; border-radius: 28px 28px 0 0; background: #FBFAF6; box-shadow: 0 -12px 34px rgba(23,22,26,0.16)">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 12px"></span>
+<div role="tablist" aria-label="Как добраться" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{m.on}}" onClick="{{m.pick}}" style="height: 62px; border-radius: 16px; border: 0; background: {{m.bg}}; color: {{m.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-family: 'Golos Text', sans-serif; transition: background 200ms ease"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600">{{m.t}}</span></button>
+</sc-for>
+</div>
+<div style="margin-top: 14px; height: 112px">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{mode.eta}} мин</span>
+<span style="font-size: 14px; color: #5F5B55">{{mode.sub}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; height: 30px">
+<sc-for list="{{mode.legs}}" as="l" hint-placeholder-count="3">
+<span style="flex: {{l.f}}; height: 30px; border-radius: 10px; background: {{l.bg}}; color: {{l.fg}}; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden">{{l.t}}</span>
+</sc-for>
+</div>
+<div style="margin-top: 10px; font-size: 13px; color: #4A463F; line-height: 1.35">{{mode.note}}</div>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 8px">
+<button type="button" onClick="{{toggleLive}}" style="flex: 1.4; height: 54px; border-radius: 17px; border: 0; background: {{goBg}}; color: {{goFg}}; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{goIcon}}"></path></svg>{{goLabel}}</button>
+<button type="button" style="flex: 1; height: 54px; border-radius: 17px; border: 0; background: #F3F0E8; box-shadow: inset 0 0 0 1.5px #DDD8CC; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">{{mode.open}}</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["walk","taxi","bus","scooter"],"default":"walk"},"live":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: props.mode ?? 'walk', live: !!props.live && props.live !== 'false' };
+  }
+  renderVals() {
+    const s = this.state;
+    const FULL = 'M54 600V396H198V294H270';
+    const flow = 'v4rtFlow 900ms linear infinite';
+    const draw = 'v4rtDraw 700ms ease both';
+    const seg = (d, c, w, dash, anim) => ({ d, c, w: String(w), dash, anim });
+    const M = {
+      walk: {
+        eta: 18, t: '18 мин', sub: '1,4 км · придёшь в 20:26',
+        legs: [{ f: 1, bg: '#FCE3D6', fg: '#17161A', t: 'Пешком 18 мин' }],
+        note: 'Тротуары и переходы. Если пойдёт дождь, предложим автобус.',
+        open: '2ГИС', leave: 20 * 60 + 8,
+        segs: [seg(FULL, '#F0521F', 6, '1000', draw), seg(FULL, 'rgba(23,22,26,0.5)', 2.5, '2 14', flow)],
+        stops: [], bubble: { x: 126, y: 396, t: '18 МИН' }
+      },
+      taxi: {
+        eta: 7, t: '7 мин', sub: 'пробки 6 баллов · ≈ 1 100 ₸',
+        legs: [{ f: 2, bg: '#D9E4D2', fg: '#17161A', t: 'свободно' }, { f: 1.2, bg: '#F6E2B3', fg: '#17161A', t: 'плотно' }, { f: 1, bg: '#F3C1B1', fg: '#17161A', t: 'пробка' }],
+        note: 'Время уже с пробками. Цена примерная — точную покажет такси.',
+        open: 'Вызвать', leave: 20 * 60 + 15,
+        segs: [seg('M54 600V396', '#2F8F5B', 6, '1000', draw), seg('M54 396H198', '#D99A1E', 6, '1000', draw), seg('M198 396V294H270', '#D2452A', 6, '1000', draw)],
+        stops: [], bubble: { x: 126, y: 396, t: '7 МИН' }
+      },
+      bus: {
+        eta: 22, t: '22 мин', sub: '№ 12 через 4 мин · 3 остановки',
+        legs: [{ f: 0.8, bg: '#FCE3D6', fg: '#17161A', t: '3 мин' }, { f: 2, bg: '#2447B8', fg: '#FBFAF6', t: '№ 12 · 12 мин' }, { f: 1, bg: '#FCE3D6', fg: '#17161A', t: '4 мин' }],
+        note: 'Автобус по расписанию и по факту: если опаздывает, время обновится.',
+        open: 'Расписание', leave: 20 * 60 + 4,
+        segs: [seg('M54 600V498', '#F0521F', 5, '3 9', flow), seg('M54 498V396H198', '#2447B8', 7, '1000', draw), seg('M198 396V294H270', '#F0521F', 5, '3 9', flow)],
+        stops: [{ x: '54', y: '498' }, { x: '126', y: '396' }, { x: '198', y: '396' }], bubble: { x: 126, y: 396, t: '№ 12' }
+      },
+      scooter: {
+        eta: 9, t: '9 мин', sub: 'самокат в 80 м · ≈ 400 ₸',
+        legs: [{ f: 0.6, bg: '#FCE3D6', fg: '#17161A', t: '1 мин' }, { f: 2, bg: '#D9E4D2', fg: '#17161A', t: 'велодорожка 8 мин' }],
+        note: 'Едем по велодорожкам, где они есть. Шлем не забудь.',
+        open: 'Найти самокат', leave: 20 * 60 + 15,
+        segs: [seg(FULL, '#2F8F5B', 6, '1000', draw), seg(FULL, 'rgba(251,250,246,0.9)', 2.5, '2 14', flow)],
+        stops: [], bubble: { x: 126, y: 396, t: '9 МИН' }
+      }
+    };
+    const cur = M[s.mode] || M.walk;
+    const clock = (v) => String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+    const icons = {
+      walk: 'M13 4a2 2 0 110 4 2 2 0 010-4zM10 21l2-6 3 3v3M9 13l2-4 4 3 3 1M7 10l3-1',
+      taxi: 'M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2M7.5 13h.01M16.5 13h.01M10 6V4h4v2',
+      bus: 'M6 4h12a2 2 0 012 2v10H4V6a2 2 0 012-2zM4 11h16M7.5 14h.01M16.5 14h.01M7 16v3M17 16v3',
+      scooter: 'M6 19a2 2 0 110-4 2 2 0 010 4zM18 19a2 2 0 110-4 2 2 0 010 4zM6 17h9l3-11h2M15 17l-2-6'
+    };
+    return {
+      segs: cur.segs, stops: cur.stops, bubble: { x: String(cur.bubble.x), y: String(cur.bubble.y - 22), t: cur.bubble.t },
+      mode: cur,
+      modes: Object.keys(M).map((k) => ({ t: M[k].t, icon: icons[k], on: k === s.mode ? 'true' : 'false', bg: k === s.mode ? '#17161A' : '#F3F0E8', fg: k === s.mode ? '#F3F0E8' : '#17161A', pick: () => this.setState({ mode: k }) })),
+      leaveLabel: s.live ? 'Ты в пути · Игорь видит, когда будешь' : 'Выйди в ' + clock(cur.leave) + ', чтобы успеть',
+      leaveColor: s.live ? '#2F8F5B' : '#8A3A12',
+      live: s.live, notLive: !s.live, fullPath: FULL,
+      toggleLive: () => this.setState({ live: !this.state.live }),
+      goBg: s.live ? '#17161A' : '#F0521F', goFg: s.live ? '#F3F0E8' : '#17161A',
+      goIcon: s.live ? 'M6 6l12 12M18 6L6 18' : 'M5 12h14M13 6l6 6-6 6',
+      goLabel: s.live ? 'Остановить' : 'Я выхожу'
+    };
+  }
+}
+</script>
+</body>
+</html>

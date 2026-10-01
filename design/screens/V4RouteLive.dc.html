@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>«Я выхожу»: друг видит, когда будешь</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4rtFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4rtDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes v4rtGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v4rtPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4rtIn{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4rtFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V4Route" live="true" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

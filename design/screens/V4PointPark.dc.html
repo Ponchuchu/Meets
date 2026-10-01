@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Точка переехала: вход в парк</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4ptFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4ptPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4ptHop{0%{transform:translateY(-22px)}55%{transform:translateY(2px)}75%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+@keyframes v4ptDraw{from{stroke-dashoffset:900}to{stroke-dashoffset:0}}
+@keyframes v4ptHint{0%{transform:translateY(-10px);opacity:0}10%,80%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4ptToast{0%{transform:translateY(16px);opacity:0}12%,85%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4ptTick{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V4Point" spot="park" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

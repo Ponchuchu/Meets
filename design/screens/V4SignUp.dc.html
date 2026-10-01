@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход: только когда нужен</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4suSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4suIn{from{transform:translateX(26px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v4suDigit{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes v4suBox{0%{box-shadow:0 0 0 2px #DDD8CC}100%{box-shadow:0 0 0 2px #17161A}}
+@keyframes v4suCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes v4suChip{0%{transform:scale(0.9)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes v4suFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v4suConf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(260deg);opacity:0}}
+@keyframes v4suPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+.v4suin{animation:v4suIn 320ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isStart}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<div style="position: absolute; left: 20px; top: 120px; width: 350px; height: 300px; border-radius: 24px; overflow: hidden; background: #FBFAF6; box-shadow: 0 16px 40px rgba(23,22,26,0.18)">
+<img src="../assets/pub.jpg" alt="" style="width: 350px; height: 190px; object-fit: cover; display: block">
+<div style="padding: 14px 18px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em">Открытый микрофон</div>
+<div style="margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; color: #5F5B55">СЕГОДНЯ · 20:00 · 1,2 КМ</div>
+</div>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(23,22,26,0.42)"></span>
+<div role="dialog" aria-label="Вход" style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 14px 20px 34px; border-radius: 28px 28px 0 0; background: #FBFAF6; animation: v4suSheet 420ms cubic-bezier(.2,.8,.2,1) both">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 18px"></span>
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 52px; height: 52px; border-radius: 16px; background: #F0521F; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1">Чтобы пойти — войди</div>
+<div style="margin-top: 3px; font-size: 14px; color: #5F5B55">20 секунд. Карту и подборку можно смотреть без входа.</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px">
+<button type="button" onClick="{{toCode}}" style="height: 54px; border-radius: 16px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="#F3F0E8" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.1 1.8-1 2.9 1.1.1 2.2-.6 2.8-1.4z"></path></svg>Продолжить с Apple</button>
+<button type="button" onClick="{{toName}}" style="height: 54px; border-radius: 16px; border: 0; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #CFC9BB; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 01-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"></path><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0012 22z" fill="#34A853"></path><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1A10 10 0 002 12c0 1.6.4 3.2 1.1 4.6z" fill="#FBBC05"></path><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 003.1 7.4L6.4 10C7.2 7.7 9.4 6 12 6z" fill="#EA4335"></path></svg>Продолжить с Google</button>
+<button type="button" onClick="{{toCode}}" style="height: 48px; border-radius: 16px; border: 0; background: transparent; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px">По номеру телефона</button>
+</div>
+<div style="margin-top: 6px; font-size: 12px; line-height: 1.4; color: #6B665E; text-align: center">Мы не пишем от твоего имени и не показываем номер. Нажимая, ты принимаешь <a href="#" style="color: #17161A">правила</a>.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isFlow}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 96px; box-sizing: border-box; padding: 52px 16px 0; display: flex; align-items: center; gap: 12px">
+<button type="button" onClick="{{back}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #E7E2D6; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<div role="progressbar" aria-label="Шаг {{stepN}} из 4" aria-valuemin="1" aria-valuemax="4" aria-valuenow="{{stepN}}" style="flex: 1; display: flex; gap: 6px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="4">
+<span style="flex: 1; height: 5px; border-radius: 3px; background: {{b.bg}}; transition: background 300ms ease"></span>
+</sc-for>
+</div>
+<span style="width: 44px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #5F5B55; text-align: right">{{stepN}}/4</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isCode}}" hint-placeholder-val="{{ false }}">
+<div class="v4suin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 26px 24px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Код из SMS</div>
+<div style="margin-top: 8px; font-size: 15px; color: #5F5B55">Отправили на +7 777 123-45-67 · <a href="#" style="color: #17161A; font-weight: 600">Другой номер</a></div>
+<div style="display: flex; gap: 12px; margin-top: 30px" aria-label="Код: 4 цифры">
+<sc-for list="{{digits}}" as="d" hint-placeholder-count="4">
+<span style="width: 72px; height: 84px; border-radius: 20px; background: #FBFAF6; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800; animation: v4suBox 200ms ease {{d.delay}}s both"><span style="animation: v4suDigit 220ms cubic-bezier(.2,.8,.2,1) {{d.delay}}s both">{{d.n}}</span></span>
+</sc-for>
+</div>
+<div style="display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 8px 14px; border-radius: 12px; background: #D9E4D2; font-size: 13.5px; font-weight: 600; animation: v4suPop 300ms ease 1.5s both"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Подставили из SMS сами</div>
+<div style="margin-top: 26px; font-size: 14px; color: #6B665E">Не пришло? Отправим ещё раз через 0:42</div>
+</div>
+<button type="button" onClick="{{toName}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Дальше</button>
+</sc-if>
+
+<sc-if value="{{isName}}" hint-placeholder-val="{{ false }}">
+<div class="v4suin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 26px 24px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Как тебя зовут?</div>
+<div style="margin-top: 8px; font-size: 15px; color: #5F5B55">Так тебя увидят на событиях.</div>
+<div style="display: flex; justify-content: center; margin-top: 26px">
+<button type="button" onClick="{{togglePhoto}}" aria-label="{{photoAria}}" style="position: relative; width: 132px; height: 132px; border-radius: 50%; border: 0; padding: 0; background: {{avatarBg}}; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 52px; font-weight: 800; color: #17161A; animation: v4suFloat 3s ease-in-out infinite">
+<sc-if value="{{hasPhoto}}" hint-placeholder-val="{{ false }}"><img src="../assets/arman.jpg" alt="" style="width: 132px; height: 132px; border-radius: 50%; object-fit: cover; animation: v4suPop 300ms ease both"></sc-if>
+<sc-if value="{{noPhoto}}" hint-placeholder-val="{{ true }}"><span>{{initial}}</span></sc-if>
+<span style="position: absolute; right: 0; bottom: 4px; width: 40px; height: 40px; border-radius: 50%; background: #17161A; box-shadow: 0 0 0 4px #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3 3 0 110 6 3 3 0 010-6z"></path></svg></span>
+</button>
+</div>
+<label style="display: block; margin-top: 26px; font-size: 13px; font-weight: 600; color: #5F5B55">Имя
+<input type="text" value="Арман" aria-label="Имя" style="display: block; width: 100%; box-sizing: border-box; margin-top: 6px; height: 56px; border-radius: 16px; border: 0; box-shadow: inset 0 0 0 2px #17161A; background: #FBFAF6; padding: 0 16px; font-family: 'Golos Text', sans-serif; font-size: 19px; font-weight: 600; color: #17161A">
+</label>
+<div style="display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: #E7E2D6; font-size: 13px; line-height: 1.4; color: #3A3833"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path></svg><span>Фото и имя видят все, кто идёт туда же. Где ты сейчас — только друзья, и только если включишь.</span></div>
+</div>
+<button type="button" onClick="{{toTaste}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Дальше</button>
+</sc-if>
+
+<sc-if value="{{isTaste}}" hint-placeholder-val="{{ false }}">
+<div class="v4suin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 26px 20px 0">
+<div style="padding: 0 4px; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Что вытаскивает тебя из дома?</div>
+<div style="padding: 0 4px; margin-top: 8px; font-size: 15px; color: #5F5B55">Выбери хотя бы три — подборка начнёт с них.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px">
+<sc-for list="{{tastes}}" as="c" hint-placeholder-count="12">
+<button type="button" onClick="{{c.tap}}" aria-pressed="{{c.on}}" style="height: 48px; padding: 0 16px 0 12px; border-radius: 24px; border: 0; background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.ring}}; display: flex; align-items: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 600; animation: {{c.anim}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.ic}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.icon}}"></path></svg>{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="position: absolute; left: 20px; bottom: 102px; width: 350px; display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #5F5B55"><span>ВЫБРАНО {{tasteN}}</span><span>{{tasteHint}}</span></div>
+<button type="button" onClick="{{toAllow}}" aria-disabled="{{tasteDisabled}}"style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: {{tasteBtnBg}}; color: {{tasteBtnFg}}; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700; transition: background 200ms ease">Дальше</button>
+</sc-if>
+
+<sc-if value="{{isAllow}}" hint-placeholder-val="{{ false }}">
+<div class="v4suin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 26px 20px 0">
+<div style="padding: 0 4px; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Последнее</div>
+<div style="padding: 0 4px; margin-top: 8px; font-size: 15px; color: #5F5B55">Можно поменять в любой момент в профиле.</div>
+<sc-for list="{{perms}}" as="p" hint-placeholder-count="2">
+<div style="margin-top: 16px; padding: 18px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 0 0 1.5px {{p.ring}}">
+<div style="display: flex; gap: 14px; align-items: flex-start">
+<span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 15px; background: {{p.tile}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg></span>
+<div style="flex: 1">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">{{p.title}}</div>
+<div style="margin-top: 4px; font-size: 13.5px; line-height: 1.4; color: #4A463F">{{p.text}}</div>
+</div>
+</div>
+<button type="button" onClick="{{p.tap}}" aria-pressed="{{p.onAttr}}" style="margin-top: 14px; width: 100%; height: 48px; border-radius: 14px; border: 0; background: {{p.btnBg}}; color: {{p.btnFg}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; transition: background 200ms ease"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{p.btnIcon}}"></path></svg>{{p.btnLabel}}</button>
+</div>
+</sc-for>
+</div>
+<button type="button" onClick="{{finish}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Готово — иду на микрофон</button>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: #F0521F; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center">
+<sc-for list="{{confetti}}" as="k" hint-placeholder-count="14">
+<span aria-hidden="true" style="position: absolute; left: 195px; top: 380px; width: {{k.w}}px; height: {{k.h}}px; border-radius: {{k.r}}; background: {{k.bg}}; --dx: {{k.dx}}px; --dy: {{k.dy}}px; animation: v4suConf 1.4s cubic-bezier(.2,.8,.3,1) {{k.delay}}s both"></span>
+</sc-for>
+<span style="width: 108px; height: 108px; border-radius: 34px; background: #17161A; display: flex; align-items: center; justify-content: center; animation: v4suPop 420ms cubic-bezier(.2,.8,.2,1) both"><svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<div style="margin-top: 26px; font-family: 'Geologica', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Ты идёшь!</div>
+<div style="margin-top: 8px; font-size: 16px; font-weight: 600">Открытый микрофон · сегодня 20:00</div>
+<div style="margin-top: 4px; font-size: 14px">Уже в «Планах». За час напомним.</div>
+<button type="button" onClick="{{restart}}" style="margin-top: 30px; height: 50px; padding: 0 26px; border-radius: 16px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Показать вход ещё раз</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["start","code","name","taste","allow"],"default":"start"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: props.step ?? 'start', photo: false, picked: { jazz: true, mic: true }, perm: { geo: false, push: false } };
+  }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const order = ['code', 'name', 'taste', 'allow'];
+    const idx = order.indexOf(s.step);
+    const I = {
+      jazz: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z',
+      mic: 'M12 3a3 3 0 013 3v5a3 3 0 01-6 0V6a3 3 0 013-3zM5 11a7 7 0 0014 0M12 18v3',
+      hike: 'M3 20l6-10 4 6 3-4 5 8z',
+      dice: 'M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4',
+      art: 'M12 3a9 9 0 100 18c1.1 0 1.5-.8 1.5-1.5 0-.9-.7-1.2-.7-2 0-.8.7-1.5 1.5-1.5H17a4 4 0 004-4c0-5-4-9-9-9zM7.5 11h.01M10.5 7h.01M15 7.5h.01',
+      coffee: 'M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8zM17 9h1.5a2.5 2.5 0 010 5H17M7 2.5v2.5M10.5 2.5v2.5M14 2.5v2.5',
+      dance: 'M12 4a2 2 0 110 4 2 2 0 010-4zM9 21l2-6-3-3 4-3 3 4 3 1M11 15l3 6',
+      ball: 'M12 3a9 9 0 110 18 9 9 0 010-18zM3.5 9.5h17M3.5 14.5h17M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18',
+      mask: 'M4 5h16v6a8 8 0 01-16 0zM8.5 9.5h.01M15.5 9.5h.01M9 14c1.8 1.4 4.2 1.4 6 0',
+      party: 'M4 20l4-12 8 8zM13 4l1 2M18 6l-2 1M20 11l-2-.5M15 2.5l.5.5',
+      yoga: 'M12 4a2 2 0 110 4 2 2 0 010-4zM4 20h16M12 10v5M7 12l5 1 5-1M8 20l4-5 4 5'
+    };
+    const T = [['jazz', 'Джаз'], ['mic', 'Стендап'], ['hike', 'Горы'], ['dice', 'Настолки'], ['film', 'Кино'], ['art', 'Музеи'], ['coffee', 'Кофе'], ['dance', 'Танцы'], ['ball', 'Спорт'], ['mask', 'Театр'], ['party', 'Вечеринки'], ['yoga', 'Йога']];
+    const n = Object.values(s.picked).filter(Boolean).length;
+    const perm = (key, title, text, tile, icon, label) => {
+      const on = !!s.perm[key];
+      return {
+        title, text, tile, icon, onAttr: on ? 'true' : 'false',
+        ring: on ? '#2F8F5B' : '#E7E2D6',
+        btnBg: on ? '#D9E4D2' : '#17161A', btnFg: on ? '#17161A' : '#F3F0E8',
+        btnIcon: on ? 'M5 12.5l4.5 4.5L19 7.5' : 'M12 5v14M5 12h14',
+        btnLabel: on ? 'Включено' : label,
+        tap: () => this.setState({ perm: { ...this.state.perm, [key]: !on } })
+      };
+    };
+    const C = ['#17161A', '#FBFAF6', '#2447B8', '#F7B08A', '#FCE3D6'];
+    return {
+      isStart: s.step === 'start',
+      isFlow: idx >= 0,
+      isCode: s.step === 'code', isName: s.step === 'name', isTaste: s.step === 'taste', isAllow: s.step === 'allow', isDone: s.step === 'done',
+      stepN: String(idx + 1),
+      bars: order.map((k, i) => ({ bg: i <= idx ? '#17161A' : '#DDD8CC' })),
+      back: () => this.setState({ step: idx <= 0 ? 'start' : order[idx - 1] }),
+      toCode: go('code'), toName: go('name'), toTaste: go('taste'), toAllow: () => { if (n >= 3) this.setState({ step: 'allow' }); },
+      finish: go('done'), restart: () => this.setState({ step: 'start' }),
+      digits: ['4', '8', '1', '5'].map((d, i) => ({ n: d, delay: String(0.5 + i * 0.22) })),
+      hasPhoto: s.photo, noPhoto: !s.photo, initial: 'А', avatarBg: s.photo ? 'transparent' : '#EADFB8',
+      photoAria: s.photo ? 'Сменить фото' : 'Добавить фото',
+      togglePhoto: () => this.setState({ photo: !this.state.photo }),
+      tastes: T.map(([k, label]) => {
+        const on = !!s.picked[k];
+        return {
+          label, icon: I[k], on: on ? 'true' : 'false',
+          bg: on ? '#17161A' : '#FBFAF6', fg: on ? '#F3F0E8' : '#17161A', ic: on ? '#F0521F' : '#17161A',
+          ring: on ? 'none' : 'inset 0 0 0 1.5px #DDD8CC',
+          anim: on ? 'v4suChip 260ms ease both' : 'none',
+          tap: () => this.setState({ picked: { ...this.state.picked, [k]: !on } })
+        };
+      }),
+      tasteN: String(n),
+      tasteHint: n >= 3 ? 'ОТЛИЧНО' : 'ЕЩЁ ' + (3 - n),
+      tasteDisabled: n < 3 ? 'true' : 'false',
+      tasteBtnBg: n >= 3 ? '#F0521F' : '#DDD8CC', tasteBtnFg: n >= 3 ? '#17161A' : '#6B665E',
+      perms: [
+        perm('geo', 'Геолокация', 'Чтобы показать, что рядом, засчитать встречу и открывать карту города, где ты гулял. Друзья видят тебя, только если включишь.', '#FCE3D6', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z', 'Разрешить'),
+        perm('push', 'Уведомления', 'Только важное: тебя зовут, через час встреча, друг рядом. Ночью — тишина.', '#D6E0EE', 'M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0', 'Разрешить')
+      ],
+      confetti: Array.from({ length: 14 }, (_, i) => {
+        const a = (i / 14) * Math.PI * 2;
+        return { w: String(i % 3 ? 10 : 14), h: String(i % 3 ? 16 : 14), r: i % 3 ? '3px' : '50%', bg: C[i % C.length], dx: String(Math.round(Math.cos(a) * (130 + (i % 4) * 30))), dy: String(Math.round(Math.sin(a) * (180 + (i % 3) * 40))), delay: String((i % 5) * 0.03) };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Тап по огоньку: кто вместе</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4tgSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes v4tgSwap2{0%,42%{opacity:1;transform:scale(1)}50%,92%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgSwap4{0%,20%{opacity:1;transform:scale(1)}25%,95%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgGlow{0%,100%{transform:scale(1);opacity:0.65}50%{transform:scale(1.18);opacity:1}}
+@keyframes v4tgFlame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.15) rotate(4deg)}}
+@keyframes v4tgSpark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),-36px) scale(0.3);opacity:0}}
+@keyframes v4tgPush{0%{transform:translateY(-120%)}10%,80%{transform:translateY(0)}90%,100%{transform:translateY(-120%)}}
+@keyframes v4tgSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4tgMerge1{0%{transform:translate(-46px,30px)}40%,100%{transform:translate(0,0)}}
+@keyframes v4tgMerge2{0%{transform:translate(52px,-26px)}40%,100%{transform:translate(0,0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V4Together" open="two" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

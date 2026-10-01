@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Запуск: «рядом.» рисуется</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4spLine{0%{stroke-dashoffset:600;opacity:0}8%{opacity:1}30%{stroke-dashoffset:0}86%{opacity:1;stroke-dashoffset:0}96%,100%{opacity:0;stroke-dashoffset:0}}
+@keyframes v4spLetter{0%,4%{transform:translateY(70px);opacity:0}14%{transform:translateY(-8px);opacity:1}19%{transform:translateY(0)}86%{transform:translateY(0);opacity:1}96%,100%{transform:translateY(-20px);opacity:0}}
+@keyframes v4spDrop{0%,26%{transform:translateY(-320px) scale(1);opacity:0}27%{opacity:1}36%{transform:translateY(0) scale(1.15,0.8)}40%{transform:translateY(-14px) scale(0.95,1.08)}44%{transform:translateY(0) scale(1)}86%{transform:translateY(0) scale(1);opacity:1}96%,100%{opacity:0}}
+@keyframes v4spRing{0%,36%{transform:scale(0.3);opacity:0}37%{opacity:0.9}58%,100%{transform:scale(3.2);opacity:0}}
+@keyframes v4spFade{0%,46%{transform:translateY(12px);opacity:0}56%{transform:translateY(0);opacity:1}86%{opacity:1}96%,100%{opacity:0}}
+@keyframes v4spPop{0%,40%{transform:scale(0);opacity:0}50%{transform:scale(1.2);opacity:1}55%{transform:scale(1)}86%{opacity:1;transform:scale(1)}96%,100%{opacity:0;transform:scale(0.6)}}
+@keyframes v4spBar{0%,30%{transform:scaleX(0)}80%{transform:scaleX(1)}86%{transform:scaleX(1);opacity:1}96%,100%{opacity:0;transform:scaleX(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: {{bg}}; font-family: 'Golos Text', sans-serif; color: #17161A">
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+<path d="{{l.d}}" stroke="{{lineColor}}" stroke-width="{{l.w}}" fill="none" stroke-linecap="round" stroke-dasharray="600" style="animation: v4spLine 5s cubic-bezier(.4,0,.2,1) {{l.delay}}s infinite both"></path>
+</sc-for>
+</svg>
+<sc-for list="{{pins}}" as="p" hint-placeholder-count="5">
+<span aria-hidden="true" style="position: absolute; left: {{p.x}}px; top: {{p.y}}px; width: 26px; height: 26px; border-radius: 9px; background: {{p.bg}}; box-shadow: 0 0 0 3px {{pinRing}}; animation: v4spPop 5s cubic-bezier(.2,.8,.2,1) {{p.delay}}s infinite both"></span>
+</sc-for>
+<div role="img" aria-label="рядом." style="position: absolute; left: 0; top: 352px; width: 390px; display: flex; justify-content: center; align-items: flex-end; font-family: 'Geologica', sans-serif; font-weight: 800; font-size: 92px; letter-spacing: -0.05em; line-height: 1">
+<sc-for list="{{letters}}" as="c" hint-placeholder-count="5">
+<span aria-hidden="true" style="display: inline-block; color: {{ink}}; animation: v4spLetter 5s cubic-bezier(.2,.8,.2,1) {{c.delay}}s infinite both">{{c.ch}}</span>
+</sc-for>
+<span aria-hidden="true" style="position: relative; display: inline-block; width: 24px; height: 24px; margin: 0 0 10px 4px">
+<span style="position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; border: 3px solid {{dot}}; box-sizing: border-box; animation: v4spRing 5s ease-out 0s infinite both"></span>
+<span style="position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 8px; background: {{dot}}; transform-origin: 50% 100%; animation: v4spDrop 5s cubic-bezier(.3,.7,.3,1) 0s infinite both"></span>
+</span>
+</div>
+<div style="position: absolute; left: 0; top: 470px; width: 390px; text-align: center; font-size: 19px; font-weight: 600; color: {{ink}}; animation: v4spFade 5s ease 0s infinite both">Куда пойти — и с кем</div>
+<div style="position: absolute; left: 135px; top: 760px; width: 120px; height: 4px; border-radius: 2px; background: {{track}}; overflow: hidden">
+<span style="display: block; width: 120px; height: 4px; background: {{ink}}; transform-origin: 0 50%; animation: v4spBar 5s ease-in-out 0s infinite both"></span>
+</div>
+<div style="position: absolute; left: 0; top: 780px; width: 390px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: {{ink}}; animation: v4spFade 5s ease 0.2s infinite both">АЛМАТЫ · {{weather}}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["orange","paper","night"],"default":"orange"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const th = this.props.theme ?? 'orange';
+    const T = {
+      orange: { bg: '#F0521F', ink: '#17161A', dot: '#FBFAF6', line: 'rgba(23,22,26,0.14)', track: 'rgba(23,22,26,0.18)', ring: '#F0521F', pin: ['#17161A', '#FBFAF6'] },
+      paper: { bg: '#F3F0E8', ink: '#17161A', dot: '#F0521F', line: 'rgba(23,22,26,0.10)', track: '#DDD8CC', ring: '#F3F0E8', pin: ['#17161A', '#F0521F'] },
+      night: { bg: '#17161A', ink: '#F3F0E8', dot: '#F0521F', line: 'rgba(243,240,232,0.10)', track: '#3A383F', ring: '#17161A', pin: ['#F3F0E8', '#F0521F'] }
+    }[th] || {};
+    const L = [
+      ['M0 150H390', 6, 0], ['M0 286H390', 3, 0.08], ['M0 600H390', 6, 0.16], ['M0 690H390', 3, 0.2],
+      ['M60 0V844', 6, 0.04], ['M150 0V844', 3, 0.12], ['M300 0V844', 6, 0.1], ['M-40 760L430 120', 8, 0.18],
+      ['M0 820C120 760 260 790 390 730', 4, 0.24], ['M230 0C226 200 252 330 240 844', 3, 0.28]
+    ];
+    const P = [[46, 136, 0], [287, 273, 1], [137, 587, 0], [286, 676, 1], [196, 170, 0]];
+    return {
+      bg: T.bg, ink: T.ink, dot: T.dot, lineColor: T.line, track: T.track, pinRing: T.ring,
+      weather: '+21°',
+      lines: L.map(([d, w, delay]) => ({ d, w: String(w), delay: String(delay) })),
+      pins: P.map(([x, y, k], i) => ({ x: String(x), y: String(y), bg: T.pin[k], delay: String(0.3 + i * 0.12) })),
+      letters: [...'рядом'].map((ch, i) => ({ ch, delay: String(i * 0.07) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

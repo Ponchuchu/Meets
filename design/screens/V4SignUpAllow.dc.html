@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход: геолокация и уведомления — зачем</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4suSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4suIn{from{transform:translateX(26px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v4suDigit{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes v4suBox{0%{box-shadow:0 0 0 2px #DDD8CC}100%{box-shadow:0 0 0 2px #17161A}}
+@keyframes v4suCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes v4suChip{0%{transform:scale(0.9)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes v4suFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v4suConf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(260deg);opacity:0}}
+@keyframes v4suPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+.v4suin{animation:v4suIn 320ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V4SignUp" step="allow" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

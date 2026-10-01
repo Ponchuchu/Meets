@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Точка: место, время, дорога</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4ptFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4ptPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4ptHop{0%{transform:translateY(-22px)}55%{transform:translateY(2px)}75%{transform:translateY(-4px)}100%{transform:translateY(0)}}
+@keyframes v4ptDraw{from{stroke-dashoffset:900}to{stroke-dashoffset:0}}
+@keyframes v4ptHint{0%{transform:translateY(-10px);opacity:0}10%,80%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4ptToast{0%{transform:translateY(16px);opacity:0}12%,85%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4ptTick{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0; pointer-events: none">
+<path d="{{igorPath}}" stroke="#FBFAF6" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="{{igorPath}}" stroke="#2447B8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="900" style="animation: v4ptDraw 700ms ease both"></path>
+<path d="{{igorPath}}" stroke="rgba(251,250,246,0.9)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="2 14" style="animation: v4ptFlow 900ms linear infinite"></path>
+<path d="{{myPath}}" stroke="#FBFAF6" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="{{myPath}}" stroke="#F0521F" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="900" style="animation: v4ptDraw 700ms ease both"></path>
+<path d="{{myPath}}" stroke="rgba(23,22,26,0.55)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="2 14" style="animation: v4ptFlow 900ms linear infinite"></path>
+</svg>
+
+<sc-for list="{{spots}}" as="sp" hint-placeholder-count="4">
+<button type="button" onClick="{{sp.pick}}" aria-label="{{sp.aria}}" style="position: absolute; left: {{sp.x}}px; top: {{sp.y}}px; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 0; padding: 0; border-radius: 22px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 12px; height: 12px; border-radius: 50%; background: rgba(23,22,26,0.18); box-shadow: 0 0 0 3px rgba(251,250,246,0.9); opacity: {{sp.dotOp}}"></span></button>
+</sc-for>
+
+<span aria-hidden="true" style="position: absolute; left: {{etaMe.x}}px; top: {{etaMe.y}}px; transform: translate(-50%, -50%); padding: 5px 9px; border-radius: 10px; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 0 0 2px #FBFAF6; transition: left 380ms ease, top 380ms ease">ТЫ · {{etaMe.t}}</span>
+<span aria-hidden="true" style="position: absolute; left: {{etaIg.x}}px; top: {{etaIg.y}}px; transform: translate(-50%, -50%); padding: 5px 9px; border-radius: 10px; background: #2447B8; color: #FBFAF6; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 0 0 2px #FBFAF6; transition: left 380ms ease, top 380ms ease">ИГОРЬ · {{etaIg.t}}</span>
+
+<div aria-hidden="true" style="position: absolute; left: 54px; top: 600px; width: 0; height: 0">
+<span style="position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(240,82,31,0.35); animation: v4ptPulse 1.8s ease-out infinite"></span>
+<span style="position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 4px 10px rgba(23,22,26,0.25)"></span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 288px; top: 140px; width: 36px; height: 36px">
+<img src="../assets/igor.jpg" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #2447B8, 0 0 0 5px #FBFAF6">
+</div>
+
+<div style="position: absolute; left: {{pin.x}}px; top: {{pin.y}}px; width: 0; height: 0; transition: left 380ms cubic-bezier(.3,.7,.3,1), top 380ms cubic-bezier(.3,.7,.3,1)">
+<div style="position: absolute; left: -60px; top: -92px; width: 120px; display: flex; justify-content: center">
+<span style="padding: 6px 11px; border-radius: 11px; background: #17161A; color: #F3F0E8; font-family: 'Geologica', sans-serif; font-size: 14px; font-weight: 700; white-space: nowrap">Тут · {{timeLabel}}</span>
+</div>
+<span style="position: absolute; left: -23px; top: -50px; width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 10px 22px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center; animation: v4ptHop 420ms cubic-bezier(.3,.7,.3,1) both"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{pinIcon}}"></path></svg></span>
+<span style="position: absolute; left: -9px; top: -6px; width: 18px; height: 8px; border-radius: 50%; background: rgba(23,22,26,0.22)"></span>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 390px; box-sizing: border-box; padding: 52px 16px 0; display: flex; align-items: center; gap: 10px">
+<a href="V3Chat.dc.html" aria-label="Назад в чат" style="width: 44px; height: 44px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 4px 14px rgba(23,22,26,0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<div style="flex: 1; height: 44px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 4px 14px rgba(23,22,26,0.14); display: flex; align-items: center; gap: 10px; padding: 0 14px; font-weight: 700; font-size: 15px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"></path></svg>Точка для Игоря
+</div>
+</div>
+<div style="position: absolute; left: 0; top: 108px; width: 390px; display: flex; justify-content: center; pointer-events: none">
+<span style="padding: 8px 14px; border-radius: 14px; background: rgba(23,22,26,0.86); color: #F3F0E8; font-size: 13px; font-weight: 600; animation: v4ptHint 5s ease 0.6s both">Тапни по карте — точка переедет</span>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 352px; box-sizing: border-box; padding: 12px 16px 26px; border-radius: 28px 28px 0 0; background: #FBFAF6; box-shadow: 0 -12px 34px rgba(23,22,26,0.16)">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 12px"></span>
+<div style="display: flex; align-items: center; gap: 12px; height: 48px">
+<div style="flex: 1; min-width: 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{placeName}}</div>
+<div style="margin-top: 2px; font-size: 13px; color: #5F5B55; white-space: nowrap">{{placeSub}}</div>
+</div>
+<button type="button" onClick="{{middle}}" style="height: 40px; padding: 0 12px; border-radius: 12px; border: 0; background: {{midBg}}; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"></path></svg>Посередине</button>
+</div>
+
+<div style="margin-top: 12px; height: 74px; border-radius: 18px; background: #F3F0E8; display: flex; align-items: center; padding: 0 8px; gap: 8px">
+<button type="button" onClick="{{minus}}" aria-label="Раньше на 15 минут" style="width: 52px; height: 52px; border-radius: 16px; border: 0; background: #FBFAF6; box-shadow: 0 0 0 1.5px #DDD8CC; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #17161A">−15</button>
+<div style="flex: 1; text-align: center" aria-live="polite">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums">{{timeLabel}}</div>
+<div style="margin-top: 4px; font-size: 12.5px; font-weight: 600; color: #8A3A12">{{inLabel}}</div>
+</div>
+<button type="button" onClick="{{plus}}" aria-label="Позже на 15 минут" style="width: 52px; height: 52px; border-radius: 16px; border: 0; background: #FBFAF6; box-shadow: 0 0 0 1.5px #DDD8CC; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #17161A">+15</button>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 10px">
+<sc-for list="{{quick}}" as="q" hint-placeholder-count="4">
+<button type="button" onClick="{{q.pick}}" aria-pressed="{{q.on}}" style="flex: 1; height: 40px; border-radius: 12px; border: 0; background: {{q.bg}}; color: {{q.fg}}; box-shadow: {{q.ring}}; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 0 4px">{{q.label}}</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{send}}" style="margin-top: 14px; width: 100%; height: 56px; border-radius: 18px; border: 0; background: {{sendBg}}; color: {{sendFg}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 16.5px; font-weight: 700; transition: background 220ms ease"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{sendIcon}}"></path></svg>{{sendLabel}}</button>
+</div>
+
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 16px; top: 108px; width: 358px; box-sizing: border-box; padding: 12px 14px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; gap: 10px; align-items: center; font-size: 13.5px; font-weight: 600; animation: v4ptToast 4.5s ease both">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+<span>Точка у Игоря в чате. Таймер — в «Планах», за час напомним обоим.</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"spot":{"editor":"enum","options":["corner","cafe","park","stop"],"default":"corner"},"sent":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { spot: props.spot ?? 'corner', min: 105, sent: !!props.sent && props.sent !== 'false' };
+  }
+  renderVals() {
+    const s = this.state;
+    const S = {
+      corner: { x: 270, y: 294, name: 'Угол Абая и Достык', me: 14, ig: 6, mine: 'M54 600V396H198V294H270', igs: 'M306 158H270V294', em: [198, 345], ei: [306, 116] },
+      cafe: { x: 198, y: 396, name: 'Кофейня на углу', me: 9, ig: 10, mine: 'M54 600V396H198', igs: 'M306 158H270V396H198', em: [126, 396], ei: [270, 300] },
+      park: { x: 126, y: 226, name: 'Вход в парк', me: 11, ig: 9, mine: 'M54 600V294H126V226', igs: 'M306 158H126V226', em: [54, 450], ei: [246, 158] },
+      stop: { x: 306, y: 430, name: 'Остановка «Театр»', me: 12, ig: 8, mine: 'M54 600V498H270V430H306', igs: 'M306 158V430', em: [162, 498], ei: [306, 300] }
+    };
+    const cur = S[s.spot] || S.corner;
+    const base = 18 * 60 + 45;
+    const at = base + s.min;
+    const hh = Math.floor(at / 60) % 24, mm = at % 60;
+    const timeLabel = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    const h = Math.floor(s.min / 60), m = s.min % 60;
+    const inLabel = s.min <= 0 ? 'прямо сейчас' : 'через ' + (h ? h + ' ч ' : '') + (m ? m + ' мин' : '').trim();
+    const setMin = (v) => this.setState({ min: Math.max(0, Math.min(720, v)), sent: false });
+    const Q = [['Сейчас', 0], ['Через час', 60], ['19:30', 45], ['20:30', 105]];
+    const PIN = 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z';
+    const OK = 'M5 12.5l4.5 4.5L19 7.5';
+    return {
+      spots: Object.keys(S).map((k) => ({ x: String(S[k].x), y: String(S[k].y), aria: 'Поставить точку: ' + S[k].name, dotOp: k === s.spot ? '0' : '1', pick: () => this.setState({ spot: k, sent: false }) })),
+      pin: { x: String(cur.x), y: String(cur.y) },
+      pinIcon: s.sent ? OK : PIN,
+      myPath: cur.mine, igorPath: cur.igs,
+      etaMe: { x: String(cur.em[0]), y: String(cur.em[1]), t: cur.me + ' МИН' },
+      etaIg: { x: String(cur.ei[0]), y: String(cur.ei[1]), t: cur.ig + ' МИН' },
+      placeName: cur.name,
+      placeSub: 'Тебе ' + cur.me + ' мин пешком · Игорю ' + cur.ig,
+      midBg: s.spot === 'cafe' ? '#D9E4D2' : '#E7E2D6',
+      middle: () => this.setState({ spot: 'cafe', sent: false }),
+      timeLabel, inLabel,
+      minus: () => setMin(s.min - 15), plus: () => setMin(s.min + 15),
+      quick: Q.map(([label, v]) => {
+        const on = s.min === v;
+        return { label, on: on ? 'true' : 'false', bg: on ? '#17161A' : '#FBFAF6', fg: on ? '#F3F0E8' : '#17161A', ring: on ? 'none' : 'inset 0 0 0 1.5px #DDD8CC', pick: () => setMin(v) };
+      }),
+      sent: s.sent,
+      send: () => this.setState({ sent: true }),
+      sendBg: s.sent ? '#D9E4D2' : '#F0521F', sendFg: '#17161A',
+      sendIcon: s.sent ? OK : 'M4 12l16-8-6 16-2.5-6.5z',
+      sendLabel: s.sent ? 'Отправлено · ждём Игоря' : 'Отправить · тут в ' + timeLabel
+    };
+  }
+}
+</script>
+</body>
+</html>

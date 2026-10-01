@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Экран блокировки: таймер и пуши</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4lkIn{0%{transform:translateY(-30px) scale(0.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes v4lkMove{0%{left:6%}100%{left:58%}}
+@keyframes v4lkMove2{0%{left:88%}100%{left:66%}}
+@keyframes v4lkPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.6)}50%{box-shadow:0 0 0 6px rgba(240,82,31,0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #17161A; font-family: 'Golos Text', sans-serif; color: #FBFAF6">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; opacity: 0.55">
+<dc-import name="MapBase" theme="night" hint-size="390px,844px"></dc-import>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: linear-gradient(180deg, rgba(23,22,26,0.2), rgba(23,22,26,0.75))"></span>
+
+<div style="position: absolute; left: 123px; top: 12px; width: 144px; height: 38px; border-radius: 19px; background: #000; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; box-sizing: border-box">
+<span style="width: 18px; height: 18px; border-radius: 6px; background: #F0521F; animation: v4lkPulse 1.6s ease infinite"></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #F7B08A; font-variant-numeric: tabular-nums">{{mmss}}</span>
+</div>
+
+<div style="position: absolute; left: 0; top: 92px; width: 390px; text-align: center">
+<div style="font-size: 17px; font-weight: 600; color: #E7E2D6">Четверг, 1 октября</div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 88px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; margin-top: 2px">19:46</div>
+</div>
+
+<div style="position: absolute; left: 14px; top: 252px; width: 362px; box-sizing: border-box; padding: 16px; border-radius: 26px; background: rgba(28,27,32,0.86); box-shadow: 0 0 0 1px rgba(251,250,246,0.08); animation: v4lkIn 420ms cubic-bezier(.2,.8,.2,1) both">
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 10px; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></span>
+<div style="flex: 1">
+<div style="font-weight: 700; font-size: 15px">Джаз во дворе · 20:30</div>
+<div style="font-size: 12.5px; color: #CFC9BB">Выйти в 20:08 · 18 мин пешком</div>
+</div>
+<div role="timer" aria-label="До встречи" style="font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 600; color: #F7B08A; font-variant-numeric: tabular-nums">{{mmss}}</div>
+</div>
+<div aria-hidden="true" style="position: relative; height: 34px; margin-top: 12px">
+<span style="position: absolute; left: 0; right: 0; top: 15px; height: 4px; border-radius: 2px; background: #3A383F"></span>
+<span style="position: absolute; left: 0; width: 62%; top: 15px; height: 4px; border-radius: 2px; background: #F0521F"></span>
+<span style="position: absolute; right: 0; top: 4px; width: 26px; height: 26px; border-radius: 9px; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z"></path></svg></span>
+<span style="position: absolute; top: 9px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #FBFAF6; box-shadow: 0 0 0 3px #F0521F; animation: v4lkMove 12s linear infinite alternate"></span>
+<img src="../assets/igor.jpg" alt="" style="position: absolute; top: 3px; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #2447B8; animation: v4lkMove2 12s linear infinite alternate">
+</div>
+<div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11.5px; color: #8F897C"><span>Ты</span><span>Игорь уже в пути</span><span>Тут</span></div>
+</div>
+
+<div style="position: absolute; left: 14px; top: 470px; width: 362px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{pushes}}" as="p" hint-placeholder-count="3">
+<div style="box-sizing: border-box; padding: 12px 14px; border-radius: 22px; background: rgba(243,240,232,0.94); color: #17161A; display: flex; gap: 12px; align-items: flex-start; animation: v4lkIn 420ms cubic-bezier(.2,.8,.2,1) {{p.delay}}s both">
+<span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 11px; background: {{p.tile}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{p.ic}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg></span>
+<div style="flex: 1; min-width: 0">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #6B665E"><span style="font-weight: 700; color: #17161A">{{p.title}}</span><span>{{p.when}}</span></div>
+<div style="margin-top: 2px; font-size: 14px; line-height: 1.3">{{p.text}}</div>
+<sc-if value="{{p.hasActs}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 6px; margin-top: 8px">
+<span style="flex: 1; height: 34px; border-radius: 11px; background: #F0521F; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{p.a1}}</span>
+<span style="flex: 1; height: 34px; border-radius: 11px; background: #E7E2D6; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{p.a2}}</span>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; bottom: 18px; width: 390px; display: flex; justify-content: center"><span style="width: 134px; height: 5px; border-radius: 3px; background: #FBFAF6"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { left: 44 * 60 + 12 }; }
+  componentDidMount() { this.iv = setInterval(() => this.setState({ left: Math.max(0, this.state.left - 1) }), 1000); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  renderVals() {
+    const L = this.state.left;
+    const p2 = (v) => String(v).padStart(2, '0');
+    return {
+      mmss: p2(Math.floor(L / 60)) + ':' + p2(L % 60),
+      pushes: [
+        { title: 'Через час — Джаз во дворе', when: 'сейчас', text: 'Выйди в 20:08, пешком 18 минут. Игорь и Арман уже идут.', tile: '#F0521F', ic: '#17161A', icon: 'M12 7v5l3 2M12 3a9 9 0 110 18 9 9 0 010-18z', hasActs: true, a1: 'Маршрут', a2: 'Опаздываю', delay: '0.2' },
+        { title: 'Игорь и Арман вместе', when: '5 мин', text: 'Встретились у кофейни на углу · 600 м от тебя', tile: '#2447B8', ic: '#FBFAF6', icon: 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5', hasActs: false, delay: '0.35' },
+        { title: 'Ты открыл Медеу', when: 'вчера', text: 'Новый район на твоей карте · открыто 12,4 % города', tile: '#2F8F5B', ic: '#FBFAF6', icon: 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', hasActs: false, delay: '0.5' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

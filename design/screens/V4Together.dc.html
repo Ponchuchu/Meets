@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Друзья вместе: огонёк на карте</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4tgSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes v4tgSwap2{0%,42%{opacity:1;transform:scale(1)}50%,92%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgSwap4{0%,20%{opacity:1;transform:scale(1)}25%,95%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgGlow{0%,100%{transform:scale(1);opacity:0.65}50%{transform:scale(1.18);opacity:1}}
+@keyframes v4tgFlame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.15) rotate(4deg)}}
+@keyframes v4tgSpark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),-36px) scale(0.3);opacity:0}}
+@keyframes v4tgPush{0%{transform:translateY(-120%)}10%,80%{transform:translateY(0)}90%,100%{transform:translateY(-120%)}}
+@keyframes v4tgSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4tgMerge1{0%{transform:translate(-46px,30px)}40%,100%{transform:translate(0,0)}}
+@keyframes v4tgMerge2{0%{transform:translate(52px,-26px)}40%,100%{transform:translate(0,0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+
+<sc-for list="{{singles}}" as="f" hint-placeholder-count="2">
+<img src="{{f.photo}}" alt="{{f.name}}" style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #2447B8, 0 0 0 5px #FBFAF6">
+</sc-for>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+<button type="button" onClick="{{g.open}}" aria-label="{{g.aria}}" style="position: absolute; left: {{g.x}}px; top: {{g.y}}px; width: 96px; height: 120px; margin-left: -48px; padding: 0; border: 0; background: transparent; cursor: pointer">
+<span aria-hidden="true" style="position: absolute; left: 6px; top: 6px; width: 84px; height: 84px; border-radius: 50%; background: radial-gradient(circle, rgba(240,82,31,0.55) 30%, rgba(240,82,31,0) 70%); animation: v4tgGlow 1.6s ease-in-out infinite"></span>
+<span aria-hidden="true" style="position: absolute; left: 14px; top: 14px; width: 68px; height: 68px; border-radius: 50%; background: conic-gradient(#F0521F, #F7B08A, #FBFAF6, #F0521F, #C77A12, #F0521F); animation: v4tgSpin 2.4s linear infinite"></span>
+<span aria-hidden="true" style="position: absolute; left: 18px; top: 18px; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #FBFAF6">
+<sc-for list="{{g.faces}}" as="p" hint-placeholder-count="2">
+<img src="{{p.photo}}" alt="" style="position: absolute; left: 3px; top: 3px; width: 54px; height: 54px; border-radius: 50%; object-fit: cover; opacity: 0; animation: {{g.swap}} {{g.dur}}s ease-in-out {{p.delay}}s infinite"></sc-for>
+</span>
+<span aria-hidden="true" style="position: absolute; left: 62px; top: 4px; min-width: 28px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: 14px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 2px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; box-shadow: 0 0 0 3px #FBFAF6"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F0521F" style="animation: v4tgFlame 1s ease-in-out infinite"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 01-10 0c0-2.5 1.2-4 2.5-5 .2 1.8 1 2.8 2 3.2C11 9 11 5 12 2z"></path></svg>{{g.n}}</span>
+<sc-for list="{{sparks}}" as="k" hint-placeholder-count="3">
+<span aria-hidden="true" style="position: absolute; left: {{k.x}}px; top: 20px; width: 6px; height: 6px; border-radius: 50%; background: #F0521F; --dx: {{k.dx}}px; animation: v4tgSpark 1.4s ease-out {{k.delay}}s infinite"></span>
+</sc-for>
+<span style="position: absolute; left: -12px; top: 92px; width: 120px; display: flex; justify-content: center"><span style="padding: 4px 9px; border-radius: 10px; background: #17161A; color: #F3F0E8; font-size: 12px; font-weight: 700; white-space: nowrap">{{g.label}}</span></span>
+</button>
+</sc-for>
+
+<div style="position: absolute; left: 12px; top: 12px; width: 366px; box-sizing: border-box; padding: 12px 14px; border-radius: 22px; background: rgba(251,250,246,0.97); box-shadow: 0 10px 30px rgba(23,22,26,0.2); display: flex; gap: 12px; align-items: center; animation: v4tgPush 6s ease 0.6s infinite both">
+<div style="position: relative; width: 52px; height: 40px; flex-shrink: 0">
+<img src="../assets/igor.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #FBFAF6">
+<img src="../assets/arman.jpg" alt="" style="position: absolute; left: 16px; top: 0; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #FBFAF6">
+</div>
+<div style="flex: 1; min-width: 0"><div style="font-weight: 700; font-size: 14px">Игорь и Арман встретились</div><div style="font-size: 13px; color: #5F5B55">Вместе у кофейни на углу · 600 м</div></div>
+<span style="font-size: 11.5px; color: #6B665E">сейчас</span>
+</div>
+
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(23,22,26,0.25)"></span>
+<div role="dialog" aria-label="{{cur.aria}}" style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 12px 18px 30px; border-radius: 28px 28px 0 0; background: #FBFAF6; animation: v4tgSheet 360ms cubic-bezier(.2,.8,.2,1) both">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 14px"></span>
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="display: flex">
+<sc-for list="{{cur.faces}}" as="p" hint-placeholder-count="2">
+<img src="{{p.photo}}" alt="" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; margin-right: -12px; box-shadow: 0 0 0 3px #FBFAF6">
+</sc-for>
+</div>
+<div style="margin-left: 12px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 6px; font-family: 'Geologica', sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -0.02em"><svg width="20" height="20" viewBox="0 0 24 24" fill="#F0521F" aria-hidden="true" style="animation: v4tgFlame 1s ease-in-out infinite"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 01-10 0c0-2.5 1.2-4 2.5-5 .2 1.8 1 2.8 2 3.2C11 9 11 5 12 2z"></path></svg>{{cur.title}}</div>
+<div style="margin-top: 2px; font-size: 13.5px; color: #5F5B55">{{cur.sub}}</div>
+</div>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 18px">
+<a href="V3Chat.dc.html" style="flex: 1; height: 52px; border-radius: 16px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 15px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>{{cur.write}}</a>
+<button type="button" onClick="{{ask}}" style="flex: 1; height: 52px; border-radius: 16px; border: 0; background: {{askBg}}; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">{{askLabel}}</button>
+</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; margin-top: 14px; font-size: 12px; line-height: 1.4; color: #5F5B55"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F5B55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path></svg><span>«Вместе» видят только общие друзья. Любой из них может выключить это для себя в один тап.</span></div>
+<button type="button" onClick="{{close}}" aria-label="Закрыть" style="position: absolute; right: 14px; top: 14px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+</sc-if>
+<sc-if value="{{noSheet}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; bottom: 0">
+<dc-import name="V3TabBar" active="map" plans="1" chats="2" hint-size="390px,96px"></dc-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"open":{"editor":"enum","options":["none","two","four"],"default":"none"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: props.open ?? 'none', asked: false }; }
+  renderVals() {
+    const s = this.state;
+    const P = {
+      igor: '../assets/igor.jpg', arman: '../assets/arman.jpg',
+      timur: '../assets/timur.jpg', erlan: '../assets/erlan.jpg',
+      kamila: '../assets/kamila.jpg', daniel: '../assets/daniel.jpg', anton: '../assets/anton.jpg'
+    };
+    const G = {
+      two: { x: 198, y: 330, names: ['igor', 'arman'], label: 'Игорь и Арман', title: 'Вместе 40 минут', sub: 'Игорь и Арман · кофейня на углу · 600 м', write: 'Написать обоим', aria: 'Игорь и Арман вместе' },
+      four: { x: 280, y: 520, names: ['timur', 'erlan', 'kamila', 'daniel'], label: '4 · Джаз во дворе', title: '4 друга на джазе', sub: 'Тимур, Ерлан, Камила, Даниэль · 1,1 км', write: 'Написать всем', aria: 'Четыре друга вместе на джазе' }
+    };
+    const mk = (k) => {
+      const g = G[k], n = g.names.length, dur = n * 1.6;
+      return { ...g, x: String(g.x), y: String(g.y), n: String(n), dur: String(dur), swap: n === 2 ? 'v4tgSwap2' : 'v4tgSwap4', faces: g.names.map((nm, i) => ({ photo: P[nm], delay: String(i * 1.6 - dur) })), open: () => this.setState({ open: k, asked: false }) };
+    };
+    const cur = G[s.open] ? mk(s.open) : mk('two');
+    return {
+      groups: [mk('two'), mk('four')],
+      singles: [{ x: '60', y: '170', photo: P.anton, name: 'Антон' }, { x: '320', y: '700', photo: '../assets/denis.jpg', name: 'Денис' }],
+      sparks: [{ x: '30', dx: '-14', delay: '0' }, { x: '46', dx: '4', delay: '0.5' }, { x: '62', dx: '16', delay: '0.9' }],
+      sheet: s.open !== 'none', noSheet: s.open === 'none', cur,
+      close: () => this.setState({ open: 'none' }),
+      ask: () => this.setState({ asked: true }),
+      askBg: s.asked ? '#D9E4D2' : '#F0521F',
+      askLabel: s.asked ? 'Спросили' : 'Можно к вам?'
+    };
+  }
+}
+</script>
+</body>
+</html>

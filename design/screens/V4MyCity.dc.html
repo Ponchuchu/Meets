@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Профиль: мой город, ночёвки, ачивки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4mcRing{from{stroke-dashoffset:226}to{stroke-dashoffset:198}}
+@keyframes v4mcIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4mcTwinkle{0%,100%{opacity:0.3}50%{opacity:1}}
+@keyframes v4mcPop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; box-sizing: border-box; padding: 56px 20px 0; display: flex; align-items: center; gap: 12px">
+<a href="V3Me.dc.html" aria-label="Назад в профиль" style="width: 44px; height: 44px; border-radius: 22px; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<div style="font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.03em">Мой город</div>
+</div>
+
+<a href="V4Explore.dc.html" style="position: absolute; left: 16px; top: 116px; width: 358px; height: 132px; box-sizing: border-box; padding: 0 16px; border-radius: 24px; background: #17161A; color: #F3F0E8; text-decoration: none; display: flex; align-items: center; gap: 16px; animation: v4mcIn 300ms ease both">
+<svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true" style="flex-shrink: 0"><circle cx="42" cy="42" r="36" stroke="#2A292E" stroke-width="9" fill="none"></circle><circle cx="42" cy="42" r="36" stroke="#F0521F" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="226" transform="rotate(-90 42 42)" style="animation: v4mcRing 900ms ease both"></circle><text x="42" y="47" text-anchor="middle" fill="#F3F0E8" font-family="Geologica" font-size="17" font-weight="800">12 %</text></svg>
+<div style="flex: 1">
+<div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">Открыто 12,4 % Алматы</div>
+<div style="margin-top: 4px; font-size: 13px; color: #CFC9BB">6 районов из 8 · 48 новых мест</div>
+<div style="margin-top: 8px; font-size: 13px; font-weight: 700; color: #F7B08A">Открыть карту →</div>
+</div>
+</a>
+
+<div style="position: absolute; left: 16px; top: 264px; width: 358px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+<sc-for list="{{stats}}" as="t" hint-placeholder-count="3">
+<div style="height: 76px; border-radius: 18px; background: #FBFAF6; box-shadow: 0 0 0 1.5px #E7E2D6; display: flex; flex-direction: column; justify-content: center; padding: 0 12px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800">{{t.v}}</div>
+<div style="font-size: 12px; color: #5F5B55">{{t.l}}</div>
+</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 16px; top: 358px; width: 358px; box-sizing: border-box; padding: 16px; border-radius: 24px; background: #23243A; color: #F3F0E8; overflow: hidden">
+<sc-for list="{{stars}}" as="s" hint-placeholder-count="6">
+<span aria-hidden="true" style="position: absolute; left: {{s.x}}px; top: {{s.y}}px; width: 3px; height: 3px; border-radius: 50%; background: #FBFAF6; animation: v4mcTwinkle 2s ease-in-out {{s.d}}s infinite"></span>
+</sc-for>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 8px; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"></path></svg>Ночёвки · 7</div>
+<button type="button" onClick="{{toggleSleep}}" aria-pressed="{{sleepOn}}" style="height: 34px; padding: 0 12px; border-radius: 12px; border: 0; background: {{sleepBg}}; color: {{sleepFg}}; font-family: 'Golos Text', sans-serif; font-size: 12.5px; font-weight: 700">{{sleepLabel}}</button>
+</div>
+<div style="display: flex; gap: 14px; margin-top: 14px">
+<sc-for list="{{sleeps}}" as="z" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; animation: v4mcPop 360ms ease {{z.delay}}s both">
+<div style="position: relative">
+<img src="{{z.photo}}" alt="" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #3A3B58">
+<span style="position: absolute; right: -6px; bottom: -4px; min-width: 26px; height: 22px; padding: 0 5px; box-sizing: border-box; border-radius: 11px; background: #F7B08A; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">×{{z.n}}</span>
+</div>
+<span style="font-size: 12.5px; font-weight: 600">{{z.name}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 12px; font-size: 11.5px; line-height: 1.4; color: #B9B6CF">Считаем, если вы оба включили «Ночёвки» и были рядом с 2 до 6 утра. Только счётчик — адрес и место никто не видит.</div>
+</div>
+
+<div style="position: absolute; left: 20px; top: 588px; display: flex; justify-content: space-between; width: 350px"><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Ачивки</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #5F5B55">4 ИЗ 24</span></div>
+<div style="position: absolute; left: 16px; top: 620px; width: 358px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+<sc-for list="{{badges}}" as="b" hint-placeholder-count="6">
+<div style="height: 50px; border-radius: 15px; background: {{b.bg}}; color: {{b.fg}}; display: flex; align-items: center; gap: 7px; padding: 0 9px; box-sizing: border-box; opacity: {{b.op}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="{{b.icon}}"></path></svg>
+<span style="font-size: 11.5px; font-weight: 700; line-height: 1.1">{{b.t}}</span>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; bottom: 0">
+<dc-import name="V3TabBar" active="me" plans="1" chats="2" hint-size="390px,96px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sleep: true }; }
+  renderVals() {
+    const on = this.state.sleep;
+    const LOCK = 'M7 11V8a5 5 0 0110 0v3M5 11h14v9H5z';
+    const badge = (t, icon, got) => ({ t, icon: got ? icon : LOCK, bg: got ? '#17161A' : '#E7E2D6', fg: got ? '#F3F0E8' : '#5F5B55', op: '1' });
+    return {
+      stats: [{ v: '23', l: 'встречи' }, { v: '48', l: 'новых мест' }, { v: '6/8', l: 'районов' }],
+      stars: [[40, 20, 0], [120, 60, 0.4], [300, 26, 0.8], [250, 120, 0.2], [180, 18, 1.2], [340, 90, 0.6]].map(([x, y, d]) => ({ x: String(x), y: String(y), d: String(d) })),
+      sleeps: [['igor', 'Игорь', 3], ['arman', 'Арман', 2], ['timur', 'Тимур', 1], ['erlan', 'Ерлан', 1]].map(([k, name, n], i) => ({ name, n: String(n), delay: String(0.1 * i), photo: { igor: '../assets/igor.jpg', arman: '../assets/arman.jpg', timur: '../assets/timur.jpg', erlan: '../assets/erlan.jpg' }[k] })),
+      sleepOn: on ? 'true' : 'false',
+      toggleSleep: () => this.setState({ sleep: !this.state.sleep }),
+      sleepBg: on ? '#F7B08A' : '#3A3B58', sleepFg: on ? '#17161A' : '#F3F0E8', sleepLabel: on ? 'Включено' : 'Выключено',
+      badges: [
+        badge('Первая точка', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM9 9.5l2 2 4-4', true),
+        badge('5 встреч', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5', true),
+        badge('Ночной джаз', 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', true),
+        badge('Открыл 10 %', 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', true),
+        badge('Горы до рассвета', 'M3 20l6-10 4 6 3-4 5 8z', false),
+        badge('Сова: 10 ночёвок', 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Встреча состоялась</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4ciGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v4ciZone{0%,82%{background:rgba(240,82,31,0.10);border-color:#F0521F}90%,100%{background:rgba(47,143,91,0.20);border-color:#2F8F5B}}
+@keyframes v4ciSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes v4ciPop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes v4ciCard{from{transform:translateY(110%)}to{transform:translateY(0)}}
+@keyframes v4ciShine{0%{transform:translateX(-120%) rotate(20deg)}100%{transform:translateX(220%) rotate(20deg)}}
+@keyframes v4ciRing{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.2);opacity:0}}
+@keyframes v4ciFlame{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.12) rotate(3deg)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; transform: scale(1.6); transform-origin: 270px 294px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<sc-if value="{{runA}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<span aria-hidden="true" style="position: absolute; left: 105px; top: 200px; width: 180px; height: 180px; border-radius: 50%; border: 3px dashed #F0521F; box-sizing: border-box; animation: v4ciZone 4s ease both"></span>
+<span aria-hidden="true" style="position: absolute; left: 105px; top: 200px; width: 180px; height: 180px; border-radius: 50%; border: 3px solid #2F8F5B; box-sizing: border-box; opacity: 0; animation: v4ciRing 1s ease-out 3.4s 2 both"></span>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 4px 10px rgba(23,22,26,0.3); offset-path: path('M40 700C80 560 120 470 182 300'); offset-rotate: 0deg; animation: v4ciGo 3.2s cubic-bezier(.4,0,.2,1) 0.2s both"></span>
+<img aria-hidden="true" src="../assets/igor.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #2447B8, 0 0 0 5px #FBFAF6; offset-path: path('M360 90C320 160 260 220 214 284'); offset-rotate: 0deg; animation: v4ciGo 2.6s cubic-bezier(.4,0,.2,1) 0.4s both">
+<span aria-hidden="true" style="position: absolute; left: 172px; top: 244px; width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 10px 22px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 204px; top: 232px; width: 28px; height: 28px; border-radius: 50%; background: #2F8F5B; box-shadow: 0 0 0 3px #FBFAF6; display: flex; align-items: center; justify-content: center; animation: v4ciPop 360ms cubic-bezier(.2,.8,.2,1) 3.4s both"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 112px; top: 396px; padding: 6px 10px; border-radius: 10px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em">150 М ВОКРУГ ТОЧКИ</span>
+
+<div role="dialog" aria-label="Встреча состоялась" style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 22px 20px 30px; border-radius: 30px 30px 0 0; background: #FBFAF6; box-shadow: 0 -14px 40px rgba(23,22,26,0.2); animation: v4ciCard 520ms cubic-bezier(.2,.8,.2,1) 3.7s both">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="position: relative; width: 92px; height: 56px; flex-shrink: 0">
+<span style="position: absolute; left: 0; top: 0; width: 56px; height: 56px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-weight: 800; font-size: 17px">Ты</span>
+<img src="../assets/igor.jpg" alt="Игорь" style="position: absolute; left: 36px; top: 0; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 4px #FBFAF6">
+</div>
+<div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; white-space: nowrap">Встреча состоялась</div>
+<div style="margin-top: 3px; font-size: 13.5px; color: #5F5B55">Джаз во дворе · 20:34 · оба вовремя</div>
+</div>
+</div>
+<div style="display: flex; gap: 10px; margin-top: 18px">
+<div style="flex: 1; height: 92px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; flex-direction: column; justify-content: center; padding: 0 14px">
+<div style="display: flex; align-items: center; gap: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="#F0521F" aria-hidden="true" style="animation: v4ciFlame 1.2s ease-in-out infinite"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 01-10 0c0-2.5 1.2-4 2.5-5 .2 1.8 1 2.8 2 3.2C11 9 11 5 12 2z"></path></svg><span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800">+30</span></div>
+<div style="font-size: 12.5px; color: #CFC9BB; margin-top: 2px">огоньков за встречу</div>
+</div>
+<div style="position: relative; flex: 1.3; height: 92px; border-radius: 20px; background: #F0521F; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 0 12px">
+<span aria-hidden="true" style="position: absolute; top: -20px; left: 0; width: 40px; height: 140px; background: rgba(251,250,246,0.45); animation: v4ciShine 1.6s ease 4.3s 2 both"></span>
+<span aria-hidden="true" style="width: 54px; height: 54px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center; flex-shrink: 0; animation: v4ciPop 400ms ease 4.1s both"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM9 9.5l2 2 4-4"></path></svg></span>
+<div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em">НОВАЯ АЧИВКА</div><div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800; line-height: 1.1; margin-top: 2px">Первая точка</div></div>
+</div>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 14px">
+<button type="button" style="flex: 1.3; height: 52px; border-radius: 16px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3 3 0 110 6 3 3 0 010-6z"></path></svg>Фото на память</button>
+<button type="button" onClick="{{replay}}" style="flex: 1; height: 52px; border-radius: 16px; border: 0; background: #E7E2D6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">Ещё раз</button>
+</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; margin-top: 14px; font-size: 12px; line-height: 1.4; color: #5F5B55"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F5B55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"></path></svg><span>Засчитываем, если вы оба были в 150 м от точки — от 15 минут до начала и до часа после. Проверяет телефон, где вы были — не сохраняем.</span></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{runB}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<span aria-hidden="true" style="position: absolute; left: 105px; top: 200px; width: 180px; height: 180px; border-radius: 50%; border: 3px dashed #F0521F; box-sizing: border-box; animation: v4ciZone 4s ease both"></span>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6; offset-path: path('M40 700C80 560 120 470 182 300'); offset-rotate: 0deg; animation: v4ciGo 3.2s cubic-bezier(.4,0,.2,1) 0.2s both"></span>
+<img aria-hidden="true" src="../assets/igor.jpg" alt="" style="position: absolute; left: 0; top: 0; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #2447B8, 0 0 0 5px #FBFAF6; offset-path: path('M360 90C320 160 260 220 214 284'); offset-rotate: 0deg; animation: v4ciGo 2.6s cubic-bezier(.4,0,.2,1) 0.4s both">
+<span aria-hidden="true" style="position: absolute; left: 172px; top: 244px; width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 204px; top: 232px; width: 28px; height: 28px; border-radius: 50%; background: #2F8F5B; box-shadow: 0 0 0 3px #FBFAF6; display: flex; align-items: center; justify-content: center; animation: v4ciPop 360ms ease 3.4s both"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 22px 20px 30px; border-radius: 30px 30px 0 0; background: #FBFAF6; animation: v4ciCard 520ms cubic-bezier(.2,.8,.2,1) 3.7s both">
+<div style="font-family: 'Geologica', sans-serif; font-size: 27px; font-weight: 800; letter-spacing: -0.03em">Встреча состоялась</div>
+<div style="margin-top: 4px; font-size: 13.5px; color: #5F5B55">Джаз во дворе · 20:34 · +30 огоньков · «Первая точка»</div>
+<button type="button" onClick="{{replay}}" style="margin-top: 16px; width: 100%; height: 52px; border-radius: 16px; border: 0; background: #E7E2D6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">Ещё раз</button>
+</div>
+</div>
+</sc-if>
+<div style="position: absolute; left: 16px; top: 52px; height: 44px; box-sizing: border-box; padding: 0 14px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 4px 14px rgba(23,22,26,0.14); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2F8F5B"></span>Джаз во дворе · 20:30</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { run: 0 }; }
+  renderVals() {
+    const r = this.state.run % 2;
+    return { runA: r === 0, runB: r === 1, replay: () => this.setState({ run: this.state.run + 1 }) };
+  }
+}
+</script>
+</body>
+</html>

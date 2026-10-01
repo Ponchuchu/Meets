@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Открытие карты: где ты гулял</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4exWalk{0%{stroke-dashoffset:520}70%,100%{stroke-dashoffset:0}}
+@keyframes v4exGo{0%{offset-distance:0%}70%,100%{offset-distance:100%}}
+@keyframes v4exPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4exNew{0%,62%{transform:translateY(10px);opacity:0}70%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4exBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v4exShimmer{0%{opacity:0.88}50%{opacity:0.8}100%{opacity:0.88}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0">
+<defs>
+<pattern id="v4exDots" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="rgba(23,22,26,0.14)"></circle></pattern>
+<mask id="v4exMask" maskUnits="userSpaceOnUse" x="0" y="0" width="390" height="844">
+<rect x="0" y="0" width="390" height="844" fill="#fff"></rect>
+<sc-for list="{{walked}}" as="w" hint-placeholder-count="6">
+<path d="{{w.d}}" stroke="#000" stroke-width="{{w.sw}}" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+</sc-for>
+<sc-for list="{{spots}}" as="c" hint-placeholder-count="4">
+<circle cx="{{c.x}}" cy="{{c.y}}" r="{{c.r}}" fill="#000"></circle>
+</sc-for>
+<path d="{{livePath}}" stroke="#000" stroke-width="40" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="520" style="animation: v4exWalk 7s linear infinite"></path>
+</mask>
+</defs>
+<g mask="url(#v4exMask)" style="animation: v4exShimmer 4s ease-in-out infinite">
+<rect x="0" y="0" width="390" height="844" fill="#C9C5BC"></rect>
+<rect x="0" y="0" width="390" height="844" fill="url(#v4exDots)"></rect>
+</g>
+<path d="{{livePath}}" stroke="#F0521F" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="520" opacity="0.7" style="animation: v4exWalk 7s linear infinite"></path>
+</svg>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 4px 10px rgba(23,22,26,0.3); offset-path: path('{{livePath}}'); offset-rotate: 0deg; animation: v4exGo 7s linear infinite"></span>
+<div aria-hidden="true" style="position: absolute; left: 0; top: 432px; width: 390px; display: flex; justify-content: center; pointer-events: none">
+<span style="padding: 8px 12px; border-radius: 12px; background: #2F8F5B; color: #FBFAF6; font-size: 13px; font-weight: 700; animation: v4exNew 7s ease infinite">+3 новые улицы · Медеу открыт</span>
+</div>
+
+<div style="position: absolute; left: 16px; top: 52px; width: 358px; box-sizing: border-box; padding: 14px 16px; border-radius: 22px; background: #17161A; color: #F3F0E8; box-shadow: 0 10px 30px rgba(23,22,26,0.25)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #F7B08A">ТЫ ОТКРЫЛ АЛМАТЫ</div>
+<div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px"><span style="font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; white-space: nowrap">{{pct}}</span><span style="font-size: 12px; font-weight: 600; color: #8FD3A8; white-space: nowrap">+0,3 %</span></div>
+</div>
+<div role="tablist" aria-label="Чья карта" style="display: flex; padding: 3px; border-radius: 16px; background: #2A292E">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height: 38px; padding: 0 12px; border-radius: 13px; border: 0; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 700; white-space: nowrap">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="margin-top: 10px; height: 6px; border-radius: 3px; background: #2A292E; overflow: hidden"><span style="display: block; width: {{bar}}%; height: 6px; background: #F0521F; transform-origin: 0 50%; animation: v4exBar 800ms ease both"></span></div>
+</div>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 262px; box-sizing: border-box; padding: 12px 18px 0; border-radius: 28px 28px 0 0; background: #FBFAF6; box-shadow: 0 -12px 34px rgba(23,22,26,0.16)">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 12px"></span>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Районы</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #5F5B55">{{districtsOpen}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 9px; margin-top: 12px">
+<sc-for list="{{districts}}" as="d" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 116px; font-size: 13.5px; font-weight: 600; white-space: nowrap">{{d.name}}</span>
+<span style="flex: 1; height: 8px; border-radius: 4px; background: #E7E2D6; overflow: hidden"><span style="display: block; width: {{d.w}}%; height: 8px; border-radius: 4px; background: {{d.c}}; transform-origin: 0 50%; animation: v4exBar 700ms ease {{d.delay}}s both"></span></span>
+<span style="width: 40px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">{{d.p}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 12px; font-size: 12px; line-height: 1.4; color: #5F5B55">Карта копится, пока включена геолокация «Всегда». Где ты гулял — видишь только ты, друзьям виден лишь процент.</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who":{"editor":"enum","options":["me","friends"],"default":"me"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { who: props.who ?? 'me' }; }
+  renderVals() {
+    const me = this.state.who === 'me';
+    const W = [
+      ['M54 640V396H198V294', 40], ['M18 566H162V430', 34], ['M126 226V158H270', 36], ['M198 498H306V362', 32], ['M90 90H234', 30]
+    ];
+    const WF = [['M270 158V22', 36], ['M306 226H378', 30], ['M18 294H90', 30], ['M234 566V640', 30]];
+    const list = me ? W : W.concat(WF);
+    const D = me
+      ? [['Алмалинский', 34, '#F0521F'], ['Медеуский', 21, '#F0521F'], ['Бостандыкский', 12, '#F0521F'], ['Ауэзовский', 3, '#F0521F']]
+      : [['Алмалинский', 61, '#2447B8'], ['Медеуский', 44, '#2447B8'], ['Бостандыкский', 30, '#2447B8'], ['Ауэзовский', 9, '#2447B8']];
+    return {
+      walked: list.map(([d, sw]) => ({ d, sw: String(sw) })),
+      spots: [{ x: '270', y: '294', r: '34' }, { x: '126', y: '540', r: '30' }, { x: '306', y: '430', r: '26' }].concat(me ? [] : [{ x: '330', y: '120', r: '30' }]),
+      livePath: 'M198 294H270V158H306V90',
+      pct: me ? '12,4 %' : '27,9 %',
+      bar: me ? '12' : '28',
+      tabs: [['me', 'Моё'], ['friends', 'С друзьями']].map(([k, label]) => ({ label, on: this.state.who === k ? 'true' : 'false', bg: this.state.who === k ? '#F3F0E8' : 'transparent', fg: this.state.who === k ? '#17161A' : '#CFC9BB', pick: () => this.setState({ who: k }) })),
+      districtsOpen: me ? '6 ИЗ 8 · МЕСТ 48' : 'ВМЕСТЕ · 8 ИЗ 8',
+      districts: D.map(([name, p, c], i) => ({ name, p: p + ' %', w: String(p), c, delay: String(0.1 * i) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

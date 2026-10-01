@@ -865,6 +865,213 @@
       "title": "Пл1а · Подсказка: тебя зовут",
       "page": "v3",
       "is_interactive": true
+    },
+    "V4Overview.dc.html": {
+      "x": 0,
+      "y": 260,
+      "w": 1800,
+      "h": 1000,
+      "title": "v4 · что нового: 8 фишек и правила без глюков",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Splash.dc.html": {
+      "x": 0,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "З1 · Запуск: «рядом.» рисуется",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SplashNight.dc.html": {
+      "x": 470,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "З1а · Запуск ночью",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SignUp.dc.html": {
+      "x": 940,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "В1 · Вход — только на первом «Пойду»",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SignUpCode.dc.html": {
+      "x": 1410,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "В2 · Код из SMS подставился сам",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SignUpName.dc.html": {
+      "x": 1880,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "В3 · Имя и фото",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SignUpTaste.dc.html": {
+      "x": 2350,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "В4 · Что вытаскивает из дома",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4SignUpAllow.dc.html": {
+      "x": 2820,
+      "y": 1640,
+      "w": 390,
+      "h": 844,
+      "title": "В5 · Геолокация и пуши: зачем",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Point.dc.html": {
+      "x": 0,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т1 · Точка: тапни по карте, время ±15",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4PointPark.dc.html": {
+      "x": 470,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т1а · Точка переехала",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4PointSent.dc.html": {
+      "x": 940,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т1б · Отправлено: таймер в «Планах»",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Route.dc.html": {
+      "x": 1410,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т2 · Как добраться: пешком",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4RouteTaxi.dc.html": {
+      "x": 1880,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т2а · Такси: время с пробками",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4RouteBus.dc.html": {
+      "x": 2350,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т2б · Автобус",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4RouteLive.dc.html": {
+      "x": 2820,
+      "y": 2830,
+      "w": 390,
+      "h": 844,
+      "title": "Т2в · «Я выхожу»: друг видит",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Countdown.dc.html": {
+      "x": 0,
+      "y": 4020,
+      "w": 390,
+      "h": 844,
+      "title": "Т3 · Планы: таймер до встречи",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Lock.dc.html": {
+      "x": 470,
+      "y": 4020,
+      "w": 390,
+      "h": 844,
+      "title": "Т4 · Экран блокировки: отсчёт и пуши",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4CheckIn.dc.html": {
+      "x": 940,
+      "y": 4020,
+      "w": 390,
+      "h": 844,
+      "title": "Т5 · Встреча состоялась: огоньки и ачивка",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Together.dc.html": {
+      "x": 0,
+      "y": 5210,
+      "w": 390,
+      "h": 844,
+      "title": "Д1 · Друзья вместе: огонёк на карте",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4TogetherOpen.dc.html": {
+      "x": 470,
+      "y": 5210,
+      "w": 390,
+      "h": 844,
+      "title": "Д2 · Тап по огоньку",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4Explore.dc.html": {
+      "x": 940,
+      "y": 5210,
+      "w": 390,
+      "h": 844,
+      "title": "О1 · Открытие карты: где гулял",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4ExploreFriends.dc.html": {
+      "x": 1410,
+      "y": 5210,
+      "w": 390,
+      "h": 844,
+      "title": "О1а · Карта с друзьями",
+      "page": "v4",
+      "is_interactive": true
+    },
+    "V4MyCity.dc.html": {
+      "x": 1880,
+      "y": 5210,
+      "w": 390,
+      "h": 844,
+      "title": "О2 · Мой город: ночёвки и ачивки",
+      "page": "v4",
+      "is_interactive": true
     }
   },
   "createdOnFiles": {
@@ -874,7 +1081,7 @@
   "designSystems": [],
   "launch": {
     "view": "canvas",
-    "page": "v3"
+    "page": "v4"
   },
   "notes": {
     "row_signup": {
@@ -1029,6 +1236,51 @@
       "x": 0,
       "y": 6260,
       "page": "v3"
+    },
+    "v4_start": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Запуск и вход: смотреть можно сразу, вход — на первом «Пойду»",
+      "w": 240,
+      "x": 0,
+      "y": 1380,
+      "page": "v4"
+    },
+    "v4_meet": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Встреча: точка, время и дорога",
+      "w": 240,
+      "x": 0,
+      "y": 2570,
+      "page": "v4"
+    },
+    "v4_timer": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Таймер, «через час» и «встреча состоялась»",
+      "w": 240,
+      "x": 0,
+      "y": 3760,
+      "page": "v4"
+    },
+    "v4_city": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Друзья вместе и город, который открывается",
+      "w": 240,
+      "x": 0,
+      "y": 4950,
+      "page": "v4"
+    },
+    "v4_top": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "v4: договорились — дошли — встретились — засчиталось",
+      "w": 240,
+      "x": 0,
+      "y": 0,
+      "page": "v4"
     }
   },
   "order": [
@@ -1133,7 +1385,30 @@
     "V3EventHint.dc.html",
     "V3ChatsHint.dc.html",
     "V3ChatInvite.dc.html",
-    "V3PlansHint.dc.html"
+    "V3PlansHint.dc.html",
+    "V4Overview.dc.html",
+    "V4Splash.dc.html",
+    "V4SplashNight.dc.html",
+    "V4SignUp.dc.html",
+    "V4SignUpCode.dc.html",
+    "V4SignUpName.dc.html",
+    "V4SignUpTaste.dc.html",
+    "V4SignUpAllow.dc.html",
+    "V4Point.dc.html",
+    "V4PointPark.dc.html",
+    "V4PointSent.dc.html",
+    "V4Route.dc.html",
+    "V4RouteTaxi.dc.html",
+    "V4RouteBus.dc.html",
+    "V4RouteLive.dc.html",
+    "V4Countdown.dc.html",
+    "V4Lock.dc.html",
+    "V4CheckIn.dc.html",
+    "V4Together.dc.html",
+    "V4TogetherOpen.dc.html",
+    "V4Explore.dc.html",
+    "V4ExploreFriends.dc.html",
+    "V4MyCity.dc.html"
   ],
   "pages": [
     {
@@ -1147,6 +1422,10 @@
     {
       "id": "v3",
       "name": "v3 · иконками и сценариями"
+    },
+    {
+      "id": "v4",
+      "name": "v4 · встречи по-настоящему"
     }
   ],
   "title": "рядом — макет приложения"
