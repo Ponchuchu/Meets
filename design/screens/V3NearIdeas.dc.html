@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>v3: как показать «рядом» без отдельной функции</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 1800px; height: 560px; box-sizing: border-box; padding: 40px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.01em">«Рядом» — не отдельная кнопка, а подсказки на месте</span>
+<span style="font-size: 17px; color: #3A3833">Отдельный режим «рядом с домом» убрали. Близость показываем там, где человек и так смотрит.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; flex-grow: 1">
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: #EFEBE2"><path d="M0 60H270M0 140H270M80 0V200M190 0V200" stroke="#FBF9F4" stroke-width="8"></path><rect x="88" y="78" width="44" height="44" rx="13" fill="#F0521F" stroke="#FBFAF6" stroke-width="3"></rect><path d="M104 108V94l13-2v13M101 106a3 3 0 110 6 3 3 0 010-6zM114 104a3 3 0 110 6 3 3 0 010-6z" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round"></path><rect x="138" y="86" width="80" height="28" rx="9" fill="#17161A"></rect><path d="M152 93.5a1.4 1.4 0 110 .01M149.5 108l1.8-5 2.6 2.6v2.4M149 99.6l1.8-3 2.6.9 1.6 3" fill="none" stroke="#F3F0E8" stroke-width="1.6" stroke-linecap="round"></path><text x="166" y="105" font-family="JetBrains Mono, monospace" font-size="13" font-weight="600" fill="#F3F0E8">12 мин</text></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">Время пешком у пина</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">Вместо слов «рядом с домом» — «12 мин» с человечком. В карточке и в Подборке так же.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #D9E4D2; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">В V3</span>
+</div>
+</div>
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: #EFEBE2"><path d="M0 50H270M0 120H270M0 180H270M60 0V200M140 0V200M220 0V200" stroke="#FBF9F4" stroke-width="5"></path><circle cx="135" cy="100" r="74" fill="rgba(36,71,184,0.08)" stroke="#2447B8" stroke-width="2" stroke-dasharray="6 6"></circle><circle cx="135" cy="100" r="8" fill="#2447B8" stroke="#FBFAF6" stroke-width="3"></circle><rect x="96" y="40" width="22" height="22" rx="7" fill="#17161A"></rect><rect x="176" y="118" width="22" height="22" rx="7" fill="#F0521F"></rect><rect x="226" y="30" width="22" height="22" rx="7" fill="#17161A" opacity="0.35"></rect><rect x="20" y="160" width="22" height="22" rx="7" fill="#17161A" opacity="0.35"></rect><text x="135" y="192" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="#2447B8">15 МИН ПЕШКОМ</text></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">Круг 15 минут</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">При отдалении карты — мягкий круг вокруг тебя. Пины за кругом бледнее.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #D9E4D2; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">В V3</span>
+</div>
+</div>
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: #F3F0E8"><rect x="24" y="40" width="222" height="44" rx="22" fill="#E7E2D6"></rect><rect x="28" y="44" width="72" height="36" rx="18" fill="#17161A"></rect><text x="64" y="67" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="14" font-weight="600" fill="#F3F0E8">Ближе</text><text x="136" y="67" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="14" font-weight="600" fill="#3A3833">Скоро</text><text x="204" y="67" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="14" font-weight="600" fill="#3A3833">Для тебя</text><rect x="24" y="104" width="222" height="34" rx="11" fill="#FBFAF6" stroke="#DDD8CC"></rect><text x="38" y="126" font-family="Golos Text, sans-serif" font-size="13" font-weight="600" fill="#17161A">Настолки</text><text x="232" y="126" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="12" fill="#3A3833">9 мин</text><rect x="24" y="146" width="222" height="34" rx="11" fill="#FBFAF6" stroke="#DDD8CC"></rect><text x="38" y="168" font-family="Golos Text, sans-serif" font-size="13" font-weight="600" fill="#17161A">Джаз во дворе</text><text x="232" y="168" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="12" fill="#3A3833">12 мин</text></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">«Ближе» в фильтре</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">Порядок в фильтре: Ближе · Скоро · Для тебя. Работает и для Подборки.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #D9E4D2; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">В V3</span>
+</div>
+</div>
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: linear-gradient(160deg, #2B3A55, #C7764A)"><rect x="18" y="54" width="234" height="92" rx="18" fill="rgba(245,242,236,0.85)"></rect><rect x="32" y="68" width="30" height="30" rx="8" fill="#F0521F"></rect><text x="47" y="88" text-anchor="middle" font-family="Geologica, sans-serif" font-size="13" font-weight="800" fill="#17161A">р.</text><text x="74" y="80" font-family="Golos Text, sans-serif" font-size="13.5" font-weight="700" fill="#17161A">Пора выходить</text><text x="74" y="98" font-family="Golos Text, sans-serif" font-size="12.5" fill="#3A3833">Джаз в 19:30 · 12 мин</text><rect x="32" y="110" width="102" height="26" rx="9" fill="#17161A"></rect><text x="83" y="127" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="12.5" font-weight="700" fill="#F3F0E8">Маршрут</text><rect x="140" y="110" width="98" height="26" rx="9" fill="rgba(23,22,26,0.08)"></rect><text x="189" y="127" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="12.5" font-weight="700" fill="#17161A">Не иду</text></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">Пуш «пора выходить»</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">Считаем от того, где ты сейчас: время пешком + 10 минут.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #D9E4D2; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">В V3</span>
+</div>
+</div>
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: #EFEBE2"><path d="M0 70H270M0 150H270M90 0V200M200 0V200" stroke="#FBF9F4" stroke-width="7"></path><circle cx="135" cy="104" r="26" fill="#17161A" stroke="#FBFAF6" stroke-width="3"></circle><path d="M124 108l11-10 11 10M127 106v10h16v-10" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path><rect x="40" y="30" width="22" height="22" rx="7" fill="#F0521F"></rect><rect x="214" y="160" width="22" height="22" rx="7" fill="#17161A"></rect></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">Метка «Дом»</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">Ставится один раз. Утром время считаем от дома, вечером — от тебя.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #EADFB8; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">ПОЗЖЕ</span>
+</div>
+</div>
+
+<div style="border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; overflow: hidden; display: flex; flex-direction: column; opacity: 0.75">
+<svg width="100%" height="200" viewBox="0 0 270 200" aria-hidden="true" style="display: block; background: #EFEBE2"><path d="M0 60H270M0 140H270M80 0V200M190 0V200" stroke="#FBF9F4" stroke-width="6"></path><rect x="45" y="140" width="180" height="44" rx="22" fill="#17161A"></rect><text x="135" y="168" text-anchor="middle" font-family="Golos Text, sans-serif" font-size="15" font-weight="700" fill="#F3F0E8">Рядом сейчас</text><path d="M60 30l150 140M210 30L60 170" stroke="#F0521F" stroke-width="5" stroke-linecap="round" opacity="0.8"></path></svg>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1">
+<span style="font-size: 16px; font-weight: 700">Кнопка «как в такси»</span>
+<span style="font-size: 13.5px; color: #3A3833; line-height: 1.35">Отдельный режим — лишний. Всё, что он давал, уже есть в четырёх идеях слева.</span>
+<span style="margin-top: auto; align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 13px; background: #E7E2D6; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">НЕТ</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

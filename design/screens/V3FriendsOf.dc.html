@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Друзья друга v3: общие сверху, остальных — в друзья</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+@keyframes v3Bump{0%{transform:scale(0.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.v3bump{animation:v3Bump 320ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 48px 0 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 16px">
+<a href="V3PersonFriend.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 50%; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+<img src="../assets/igor.jpg" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2.5px solid #2447B8; box-sizing: border-box">
+<h1 style="margin: 0; flex-grow: 1; font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Друзья Игоря</h1>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: #55524C">34</span>
+</div>
+
+<div style="padding: 0 16px">
+<span style="height: 46px; border-radius: 23px; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; gap: 10px; font-size: 15px; color: #8F897C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A3833" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 4a7 7 0 110 14 7 7 0 010-14zM20 20l-4-4"></path></svg>Найти среди 34</span>
+</div>
+
+<div style="display: flex; gap: 8px; padding: 0 16px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+<button type="button" onClick="{{f.pick}}" style="height: 38px; padding: 0 14px 0 10px; border-radius: 19px; border: {{f.border}}; background: {{f.bg}}; color: {{f.fg}}; display: flex; align-items: center; gap: 6px; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{f.icon}}"></path></svg>{{f.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; padding: 0 16px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #E3DED3">
+<a href="{{r.href}}" style="display: flex; align-items: center; gap: 12px; flex-grow: 1; min-width: 0; text-decoration: none; color: #17161A">
+<span style="position: relative; width: 52px; height: 52px; flex-shrink: 0">
+<sc-if value="{{r.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{r.photo}}" alt="" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: block; border: 3px solid {{r.ring}}; box-sizing: border-box"></sc-if>
+<sc-if value="{{r.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 52px; height: 52px; border-radius: 50%; background: {{r.tint}}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; border: 3px solid {{r.ring}}; box-sizing: border-box">{{r.initial}}</span></sc-if>
+<sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 50%; background: {{r.badgeBg}}; box-shadow: 0 0 0 2.5px #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{r.badgeFg}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.badge}}"></path></svg></span></sc-if>
+</span>
+<span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-size: 16px; font-weight: 700">{{r.name}}</span>
+<sc-if value="{{r.hasNote}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: {{r.noteColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.note}}</span></sc-if>
+</span>
+</a>
+<sc-if value="{{r.isFriend}}" hint-placeholder-val="{{ true }}">
+<a href="V3Chat.dc.html" aria-label="{{r.writeAria}}" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg></a>
+</sc-if>
+<sc-if value="{{r.canAdd}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{r.add}}" aria-label="{{r.aria}}" class="{{r.cls}}" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: {{r.bg}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{r.fg}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg></button>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all', added: {} };
+  }
+  renderVals() {
+    const s = this.state;
+    const ADD = 'M12 5v14M5 12h14';
+    const WAIT = 'M12 7v5l3 2';
+    const MUSIC = 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z';
+    const HAND = 'M8 13V5.5a1.5 1.5 0 013 0V11M11 10.5V4a1.5 1.5 0 013 0v6.5M14 10V5.5a1.5 1.5 0 013 0V13M17 9.5a1.5 1.5 0 013 0V14a7 7 0 01-7 7h-1a6 6 0 01-5-2.7L4.5 15a1.6 1.6 0 012.6-1.8L8 14.5';
+    const all = [
+      { id: 'denis', name: 'Денис', photo: '../assets/denis.jpg', friend: true, note: 'твой друг' },
+      { id: 'anton', name: 'Антон', photo: '../assets/anton.jpg', friend: true, note: 'твой друг' },
+      { id: 'ainura', name: 'Айнура', photo: '../assets/ainura.jpg', same: true, note: 'тоже идёт на джаз', badge: MUSIC, badgeBg: '#F0521F', badgeFg: '#17161A' },
+      { id: 'kamila', name: 'Камила', tint: '#E5D3DC', note: '2 общих' },
+      { id: 'erlan', name: 'Ерлан', tint: '#EADFB8', same: true, note: 'ищет компанию', badge: HAND, badgeBg: '#F0521F', badgeFg: '#17161A' },
+      { id: 'zhanna', name: 'Жанна', tint: '#EADFB8', note: '2 общих' },
+      { id: 'olzhas', name: 'Олжас', tint: '#D6E0EE', note: '' },
+      { id: 'dana', name: 'Дана', tint: '#D9E4D2', note: '' }
+    ];
+    const shown = all.filter((r) => s.filter === 'all' || (s.filter === 'mutual' && r.friend) || (s.filter === 'events' && r.same));
+    const rows = shown.map((r) => {
+      const on = !!s.added[r.id];
+      return {
+        ...r,
+        href: 'V3Person.dc.html',
+        hasPhoto: !!r.photo, noPhoto: !r.photo, photo: r.photo || '', initial: r.name[0], tint: r.tint || '#E7E2D6',
+        ring: r.friend ? '#2447B8' : 'transparent',
+        hasBadge: !!r.badge, badge: r.badge || '', badgeBg: r.badgeBg || '', badgeFg: r.badgeFg || '',
+        hasNote: !!r.note, note: on ? 'запрос отправлен' : (r.note || ''),
+        noteColor: r.friend ? '#2447B8' : (r.same ? '#8A3A12' : '#55524C'),
+        isFriend: !!r.friend, canAdd: !r.friend,
+        writeAria: 'Написать: ' + r.name,
+        icon: on ? WAIT : ADD, bg: on ? '#E7E2D6' : '#D6E0EE', fg: on ? '#17161A' : '#2447B8', cls: on ? 'v3bump' : '',
+        aria: on ? 'Запрос отправлен: ' + r.name : 'Добавить в друзья: ' + r.name,
+        add: () => this.setState({ added: { ...this.state.added, [r.id]: !on } })
+      };
+    });
+    const f = (key, label, icon) => {
+      const on = s.filter === key;
+      return { label, icon, bg: on ? '#17161A' : '#FBFAF6', fg: on ? '#F3F0E8' : '#17161A', border: on ? '0' : '1px solid #DDD8CC', pick: () => this.setState({ filter: key }) };
+    };
+    return {
+      filters: [
+        f('all', 'Все', 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5M16 4.5a3.5 3.5 0 010 6.5M18 14.5c2 .6 3.2 2.5 3.5 5.5'),
+        f('mutual', 'Общие · 2', 'M5 12.5l4.5 4.5L19 7.5'),
+        f('events', 'Туда же', 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4')
+      ],
+      rows
+    };
+  }
+}
+</script>
+</body>
+</html>

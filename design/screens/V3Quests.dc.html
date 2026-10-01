@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Задания и награды v3: огоньки, уровень, новые стикеры</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+@keyframes v3Fly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--fx),var(--fy)) scale(0.6);opacity:0}}
+@keyframes v3Burst{0%{transform:scale(0.4);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes v3Ring{0%{transform:scale(0.6);opacity:0.9}100%{transform:scale(2.2);opacity:0}}
+@keyframes v3Show{from{opacity:0}to{opacity:1}}
+.v3burst{animation:v3Burst 520ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 48px 0 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 16px">
+<a href="V3Me.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 50%; background: #FBFAF6; border: 1px solid #DDD8CC; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></a>
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em">Задания и награды</h1>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+<span style="position: relative; width: 132px; height: 132px">
+<svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="#E7E2D6" stroke-width="12"></circle><circle cx="66" cy="66" r="56" fill="none" stroke="#F0521F" stroke-width="12" stroke-linecap="round" stroke-dasharray="{{dash}}" transform="rotate(-90 66 66)" style="transition: stroke-dasharray 700ms cubic-bezier(.2,.8,.2,1)"></circle></svg>
+<span style="position: absolute; left: 0; top: 0; width: 132px; height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: 'Geologica', sans-serif; font-size: 48px; font-weight: 800; line-height: 1">{{level}}</span><span style="font-size: 12.5px; font-weight: 600; color: #55524C">уровень</span></span>
+</span>
+<span style="display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600"><svg width="19" height="19" viewBox="0 0 24 24" fill="#F0521F" stroke="#F0521F" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1 2.7 2 3 .5-2.5.5-5.5.5-8z"></path></svg>{{pointsText}}<span style="color: #8F897C; font-weight: 500">/ {{goalText}}</span></span>
+</div>
+
+<div style="margin: 0 16px; padding: 14px; border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 14.5px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="{{lockIcon}}"></path></svg>{{rewardsTitle}}</span>
+<a href="#all" style="height: 32px; padding: 0 4px 0 12px; border-radius: 16px; background: #F3F0E8; display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; color: #17161A; text-decoration: none">Все<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<span style="height: 132px; border-radius: 18px; background: #17161A; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 10px 12px; box-sizing: border-box; color: #F3F0E8">
+<span style="position: absolute; left: 14px; top: 12px; width: 50px; height: 50px; border-radius: 16px; background: #F0521F; transform: rotate(-10deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBFAF6"><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800; color: #17161A">Го?</span></span>
+<span style="position: absolute; left: 70px; top: 22px; width: 44px; height: 44px; border-radius: 50%; background: #EADFB8; transform: rotate(8deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBFAF6"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21l4-12 7 7-11 5zM14 3l1 2M19 8l2-1M17 3l-1 3"></path></svg></span>
+<span style="position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 12px; background: #D6E0EE; transform: rotate(14deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #FBFAF6"><span style="font-family: 'Geologica', sans-serif; font-size: 13px; font-weight: 800; color: #17161A">Я тут</span></span>
+<span style="font-size: 13.5px; font-weight: 700">Стикеры «Туса»</span>
+<sc-if value="{{locked}}" hint-placeholder-val="{{ true }}"><span style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(23,22,26,0.35)"></span></sc-if>
+</span>
+<span style="height: 132px; border-radius: 18px; background: #E7E2D6; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: 10px 12px; box-sizing: border-box">
+<span style="position: absolute; left: 50%; top: 14px; margin-left: -34px; width: 68px; height: 68px; border-radius: 50%; background: conic-gradient(#F0521F, #EADFB8, #2447B8, #F0521F); display: flex; align-items: center; justify-content: center"><img src="../assets/danil.jpg" alt="" style="width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: 3px solid #E7E2D6; box-sizing: border-box"></span>
+<span style="font-size: 13.5px; font-weight: 700">Кольцо «Закат»</span>
+<sc-if value="{{locked}}" hint-placeholder-val="{{ true }}"><span style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(243,240,232,0.35)"></span></sc-if>
+</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 0 16px">
+<span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">Получить огоньки</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{tasks}}" as="t" hint-placeholder-count="6">
+<div style="position: relative; height: 150px; border-radius: 20px; background: {{t.bg}}; border: 1px solid #DDD8CC; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: {{t.iconBg}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.iconFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+<span style="font-size: 14px; font-weight: 600; line-height: 1.2; flex-grow: 1">{{t.title}}</span>
+<sc-if value="{{t.claimable}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{t.claim}}" style="height: 36px; border-radius: 12px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px"><svg width="15" height="15" viewBox="0 0 24 24" fill="#17161A" stroke="#17161A" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1 2.7 2 3 .5-2.5.5-5.5.5-8z"></path></svg>Забрать +{{t.pts}}</button>
+</sc-if>
+<sc-if value="{{t.inProgress}}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; align-items: center; gap: 8px">
+<span style="flex-grow: 1; height: 6px; border-radius: 3px; background: #E7E2D6; overflow: hidden"><span style="display: block; width: {{t.pct}}%; height: 6px; border-radius: 3px; background: #17161A"></span></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #3A3833">{{t.prog}}</span>
+</span>
+<span style="position: absolute; right: 12px; top: 12px; display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: #8A3A12"><svg width="13" height="13" viewBox="0 0 24 24" fill="#F0521F" stroke="#F0521F" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1 2.7 2 3 .5-2.5.5-5.5.5-8z"></path></svg>+{{t.pts}}</span>
+</sc-if>
+<sc-if value="{{t.done}}" hint-placeholder-val="{{ false }}">
+<span style="height: 36px; border-radius: 12px; background: #D9E4D2; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<sc-if value="{{flying}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 92px; top: 520px; --fx: 70px; --fy: -320px; display: flex; align-items: center; gap: 3px; font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800; color: #F0521F; animation: v3Fly 650ms cubic-bezier(.5,0,.6,1) both; z-index: 30; pointer-events: none">+20</span>
+</sc-if>
+
+<sc-if value="{{levelUp}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(23,22,26,0.86); z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; color: #F3F0E8; animation: v3Show 240ms ease both">
+<span style="position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 150px; height: 150px; border-radius: 50%; border: 4px solid #F0521F; box-sizing: border-box; animation: v3Ring 1200ms ease-out 200ms infinite"></span>
+<span class="v3burst" style="width: 132px; height: 132px; border-radius: 50%; background: #F0521F; color: #17161A; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: 'Geologica', sans-serif; font-size: 60px; font-weight: 800; line-height: 1">7</span><span style="font-size: 13px; font-weight: 700">уровень</span></span>
+</span>
+<div class="v3burst" style="display: flex; gap: 12px; animation-delay: 220ms">
+<span style="width: 84px; height: 84px; border-radius: 22px; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><span style="width: 52px; height: 52px; border-radius: 16px; background: #F0521F; transform: rotate(-10deg); display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800; color: #17161A">Го?</span></span>
+<span style="width: 84px; height: 84px; border-radius: 22px; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><span style="width: 62px; height: 62px; border-radius: 50%; background: conic-gradient(#F0521F, #EADFB8, #2447B8, #F0521F); display: flex; align-items: center; justify-content: center"><img src="../assets/danil.jpg" alt="" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 3px solid #FBFAF6; box-sizing: border-box"></span></span>
+</div>
+<button type="button" onClick="{{closeLevel}}" style="width: 220px; height: 54px; border-radius: 27px; border: 0; background: #FBFAF6; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Надеть кольцо</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"levelUp":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const up = !!props.levelUp;
+    this.state = { points: up ? 1201 : 1181, level: up ? 7 : 6, claimed: up, flying: false, levelUp: up };
+    this.timers = [];
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  renderVals() {
+    const s = this.state;
+    const goal = s.level >= 7 ? 1600 : 1200;
+    const base = s.level >= 7 ? 1200 : 800;
+    const frac = Math.max(0, Math.min(1, (s.points - base) / (goal - base)));
+    const C = 2 * Math.PI * 56;
+    const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const I = {
+      cal: 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4',
+      swipe: 'M8.5 3h9.5a2.5 2.5 0 012.5 2.5v10a2.5 2.5 0 01-2.5 2.5h-7a2.5 2.5 0 01-2.5-2.5zM5 7.5v10.5a3 3 0 003 3h8',
+      invite: 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4M12 13v5M9.5 15.5h5',
+      people: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5M16 4.5a3.5 3.5 0 010 6.5M18 14.5c2 .6 3.2 2.5 3.5 5.5',
+      pin: 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z',
+      photo: 'M4 7h3l2-3h6l2 3h3v13H4zM12 10a3.5 3.5 0 110 7 3.5 3.5 0 010-7z'
+    };
+    const claim = () => {
+      if (this.state.claimed) return;
+      this.setState({ claimed: true, flying: true });
+      this.timers.push(setTimeout(() => this.setState({ flying: false, points: 1201 }), 650));
+      this.timers.push(setTimeout(() => this.setState({ levelUp: true, level: 7 }), 1300));
+    };
+    const task = (o) => {
+      const claimable = !!o.ready && !s.claimed;
+      const done = !!o.ready && s.claimed;
+      return { ...o, claimable, done, inProgress: !o.ready, pct: String(o.pct || 0), bg: claimable ? '#FCE3D6' : '#FBFAF6', iconBg: claimable ? '#F0521F' : '#F3F0E8', iconFg: '#17161A', claim };
+    };
+    return {
+      level: String(s.level),
+      pointsText: fmt(s.points),
+      goalText: fmt(goal),
+      dash: (C * frac).toFixed(1) + ' ' + C.toFixed(1),
+      locked: s.level < 7,
+      lockIcon: s.level < 7 ? 'M6 11h12v10H6zM8.5 11V8a3.5 3.5 0 017 0v3' : 'M5 12.5l4.5 4.5L19 7.5',
+      rewardsTitle: s.level < 7 ? 'На 7 уровне' : 'Открыто',
+      tasks: [
+        task({ title: 'Свайпни 10 карточек', icon: I.swipe, pts: '20', ready: true }),
+        task({ title: 'Сходи на 3 события', icon: I.cal, pts: '100', prog: '1/3', pct: 33 }),
+        task({ title: 'Позови друга', icon: I.invite, pts: '30', prog: '0/1', pct: 0 }),
+        task({ title: 'Познакомься на событии', icon: I.people, pts: '40', prog: '0/1', pct: 0 }),
+        task({ title: 'Новый район', icon: I.pin, pts: '60', prog: '3/4', pct: 75 }),
+        task({ title: 'Фото с события', icon: I.photo, pts: '25', prog: '0/1', pct: 0 })
+      ],
+      flying: s.flying,
+      levelUp: s.levelUp,
+      closeLevel: () => this.setState({ levelUp: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

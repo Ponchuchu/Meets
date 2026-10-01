@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>v3: уведомления на iOS и Android</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#E9E5DB}</style>
+</helmet>
+<div style="width: 1800px; height: 1000px; box-sizing: border-box; padding: 40px; background: #F3F0E8; color: #17161A; font-family: 'Golos Text', sans-serif; display: flex; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 390px; flex-shrink: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">IOS · ЭКРАН БЛОКИРОВКИ</span>
+<div style="position: relative; width: 390px; height: 844px; border-radius: 44px; overflow: hidden; background: linear-gradient(160deg, #2B3A55 0%, #6B4A3A 55%, #C7764A 100%); color: #FBFAF6">
+<div style="position: absolute; left: 0; right: 0; top: 70px; display: flex; flex-direction: column; align-items: center; gap: 2px">
+<span style="font-size: 18px; font-weight: 600; opacity: 0.85">Четверг, 1 октября</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 84px; font-weight: 600; line-height: 1">19:08</span>
+</div>
+<div style="position: absolute; left: 12px; right: 12px; top: 250px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ios}}" as="n" hint-placeholder-count="3">
+<div style="border-radius: 22px; background: rgba(245,242,236,0.82); color: #17161A; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(16px)">
+<div style="display: flex; gap: 10px">
+<span style="width: 38px; height: 38px; border-radius: 10px; background: #F0521F; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800; color: #17161A">р.</span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0">
+<span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 15px; font-weight: 700">{{n.title}}</span><span style="font-size: 13px; color: #55524C; flex-shrink: 0">{{n.time}}</span></span>
+<span style="font-size: 14.5px; line-height: 1.3">{{n.body}}</span>
+</span>
+</div>
+<sc-if value="{{n.hasActions}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{n.actions}}" as="a" hint-placeholder-count="2"><span style="height: 40px; border-radius: 12px; background: {{a.bg}}; color: {{a.fg}}; display: flex; align-items: center; justify-content: center; font-size: 14.5px; font-weight: 700">{{a.label}}</span></sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 390px; flex-shrink: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">ANDROID · ШТОРКА</span>
+<div style="position: relative; width: 390px; height: 844px; border-radius: 36px; overflow: hidden; background: #1E1E22; color: #F3F0E8">
+<div style="padding: 54px 18px 0; display: flex; justify-content: space-between; align-items: center"><span style="font-size: 30px; font-weight: 500">19:08</span><span style="font-size: 14px; opacity: 0.7">Чт, 1 окт.</span></div>
+<div style="margin: 18px 10px 0; display: flex; flex-direction: column; gap: 3px">
+<sc-for list="{{android}}" as="n" hint-placeholder-count="3">
+<div style="padding: 14px 16px; border-radius: {{n.radius}}; background: #2C2C31; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 12px">
+<span style="width: 34px; height: 34px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'Geologica', sans-serif; font-size: 15px; font-weight: 800; color: #17161A">р.</span>
+<span style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0">
+<span style="font-size: 12.5px; color: #B9B2A3">рядом. · {{n.channel}} · {{n.time}}</span>
+<span style="font-size: 15.5px; font-weight: 600">{{n.title}}</span>
+<span style="font-size: 14px; color: #D6D1C6; line-height: 1.3">{{n.body}}</span>
+</span>
+</div>
+<sc-if value="{{n.hasActions}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px; padding-left: 46px">
+<sc-for list="{{n.actions}}" as="a" hint-placeholder-count="2"><span style="height: 36px; padding: 0 16px; border-radius: 18px; background: {{a.bg}}; color: {{a.fg}}; display: flex; align-items: center; font-size: 14px; font-weight: 600">{{a.label}}</span></sc-for>
+</div>
+</sc-if>
+<sc-if value="{{n.hasReply}}" hint-placeholder-val="{{ false }}">
+<div style="margin-left: 46px; height: 40px; border-radius: 20px; background: #3A3A40; display: flex; align-items: center; padding: 0 6px 0 14px; font-size: 14px; color: #B9B2A3">Ответить Тимуру<span style="flex-grow: 1"></span><span style="width: 30px; height: 30px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"></path></svg></span></div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<span style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.01em">Уведомления: только то, на что можно ответить одной кнопкой</span>
+<div style="border-radius: 22px; overflow: hidden; border: 1px solid #DDD8CC; background: #FBFAF6">
+<div style="display: grid; grid-template-columns: 1.25fr 1fr 1.05fr 0.9fr; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em">
+<span style="padding: 11px 14px">ЧТО</span><span style="padding: 11px 14px">КОГДА</span><span style="padding: 11px 14px">КНОПКИ В ПУШЕ</span><span style="padding: 11px 14px">КАНАЛ ANDROID</span>
+</div>
+<sc-for list="{{table}}" as="r" hint-placeholder-count="7">
+<div style="display: grid; grid-template-columns: 1.25fr 1fr 1.05fr 0.9fr; border-top: 1px solid #EAE6DC; font-size: 14px; line-height: 1.3">
+<span style="padding: 11px 14px; display: flex; align-items: center; gap: 10px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 9px; background: {{r.tint}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg></span>{{r.what}}</span>
+<span style="padding: 11px 14px; color: #3A3833">{{r.when}}</span>
+<span style="padding: 11px 14px; color: #3A3833">{{r.actions}}</span>
+<span style="padding: 11px 14px; color: #3A3833">{{r.channel}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="6">
+<div style="padding: 14px; border-radius: 18px; background: #FBFAF6; border: 1px solid #DDD8CC; display: flex; flex-direction: column; gap: 8px">
+<span style="width: 34px; height: 34px; border-radius: 10px; background: #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.icon}}"></path></svg></span>
+<span style="font-size: 15px; font-weight: 700">{{r.title}}</span>
+<span style="font-size: 13.5px; line-height: 1.35; color: #3A3833">{{r.text}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const go = { label: 'Пойду', bg: '#F0521F', fg: '#17161A' };
+    const no = { label: 'Не смогу', bg: 'rgba(23,22,26,0.08)', fg: '#17161A' };
+    const I = {
+      invite: 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18M8 2.5v4M16 2.5v4M12 13v5M9.5 15.5h5',
+      clock: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2',
+      chat: 'M4 5h16v11H9l-5 4z',
+      lock: 'M6 11h12v10H6zM8.5 11V8a3.5 3.5 0 017 0v3',
+      people: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5M16 4.5a3.5 3.5 0 010 6.5M18 14.5c2 .6 3.2 2.5 3.5 5.5',
+      feed: 'M8.5 3h9.5a2.5 2.5 0 012.5 2.5v10a2.5 2.5 0 01-2.5 2.5h-7a2.5 2.5 0 01-2.5-2.5zM5 7.5v10.5a3 3 0 003 3h8',
+      flame: 'M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1 2.7 2 3 .5-2.5.5-5.5.5-8z',
+      moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z',
+      count: 'M4 6h16M4 12h10M4 18h6',
+      stack: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+      bell: 'M6 16v-5a6 6 0 0112 0v5l1.5 2h-15zM10 20.5a2 2 0 004 0',
+      badge: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 8v4.5M12 16h.01',
+      walk: 'M13 4.5a1.5 1.5 0 110 .01M10 21l2-6 3 3v3M9 12l2-3.5 3 1 2 3.5M11 8.5L8 10l-1 3'
+    };
+    return {
+      ios: [
+        { title: 'Пора выходить', time: 'сейчас', body: 'Джаз в 19:30 · пешком 12 мин · Игорь уже там', hasActions: true, actions: [{ label: 'Маршрут', bg: '#17161A', fg: '#F3F0E8' }, { label: 'Не иду', bg: 'rgba(23,22,26,0.08)', fg: '#17161A' }] },
+        { title: 'Игорь зовёт в кино', time: '19:01', body: 'Кино в парке · пт 21:00', hasActions: true, actions: [go, no] },
+        { title: 'Новый запрос', time: '18:52', body: 'Айнура тоже идёт на джаз', hasActions: false, actions: [] }
+      ],
+      android: [
+        { channel: 'Приглашения', time: '19:01', title: 'Игорь зовёт в кино', body: 'Кино в парке · пт 21:00', hasActions: true, hasReply: false, radius: '24px 24px 6px 6px', actions: [{ label: 'Пойду', bg: '#F0521F', fg: '#17161A' }, { label: 'Не смогу', bg: '#3A3A40', fg: '#F3F0E8' }] },
+        { channel: 'Чаты', time: '18:08', title: 'Тимур', body: 'В субботу в 7:30 у Медеу', hasActions: false, hasReply: true, radius: '6px', actions: [] },
+        { channel: 'Запросы', time: '18:52', title: 'Новый запрос', body: 'Айнура тоже идёт на джаз', hasActions: false, hasReply: false, radius: '6px 6px 24px 24px', actions: [] }
+      ],
+      table: [
+        { what: 'Друг зовёт', icon: I.invite, tint: '#FCE3D6', when: 'Сразу', actions: 'Пойду · Не смогу', channel: 'Приглашения · высокий' },
+        { what: 'Скоро событие', icon: I.walk, tint: '#D9E4D2', when: 'Когда пора выходить (время пешком + 10 мин)', actions: 'Маршрут · Не иду', channel: 'Мои планы · высокий' },
+        { what: 'Сообщение от друга', icon: I.chat, tint: '#D6E0EE', when: 'Сразу', actions: 'Ответ прямо в пуше', channel: 'Чаты · обычный' },
+        { what: 'Запрос от незнакомого', icon: I.lock, tint: '#E7E2D6', when: 'Сразу, без звука', actions: 'Открыть', channel: 'Запросы · тихий' },
+        { what: 'Друг идёт туда же, куда ты', icon: I.people, tint: '#D6E0EE', when: 'Сводкой раз в день, 12:00', actions: 'Открыть', channel: 'Друзья · низкий' },
+        { what: 'Подборка на выходные', icon: I.feed, tint: '#EADFB8', when: 'Пт 17:00, раз в неделю', actions: 'Открыть', channel: 'Подборка · низкий' },
+        { what: 'Новый уровень', icon: I.flame, tint: '#FCE3D6', when: 'Не пушем — при входе в приложение', actions: '—', channel: '—' }
+      ],
+      rules: [
+        { icon: I.moon, title: 'Тихие часы 23:00–09:00', text: 'Ночью молчим. Кроме «Скоро событие», если оно в эти часы.' },
+        { icon: I.count, title: 'Не больше 4 в день', text: 'Остальное — сводкой. Чаты и приглашения в лимит не входят.' },
+        { icon: I.stack, title: 'Группировка по событию', text: 'Три ответа на «Джаз» — одно уведомление «Джаз · 3 новых».' },
+        { icon: I.bell, title: 'Разрешение — после первого «Пойду»', text: 'Спрашиваем «Напомнить за час?», а не при первом запуске. Android 13+: POST_NOTIFICATIONS.' },
+        { icon: I.clock, title: 'iOS: Time Sensitive', text: 'Только для «Скоро событие» и приглашений на сегодня. Остальное — обычные.' },
+        { icon: I.badge, title: 'Число на иконке', text: '«Зовут» + непрочитанные чаты. То же число — на вкладках «Планы» и «Чаты».' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

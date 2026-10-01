@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Планы v3: зовут сверху, дальше по дням</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#E9E5DB}
+@keyframes v3Slide{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.v3slide{animation:v3Slide 420ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto; padding: 52px 0 120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+<h1 style="margin: 0; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.02em">Планы</h1>
+<div role="tablist" style="display: flex; padding: 4px; border-radius: 22px; background: #E7E2D6">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height: 36px; min-width: 76px; padding: 0 14px; border-radius: 18px; border: 0; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isSoon}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding: 0 12px">
+<sc-for list="{{week}}" as="d" hint-placeholder-count="7">
+<span style="height: 64px; border-radius: 16px; background: {{d.bg}}; color: {{d.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+<span style="font-size: 11.5px; font-weight: 500; opacity: 0.8">{{d.wd}}</span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">{{d.n}}</span>
+<span style="width: 6px; height: 6px; border-radius: 50%; background: {{d.dot}}"></span>
+</span>
+</sc-for>
+</div>
+
+<sc-if value="{{hasInvites}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">Зовут</span><span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: #F0521F; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{inviteCount}}</span></div>
+<sc-for list="{{invites}}" as="v" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 10px; border-radius: 20px; background: #FBFAF6; border: 1.5px solid #F0521F">
+<a href="{{v.href}}" style="position: relative; width: 52px; height: 52px; flex-shrink: 0">
+<span style="width: 52px; height: 52px; border-radius: 15px; background: {{v.tint}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{v.iconFg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{v.icon}}"></path></svg></span>
+<img src="{{v.from}}" alt="" style="position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #2447B8; box-sizing: border-box; box-shadow: 0 0 0 2px #FBFAF6">
+</a>
+<a href="{{v.href}}" style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0; text-decoration: none; color: #17161A">
+<span style="font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{v.title}}</span>
+<span style="font-size: 13.5px; color: #3A3833; white-space: nowrap">{{v.who}} · <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px">{{v.when}}</span></span>
+</a>
+<button type="button" onClick="{{v.no}}" aria-label="Не смогу" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<button type="button" onClick="{{v.yes}}" aria-label="Пойду" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 0; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 0 16px">
+<sc-for list="{{days}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #55524C">{{g.day}}</span>
+<sc-for list="{{g.items}}" as="p" hint-placeholder-count="1">
+<a href="{{p.href}}" class="{{p.cls}}" style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 20px; background: #FBFAF6; border: 1px solid #DDD8CC; text-decoration: none; color: #17161A">
+<span style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 15px; background: {{p.tint}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{p.iconFg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{p.icon}}"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0">{{p.title}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; flex-shrink: 0">{{p.time}}</span></span>
+<span style="display: flex; align-items: center; gap: 6px">
+<sc-for list="{{p.people}}" as="m" hint-placeholder-count="3">
+<span style="position: relative; width: 28px; height: 28px">
+<sc-if value="{{m.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{m.photo}}" alt="" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: block; opacity: {{m.op}}"></sc-if>
+<sc-if value="{{m.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 28px; height: 28px; border-radius: 50%; background: {{m.tint}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; opacity: {{m.op}}">{{m.initial}}</span></sc-if>
+<span aria-label="{{m.aria}}" style="position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; background: {{m.dot}}; box-shadow: 0 0 0 2px #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.mark}}"></path></svg></span>
+</span>
+</sc-for>
+<sc-if value="{{p.company}}" hint-placeholder-val="{{ false }}"><span style="margin-left: 4px; height: 26px; padding: 0 9px 0 7px; border-radius: 13px; background: #FCE3D6; color: #8A3A12; display: flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A3A12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 013 0V11M11 10.5V4a1.5 1.5 0 013 0v6.5M14 10V5.5a1.5 1.5 0 013 0V13M17 9.5a1.5 1.5 0 013 0V14a7 7 0 01-7 7h-1a6 6 0 01-5-2.7L4.5 15a1.6 1.6 0 012.6-1.8L8 14.5"></path></svg>{{p.companyN}}</span></sc-if>
+</span>
+</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55524C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</a>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isPast}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 0 16px">
+<sc-for list="{{past}}" as="e" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: 22px; background: #FBFAF6; border: 1px solid #DDD8CC">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 14px; background: {{e.tint}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{e.iconFg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{e.icon}}"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span style="font-size: 15.5px; font-weight: 700">{{e.title}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #55524C">{{e.when}}</span></span>
+<span style="display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px 0 8px; border-radius: 14px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="#F0521F" stroke="#F0521F" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1 2.7 2 3 .5-2.5.5-5.5.5-8z"></path></svg>+{{e.pts}}</span>
+</div>
+<div style="display: flex; gap: 14px; overflow-x: auto; flex-shrink: 0; padding: 2px 4px 10px">
+<sc-for list="{{e.met}}" as="m" hint-placeholder-count="3">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 7px; width: 64px; flex-shrink: 0">
+<span style="position: relative; width: 58px; height: 58px">
+<a href="V3Person.dc.html" aria-label="{{m.name}}" style="display: block; text-decoration: none; color: #17161A">
+<sc-if value="{{m.hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{m.photo}}" alt="" style="width: 58px; height: 58px; border-radius: 50%; object-fit: cover; display: block"></sc-if>
+<sc-if value="{{m.noPhoto}}" hint-placeholder-val="{{ false }}"><span style="width: 58px; height: 58px; border-radius: 50%; background: {{m.tint}}; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 700">{{m.initial}}</span></sc-if>
+</a>
+<button type="button" onClick="{{m.add}}" aria-label="{{m.aria}}" style="position: absolute; right: -8px; bottom: -8px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: {{m.bg}}; box-shadow: 0 0 0 3px #FBFAF6; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{m.fg}}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg></button>
+</span>
+<span style="font-size: 12.5px; font-weight: 600">{{m.name}}</span>
+</span>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div class="v3slide" style="position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%); height: 40px; padding: 0 16px 0 12px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; box-shadow: 0 10px 24px rgba(23,22,26,0.3); z-index: 20">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{toastText}}
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; height: 96px; z-index: 5">
+<dc-import name="V3TabBar" active="plans" plans="{{inviteCount}}" chats="3" hint-size="390px,96px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["soon","past"],"default":"soon"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: props.tab ?? 'soon', answered: {}, added: {}, toast: '' };
+    this.timers = [];
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  flash(text) {
+    this.setState({ toast: text });
+    this.timers.push(setTimeout(() => this.setState({ toast: '' }), 1800));
+  }
+  renderVals() {
+    const s = this.state;
+    const I = {
+      music: 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z',
+      mic: 'M12 3a3 3 0 013 3v5a3 3 0 01-6 0V6a3 3 0 013-3zM5 11a7 7 0 0014 0M12 18v3',
+      dice: 'M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zM9 9h.01M15 15h.01M15 9h.01M9 15h.01',
+      hike: 'M3 20l6-10 4 6 3-4 5 8z',
+      film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4'
+    };
+    const P = {
+      igor: '../assets/igor.jpg',
+      denis: '../assets/denis.jpg',
+      anton: '../assets/anton.jpg',
+      ainura: '../assets/ainura.jpg'
+    };
+    const OK = 'M5 12.5l4.5 4.5L19 7.5';
+    const WAIT = 'M12 7v5l3 2';
+    const person = (photo, initial, tint, state) => ({
+      hasPhoto: !!photo, noPhoto: !photo, photo: photo || '', initial: initial || '', tint: tint || '#E7E2D6',
+      dot: state === 'ok' ? '#2F8F5B' : '#8F897C', mark: state === 'ok' ? OK : WAIT,
+      op: state === 'ok' ? '1' : '0.55', aria: state === 'ok' ? 'Идёт' : 'Ещё думает'
+    });
+    const allInvites = [
+      { id: 'kino', title: 'Кино в парке', who: 'Игорь', when: 'Пт 21:00', from: P.igor, tint: '#17161A', iconFg: '#F3F0E8', icon: I.film, href: 'V3Event.dc.html', day: 'fri' },
+      { id: 'quiz', title: 'Квиз в «Маркете»', who: 'Антон', when: 'Вс 19:00', from: P.anton, tint: '#EADFB8', iconFg: '#17161A', icon: I.dice, href: 'V3Event.dc.html', day: 'sun' }
+    ];
+    const pending = allInvites.filter((v) => !s.answered[v.id]);
+    const accepted = allInvites.filter((v) => s.answered[v.id] === 'yes');
+    const invites = pending.map((v) => ({
+      ...v,
+      yes: () => { this.setState({ answered: { ...this.state.answered, [v.id]: 'yes' } }); this.flash('Идёшь · ' + v.who + ' узнает'); },
+      no: () => { this.setState({ answered: { ...this.state.answered, [v.id]: 'no' } }); this.flash('Ок, ' + v.who + ' узнает'); }
+    }));
+    const item = (o) => ({ cls: '', company: false, companyN: '', ...o });
+    const fri = [item({ title: 'Настолки', time: '20:00', tint: '#D6E0EE', iconFg: '#17161A', icon: I.dice, href: 'V3EventGoing.dc.html', people: [person(P.denis, '', '', 'ok')], company: true, companyN: '4' })];
+    const sun = [];
+    accepted.forEach((v) => {
+      const it = item({ title: v.title, time: v.when.split(' ')[1], tint: v.tint, iconFg: v.iconFg, icon: v.icon, href: 'V3EventGoing.dc.html', people: [person(v.from, '', '', 'ok')], cls: 'v3slide' });
+      if (v.day === 'fri') fri.push(it); else sun.push(it);
+    });
+    const days = [
+      { day: 'СЕГОДНЯ', items: [item({ title: 'Джаз во дворе', time: '19:30', tint: '#F0521F', iconFg: '#17161A', icon: I.music, href: 'V3EventGoing.dc.html', people: [person(P.igor, '', '', 'ok'), person(P.denis, '', '', 'ok'), person(P.anton, '', '', 'wait')], company: true, companyN: '6' })] },
+      { day: 'ПЯТНИЦА', items: fri },
+      { day: 'СУББОТА', items: [item({ title: 'Кок-Жайляу', time: '08:00', tint: '#D9E4D2', iconFg: '#17161A', icon: I.hike, href: 'V3EventGoing.dc.html', people: [person('', 'Т', '#D9E4D2', 'ok')], company: true, companyN: '3' })] }
+    ];
+    if (sun.length) days.push({ day: 'ВОСКРЕСЕНЬЕ', items: sun });
+    const busy = { 2: true, 3: true, 4: !!accepted.find((v) => v.day === 'sun') };
+    const wd = ['Чт', 'Пт', 'Сб', 'Вс', 'Пн', 'Вт', 'Ср'];
+    const week = wd.map((w, i) => ({
+      wd: w, n: String(i + 1),
+      bg: i === 0 ? '#17161A' : '#FBFAF6',
+      fg: i === 0 ? '#F3F0E8' : '#17161A',
+      dot: (i === 0 || busy[i + 1]) ? '#F0521F' : 'transparent'
+    }));
+    const add = (id, name) => () => {
+      const on = !this.state.added[id];
+      this.setState({ added: { ...this.state.added, [id]: on } });
+      if (on) this.flash('Запрос ушёл · ' + name);
+    };
+    const UP = 'M12 5v14M5 12h14';
+    const met = (id, name, photo, tint) => {
+      const done = !!s.added[id];
+      return { name, hasPhoto: !!photo, noPhoto: !photo, photo: photo || '', initial: name[0], tint: tint || '#E7E2D6', icon: done ? WAIT : UP, bg: done ? '#E7E2D6' : '#2447B8', fg: done ? '#17161A' : '#FBFAF6', aria: done ? 'Запрос отправлен' : 'Добавить в друзья: ' + name, add: add(id, name) };
+    };
+    const past = [
+      { title: 'Стендап на Абая', when: 'ВС 27.09', tint: '#17161A', iconFg: '#F3F0E8', icon: I.mic, pts: '40', met: [met('ainura', 'Айнура', P.ainura), met('erlan', 'Ерлан', '', '#EADFB8'), met('mira', 'Мира', '', '#D6E0EE')] },
+      { title: 'Квартирник', when: 'ПТ 25.09', tint: '#EADFB8', iconFg: '#17161A', icon: I.music, pts: '25', met: [met('sasha', 'Саша', '', '#D9E4D2'), met('alya', 'Аля', '', '#E5D3DC')] }
+    ];
+    const tab = (key, label) => ({ label, on: s.tab === key ? 'true' : 'false', bg: s.tab === key ? '#17161A' : 'transparent', fg: s.tab === key ? '#F3F0E8' : '#3A3833', pick: () => this.setState({ tab: key }) });
+    return {
+      tabs: [tab('soon', 'Скоро'), tab('past', 'Были')],
+      isSoon: s.tab === 'soon',
+      isPast: s.tab === 'past',
+      week,
+      invites,
+      hasInvites: invites.length > 0,
+      inviteCount: String(invites.length),
+      days,
+      past,
+      toast: !!s.toast,
+      toastText: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
