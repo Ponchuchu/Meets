@@ -1,6 +1,6 @@
 // Типы сборщика событий (docs/PIPELINE.md).
 
-export type SourceKind = 'telegram' | 'site' | 'threads' | 'manual' | 'user';
+export type SourceKind = 'telegram' | 'site' | 'search' | 'threads' | 'manual' | 'user';
 
 export interface Source {
   id: string;

@@ -67,6 +67,7 @@
     "functions:deploy": "npm run functions:build && npx supabase functions deploy --project-ref xkpchsommtilristiesu",
     "worker": "node worker/src/index.ts",
     "worker:demo": "node worker/src/index.ts --demo",
+    "worker:search-demo": "node worker/src/index.ts --demo --no-images --search worker/fixtures/gemini-search.json",
     "typecheck": "tsc --noEmit && tsc -p worker",
     "lint": "expo lint",
     "test": "jest",

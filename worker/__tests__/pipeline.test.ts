@@ -4,6 +4,7 @@ import { findDuplicate, similarity } from '../src/dedupe.ts';
 import { autoPublish, buildDraft } from '../src/draft.ts';
 import { classify, extract, parsePrice, parseWhen } from '../src/heuristics.ts';
 import { processPosts, summary } from '../src/pipeline.ts';
+import { buildPrompt, externalId, ogImage, parseGeminiOutput, toPost } from '../src/search.ts';
 import { parseSxodimEvent, parseSxodimList } from '../src/sites.ts';
 import { htmlToText, parseChannel } from '../src/telegram.ts';
 import type { RawPost, Source } from '../src/types.ts';
@@ -118,5 +119,55 @@ describe('Сайт sxodim.com', () => {
     expect(post!.text).toContain('Цена: от 30000 ₸');
     expect(parseSxodimList('<a href="https://sxodim.com/almaty/event/a-b">x</a><a href="https://sxodim.com/almaty/event/a-b">y</a>')).toEqual(['https://sxodim.com/almaty/event/a-b']);
     expect(parseSxodimEvent('<html></html>', 'u', 's')).toBeNull();
+  });
+});
+
+describe('Поиск через Gemini CLI', () => {
+  const searchSource: Source = { id: 'g', kind: 'search', handle: 'gemini', title: 'Поиск · Gemini', trusted: false, auto_publish: false, enabled: true, cursor: null };
+
+  it('задание: даты по Алматы и только поиск + чтение страниц', () => {
+    const p = buildPrompt(new Date('2026-10-04T20:00:00Z'));
+    expect(p).toContain('с 2026-10-05 по 2026-10-12');
+    expect(p).toContain('web_fetch');
+    expect(p).toContain('ТОЛЬКО JSON');
+  });
+
+  it('разбирает ответ CLI (-o json, массив в ```json) и отбрасывает событие без даты', () => {
+    const found = parseGeminiOutput(fx('gemini-search.json'));
+    expect(found.map((f) => f.title)).toEqual(['Стендап-шоу «Подкаты»', 'Nazareth', 'TODES — «Превью»', 'Denis Ten Memorial Challenge']);
+    expect(parseGeminiOutput('ничего не нашёл')).toEqual([]);
+    expect(parseGeminiOutput('[{"title":"Арт-маркет","starts_at":"2026-10-05T19:00:00+05:00","url":"https://a.kz"}]')).toHaveLength(1);
+  });
+
+  it('событие → пост и готовый разбор; одинаковое событие — один и тот же id', () => {
+    const [f] = parseGeminiOutput(fx('gemini-search.json'));
+    const { post, x } = toPost(f, 'g');
+    expect(post.externalId).toBe(externalId({ ...f, title: '  СТЕНДАП-шоу «Подкаты» ' }));
+    expect(post.url).toBe('https://sxodim.com/almaty/event/stendap-shou-podkaty-9-oktyabrya');
+    expect(x).toMatchObject({ class: 'event', category: 'standup', price_min: 3000, price_unsure: false, venue_name: 'Monroe Bar' });
+    const free = toPost(parseGeminiOutput(fx('gemini-search.json'))[3], 'g');
+    expect(free.x).toMatchObject({ is_free: true, is_long: true, price_unsure: false });
+  });
+
+  it('картинка: og:image со страницы, относительный адрес → полный', () => {
+    expect(ogImage('<meta property="og:image" content="/img/poster.jpg">', 'https://site.kz/event/1')).toBe('https://site.kz/img/poster.jpg');
+    expect(ogImage('<meta content="https://cdn.kz/a.png" property="og:image">', 'https://x.kz')).toBe('https://cdn.kz/a.png');
+    expect(ogImage('<title>нет</title>', 'https://x.kz')).toBeNull();
+  });
+
+  it('всё найденное идёт только в «Согласование», даже при высокой уверенности', async () => {
+    const items = parseGeminiOutput(fx('gemini-search.json')).map((f) => toPost({ ...f, confidence: 0.99 }, 'g'));
+    const byId = new Map(items.map((i) => [i.post.externalId, i.x]));
+    const results = await processPosts(items.map((i) => i.post), searchSource, {
+      understand: async (p: RawPost) => ({ ...byId.get(p.externalId)!, by: 'ai' as const }),
+      geocode: async () => null,
+      venues,
+      known: [],
+    });
+    const drafts = results.filter((r) => r.kind === 'draft');
+    expect(drafts).toHaveLength(4);
+    for (const r of drafts) if (r.kind === 'draft') expect(r.draft.status).toBe('draft');
+    const naz = drafts.find((r) => r.kind === 'draft' && r.draft.title === 'Nazareth');
+    expect(naz?.kind === 'draft' && naz.draft.cover_url).toBe('https://sxodim.com/uploads/nazareth.jpg');
   });
 });
