@@ -947,3 +947,9 @@ alter table public.sources add constraint sources_kind_check
 insert into public.sources (kind, handle, title, note, trusted, auto_publish, enabled) values
   ('search', 'gemini', 'Поиск · Gemini', 'раз в сутки ищет события в интернете; картинка — со страницы события', false, false, true)
 on conflict (kind, handle) do nothing;
+
+-- ===== 20261004000009_covers.sql =====
+-- Обложки событий: картинка со страницы события, а если её нет — иллюстрация от ИИ после одобрения
+-- (worker/src/covers.ts). Публичный бакет covers; cover_ai — приложение подписывает «иллюстрация».
+insert into storage.buckets (id, name, public) values ('covers', 'covers', true) on conflict (id) do nothing;
+alter table public.events add column if not exists cover_ai boolean not null default false;

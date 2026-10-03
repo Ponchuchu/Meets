@@ -123,6 +123,19 @@ export function ogImage(html: string, base: string): string | null {
   try { return new URL(m[1], base).toString(); } catch { return null; }
 }
 
+/** Картинка события со страницы: og:image → twitter:image → картинка из разметки schema.org. */
+export function pageImage(html: string, base: string): string | null {
+  const og = ogImage(html, base);
+  if (og) return og;
+  const tw = html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  const ld = html.match(/"image"\s*:\s*(?:\[\s*)?"([^"]+\.(?:jpe?g|png|webp)[^"]*)"/i)?.[1];
+  for (const u of [tw, ld]) {
+    if (!u) continue;
+    try { return new URL(u.replace(/\\\//g, '/'), base).toString(); } catch { /* битый адрес */ }
+  }
+  return null;
+}
+
 /** Дата начала из разметки schema.org Event на странице (если есть). */
 export function ldStart(html: string): string | null {
   for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
@@ -145,7 +158,7 @@ export function judgePage(f: Found, html: string, finalUrl: string): Found | nul
   const hits = ws.filter((w) => page.includes(w)).length;
   if (ws.length && hits === 0) return null; // на странице нет ни одного слова из названия — ссылка не про это событие
   const out: Found = { ...f, url: finalUrl };
-  if (!out.image_url) out.image_url = ogImage(html, finalUrl);
+  if (!out.image_url) out.image_url = pageImage(html, finalUrl);
   const start = ldStart(html);
   if (start && start.slice(0, 10) !== f.starts_at.slice(0, 10)) {
     out.starts_at = start; // разметка страницы точнее модели
@@ -259,7 +272,7 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
     try {
       const res = await fetch(p.url, { headers: UA, signal: AbortSignal.timeout(10_000) });
       if (!res.ok) return;
-      const img = ogImage(await res.text(), p.url);
+      const img = pageImage(await res.text(), p.url);
       if (img) p.images.push(img);
     } catch { /* не открылась — будет обложка раздела */ }
   });

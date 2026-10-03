@@ -4,7 +4,8 @@ import { findDuplicate, similarity } from '../src/dedupe.ts';
 import { autoPublish, buildDraft } from '../src/draft.ts';
 import { classify, extract, parsePrice, parseWhen } from '../src/heuristics.ts';
 import { processPosts, summary } from '../src/pipeline.ts';
-import { externalId, finalize, judgePage, ldStart, ogImage, parseGeminiOutput, readResponse, toPost, topicPrompt } from '../src/search.ts';
+import { coverPrompt, readImage } from '../src/covers.ts';
+import { externalId, finalize, judgePage, ldStart, ogImage, pageImage, parseGeminiOutput, readResponse, toPost, topicPrompt } from '../src/search.ts';
 import { parseSxodimEvent, parseSxodimList } from '../src/sites.ts';
 import { htmlToText, parseChannel } from '../src/telegram.ts';
 import type { RawPost, Source } from '../src/types.ts';
@@ -201,5 +202,20 @@ describe('Поиск через Gemini', () => {
     for (const r of drafts) if (r.kind === 'draft') expect(r.draft.status).toBe('draft');
     const naz = drafts.find((r) => r.kind === 'draft' && r.draft.title === 'Nazareth');
     expect(naz?.kind === 'draft' && naz.draft.cover_url).toBe('https://sxodim.com/uploads/nazareth.jpg');
+  });
+});
+
+describe('Картинки событий', () => {
+  it('со страницы: og:image, потом twitter:image, потом разметка', () => {
+    expect(pageImage('<meta name="twitter:image" content="/t.jpg">', 'https://a.kz/e')).toBe('https://a.kz/t.jpg');
+    expect(pageImage('<script type="application/ld+json">{"@type":"Event","image":["https:\\/\\/cdn.kz\\/p.webp"]}</script>', 'https://a.kz')).toBe('https://cdn.kz/p.webp');
+    expect(pageImage('<p>нет</p>', 'https://a.kz')).toBeNull();
+  });
+  it('иллюстрация: без текста, лиц и логотипов; ответ с картинкой разбирается', () => {
+    const p = coverPrompt({ id: '1', title: 'Nazareth', category: 'concert', about: 'Хард-рок', venues: { name: 'Театр Concordia' } });
+    expect(p).toContain('концерт «Nazareth»');
+    expect(p).toContain('Нельзя: текст');
+    expect(readImage({ candidates: [{ content: { parts: [{ text: 'вот' }, { inlineData: { data: 'AAA', mimeType: 'image/jpeg' } }] } }] })).toEqual({ data: 'AAA', mime: 'image/jpeg' });
+    expect(readImage({})).toBeNull();
   });
 });

@@ -1,0 +1,24 @@
+# Обложки для одобренных событий без картинки: каждые 2 часа с 08:00 до 00:00 по Алматы.
+# Нет одобренных без картинки — ничего не делает и ничего не тратит. Модель — переменная GEMINI_IMAGE_MODEL.
+name: covers
+on:
+  schedule:
+    - cron: '20 3-19/2 * * *'
+  workflow_dispatch:
+concurrency: covers
+jobs:
+  covers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Нарисовать обложки
+        run: node worker/src/covers.ts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
