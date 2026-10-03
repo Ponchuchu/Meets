@@ -106,6 +106,9 @@ async function live() {
       console.log('В базе ещё нет таблиц сборщика. Примени supabase/apply-all.sql (docs/KEYS.md) — до этого сборщик ничего не пишет.');
       return;
     }
+    if (/Supabase 401/.test((err as Error).message)) {
+      console.log('Supabase не принял ключ (401). В GitHub → Settings → Secrets → SUPABASE_SECRET_KEY должен лежать секретный ключ этого проекта (Supabase → Project Settings → API Keys → Secret keys). Подробно — docs/KEYS.md.');
+    }
     throw err;
   }
   const [sources, venues, known] = loaded;

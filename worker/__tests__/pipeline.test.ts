@@ -140,7 +140,7 @@ describe('Поиск через Gemini', () => {
     });
     expect(parseGeminiOutput(r.text).map((f) => f.title)).toEqual(['Nazareth']);
     expect(r.links).toHaveLength(1);
-    expect(r.usage).toEqual({ prompt: 120, output: 350, searches: 2 });
+    expect(r.usage).toEqual({ prompt: 120, output: 350, searches: 2, sources: 1 });
     expect(readResponse({}).text).toBe('');
   });
 

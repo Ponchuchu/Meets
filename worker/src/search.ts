@@ -51,7 +51,7 @@ export function topicPrompt(topic: string, from: string, to: string, max = 6): s
 
 // ——— Gemini API ———
 
-export interface Usage { prompt: number; output: number; searches: number }
+export interface Usage { prompt: number; output: number; searches: number; sources: number }
 
 /** Ответ generateContent → текст + ссылки из поиска + расход. */
 export function readResponse(body: unknown): { text: string; links: string[]; usage: Usage } {
@@ -63,7 +63,7 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
   const text = (c?.content?.parts ?? []).map((p) => p.text ?? '').join('');
   const links = (c?.groundingMetadata?.groundingChunks ?? []).map((g) => g.web?.uri).filter((u): u is string => !!u);
   const u = b.usageMetadata ?? {};
-  return { text, links, usage: { prompt: u.promptTokenCount ?? 0, output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0), searches: c?.groundingMetadata?.webSearchQueries?.length ?? 0 } };
+  return { text, links, usage: { prompt: u.promptTokenCount ?? 0, output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0), searches: c?.groundingMetadata?.webSearchQueries?.length ?? 0, sources: links.length } };
 }
 
 export const DEFAULT_MODEL = 'gemini-3.8-flash';
@@ -197,16 +197,16 @@ export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Da
   const answers = await Promise.all(TOPICS.map(async (topic) => {
     try { return await askGemini(topicPrompt(topic, from, to), key, model); } catch (err) {
       console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
-      return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0 } };
+      return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
     }
   }));
-  const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches }), { prompt: 0, output: 0, searches: 0 });
+  const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
   const raw = finalize(answers.flatMap((a) => a.found), from, to);
   const t1 = Date.now();
   const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
   const out = finalize(checked, from, to);
   console.error(`Поиск ${from}…${to}: ИИ нашёл ${raw.length} (${((t1 - t0) / 1000).toFixed(0)} с), после проверки страниц ${out.length} (${((Date.now() - t1) / 1000).toFixed(0)} с).`);
-  console.error(`Расход: токенов на вход ${usage.prompt}, на выход ${usage.output}, поисков Google ${usage.searches}. Модель ${model}.`);
+  console.error(`Расход: токенов на вход ${usage.prompt}, на выход ${usage.output}, поисков Google ${usage.searches}, страниц-источников ${usage.sources}. Модель ${model}.`);
   return out;
 }
 
