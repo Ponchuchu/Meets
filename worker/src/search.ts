@@ -29,7 +29,7 @@ export function almatyDate(d: Date): string {
   return new Date(d.getTime() + 5 * 3600e3).toISOString().slice(0, 10);
 }
 
-export function buildPrompt(now = new Date(), days = 7, max = 10): string {
+export function buildPrompt(now = new Date(), days = 7, max = 25): string {
   const from = almatyDate(now);
   const to = almatyDate(new Date(now.getTime() + days * 86400e3));
   return `Найди события в Алматы с ${from} по ${to} для приложения-карты «рядом.».
