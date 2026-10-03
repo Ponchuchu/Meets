@@ -1,6 +1,6 @@
-# Поиск событий ИИ раз в сутки (08:40 по Алматы): Gemini CLI ищет в интернете → черновики в «Согласование».
-# Секреты (docs/KEYS.md): GEMINI_OAUTH_CREDS (вход отдельным Google-аккаунтом) или GEMINI_API_KEY; SUPABASE_SECRET_KEY.
-# Без ключа Gemini — шаг поиска пропускается, ничего не ломается.
+# Поиск событий ИИ раз в сутки (08:40 по Алматы): Gemini API ищет в интернете → проверка страниц → «Согласование».
+# Секреты (docs/KEYS.md): GEMINI_API_KEY, SUPABASE_SECRET_KEY. Модель — переменная GEMINI_MODEL (необязательно).
+# Без ключа Gemini шаг поиска пропускается, ничего не ломается. Обычно весь запуск — 1–2 минуты.
 name: search
 on:
   schedule:
@@ -10,32 +10,19 @@ concurrency: worker
 jobs:
   search:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Установить Gemini CLI
-        run: npm install -g @google/gemini-cli@0.62
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
-      - name: Поиск событий (Gemini CLI, только поиск и чтение страниц)
+      - name: Поиск событий (Gemini API, 6 разделов параллельно + проверка страниц)
+        timeout-minutes: 6
         env:
-          GEMINI_OAUTH_CREDS: ${{ secrets.GEMINI_OAUTH_CREDS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-        run: |
-          if [ -n "$GEMINI_OAUTH_CREDS" ]; then
-            mkdir -p ~/.gemini && printf '%s' "$GEMINI_OAUTH_CREDS" > ~/.gemini/oauth_creds.json && chmod 600 ~/.gemini/oauth_creds.json
-            export GOOGLE_GENAI_USE_GCA=true
-          elif [ -z "$GEMINI_API_KEY" ]; then
-            echo "Нет GEMINI_OAUTH_CREDS и GEMINI_API_KEY — поиск пропущен (docs/KEYS.md)."
-            echo '[]' > search.json; exit 0
-          fi
-          unset GEMINI_OAUTH_CREDS
-          gemini -p "$(node worker/src/search.ts --prompt)" -o json --skip-trust --policy worker/gemini-policy.toml ${GEMINI_MODEL:+-m "$GEMINI_MODEL"} > search.json || echo "Gemini CLI завершился с ошибкой — смотри лог выше."
-          rm -f ~/.gemini/oauth_creds.json
-          test -s search.json || echo '[]' > search.json
+        run: node worker/src/search.ts --run > search.json
       - name: Что нашёл ИИ (файл для проверки)
         uses: actions/upload-artifact@v4
         with:
@@ -43,7 +30,7 @@ jobs:
           path: search.json
           retention-days: 14
       - name: Черновики в «Согласование»
-        run: node worker/src/index.ts --search search.json
+        run: node worker/src/index.ts --search search.json --no-images
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

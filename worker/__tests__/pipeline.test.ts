@@ -4,7 +4,7 @@ import { findDuplicate, similarity } from '../src/dedupe.ts';
 import { autoPublish, buildDraft } from '../src/draft.ts';
 import { classify, extract, parsePrice, parseWhen } from '../src/heuristics.ts';
 import { processPosts, summary } from '../src/pipeline.ts';
-import { buildPrompt, externalId, ogImage, parseGeminiOutput, toPost } from '../src/search.ts';
+import { externalId, finalize, judgePage, ldStart, ogImage, parseGeminiOutput, readResponse, toPost, topicPrompt } from '../src/search.ts';
 import { parseSxodimEvent, parseSxodimList } from '../src/sites.ts';
 import { htmlToText, parseChannel } from '../src/telegram.ts';
 import type { RawPost, Source } from '../src/types.ts';
@@ -122,17 +122,49 @@ describe('Сайт sxodim.com', () => {
   });
 });
 
-describe('Поиск через Gemini CLI', () => {
+describe('Поиск через Gemini', () => {
   const searchSource: Source = { id: 'g', kind: 'search', handle: 'gemini', title: 'Поиск · Gemini', trusted: false, auto_publish: false, enabled: true, cursor: null };
 
-  it('задание: даты по Алматы и только поиск + чтение страниц', () => {
-    const p = buildPrompt(new Date('2026-10-04T20:00:00Z'));
+  it('задание короткое: даты, тема, только JSON', () => {
+    const p = topicPrompt('стендап', '2026-10-05', '2026-10-12');
     expect(p).toContain('с 2026-10-05 по 2026-10-12');
-    expect(p).toContain('web_fetch');
-    expect(p).toContain('ТОЛЬКО JSON');
+    expect(p).toContain('Тема: стендап');
+    expect(p).toContain('только JSON');
+    expect(p.length).toBeLessThan(800);
   });
 
-  it('разбирает ответ CLI (-o json, массив в ```json) и отбрасывает событие без даты', () => {
+  it('ответ Gemini API: текст, ссылки поиска, расход', () => {
+    const r = readResponse({
+      candidates: [{ content: { parts: [{ text: '[{"title":"Nazareth",' }, { text: '"starts_at":"2026-10-11T19:00:00+05:00","url":"https://a.kz/n"}]' }] }, groundingMetadata: { groundingChunks: [{ web: { uri: 'https://vertexaisearch.cloud.google.com/x' } }], webSearchQueries: ['nazareth almaty', 'концерт'] } }],
+      usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 300, thoughtsTokenCount: 50 },
+    });
+    expect(parseGeminiOutput(r.text).map((f) => f.title)).toEqual(['Nazareth']);
+    expect(r.links).toHaveLength(1);
+    expect(r.usage).toEqual({ prompt: 120, output: 350, searches: 2 });
+    expect(readResponse({}).text).toBe('');
+  });
+
+  it('проверка страницы: чужая ссылка — прочь; дата из разметки и картинка — со страницы', () => {
+    const f = { title: 'Стендап-шоу «Подкаты»', category: 'standup', starts_at: '2026-10-09T21:00:00+05:00', url: 'https://a.kz/x', confidence: 0.9 };
+    expect(judgePage(f, '<html>Распродажа обуви</html>', 'https://a.kz/x')).toBeNull();
+    const html = '<meta property="og:image" content="/p.jpg"><script type="application/ld+json">{"@type":"Event","startDate":"2026-10-10T21:00:00+05:00"}</script><h1>Подкаты</h1>';
+    const out = judgePage(f, html, 'https://site.kz/event/1');
+    expect(out).toMatchObject({ url: 'https://site.kz/event/1', image_url: 'https://site.kz/p.jpg', starts_at: '2026-10-10T21:00:00+05:00', confidence: 0.7 });
+    expect(ldStart('<script type="application/ld+json">{"@graph":[{"@type":"MusicEvent","startDate":"2026-10-11"}]}</script>')).toBe('2026-10-11');
+  });
+
+  it('окно дат и дубли внутри запуска', () => {
+    const base = { category: 'concert', url: 'https://a.kz/1' };
+    const list = finalize([
+      { ...base, title: 'Nazareth', starts_at: '2026-10-11T19:00:00+05:00' },
+      { ...base, url: 'https://b.kz/2', title: 'NAZARETH', starts_at: '2026-10-11T20:00:00+05:00' },
+      { ...base, url: 'https://c.kz/3', title: 'Прошлое', starts_at: '2026-09-01T19:00:00+05:00' },
+      { ...base, url: 'https://d.kz/4', title: 'Выставка', starts_at: '2026-09-01T10:00:00+05:00', ends_at: '2026-11-08T18:00:00+05:00' },
+    ], '2026-10-05', '2026-10-12');
+    expect(list.map((f) => f.title)).toEqual(['Nazareth', 'Выставка']);
+  });
+
+  it('разбирает ответ (обёртка CLI, массив в ```json) и отбрасывает событие без даты', () => {
     const found = parseGeminiOutput(fx('gemini-search.json'));
     expect(found.map((f) => f.title)).toEqual(['Стендап-шоу «Подкаты»', 'Nazareth', 'TODES — «Превью»', 'Denis Ten Memorial Challenge']);
     expect(parseGeminiOutput('ничего не нашёл')).toEqual([]);
