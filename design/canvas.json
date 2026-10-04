@@ -2153,6 +2153,15 @@
    "page": "icon",
    "is_interactive": true
   },
+  "V6IconPair.dc.html": {
+   "x": 1700,
+   "y": 260,
+   "w": 1600,
+   "h": 780,
+   "title": "«Двое» — выровнено: 5, 9, 10",
+   "page": "icon",
+   "is_interactive": true
+  },
   "V6Icon1.dc.html": {
    "x": 0,
    "y": 1400,
@@ -2222,6 +2231,24 @@
    "w": 1600,
    "h": 900,
    "title": "Иконка 8 · Город — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon9.dc.html": {
+   "x": 0,
+   "y": 5400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 9 · Двое ровно — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon10.dc.html": {
+   "x": 1700,
+   "y": 5400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 10 · Двое вместе — iOS и Android",
    "page": "icon",
    "is_interactive": true
   }
@@ -2617,7 +2644,7 @@
   "icon_top": {
    "kind": "title1",
    "maxW": 3400,
-   "text": "Иконка «рядом.»: 8 вариантов. Ниже — каждый на iPhone и Android во всех темах",
+   "text": "Иконка «рядом.»: тебе понравились «Двое» — справа три выровненных варианта (5, 9, 10). Ниже — каждый на iPhone и Android во всех темах",
    "w": 240,
    "x": 0,
    "y": 0,
@@ -2870,6 +2897,7 @@
   "V6Edge.dc.html",
   "V6Reality.dc.html",
   "V6IconAll.dc.html",
+  "V6IconPair.dc.html",
   "V6Icon1.dc.html",
   "V6Icon2.dc.html",
   "V6Icon3.dc.html",
@@ -2877,7 +2905,9 @@
   "V6Icon5.dc.html",
   "V6Icon6.dc.html",
   "V6Icon7.dc.html",
-  "V6Icon8.dc.html"
+  "V6Icon8.dc.html",
+  "V6Icon9.dc.html",
+  "V6Icon10.dc.html"
  ],
  "pages": [
   {
@@ -2906,7 +2936,7 @@
   },
   {
    "id": "icon",
-   "name": "Иконка приложения · 8 вариантов"
+   "name": "Иконка приложения"
   }
  ],
  "title": "рядом — макет приложения"
