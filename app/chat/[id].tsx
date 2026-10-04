@@ -170,7 +170,7 @@ export default function ChatScreen() {
   const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding">
       <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 6) }]}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/chats'))} style={styles.round} accessibilityRole="button" accessibilityLabel="Назад">
           <Ic d={IC.back} size={20} color={colors.ink} w={2} />
@@ -344,7 +344,7 @@ export default function ChatScreen() {
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'menu' ? 'Действия' : person.name} style={{ paddingBottom: 30 + insets.bottom }}>
             {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} spot={spot} requested={!!social.sent[person.id]}
               onClose={() => setSheet(null)} onProfile={() => router.push({ pathname: '/person/[id]', params: { id: person.id } })}
-              onMap={() => { focusFriend(person.id); router.push('/'); }} onAdd={() => social.toggleRequest(person.id)} /> : (
+              onMap={() => { focusFriend(person.id); router.dismissTo('/'); }} onAdd={() => social.toggleRequest(person.id)} /> : (
               <>
                 <Text style={styles.sheetTitle}>{person.name}</Text>
                 <Pressable onPress={() => { chat.report(person.id); setSheet(null); show({ text: 'Жалоба отправлена. Команда проверит в течение суток' }); }} style={styles.menuRow} accessibilityRole="button">

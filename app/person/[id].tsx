@@ -39,7 +39,7 @@ export default function PersonScreen() {
   const focusFriend = useMapState((s) => s.focusFriend);
   const myPhoto = useSession((s) => s.draft.photo);
   const p = people.find((x) => x.id === id);
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/people'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
   if (!p || !d) return <View style={styles.root} />;
 
@@ -50,7 +50,7 @@ export default function PersonScreen() {
   const look = d.lookingFor && canSee(rel, 'lookingForCompany', d.privacy) ? { ...d.lookingFor, e: events.find((e) => e.id === d.lookingFor!.eventId) } : null;
   const badges = d.badges.map((b) => BADGES.find((x) => x.id === b)).filter(Boolean);
   const common = d.commonFriends.map((cid) => people.find((x) => x.id === cid)).filter(Boolean);
-  const showOnMap = () => { focusFriend(id); router.push('/'); };
+  const showOnMap = () => { focusFriend(id); router.dismissTo('/'); };
   const write = () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${id}` } });
   const genitive = p.name.endsWith('ь') ? `${p.name.slice(0, -1)}я` : p.name.endsWith('а') ? `${p.name.slice(0, -1)}ы` : `${p.name}а`;
 
@@ -100,7 +100,7 @@ export default function PersonScreen() {
               <Text style={[styles.btnText, { color: colors.paper }]}>Написать</Text>
             </Pressable>
             {friend ? (
-              <Pressable onPress={() => { focusFriend(id, true); router.push('/'); }} style={[styles.btn, styles.outline]} accessibilityRole="button">
+              <Pressable onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} style={[styles.btn, styles.outline]} accessibilityRole="button">
                 <Ic d={IC.plus} size={18} color={colors.ink} w={2} /><Text style={styles.btnText}>Позвать</Text>
               </Pressable>
             ) : (

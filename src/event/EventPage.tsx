@@ -15,7 +15,7 @@ import type { EventItem, Person } from '../data/types';
 import { dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
 import { CAT_ICON, CAT_LABEL } from '../map/icons';
-import { useApp } from '../state/app';
+import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
 import { useFeed } from '../state/feed';
@@ -55,6 +55,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
 }) {
   const insets = useSafeAreaInsets();
   const [sheet, setSheet] = useState<Sheet>(null);
+  // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
+  useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const going = usePlans((s) => !!s.going[e.id]);

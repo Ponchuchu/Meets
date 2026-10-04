@@ -77,7 +77,7 @@ export default function MeScreen() {
   const setFilters = useMapState((s) => s.setFilters);
   const weekAhead = (e: EventItem) => { const t = new Date(e.startsAt).getTime() - now.getTime(); return t > -3 * 3600e3 && t < 7 * 86400e3; };
   const interestCount = (k: Interest) => events.filter((e) => weekAhead(e) && matchesCats(e, [INTEREST_CAT[k].cat])).length;
-  const openInterest = (k: Interest) => { setFilters({ cats: [INTEREST_CAT[k].cat], from: 0, to: 6 }); router.push('/'); };
+  const openInterest = (k: Interest) => { setFilters({ cats: [INTEREST_CAT[k].cat], from: 0, to: 6 }); router.dismissTo('/'); };
   const ring = RING_STYLES[marker.ring] ?? RING_STYLES.blue;
   const face = <Image source={photo(draft.photo ?? 'danil')} style={{ width: '100%', height: '100%' }} />;
   const hot = ['jazz', 'anime', 'games', 'food'].map(byId).filter(Boolean).map((e) => ({ lat: e!.lat, lon: e!.lon }));
@@ -141,7 +141,7 @@ export default function MeScreen() {
           <Pressable onPress={share} style={styles.halfBtn} accessibilityRole="button"><Text style={styles.halfText}>Поделиться</Text></Pressable>
         </View>
 
-        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} onCalendar={() => router.push('/plans')} />
+        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} onCalendar={() => router.push('/calendar')} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {[[String((me?.stats.events ?? 0) + arrivals.length), 'событий'], [String(visited.length), 'мест'], [String(me?.stats.friends ?? 0), 'друзей']].map(([n, l]) => (
             <View key={l} style={styles.stat}><Text style={styles.statN}>{n}</Text><Text style={styles.statL}>{l}</Text></View>

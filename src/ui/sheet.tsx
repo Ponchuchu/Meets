@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, Keyframe, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useCoverTabBar } from '../state/app';
+import { useBackClose, useCoverTabBar } from '../state/app';
 import { colors } from '../theme';
 
 const sheetIn = new Keyframe({
@@ -53,6 +53,7 @@ export function SwipeDown({ children, onClose, style }: { children: ReactNode; o
 
 export function BottomSheet({ children, style, label, onClose }: { children: ReactNode; style?: StyleProp<ViewStyle>; label: string; onClose?: () => void }) {
   useCoverTabBar();
+  useBackClose(onClose);
   return (
     <Animated.View entering={sheetIn} exiting={sheetOut} accessibilityViewIsModal accessibilityLabel={label} style={styles.host}>
       <SwipeDown onClose={onClose} style={[styles.sheet, style]}>

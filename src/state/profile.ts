@@ -38,7 +38,7 @@ export const STATUS_STICKERS: StatusSticker[] = [
   { label: 'ТУСИМ', bg: '#8B4FD8', fg: '#FFFFFF', rot: -4, shape: 'die' },
   { label: 'ЗА КОФЕ', bg: '#EADFB8', fg: '#17161A', rot: 3, shape: 'tape' },
   { label: 'ГУЛЯЮ', bg: '#179C87', fg: '#FFFFFF', rot: -2, shape: 'torn' },
-  { label: 'ЕБ#$%У', bg: '#F2B632', fg: '#17161A', rot: 5, shape: 'burst' },
+  { label: 'ГОРЮ', bg: '#F2B632', fg: '#17161A', rot: 5, shape: 'burst' },
   { label: 'НЕ ТРОГАТЬ', bg: '#D8362A', fg: '#D8362A', rot: -6, shape: 'stamp' },
   { label: 'ЗАНЯТ', bg: '#FFFFFF', fg: '#17161A', rot: 2, shape: 'tape' },
 ];

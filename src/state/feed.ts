@@ -71,6 +71,6 @@ export const useFeed = create<FeedState>()(
       },
       resetTaste: () => set({ signals: [], decided: {}, history: [] }),
     }),
-    { name: 'ryadom-feed', storage: deviceStorage(), partialize: ({ undosLeft: _u, ...rest }) => rest },
+    { name: 'ryadom-feed', storage: deviceStorage(), partialize: ({ undosLeft: _u, history: _h, ...rest }) => rest },
   ),
 );

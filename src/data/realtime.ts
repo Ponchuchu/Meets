@@ -84,9 +84,9 @@ export function useShareLocation(marker: { invisible: boolean; shareUntil: strin
       const perm = await Location.getForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
       const sub = await Location.watchPositionAsync({ accuracy: Location.Accuracy.Balanced, distanceInterval: 50, timeInterval: 30000 }, (p) => {
-        // Друзья видят точку всегда, кроме невидимки (и зоны дома — это решает сервер).
-        const live = !invisible;
-        void shareMyLocation({ lat: p.coords.latitude, lon: p.coords.longitude, speed: p.coords.speed, heading: p.coords.heading }, live).catch(() => undefined);
+        // Невидимка или истёк срок «делиться до» — точка вообще не уходит с телефона (и зону дома решает сервер).
+        if (invisible || (shareUntil && new Date(shareUntil).getTime() < Date.now())) return;
+        void shareMyLocation({ lat: p.coords.latitude, lon: p.coords.longitude, speed: p.coords.speed, heading: p.coords.heading }, true).catch(() => undefined);
       });
       if (cancelled) sub.remove();
       else stop = () => sub.remove();

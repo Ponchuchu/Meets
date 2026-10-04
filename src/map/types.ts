@@ -27,6 +27,10 @@ export interface MapCanvasProps {
   onZoom?: (zoom: number) => void;
   /** Центр карты после перемещения — для выбора точки «как в доставке». */
   onCenter?: (lat: number, lon: number) => void;
+  /** Показать мою точку (синяя с направлением). Разрешение на геолокацию спрашивает экран. */
+  showUser?: boolean;
+  /** Отступ сверху для кнопки «i» Mapbox — под кнопками верха карты, а не под пальцем. */
+  topInset?: number;
 }
 
 export interface MapCanvasHandle {
