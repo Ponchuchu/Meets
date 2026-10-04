@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статусы: все условия и что важнее</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6srIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6srWin{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0)}50%{box-shadow:0 0 0 6px rgba(240,82,31,0.25)}}
+</style>
+</helmet>
+<div style="width: 1600px; height: 900px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #E9E5DA; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">СТАТУСЫ · ВСЕ УСЛОВИЯ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 42px; font-weight: 800; letter-spacing: -0.04em">Если подходят два статуса — побеждает тот, что выше</h1>
+<div style="position: absolute; left: 56px; top: 156px; width: 420px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">Что важнее</div>
+<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{prio}}" as="p" hint-placeholder-count="10"><div style="display: flex; align-items: center; gap: 12px; height: 62px; box-sizing: border-box; padding: 0 14px; border-radius: 16px; background: {{p.bg}}; color: {{p.fg}}; animation: v6srIn 400ms ease {{p.dl}}s both"><span style="width: 26px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; opacity: 0.6">{{p.n}}</span><div style="flex: 1"><div style="font-size: 15.5px; font-weight: 700">{{p.t}}</div><div style="font-size: 12.5px; opacity: 0.75">{{p.s}}</div></div></div></sc-for>
+</div>
+</div>
+<div style="position: absolute; left: 520px; top: 156px; width: 1024px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">Ещё условия</div>
+<div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="18">
+<div style="padding: 12px 14px; border-radius: 16px; background: {{r.bg}}; color: {{r.fg}}; animation: v6srIn 400ms ease {{r.dl}}s both">
+<div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600; letter-spacing: 0.04em; opacity: 0.7">{{r.k}}</div>
+<div style="margin-top: 4px; font-size: 15px; font-weight: 700">{{r.t}}</div>
+<div style="margin-top: 3px; font-size: 13px; line-height: 1.4; opacity: 0.85">{{r.s}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = [
+      ['Невидимка', 'точка замерла — статус тоже', '#17161A', '#F3F0E8'],
+      ['Скрытое место', 'больница, клиника, полиция, храм — только «в городе»', '#3A383F', '#F3F0E8'],
+      ['Спит', 'ночь, дома, телефон не двигается 1–2 часа', '#DDD8CC', '#17161A'],
+      ['На событии', 'нажал «Пойду» и ты на месте во время события', '#F0521F', '#17161A'],
+      ['Вместе', 'двое друзей ближе 50 м больше 10 минут', '#A99BEA', '#17161A'],
+      ['В пути', 'только скорость: «38 км/ч»', '#FBFAF6', '#17161A'],
+      ['Своё место', 'дом, работа, зал — то, что в «Моих местах»', '#FBFAF6', '#17161A'],
+      ['Тип места', 'кофейня, бар, ТРЦ, кино, парк, горы', '#FBFAF6', '#17161A'],
+      ['В гостях', 'чужой жилой дом', '#FBFAF6', '#17161A'],
+      ['Давно не в сети', 'последний статус + «3 ч назад»', '#FBFAF6', '#5F5B55']
+    ];
+    const R = [
+      ['ТРЦ', '«в MEGA»', 'Большое здание одно — название ТРЦ показываем. Магазин внутри — нет.'],
+      ['АЭРОПОРТ И ВОКЗАЛ', '«в аэропорту»', 'Потом город сменился — «в Астане». Только город, без адреса.'],
+      ['ДРУГОЙ ГОРОД', '«в Стамбуле»', 'За городом, где ты живёшь, — только название города или страны.'],
+      ['ГОРЫ', '«в горах»', 'Медеу, Шымбулак, БАО. Сеть пропала — «в горах · 40 мин назад».'],
+      ['КИНО', '«в кино»', 'Сеанс в «Планах» или 1,5–3 часа в кинотеатре.'],
+      ['ПРОБЕЖКА', '«на пробежке»', '8–15 км/ч по кругу в парке. Велосипед не отличаем — просто скорость.'],
+      ['ПРОБКА', '«в пробке»', 'Только что ехал, теперь 0–5 км/ч на большой дороге.'],
+      ['СПОРТЗАЛ', '«в зале»', 'Тип места + от 40 минут. Или ты отметил его сам.'],
+      ['УЧЁБА', '«на учёбе»', 'Вуз или школа по типу места, днём по будням.'],
+      ['НОЧЬ НЕ ДОМА', '«в гостях»', 'Утром не пишем «ночевал». Никаких выводов.'],
+      ['НОВАЯ РАБОТА', 'меняем тихо', 'Неделю днём в новом месте — «Работа» переезжает. Видно в «Моих местах».'],
+      ['ПЕРЕЕЗД', 'меняем тихо', 'Неделю ночуешь в новом месте — новый дом. Без вопросов.'],
+      ['ЧАСТОЕ МЕСТО', 'значок «Это место»', '3+ раза в неделю там же — рядом с тобой появляется кнопка отметить.'],
+      ['СКАЧОК GPS', 'не показываем', 'Быстрее 216 км/ч или точность хуже 100 м — ждём вторую точку.'],
+      ['САМОЛЁТ, ПОЕЗД', '«в пути»', 'Быстро и долго — без цифры, чтобы не пугать 780 км/ч.'],
+      ['БАТАРЕЯ < 10%', '«5 мин назад»', 'Обновляем реже. Статус не меняем.'],
+      ['ТЕЛЕФОН ВЫКЛЮЧЕН', 'последний статус', '+ «2 ч назад». Не пишем «пропал».'],
+      ['ВМЕСТЕ НА СОБЫТИИ', '«вместе на Nazareth»', 'Двое друзей на одном событии — одна строчка.']
+    ];
+    return {
+      prio: P.map(([t, s, bg, fg], k) => ({ n: String(k + 1), t, s, bg, fg, dl: String(k * 0.05) })),
+      rules: R.map(([k, t, s], i) => ({ k, t, s, bg: i % 6 === 0 ? '#17161A' : '#FBFAF6', fg: i % 6 === 0 ? '#F3F0E8' : '#17161A', dl: String(0.3 + i * 0.03) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

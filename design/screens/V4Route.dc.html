@@ -51,9 +51,9 @@ body{margin:0}
 <div aria-hidden="true" style="position: absolute; left: 247px; top: 244px; width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 10px 22px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></div>
 
 <div style="position: absolute; left: 16px; top: 52px; width: 358px; box-sizing: border-box; padding: 12px 14px; border-radius: 20px; background: #FBFAF6; box-shadow: 0 8px 24px rgba(23,22,26,0.16); display: flex; align-items: center; gap: 12px">
-<a href="V4Point.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 14px; background: #F3F0E8; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<a href="V3Event.dc.html" aria-label="Назад к событию" style="width: 44px; height: 44px; border-radius: 14px; background: #F3F0E8; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
 <div style="flex: 1; min-width: 0">
-<div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Джаз во дворе · 20:30</div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Как добраться · Джаз во дворе</div>
 <div style="margin-top: 2px; font-size: 13px; color: {{leaveColor}}; font-weight: 600">{{leaveLabel}}</div>
 </div>
 </div>
@@ -90,7 +90,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["walk","taxi","bus","scooter"],"default":"walk"},"live":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["walk","taxi","bus","scooter"],"default":"walk"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -148,13 +148,13 @@ class Component extends DCLogic {
       segs: cur.segs, stops: cur.stops, bubble: { x: String(cur.bubble.x), y: String(cur.bubble.y - 22), t: cur.bubble.t },
       mode: cur,
       modes: Object.keys(M).map((k) => ({ t: M[k].t, icon: icons[k], on: k === s.mode ? 'true' : 'false', bg: k === s.mode ? '#17161A' : '#F3F0E8', fg: k === s.mode ? '#F3F0E8' : '#17161A', pick: () => this.setState({ mode: k }) })),
-      leaveLabel: s.live ? 'Ты в пути · Игорь видит, когда будешь' : 'Выйди в ' + clock(cur.leave) + ', чтобы успеть',
-      leaveColor: s.live ? '#2F8F5B' : '#8A3A12',
+      leaveLabel: 'Начало в 20:30 · выйди в ' + clock(cur.leave),
+      leaveColor: '#8A3A12',
       live: s.live, notLive: !s.live, fullPath: FULL,
-      toggleLive: () => this.setState({ live: !this.state.live }),
-      goBg: s.live ? '#17161A' : '#F0521F', goFg: s.live ? '#F3F0E8' : '#17161A',
-      goIcon: s.live ? 'M6 6l12 12M18 6L6 18' : 'M5 12h14M13 6l6 6-6 6',
-      goLabel: s.live ? 'Остановить' : 'Я выхожу'
+      toggleLive: () => {},
+      goBg: '#F0521F', goFg: '#17161A',
+      goIcon: 'M5 12h14M13 6l6 6-6 6',
+      goLabel: 'Поехали'
     };
   }
 }

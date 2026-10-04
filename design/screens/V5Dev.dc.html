@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Профиль разработчика: ссылка → карточка события</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5dIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v5dType{from{opacity:0}to{opacity:1}}
+@keyframes v5dStep{0%{opacity:0.35}100%{opacity:1}}
+@keyframes v5dTick{0%{transform:scale(0);background:#DDD8CC}70%{transform:scale(1.2);background:#2F8F5B}100%{transform:scale(1);background:#2F8F5B}}
+@keyframes v5dSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5dBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v5dField{0%{background:#FCE3D6}100%{background:#FBFAF6}}
+@keyframes v5dDrop{0%{transform:translateY(-300px);opacity:0}60%{transform:translateY(8px);opacity:1}75%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+@keyframes v5dRing{0%{transform:scale(0.4);opacity:0.9}100%{transform:scale(3);opacity:0}}
+@keyframes v5dToast{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes v5dGlow{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.45)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isPanel}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 56px 20px 0">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFE0CE, #F7B08A 60%, #D9805A); display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 800; box-shadow: 0 0 0 3px #F3F0E8, 0 0 0 6px #F0521F">Д</div>
+<div><div style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Данил</div><div style="display: flex; gap: 6px; margin-top: 4px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: #5F5B55">@danil</span><span style="padding: 2px 8px; border-radius: 8px; background: #17161A; color: #F3F0E8; font-size: 11.5px; font-weight: 700">разработчик</span></div></div>
+</div>
+<button type="button" onClick="{{toParse}}" style="margin-top: 22px; width: 100%; text-align: left; border: 0; padding: 16px; border-radius: 22px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 14px; font-family: 'Golos Text', sans-serif; animation: v5dGlow 2s ease infinite">
+<span style="width: 48px; height: 48px; border-radius: 15px; background: #F0521F; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"></path></svg></span>
+<span style="flex: 1"><span style="display: block; font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Панель разработчика</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #CFC9BB">Ссылка → карточка события · 3 сайта</span></span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+</button>
+<div style="margin-top: 14px; border-radius: 22px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<div style="height: 58px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #F3F0E8"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.i}}"></path></svg><span style="flex: 1; font-size: 15.5px; font-weight: 600">{{r.t}}</span><span style="font-size: 13px; color: #8A857C">{{r.v}}</span></div>
+</sc-for>
+</div>
+<div style="margin-top: 12px; font-size: 12.5px; color: #6B665E; line-height: 1.4">Панель видна только аккаунтам с ролью «разработчик». Роль выдаётся в базе, не в приложении.</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V3TabBar" active="me" plans="1" chats="2" hint-size="390px,96px"></dc-import></div>
+</sc-if>
+
+<sc-if value="{{isParse}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 52px 16px 0; animation: v5dIn 320ms ease both">
+<div style="display: flex; align-items: center; gap: 10px"><button type="button" onClick="{{toPanel}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800">Событие по ссылке</span></div>
+<div style="margin-top: 16px; display: flex; gap: 8px">
+<div style="flex: 1; height: 54px; border-radius: 16px; background: #FBFAF6; box-shadow: inset 0 0 0 2px #17161A; display: flex; align-items: center; padding: 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; overflow: hidden; white-space: nowrap">
+<sc-for list="{{url}}" as="c" hint-placeholder-count="20"><span style="white-space: pre; animation: v5dType 1ms linear {{c.d}}s both">{{c.ch}}</span></sc-for>
+</div>
+<button type="button" onClick="{{toCard}}" style="height: 54px; padding: 0 16px; border-radius: 16px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; color: #17161A">Разобрать</button>
+</div>
+<div style="margin-top: 18px; padding: 16px; border-radius: 22px; background: #FBFAF6">
+<div style="display: flex; align-items: center; justify-content: space-between"><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">Разбираем страницу</span><span style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #DDD8CC; border-top-color: #F0521F; animation: v5dSpin 0.8s linear 7"></span></div>
+<div style="margin-top: 8px; height: 6px; border-radius: 3px; background: #E7E2D6; overflow: hidden"><span style="display: block; height: 6px; background: #F0521F; transform-origin: 0 50%; animation: v5dBar 5.4s linear 1.2s both"></span></div>
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 10px; margin-top: 12px; animation: v5dStep 300ms ease {{s.d}}s both">
+<span style="width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: v5dTick 300ms ease {{s.d}}s both"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span style="flex: 1; font-size: 14.5px">{{s.t}}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #8A3A12">{{s.v}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5F5B55">САЙТЫ, КОТОРЫЕ СЛУШАЕМ</div>
+<sc-for list="{{sites}}" as="w" hint-placeholder-count="3">
+<div style="margin-top: 8px; height: 50px; padding: 0 14px; border-radius: 16px; background: #FBFAF6; display: flex; align-items: center; gap: 10px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2F8F5B"></span><span style="flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600">{{w.n}}</span><span style="font-size: 12.5px; color: #5F5B55">{{w.v}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isCard}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 52px 16px 0; animation: v5dIn 320ms ease both">
+<div style="display: flex; align-items: center; gap: 10px"><button type="button" onClick="{{toParse}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><span style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800">Проверь карточку</span></div>
+<div style="margin-top: 14px; border-radius: 24px; background: #FBFAF6; overflow: hidden">
+<div style="position: relative; height: 170px"><img src="../assets/ethno.jpg" alt="" style="width: 100%; height: 170px; object-fit: cover"><span style="position: absolute; left: 10px; top: 10px; padding: 4px 8px; border-radius: 8px; background: rgba(23,22,26,0.75); color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600">ФОТО СО СТРАНИЦЫ</span></div>
+<div style="padding: 10px 14px 14px">
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; padding: 9px 8px; margin: 0 -8px; border-radius: 12px; animation: v5dField 1.4s ease {{f.d}}s both">
+<span style="width: 70px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: #5F5B55">{{f.k}}</span>
+<span style="flex: 1; font-size: 15px; font-weight: 600">{{f.v}}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A857C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"></path></svg>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap"><span style="padding: 7px 12px; border-radius: 12px; background: #17161A; color: #F3F0E8; font-size: 13px; font-weight: 700">Музыка</span><span style="padding: 7px 12px; border-radius: 12px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-size: 13px; font-weight: 600">Под открытым небом</span><span style="padding: 7px 12px; border-radius: 12px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-size: 13px; font-weight: 600">Бесплатно</span></div>
+<div style="margin-top: 10px; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #D9E4D2; font-size: 13px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Дублей нет · похожих событий рядом нет</div>
+<div style="display: flex; gap: 8px; margin-top: 14px">
+<button type="button" onClick="{{toMap}}" style="flex: 1.5; height: 56px; border-radius: 18px; border: 0; background: #F0521F; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700; color: #17161A">Опубликовать</button>
+<button type="button" style="flex: 1; height: 56px; border-radius: 18px; border: 0; background: #E7E2D6; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; color: #17161A">В черновик</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMap}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px"><dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import></div>
+<div style="position: absolute; left: 172px; top: 360px; width: 46px; height: 46px">
+<span style="position: absolute; inset: 0; border-radius: 15px; border: 4px solid #F0521F; animation: v5dRing 1.2s ease-out 0.7s 3"></span>
+<span style="position: absolute; inset: 0; border-radius: 15px; background: #F0521F; box-shadow: 0 0 0 4px #FBFAF6, 0 10px 22px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center; animation: v5dDrop 700ms cubic-bezier(.3,.7,.3,1) 0.2s both"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z"></path></svg></span>
+<span style="position: absolute; left: 50px; top: 10px; padding: 4px 8px; border-radius: 9px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; white-space: nowrap; animation: v5dToast 300ms ease 0.9s both">НОВОЕ · 19:30</span>
+</div>
+<div style="position: absolute; left: 16px; bottom: 116px; width: 358px; box-sizing: border-box; padding: 14px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; gap: 12px; align-items: center; animation: v5dToast 400ms ease 1.1s both">
+<span style="width: 38px; height: 38px; border-radius: 12px; background: #2F8F5B; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<div><div style="font-weight: 700; font-size: 14.5px">Джаз во дворе — на карте</div><div style="font-size: 12.5px; color: #CFC9BB">Видно всем · в Подборке у тех, кому подходит</div></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V3TabBar" active="map" plans="1" chats="2" hint-size="390px,96px"></dc-import></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["panel","parse","card","map"],"default":"panel"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { stage: props.stage ?? 'panel' }; }
+  renderVals() {
+    const st = this.state.stage;
+    const go = (x) => () => this.setState({ stage: x });
+    const u = 'ticketon.kz/almaty/jazz-dvor';
+    return {
+      isPanel: st === 'panel', isParse: st === 'parse', isCard: st === 'card', isMap: st === 'map',
+      toParse: go('parse'), toPanel: go('panel'), toCard: go('card'), toMap: go('map'),
+      rows: [
+        ['M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', 'Мой город', '12,4 %'],
+        ['M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0', 'Уведомления', 'вкл'],
+        ['M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z', 'Кто что видит', ''],
+        ['M12 3a9 9 0 110 18 9 9 0 010-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18', 'Язык', 'Русский'],
+        ['M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11', 'Выйти', '']
+      ].map(([i, t, v]) => ({ i, t, v })),
+      url: [...u].map((ch, i) => ({ ch, d: String(0.1 + i * 0.03) })),
+      steps: [['Открыли страницу', '200 OK', 1.3], ['Название, дата и время', 'СБ 19:30', 2.1], ['Место и адрес', 'Панфилова 110', 2.9], ['Точка на карте', '43.256, 76.94', 3.7], ['Фото и цена', '0 ₸', 4.5], ['Проверили дубли', 'нет', 5.3]].map(([t, v, d]) => ({ t, v, d: String(d) })),
+      sites: [['ticketon.kz', '+12 за неделю'], ['sxodim.com', '+8'], ['instagram · 4 площадки', 'вручную']].map(([n, v]) => ({ n, v })),
+      fields: [['НАЗВАНИЕ', 'Джаз во дворе', 0.2], ['КОГДА', 'Сб, 4 окт · 19:30–22:00', 0.4], ['ГДЕ', 'Панфилова, 110, во дворе', 0.6], ['ЦЕНА', 'Бесплатно', 0.8], ['ИСТОЧНИК', 'ticketon.kz', 1.0]].map(([k, v, d]) => ({ k, v, d: String(d) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

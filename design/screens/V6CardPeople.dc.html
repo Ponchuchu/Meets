@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Кто идёт и кто ищет компанию</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6cpSheet{from{transform:translateY(600px)}to{transform:translateY(0)}}
+@keyframes v6cpWave{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(16deg)}80%{transform:rotate(-10deg)}90%{transform:rotate(8deg)}}
+@keyframes v6cpBtn{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0)}50%{box-shadow:0 0 0 6px rgba(240,82,31,0.18)}}
+@keyframes v6cpIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #17161A; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; inset: 0; z-index: 0"><dc-import name="V6CardOpen" mode="open" hint-size="390px,844px"></dc-import></div>
+<div style="position: absolute; inset: 0; background: rgba(23,22,26,0.45)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 690px; box-sizing: border-box; padding: 12px 16px 0; border-radius: 30px 30px 0 0; background: #FBFAF6; animation: v6cpSheet 550ms cubic-bezier(.2,.8,.2,1) both">
+<span style="display: block; width: 40px; height: 5px; margin: 0 auto; border-radius: 3px; background: #DDD8CC"></span>
+<div style="margin-top: 14px; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em">Жёсткий стендап · кто идёт</div>
+<div style="margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">ДРУЗЬЯ ИДУТ · 3</div>
+<div style="margin-top: 8px; display: flex; gap: 14px">
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="3"><div style="text-align: center; width: 66px"><span style="position: relative; display: inline-block"><img src="{{f.p}}" alt="" style="width: 58px; height: 58px; border-radius: 50%; object-fit: cover; display: block"><span style="position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; background: #2F8F5B; border: 2.5px solid #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></span><div style="margin-top: 4px; font-size: 13.5px; font-weight: 600">{{f.n}}</div></div></sc-for>
+<div style="text-align: center; width: 66px"><span style="display: inline-flex; width: 58px; height: 58px; border-radius: 50%; background: #EDE9DF; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span><div style="margin-top: 4px; font-size: 13.5px; font-weight: 600">Позвать</div></div>
+</div>
+<div style="margin-top: 20px; display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform-origin: 50% 90%; animation: v6cpWave 2.4s ease infinite"><path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V6a2 2 0 00-4 0v8a8 8 0 0016 0v-3a2 2 0 00-4 0"></path></svg>ИЩУТ КОМПАНИЮ · 4</div>
+<div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{looking}}" as="l" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 18px; background: #F3F0E8; animation: v6cpIn 400ms ease {{l.d}}s both">
+<sc-if value="{{l.hasP}}" hint-placeholder-val="{{ true }}"><img src="{{l.p}}" alt="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover"></sc-if>
+<sc-if value="{{l.noP}}" hint-placeholder-val="{{ false }}"><span style="width: 48px; height: 48px; border-radius: 50%; background: #A99BEA; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800">А</span></sc-if>
+<div style="flex: 1; min-width: 0"><div style="font-size: 15.5px; font-weight: 700">{{l.n}}</div><div style="font-size: 13px; color: #5F5B55">{{l.s}}</div></div>
+<span style="height: 36px; padding: 0 12px; border-radius: 12px; background: {{l.bg}}; color: {{l.fg}}; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; white-space: nowrap">{{l.b}}</span>
+</div>
+</sc-for>
+</div>
+<button type="button" style="margin-top: 12px; width: 100%; height: 58px; border: 0; border-radius: 18px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 16.5px; font-weight: 700; animation: v6cpBtn 4s ease infinite"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform-origin: 50% 90%; animation: v6cpWave 2.4s ease infinite"><path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V6a2 2 0 00-4 0v8a8 8 0 0016 0v-3a2 2 0 00-4 0"></path></svg>Я тоже ищу компанию</button>
+<div style="margin-top: 6px; text-align: center; font-size: 12.5px; color: #5F5B55">Тебя увидят только те, кто идёт сюда</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      friends: [['../assets/igor.jpg', 'Игорь'], ['../assets/arman.jpg', 'Арман'], ['../assets/timur.jpg', 'Тимур']].map(([p, n]) => ({ p, n })),
+      looking: [
+        ['../assets/mira.jpg', 'Мира', '2 общих друга · любит стендап', 'Пойдём?', '#F0521F', '#17161A'],
+        ['../assets/anton.jpg', 'Антон', 'первый раз в Hoper\'s', 'Пойдём?', '#F0521F', '#17161A'],
+        ['../assets/denis.jpg', 'Денис', 'запрос отправлен', 'Ждём', '#EDE9DF', '#5F5B55'],
+        ['', 'Алия', 'идёт с подругой, ищут ещё двоих', 'Пойдём?', '#F0521F', '#17161A']
+      ].map(([p, n, s, b, bg, fg], k) => ({ p, n, s, b, bg, fg, hasP: !!p, noP: !p, d: String(0.2 + k * 0.08) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

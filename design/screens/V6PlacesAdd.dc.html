@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отметить место</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6plIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v6plSheet{0%{transform:translateY(340px)}100%{transform:translateY(0)}}
+@keyframes v6plPulse{0%{transform:scale(0.7);opacity:0.7}100%{transform:scale(1.6);opacity:0}}
+@keyframes v6plDash{to{stroke-dashoffset:-24}}
+@keyframes v6plDrag{0%,20%{transform:translate(-40px,30px)}55%,100%{transform:translate(0,0)}}
+@keyframes v6plLift{0%,15%{transform:translateY(0)}20%,50%{transform:translateY(-14px)}58%,100%{transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V6Places" stage="add" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Весь путь v5: два телефона</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v2Ring{0%{transform:scale(0.5);opacity:0.9}100%{transform:scale(1.9);opacity:0}}
+@keyframes v2Plus{0%{transform:translateY(8px);opacity:0}25%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+@keyframes v2Bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes v3Spot{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.55)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+@keyframes v3Swipe{0%{transform:translate(0,0) rotate(0deg);opacity:0}15%{opacity:1}70%{transform:translate(150px,-14px) rotate(14deg);opacity:1}100%{transform:translate(170px,-16px) rotate(16deg);opacity:0}}
+@keyframes v3HintIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v3Up{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v3Pulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.4);opacity:0}}
+@keyframes v3Pill{0%{transform:translateY(-12px);opacity:0}15%{transform:translateY(0);opacity:1}85%{opacity:1}100%{opacity:0}}
+@keyframes v3Drop{from{transform:translateY(-14px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v3LeafA{0%{transform:translate(0,-60px) rotate(0deg)}50%{transform:translate(46px,400px) rotate(260deg)}100%{transform:translate(-10px,900px) rotate(540deg)}}
+@keyframes v3LeafB{0%{transform:translate(0,-60px) rotate(0deg)}50%{transform:translate(-40px,420px) rotate(-220deg)}100%{transform:translate(30px,900px) rotate(-480deg)}}
+@keyframes v3Snow{0%{transform:translate(0,-30px)}50%{transform:translate(14px,420px)}100%{transform:translate(-8px,880px)}}
+@keyframes v3Rain{from{transform:translate(0,-40px) rotate(14deg)}to{transform:translate(-200px,880px) rotate(14deg)}}
+@keyframes v3PinIn{0%{transform:translateY(-10px) scale(0.6)}100%{transform:translateY(0) scale(1)}}
+@keyframes v3Bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes v4cpSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4cpPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4cpHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v4cpIn{0%{transform:translateY(30px) scale(0.9);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes v4cpReply{0%,70%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes v4exWalk{0%{stroke-dashoffset:520}70%,100%{stroke-dashoffset:0}}
+@keyframes v4exGo{0%{offset-distance:0%}70%,100%{offset-distance:100%}}
+@keyframes v4exPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4exNew{0%,62%{transform:translateY(10px);opacity:0}70%,92%{transform:translateY(0);opacity:1}100%{opacity:0}}
+@keyframes v4exBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v4exShimmer{0%{opacity:0.88}50%{opacity:0.8}100%{opacity:0.88}}
+@keyframes v4mcRing{from{stroke-dashoffset:226}to{stroke-dashoffset:198}}
+@keyframes v4mcIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4mcTwinkle{0%,100%{opacity:0.3}50%{opacity:1}}
+@keyframes v4mcPop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+@keyframes v4poPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.8);opacity:0}}
+@keyframes v4poHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v4poDraw{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+@keyframes v4poFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4poSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4poIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v4poZoom{from{transform:scale(1.25)}to{transform:scale(1)}}
+@keyframes v4rtFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4rtDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes v4rtGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v4rtPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v4rtIn{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4rtFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v4tgSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes v4tgSwap2{0%,42%{opacity:1;transform:scale(1)}50%,92%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgSwap4{0%,20%{opacity:1;transform:scale(1)}25%,95%{opacity:0;transform:scale(0.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes v4tgGlow{0%,100%{transform:scale(1);opacity:0.65}50%{transform:scale(1.18);opacity:1}}
+@keyframes v4tgFlame{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.15) rotate(4deg)}}
+@keyframes v4tgSpark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),-36px) scale(0.3);opacity:0}}
+@keyframes v4tgPush{0%{transform:translateY(-120%)}10%,80%{transform:translateY(0)}90%,100%{transform:translateY(-120%)}}
+@keyframes v4tgSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4tgMerge1{0%{transform:translate(-46px,30px)}40%,100%{transform:translate(0,0)}}
+@keyframes v4tgMerge2{0%{transform:translate(52px,-26px)}40%,100%{transform:translate(0,0)}}
+@keyframes v5Bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-8%) scale(0.96,1.04)}60%{transform:translateY(0) scale(1.06,0.94)}80%{transform:translateY(-2%) scale(1)}}
+@keyframes v5Wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes v5Pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes v5Shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3%) rotate(-2deg)}75%{transform:translateX(3%) rotate(2deg)}}
+@keyframes v5Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%)}}
+@keyframes v5Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@keyframes v5Tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+@keyframes v5Zzz{0%{transform:translate(0,6px) scale(0.6);opacity:0}40%{opacity:1}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+@keyframes v5Dash{0%{transform:translateX(6px);opacity:0}50%{opacity:1}100%{transform:translateX(-10px);opacity:0}}
+@keyframes v5Look{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes v5Steam{0%{transform:translateY(4px);opacity:0}40%{opacity:1}100%{transform:translateY(-8px);opacity:0}}
+@keyframes v5Flicker{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(0.95,1.07) rotate(2deg)}}
+@keyframes v5cFly{0%{transform:translate(-40px,220px) scale(0.4) rotate(-20deg);opacity:0}60%{transform:translate(0,-8px) scale(1.08) rotate(5deg);opacity:1}100%{transform:translate(0,0) scale(1) rotate(0)}}
+@keyframes v5cTray{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v5cIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v5cRead{0%,50%{opacity:0;transform:translateX(-4px)}70%,100%{opacity:1;transform:translateX(0)}}
+@keyframes v5cTint{0%,55%{color:#8A857C}75%,100%{color:#2447B8}}
+@keyframes v5cTintW{0%,55%{color:rgba(23,22,26,0.55)}75%,100%{color:#17161A}}
+@keyframes v5cCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes v5dIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v5dType{from{opacity:0}to{opacity:1}}
+@keyframes v5dStep{0%{opacity:0.35}100%{opacity:1}}
+@keyframes v5dTick{0%{transform:scale(0);background:#DDD8CC}70%{transform:scale(1.2);background:#2F8F5B}100%{transform:scale(1);background:#2F8F5B}}
+@keyframes v5dSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5dBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v5dField{0%{background:#FCE3D6}100%{background:#FBFAF6}}
+@keyframes v5dDrop{0%{transform:translateY(-300px);opacity:0}60%{transform:translateY(8px);opacity:1}75%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+@keyframes v5dRing{0%{transform:scale(0.4);opacity:0.9}100%{transform:scale(3);opacity:0}}
+@keyframes v5dToast{0%{transform:translateY(20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes v5dGlow{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.45)}50%{box-shadow:0 0 0 8px rgba(240,82,31,0)}}
+@keyframes v5hBg{0%,100%{background-position:0% 30%}50%{background-position:100% 70%}}
+@keyframes v5hBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-40px) scale(1.15)}}
+@keyframes v5hR1{0%{stroke-dashoffset:var(--L)}26%,100%{stroke-dashoffset:0}}
+@keyframes v5hO1{0%{stroke-dashoffset:1;opacity:1}30%{stroke-dashoffset:0;opacity:1}36%,100%{opacity:0;stroke-dashoffset:0}}
+@keyframes v5hW1{0%,33%{opacity:1;transform:translateY(0) scale(1)}39%,100%{opacity:0;transform:translateY(-24px) scale(0.96)}}
+@keyframes v5hPen1{0%{offset-distance:0%;opacity:1}26%{offset-distance:100%;opacity:1}28%,100%{offset-distance:100%;opacity:0}}
+@keyframes v5hR2{0%,40%{stroke-dashoffset:var(--L)}62%,100%{stroke-dashoffset:0}}
+@keyframes v5hO2{0%,40%{stroke-dashoffset:1;opacity:1}66%{stroke-dashoffset:0;opacity:1}72%,100%{opacity:0;stroke-dashoffset:0}}
+@keyframes v5hW2{0%,40%{opacity:1}90%{opacity:1;transform:translateY(0)}97%,100%{opacity:0;transform:translateY(-14px)}}
+@keyframes v5hPen2{0%,40%{offset-distance:0%;opacity:0}41%{opacity:1}62%{offset-distance:100%;opacity:1}64%,100%{offset-distance:100%;opacity:0}}
+@keyframes v5hDot{0%,63%{transform:translateY(-260px) scale(1);opacity:0}64%{opacity:1}69%{transform:translateY(0) scale(1.2,0.8)}72%{transform:translateY(-10px) scale(0.95,1.06)}75%,90%{transform:translateY(0) scale(1);opacity:1}97%,100%{opacity:0}}
+@keyframes v5hRing{0%,69%{transform:scale(0.3);opacity:0}70%{opacity:0.9}85%,100%{transform:scale(3.4);opacity:0}}
+@keyframes v5hTag{0%,72%{opacity:0;transform:translateY(10px)}78%,90%{opacity:1;transform:translateY(0)}97%,100%{opacity:0}}
+@keyframes v5lIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v5lUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v5lType{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v5lKey{0%,100%{background:#FBFAF6}30%{background:#DDD8CC;transform:scale(0.94)}}
+@keyframes v5lPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes v5lReveal{from{stroke-dashoffset:var(--L)}to{stroke-dashoffset:0}}
+@keyframes v5lPen{0%{offset-distance:0%;opacity:1}95%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes v5lFly{0%{transform:translate(0,0) scale(0.3) rotate(0);opacity:0}20%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(var(--r));opacity:1}}
+@keyframes v5lDrift{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-10px) rotate(var(--r))}}
+@keyframes v5mGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v5mGoEase{0%{offset-distance:0%}45%,55%{offset-distance:100%}100%{offset-distance:0%}}
+@keyframes v5mBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes v5mPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v5mBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes v5mZ{0%{transform:translate(0,0) scale(0.6);opacity:0}30%{opacity:1}100%{transform:translate(12px,-26px) scale(1.1);opacity:0}}
+@keyframes v5mFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+@keyframes v5mGlow{0%,100%{opacity:0.55;transform:scale(1)}50%{opacity:0.9;transform:scale(1.12)}}
+@keyframes v5mSpark{0%{transform:translate(0,0) scale(0.4);opacity:0}30%{opacity:1}100%{transform:translate(var(--dx),-34px) scale(1);opacity:0}}
+@keyframes v5mFly{0%{offset-distance:0%;transform:scale(0.25);opacity:0}8%{opacity:1}55%{transform:scale(1.15)}88%{offset-distance:100%;transform:scale(0.9);opacity:1}100%{offset-distance:100%;transform:scale(0.2);opacity:0}}
+@keyframes v5mCount{0%{transform:scale(1)}30%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes v5mBanner{0%,8%{transform:translateY(-140%)}14%,88%{transform:translateY(0)}96%,100%{transform:translateY(-140%)}}
+@keyframes v5mLand{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes v5msNew{0%,6%{transform:translateY(-90px);opacity:0}11%,100%{transform:translateY(0);opacity:1}}
+@keyframes v5msShift{0%,6%{transform:translateY(0)}11%,100%{transform:translateY(82px)}}
+@keyframes v5msBadge{0%,10%{transform:scale(0)}13%{transform:scale(1.3)}16%,100%{transform:scale(1)}}
+@keyframes v5msRowHi{0%,18%{background:#FBFAF6}21%,28%{background:#E7E2D6}30%,100%{background:#FBFAF6}}
+@keyframes v5msRip{0%,19%{transform:scale(0.3);opacity:0}20%{opacity:0.8}27%,100%{transform:scale(3);opacity:0}}
+@keyframes v5msChat{0%,28%{transform:translateX(390px)}35%,90%{transform:translateX(0)}97%,100%{transform:translateX(390px)}}
+@keyframes v5msList{0%,28%{transform:translateX(0)}35%,90%{transform:translateX(-90px)}97%,100%{transform:translateX(0)}}
+@keyframes v5msOut{0%,44%{opacity:0;transform:translateY(14px) scale(0.9)}48%,100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes v5msRead{0%,58%{opacity:0}62%,100%{opacity:1}}
+@keyframes v5msTyping{0%,66%{opacity:0}69%,77%{opacity:1}79%,100%{opacity:0}}
+@keyframes v5msSticker{0%,78%{opacity:0;transform:scale(0.3) translateY(20px)}83%{opacity:1;transform:scale(1.1)}86%,100%{opacity:1;transform:scale(1)}}
+@keyframes v5msDot{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-4px);opacity:1}}
+@keyframes v5msCap1{0%,5%{opacity:0}8%,17%{opacity:1}19%,100%{opacity:0}}
+@keyframes v5msCap2{0%,18%{opacity:0}20%,36%{opacity:1}38%,100%{opacity:0}}
+@keyframes v5msCap3{0%,44%{opacity:0}47%,58%{opacity:1}60%,100%{opacity:0}}
+@keyframes v5msCap4{0%,59%{opacity:0}61%,68%{opacity:1}70%,100%{opacity:0}}
+@keyframes v5msCap5{0%,68%{opacity:0}70%,88%{opacity:1}90%,100%{opacity:0}}
+@keyframes v5nDrop{0%{transform:translateY(-140%);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes v5nGrow{0%{transform:scale(0.92);opacity:0.6}100%{transform:scale(1);opacity:1}}
+@keyframes v5nMenu{0%{transform:translateY(12px) scale(0.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes v5nPress{0%,100%{transform:scale(1)}50%{transform:scale(0.97)}}
+@keyframes v5nType{from{opacity:0}to{opacity:1}}
+@keyframes v5nCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes v5nSent{0%,70%{opacity:0;transform:translateY(10px)}80%,100%{opacity:1;transform:translateY(0)}}
+@keyframes v5nOpen{0%{left:14px;top:300px;width:362px;height:110px;border-radius:24px}100%{left:0;top:0;width:390px;height:844px;border-radius:0}}
+@keyframes v5nFadeIn{0%,40%{opacity:0}100%{opacity:1}}
+@keyframes v5nHi{0%,60%{background:#FCE3D6}100%{background:#FBFAF6}}
+@keyframes v5nHold{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(1.8);opacity:0}}
+@keyframes v5oDrop{from{transform:translateY(-120%)}to{transform:translateY(0)}}
+@keyframes v5oPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes v5oWobble{0%,100%{transform:translate(0,0)}25%{transform:translate(10px,-6px)}50%{transform:translate(-8px,8px)}75%{transform:translate(6px,10px)}}
+@keyframes v5oBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes v5oSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5oUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v5shSheet{0%,10%{transform:translateY(844px)}16%,34%{transform:translateY(560px)}46%,52%{transform:translateY(340px)}62%,84%{transform:translateY(0)}92%,100%{transform:translateY(844px)}}
+@keyframes v5shDim{0%,10%{opacity:0}16%,34%{opacity:0.15}46%,52%{opacity:0.35}62%,84%{opacity:0.5}92%,100%{opacity:0}}
+@keyframes v5shFinger{0%,4%{left:262px;top:300px;opacity:0;transform:scale(1.2)}7%{opacity:1;transform:scale(1)}9%{transform:scale(0.85)}11%{transform:scale(1);opacity:1}14%{opacity:0}26%{left:195px;top:600px;opacity:0}30%{opacity:1;transform:scale(0.9)}46%{left:195px;top:380px;opacity:1}52%{left:195px;top:380px}60%{left:195px;top:60px;opacity:1}64%,85%{opacity:0;left:195px;top:60px}86%{left:195px;top:120px;opacity:1;transform:scale(0.9)}92%{left:195px;top:700px;opacity:1}95%,100%{opacity:0}}
+@keyframes v5shRip{0%,8%{transform:scale(0.3);opacity:0}9%{opacity:0.9}15%,100%{transform:scale(2.4);opacity:0}}
+@keyframes v5shPin{0%,8%{transform:scale(1)}10%{transform:scale(1.35)}14%,88%{transform:scale(1.2)}94%,100%{transform:scale(1)}}
+@keyframes v5shCap1{0%,4%{opacity:0}6%,14%{opacity:1}16%,100%{opacity:0}}
+@keyframes v5shCap2{0%,15%{opacity:0}17%,30%{opacity:1}32%,100%{opacity:0}}
+@keyframes v5shCap3{0%,31%{opacity:0}33%,58%{opacity:1}60%,100%{opacity:0}}
+@keyframes v5shCap4{0%,59%{opacity:0}61%,84%{opacity:1}86%,100%{opacity:0}}
+@keyframes v5shCap5{0%,85%{opacity:0}87%,96%{opacity:1}98%,100%{opacity:0}}
+@keyframes v5shHero{0%,52%{height:150px;border-radius:20px;margin:0 14px}62%,100%{height:300px;border-radius:0;margin:0}}
+@keyframes v5shGrab{0%,52%{opacity:1}60%,100%{opacity:0}}
+@keyframes v5shTop{0%,56%{opacity:0;transform:translateY(-10px)}64%,84%{opacity:1;transform:translateY(0)}88%,100%{opacity:0}}
+@keyframes v5swC1{0%,6%{transform:translate(0,0) rotate(0)}22%{transform:translate(70px,-6px) rotate(8deg)}26%{transform:translate(90px,0) rotate(10deg) scale(1)}37%{transform:translate(0,600px) rotate(0) scale(0.08);opacity:0.9}38%,100%{transform:translate(0,600px) scale(0.05);opacity:0}}
+@keyframes v5swY1{0%,10%{opacity:0}20%,30%{opacity:1}34%,100%{opacity:0}}
+@keyframes v5swC2{0%,38%{transform:translate(0,14px) scale(0.96)}42%,46%{transform:translate(0,0) scale(1)}60%{transform:translate(-80px,-4px) rotate(-9deg)}70%,100%{transform:translate(-520px,30px) rotate(-24deg)}}
+@keyframes v5swN2{0%,48%{opacity:0}58%,64%{opacity:1}68%,100%{opacity:0}}
+@keyframes v5swC3{0%,38%{transform:translate(0,28px) scale(0.92)}42%,66%{transform:translate(0,14px) scale(0.96)}72%,80%{transform:translate(0,0) scale(1)}90%{transform:translate(0,-40px) scale(1)}100%{transform:translate(0,0) scale(1)}}
+@keyframes v5swFinger{0%,6%{left:200px;top:440px;opacity:0}9%{opacity:1}22%{left:290px;top:430px;opacity:1}26%{opacity:0}46%{left:200px;top:440px;opacity:0}49%{opacity:1}60%{left:110px;top:436px;opacity:1}64%,80%{opacity:0;left:200px;top:500px}83%{opacity:1}90%{left:200px;top:400px;opacity:1}94%,100%{opacity:0}}
+@keyframes v5swTab{0%,36%{transform:scale(1)}39%{transform:scale(1.25)}44%,100%{transform:scale(1)}}
+@keyframes v5swPlus{0%,36%{opacity:0;transform:translateY(6px)}40%{opacity:1;transform:translateY(-10px)}52%,100%{opacity:0;transform:translateY(-30px)}}
+@keyframes v5swCap1{0%,6%{opacity:0}9%,38%{opacity:1}40%,100%{opacity:0}}
+@keyframes v5swCap2{0%,46%{opacity:0}49%,70%{opacity:1}72%,100%{opacity:0}}
+@keyframes v5swCap3{0%,80%{opacity:0}83%,96%{opacity:1}98%,100%{opacity:0}}
+@keyframes v4jnBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v4jnFly{0%{transform:translateX(-30px) scale(0.6);opacity:0}20%{opacity:1}70%{transform:translateX(30px) scale(1);opacity:1}100%{transform:translateX(40px) scale(0.8);opacity:0}}
+@keyframes v4jnIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v4jnPhone{from{transform:translateY(14px);opacity:0.4}to{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+<div style="width: 1800px; height: 1080px; position: relative; overflow: hidden; background: #E9E5DB; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 50px; top: 50px; width: 400px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">ВЕСЬ ПУТЬ · V5</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.04em; line-height: 1">Всё приложение по шагам</h1>
+<div style="margin-top: 10px; font-size: 15px; color: #4A463F">Листается само. Тапни шаг — перейдёт сразу. Всё внутри телефонов кликается.</div>
+<ol style="margin: 22px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px">
+<sc-for list="{{list}}" as="s" hint-placeholder-count="15">
+<li><button type="button" onClick="{{s.go}}" aria-current="{{s.cur}}" style="width: 400px; height: 46px; border-radius: 14px; border: 0; background: {{s.bg}}; color: {{s.fg}}; display: flex; align-items: center; gap: 12px; padding: 0 14px; box-sizing: border-box; text-align: left; font-family: 'Golos Text', sans-serif; cursor: pointer; transition: background 200ms ease"><span style="width: 30px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; opacity: 0.7">{{s.n}}</span><span style="flex: 1; font-size: 16px; font-weight: 700">{{s.t}}</span><sc-if value="{{s.hasLink}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; padding: 4px 7px; border-radius: 8px; background: {{s.tagBg}}; color: {{s.tagFg}}">2 ТЕЛЕФОНА</span></sc-if></button></li>
+</sc-for>
+</ol>
+</div>
+
+<div style="position: absolute; left: 500px; top: 96px; width: 390px; text-align: center; font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700">{{cur.a}}</div>
+<div style="position: absolute; left: 960px; top: 96px; width: 390px; text-align: center; font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 700">{{cur.b}}</div>
+<div style="position: absolute; left: 500px; top: 140px; width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: #F3F0E8; box-shadow: 0 0 0 10px #17161A, 0 40px 90px rgba(23,22,26,0.3)">
+<sc-if value="{{on0}}" hint-placeholder-val="{{ true }}"><dc-import name="V5Hello"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on1}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Login"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on2}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Login" step="name" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on3}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Map"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on4}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Sheet"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on5}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Swipe"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on6}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Messages"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on7}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Chat"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on8}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Notify"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on9}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Notify" stage="reply" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on10}}" hint-placeholder-val="{{ false }}"><dc-import name="V4ChatPoint"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on11}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Map"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on12}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Offline"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on13}}" hint-placeholder-val="{{ false }}"><dc-import name="V4Explore"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on14}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Dev"  hint-size="390px,844px"></dc-import></sc-if>
+</div>
+<div style="position: absolute; left: 960px; top: 140px; width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: #F3F0E8; box-shadow: 0 0 0 10px #17161A, 0 40px 90px rgba(23,22,26,0.3)">
+<sc-if value="{{on0}}" hint-placeholder-val="{{ true }}"><dc-import name="V5Hello" mode="back" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on1}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Login" step="phone" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on2}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Login" step="done" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on3}}" hint-placeholder-val="{{ false }}"><dc-import name="V3Map" day="2" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on4}}" hint-placeholder-val="{{ false }}"><dc-import name="V4Route"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on5}}" hint-placeholder-val="{{ false }}"><dc-import name="V3Feed"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on6}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Chat" stage="read" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on7}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Map" mode="stickers" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on8}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Notify" stage="expand" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on9}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Notify" stage="open" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on10}}" hint-placeholder-val="{{ false }}"><dc-import name="V4PointOpen" stage="route" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on11}}" hint-placeholder-val="{{ false }}"><dc-import name="V4Together" open="two" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on12}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Offline" mode="gps" hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on13}}" hint-placeholder-val="{{ false }}"><dc-import name="V4MyCity"  hint-size="390px,844px"></dc-import></sc-if>
+<sc-if value="{{on14}}" hint-placeholder-val="{{ false }}"><dc-import name="V5Dev" stage="parse" hint-size="390px,844px"></dc-import></sc-if>
+</div>
+<sc-if value="{{hasLink}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; left: 895px; top: 470px; width: 60px; height: 120px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+<span style="width: 46px; height: 46px; border-radius: 15px; background: #F0521F; box-shadow: 0 8px 20px rgba(240,82,31,0.4); display: flex; align-items: center; justify-content: center; animation: v4jnFly 1.4s ease-in-out infinite"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; white-space: nowrap; color: #8A3A12">{{cur.link}}</span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 1400px; top: 140px; width: 350px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">{{counter}}</div>
+<sc-if value="{{even}}" hint-placeholder-val="{{ true }}">
+<div style="animation: v4jnIn 400ms ease both">
+<div style="margin-top: 10px; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">{{cur.t}}</div>
+<div style="margin-top: 14px; font-size: 18px; line-height: 1.45; color: #3A3833">{{cur.c}}</div>
+<div style="margin-top: 22px; height: 6px; border-radius: 3px; background: #DDD8CC; overflow: hidden"><span style="display: block; height: 6px; background: #F0521F; transform-origin: 0 50%; animation: v4jnBar {{dur}}s linear both; animation-play-state: {{playState}}"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{odd}}" hint-placeholder-val="{{ false }}">
+<div style="animation: v4jnIn 400ms ease both">
+<div style="margin-top: 10px; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">{{cur.t}}</div>
+<div style="margin-top: 14px; font-size: 18px; line-height: 1.45; color: #3A3833">{{cur.c}}</div>
+<div style="margin-top: 22px; height: 6px; border-radius: 3px; background: #DDD8CC; overflow: hidden"><span style="display: block; height: 6px; background: #F0521F; transform-origin: 0 50%; animation: v4jnBar {{dur}}s linear both; animation-play-state: {{playState}}"></span></div>
+</div>
+</sc-if>
+<div style="display: flex; gap: 10px; margin-top: 22px">
+<button type="button" onClick="{{prev}}" aria-label="Назад" style="width: 56px; height: 56px; border-radius: 18px; border: 0; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<button type="button" onClick="{{toggle}}" aria-label="{{playAria}}" style="flex: 1; height: 56px; border-radius: 18px; border: 0; background: #17161A; color: #F3F0E8; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{playIcon}}"></path></svg>{{playLabel}}</button>
+<button type="button" onClick="{{next}}" aria-label="Дальше" style="width: 56px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</div>
+<div style="margin-top: 30px; padding: 18px; border-radius: 20px; background: #FBFAF6; font-size: 14px; line-height: 1.5; color: #4A463F"><b style="color: #17161A">Новое в v5:</b> рукописный запуск, вход без мероприятия, галочки, 50 стикеров с поиском, пуши как в Telegram, живые друзья на карте, нет сети, панель разработчика.</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: 0, play: true }; }
+  componentDidMount() { this.iv = setInterval(() => { if (this.state.play) this.setState({ i: (this.state.i + 1) % 15 }); }, 8000); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  renderVals() {
+    const S = [{"t": "Запуск", "c": "«привет» и «рядом.» пишутся от руки, как приветствие на Mac. Вернулся — «с возвращением».", "a": "Первый запуск", "b": "Вернулся", "link": ""}, {"t": "Вход", "c": "Без мероприятий и лишнего: приветствие, номер, код. Твой номер уже в демо-базе, код 0000.", "a": "Приветствие", "b": "Номер", "link": ""}, {"t": "Профиль", "c": "Нашли в базе — «Это ты?», роль «разработчик». Потом интересы — с них стартует лента.", "a": "Это ты?", "b": "Добро пожаловать", "link": ""}, {"t": "Живая карта", "c": "Друзья плавно едут со следом, значок — где они, сверху счётчик сообщений. Имён нет.", "a": "Друзья", "b": "Погода в субботу", "link": ""}, {"t": "Событие", "c": "Тап по пину — карточка снизу. Потянул вверх — весь экран. «12 мин» — как добраться.", "a": "Карточка", "b": "Как добраться", "link": ""}, {"t": "Подборка", "c": "Вправо — «Пойду» и в «Планы», влево — мимо, вверх — открыть.", "a": "Свайпы", "b": "Лента", "link": ""}, {"t": "Сообщения", "c": "Новое сообщение поднимает чат наверх. Одна галочка — доставлено, две — прочитано.", "a": "Чаты", "b": "Галочки", "link": ""}, {"t": "Стикеры", "c": "Поиск вместо надписи, 50 своих стикеров. Прислал 10 — у друга на карте летят все 10.", "a": "Арман", "b": "Игорь", "link": "стикеры"}, {"t": "Пуш", "c": "Как в Telegram: зажал — «Ответить», «Прочитано», «Открыть чат».", "a": "Пришло", "b": "Зажал", "link": ""}, {"t": "Ответ из пуша", "c": "Ответил, не открывая. Или тапнул — открылся этот чат.", "a": "Ответить", "b": "Открыть чат", "link": ""}, {"t": "Точка «я тут»", "c": "Точка в чате на 15 мин, 30 мин или 2 часа. У друга — «Маршрут».", "a": "Арман", "b": "Игорь", "link": "точка"}, {"t": "Друзья вместе", "c": "Встретились — плавающий пузырь с двумя лицами и тёплым свечением.", "a": "Карта", "b": "Тап по пузырю", "link": ""}, {"t": "Без сети", "c": "Нет интернета — показываем сохранённое, сообщения ждут. Плохая геолокация — круг вместо точки.", "a": "Нет сети", "b": "Неточно", "link": ""}, {"t": "Город", "c": "Где гуляешь — карта цветная. Процент города, районы, ночёвки, ачивки.", "a": "Открытие карты", "b": "Мой город", "link": ""}, {"t": "Разработчик", "c": "Панель разработчика первой строкой. Вставил ссылку — карточка собралась и встала на карту.", "a": "Профиль", "b": "Ссылка → карточка", "link": ""}];
+    const i = this.state.i;
+    const go = (k) => () => { clearInterval(this.iv); this.iv = setInterval(() => { if (this.state.play) this.setState({ i: (this.state.i + 1) % 15 }); }, 8000); this.setState({ i: k }); };
+    const out = {
+      list: S.map((s, k) => ({ n: String(k + 1).padStart(2, '0'), t: s.t, cur: k === i ? 'step' : 'false', bg: k === i ? '#17161A' : (k < i ? '#F3F0E8' : '#FBFAF6'), fg: k === i ? '#F3F0E8' : '#17161A', hasLink: !!s.link, tagBg: k === i ? '#F0521F' : '#E7E2D6', tagFg: '#17161A', go: go(k) })),
+      cur: S[i], hasLink: !!S[i].link, counter: 'ШАГ ' + String(i + 1).padStart(2, '0') + ' ИЗ 15',
+      even: i % 2 === 0, odd: i % 2 === 1, dur: '8', playState: this.state.play ? 'running' : 'paused',
+      prev: go((i + 14) % 15), next: go((i + 1) % 15),
+      toggle: () => this.setState({ play: !this.state.play }),
+      playLabel: this.state.play ? 'Пауза' : 'Смотреть дальше', playAria: this.state.play ? 'Пауза' : 'Играть',
+      playIcon: this.state.play ? 'M8 5v14M16 5v14' : 'M7 4l13 8-13 8z'
+    };
+    S.forEach((s, k) => { out['on' + k] = k === i; });
+    return out;
+  }
+}
+</script>
+</body>
+</html>

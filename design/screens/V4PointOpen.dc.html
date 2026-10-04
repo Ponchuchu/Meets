@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Друг открыл точку: маршрут одним нажатием</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v4poPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.8);opacity:0}}
+@keyframes v4poHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v4poDraw{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+@keyframes v4poFlow{from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes v4poSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v4poIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v4poZoom{from{transform:scale(1.25)}to{transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isChat}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 112px; box-sizing: border-box; padding: 52px 14px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E7E2D6">
+<a href="V3Chats.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<img src="../assets/arman.jpg" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #2447B8">
+<div><div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Арман</div><div style="font-size: 12.5px; color: #5F5B55">в сети</div></div>
+</div>
+<div style="position: absolute; left: 0; top: 112px; width: 390px; bottom: 90px; box-sizing: border-box; padding: 0 14px 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+<div style="align-self: flex-end; max-width: 260px; padding: 11px 15px; border-radius: 20px 20px 6px 20px; background: #F0521F; font-size: 15.5px">Ты где? Не вижу тебя</div>
+<div style="align-self: flex-start; width: 272px; border-radius: 24px 24px 24px 8px; overflow: hidden; background: #FBFAF6; box-shadow: 0 10px 26px rgba(23,22,26,0.12); animation: v4poIn 420ms ease both">
+<div style="position: relative; width: 272px; height: 150px; overflow: hidden">
+<div style="position: absolute; left: -60px; top: -310px; width: 390px; height: 844px"><dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import></div>
+<span aria-hidden="true" style="position: absolute; left: 116px; top: 55px; width: 40px; height: 40px; border-radius: 50%; background: rgba(240,82,31,0.35); animation: v4poPulse 1.8s ease-out infinite"></span>
+<div aria-hidden="true" style="position: absolute; left: 112px; top: 34px; width: 48px; height: 60px; animation: v4poHop 1.6s ease-in-out infinite">
+<svg width="48" height="60" viewBox="0 0 48 60"><path d="M24 58S4 38 4 22a20 20 0 0140 0c0 16-20 36-20 36z" fill="#F0521F" stroke="#FBFAF6" stroke-width="3"></path></svg>
+<img src="../assets/arman.jpg" alt="" style="position: absolute; left: 9px; top: 7px; width: 30px; height: 30px; border-radius: 50%; object-fit: cover">
+</div>
+<span style="position: absolute; right: 10px; top: 10px; padding: 5px 9px; border-radius: 10px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600">ЕЩЁ 28 МИН</span>
+</div>
+<div style="padding: 12px 14px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">Арман тут</div>
+<div style="margin-top: 2px; font-size: 13px; color: #5F5B55">Кофейня на углу · 800 м от тебя</div>
+<button type="button" onClick="{{openMap}}" style="margin-top: 10px; width: 100%; height: 46px; border-radius: 14px; border: 0; background: #F0521F; color: #17161A; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 19a2 2 0 110-4 2 2 0 010 4zM18 9a2 2 0 110-4 2 2 0 010 4zM6 15V9a4 4 0 014-4h2M18 9v6a4 4 0 01-4 4h-2"></path></svg>Маршрут</button>
+</div>
+</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 26px; width: 390px; height: 64px; box-sizing: border-box; padding: 8px 12px; display: flex; align-items: center; gap: 8px">
+<span style="width: 46px; height: 46px; border-radius: 23px; background: #E7E2D6; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+<div style="flex: 1; height: 46px; border-radius: 23px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #E7E2D6; display: flex; align-items: center; padding-left: 16px; font-size: 15px; color: #8A857C">Сообщение</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMap}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; animation: v4poZoom 600ms cubic-bezier(.2,.8,.2,1) both; transform-origin: 198px 396px">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+</div>
+<sc-if value="{{routeOn}}" hint-placeholder-val="{{ false }}">
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0">
+<path d="M306 560V498H198V420" stroke="#FBFAF6" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M306 560V498H198V420" stroke="#2447B8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="600" style="animation: v4poDraw 800ms ease both"></path>
+<path d="M306 560V498H198V420" stroke="rgba(251,250,246,0.9)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="2 14" style="animation: v4poFlow 900ms linear infinite"></path>
+</svg>
+<span aria-hidden="true" style="position: absolute; left: 252px; top: 486px; transform: translate(-50%, -50%); padding: 5px 9px; border-radius: 10px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; box-shadow: 0 0 0 2px #FBFAF6; animation: v4poIn 300ms ease 0.6s both">10 МИН</span>
+</sc-if>
+<div aria-hidden="true" style="position: absolute; left: 306px; top: 560px; width: 0; height: 0">
+<span style="position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(36,71,184,0.3); animation: v4poPulse 1.8s ease-out infinite"></span>
+<span style="position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: #2447B8; box-shadow: 0 0 0 4px #FBFAF6"></span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 174px; top: 360px; width: 48px; height: 60px; animation: v4poHop 1.6s ease-in-out infinite">
+<span style="position: absolute; left: 4px; top: 4px; width: 40px; height: 40px; border-radius: 50%; background: rgba(240,82,31,0.35); animation: v4poPulse 1.8s ease-out infinite"></span>
+<svg width="48" height="60" viewBox="0 0 48 60" style="position: absolute; left: 0; top: 0"><path d="M24 58S4 38 4 22a20 20 0 0140 0c0 16-20 36-20 36z" fill="#F0521F" stroke="#FBFAF6" stroke-width="3"></path></svg>
+<img src="../assets/arman.jpg" alt="" style="position: absolute; left: 9px; top: 7px; width: 30px; height: 30px; border-radius: 50%; object-fit: cover">
+</div>
+<span aria-hidden="true" style="position: absolute; left: 160px; top: 330px; padding: 4px 9px; border-radius: 10px; background: #17161A; color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600">ЕЩЁ 28 МИН</span>
+<button type="button" onClick="{{backChat}}" aria-label="Назад в чат" style="position: absolute; left: 16px; top: 52px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: #FBFAF6; box-shadow: 0 4px 14px rgba(23,22,26,0.14); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 12px 16px 30px; border-radius: 28px 28px 0 0; background: #FBFAF6; box-shadow: 0 -12px 34px rgba(23,22,26,0.16); animation: v4poSheet 380ms cubic-bezier(.2,.8,.2,1) both">
+<span aria-hidden="true" style="display: block; width: 40px; height: 5px; border-radius: 3px; background: #CFC9BB; margin: 0 auto 12px"></span>
+<div style="display: flex; align-items: center; gap: 12px">
+<img src="../assets/arman.jpg" alt="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover">
+<div style="flex: 1"><div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 700">Арман тут</div><div style="font-size: 13px; color: #5F5B55">Кофейня на углу · 800 м</div></div>
+</div>
+<div style="display: flex; gap: 6px; margin-top: 14px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+<span style="flex: 1; height: 54px; border-radius: 15px; background: {{m.bg}}; color: {{m.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.icon}}"></path></svg><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600">{{m.t}}</span></span>
+</sc-for>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 12px">
+<button type="button" onClick="{{route}}" style="flex: 1.4; height: 54px; border-radius: 17px; border: 0; background: {{routeBg}}; color: {{routeFg}}; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{routeIcon}}"></path></svg>{{routeLabel}}</button>
+<button type="button" onClick="{{backChat}}" style="flex: 1; height: 54px; border-radius: 17px; border: 0; background: #F3F0E8; box-shadow: inset 0 0 0 1.5px #DDD8CC; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">Написать</button>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["chat","map","route"],"default":"chat"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { stage: props.stage ?? 'chat' }; }
+  renderVals() {
+    const st = this.state.stage;
+    const route = st === 'route';
+    return {
+      isChat: st === 'chat', isMap: st !== 'chat', routeOn: route,
+      openMap: () => this.setState({ stage: 'map' }), backChat: () => this.setState({ stage: 'chat' }),
+      route: () => this.setState({ stage: 'route' }),
+      routeBg: route ? '#17161A' : '#F0521F', routeFg: route ? '#F3F0E8' : '#17161A',
+      routeIcon: route ? 'M14 3h7v7M10 14L21 3M21 14v6a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h6' : 'M6 19a2 2 0 110-4 2 2 0 010 4zM18 9a2 2 0 110-4 2 2 0 010 4zM6 15V9a4 4 0 014-4h2M18 9v6a4 4 0 01-4 4h-2',
+      routeLabel: route ? 'Открыть в навигаторе' : 'Проложить маршрут',
+      modes: [
+        ['M13 4a2 2 0 110 4 2 2 0 010-4zM10 21l2-6 3 3v3M9 13l2-4 4 3 3 1M7 10l3-1', '10 мин', true],
+        ['M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2M7.5 13h.01M16.5 13h.01', '4 мин', false],
+        ['M6 4h12a2 2 0 012 2v10H4V6a2 2 0 012-2zM4 11h16M7 16v3M17 16v3', '12 мин', false]
+      ].map(([icon, t, on]) => ({ icon, t, bg: on ? '#17161A' : '#F3F0E8', fg: on ? '#F3F0E8' : '#17161A' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

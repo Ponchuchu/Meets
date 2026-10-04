@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обучение: первые подсказки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6tuRing{0%{transform:scale(1);opacity:0.9}100%{transform:scale(1.35);opacity:0}}
+@keyframes v6tuIn{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v6tuTap{0%,30%{transform:scale(1);opacity:0}40%{opacity:1}55%{transform:scale(0.78)}70%{transform:scale(1);opacity:1}100%{opacity:0}}
+@keyframes v6tuSwipeCard{0%,12%{transform:translate(0,0) rotate(0)}38%{transform:translate(120px,-8px) rotate(10deg)}46%{transform:translate(0,0) rotate(0)}62%{transform:translate(-120px,-8px) rotate(-10deg)}70%{transform:translate(0,0) rotate(0)}86%{transform:translate(0,-70px)}94%,100%{transform:translate(0,0)}}
+@keyframes v6tuSwipeHand{0%,12%{transform:translate(0,0);opacity:0}16%{opacity:1}38%{transform:translate(120px,-8px);opacity:1}42%{opacity:0;transform:translate(0,0)}48%{opacity:1}62%{transform:translate(-120px,-8px);opacity:1}66%{opacity:0;transform:translate(0,0)}74%{opacity:1}86%{transform:translate(0,-70px);opacity:1}90%,100%{opacity:0}}
+@keyframes v6tuLbl1{0%,20%{opacity:0}28%,40%{opacity:1}44%,100%{opacity:0}}
+@keyframes v6tuLbl2{0%,50%{opacity:0}56%,64%{opacity:1}68%,100%{opacity:0}}
+@keyframes v6tuLbl3{0%,76%{opacity:0}82%,90%{opacity:1}94%,100%{opacity:0}}
+@keyframes v6tuCheck{from{stroke-dashoffset:60}to{stroke-dashoffset:0}}
+@keyframes v6tuPop{0%{transform:scale(0.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<sc-if value="{{scrMap}}" hint-placeholder-val="{{ true }}">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+<sc-for list="{{pins}}" as="p" hint-placeholder-count="4">
+<span aria-hidden="true" style="position: absolute; left: {{p.x}}px; top: {{p.y}}px; width: 38px; height: 38px; border-radius: 13px; background: {{p.bg}}; border: 3px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 6px 14px rgba(23,22,26,0.2); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg></span>
+</sc-for>
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="2">
+<span aria-hidden="true" style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: 48px; height: 48px; border-radius: 50%; border: 3px solid #FBFAF6; box-shadow: 0 6px 16px rgba(23,22,26,0.25); overflow: hidden"><img src="{{f.p}}" alt="" style="width: 48px; height: 48px; object-fit: cover; display: block"></span>
+</sc-for>
+<span aria-hidden="true" style="position: absolute; left: 230px; top: 470px; width: 22px; height: 22px; border-radius: 50%; background: #F0521F; border: 4px solid #FBFAF6; box-sizing: border-box"></span>
+<div style="position: absolute; left: 0; top: 0"><dc-import name="V6MapTop" lens="normal" hint-size="390px,140px"></dc-import></div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V6TabBar" active="map" plans="0" chats="0" hint-size="390px,96px"></dc-import></div>
+
+</sc-if>
+<sc-if value="{{scrFeed}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: #F3F0E8"><div style="position: absolute; left: 20px; top: 58px; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Рекомендации</div><div style="position: absolute; left: 20px; top: 116px; width: 350px; height: 560px; border-radius: 30px; overflow: hidden; background: #17161A; transform: translateY(24px) scale(0.92); opacity: 0.6"><img src="../assets/museum.jpg" alt="" style="width: 350px; height: 420px; object-fit: cover"></div><div style="position: absolute; left: 0; bottom: 0"><dc-import name="V6TabBar" active="feed" plans="0" chats="0" hint-size="390px,96px"></dc-import></div></div>
+</sc-if>
+<sc-if value="{{scrPlans}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; z-index: 0"><dc-import name="V3Plans" hint-size="390px,844px"></dc-import></div><div style="position: absolute; left: 0; bottom: 0; z-index: 2"><dc-import name="V6TabBar" active="plans" plans="2" chats="1" hint-size="390px,96px"></dc-import></div></sc-if>
+<sc-if value="{{scrChats}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; z-index: 0"><dc-import name="V3Chats" hint-size="390px,844px"></dc-import></div><div style="position: absolute; left: 0; bottom: 0; z-index: 2"><dc-import name="V6TabBar" active="chats" plans="2" chats="1" hint-size="390px,96px"></dc-import></div></sc-if>
+<sc-if value="{{scrMe}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0"><dc-import name="V6Profile" view="me" hint-size="390px,844px"></dc-import></div></sc-if>
+<sc-if value="{{isSwipe}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(23,22,26,0.5)"></div>
+<div aria-hidden="true" style="position: absolute; left: 50px; top: 140px; width: 290px; height: 380px; border-radius: 28px; overflow: hidden; background: #17161A; box-shadow: 0 20px 40px rgba(0,0,0,0.35); animation: v6tuSwipeCard 4.8s cubic-bezier(.4,0,.2,1) infinite">
+<img src="../assets/pub.jpg" alt="" style="width: 290px; height: 300px; object-fit: cover; display: block">
+<div style="padding: 12px 14px; color: #F3F0E8; font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">Жёсткий стендап</div>
+<span style="position: absolute; left: 14px; top: 16px; padding: 4px 10px; border: 3px solid #F0521F; border-radius: 11px; background: rgba(251,250,246,0.94); color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800; transform: rotate(-10deg); animation: v6tuLbl1 4.8s ease infinite">ПОЙДУ</span>
+<span style="position: absolute; right: 14px; top: 16px; padding: 4px 10px; border: 3px solid #17161A; border-radius: 11px; background: rgba(251,250,246,0.94); font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800; transform: rotate(10deg); animation: v6tuLbl2 4.8s ease infinite">МИМО</span>
+<span style="position: absolute; left: 50%; top: 110px; margin-left: -48px; padding: 4px 10px; border-radius: 11px; background: rgba(251,250,246,0.94); font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800; animation: v6tuLbl3 4.8s ease infinite">ОТКРЫТЬ</span>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 167px; top: 330px; width: 56px; height: 56px; border-radius: 50%; background: rgba(251,250,246,0.35); border: 4px solid #FBFAF6; box-sizing: border-box; animation: v6tuSwipeHand 4.8s cubic-bezier(.4,0,.2,1) infinite"></span>
+</sc-if>
+
+<sc-if value="{{hasSpot}}" hint-placeholder-val="{{ true }}">
+<span aria-hidden="true" style="position: absolute; left: {{spot.x}}px; top: {{spot.y}}px; width: {{spot.w}}px; height: {{spot.h}}px; border-radius: {{spot.r}}px; box-shadow: 0 0 0 1400px rgba(23,22,26,0.62); transition: all 600ms cubic-bezier(.2,.8,.2,1)"></span>
+<span aria-hidden="true" style="position: absolute; left: {{spot.x}}px; top: {{spot.y}}px; width: {{spot.w}}px; height: {{spot.h}}px; border-radius: {{spot.r}}px; border: 3px solid #F7B08A; box-sizing: border-box; animation: v6tuRing 1.6s ease-out infinite"></span>
+<span aria-hidden="true" style="position: absolute; left: {{tap.x}}px; top: {{tap.y}}px; width: 50px; height: 50px; border-radius: 50%; background: rgba(251,250,246,0.4); border: 4px solid #FBFAF6; box-sizing: border-box; animation: v6tuTap 1.8s ease infinite"></span>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(23,22,26,0.62)"></div>
+<div style="position: absolute; left: 24px; top: 230px; width: 342px; box-sizing: border-box; padding: 30px 24px 24px; border-radius: 30px; background: #FBFAF6; text-align: center; animation: v6tuPop 600ms cubic-bezier(.2,.8,.2,1) both">
+<span style="display: inline-flex; width: 76px; height: 76px; border-radius: 50%; background: #F0521F; align-items: center; justify-content: center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-dasharray="60" style="animation: v6tuCheck 700ms ease 300ms both"></path></svg></span>
+<div style="margin-top: 16px; font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.03em">Вот и всё</div>
+<div style="margin-top: 8px; font-size: 16px; line-height: 1.45; color: #4A463F">Дальше разберёшься сам — подсказки больше не появятся.</div>
+<button type="button" style="margin-top: 20px; width: 100%; height: 54px; border: 0; border-radius: 18px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Начать</button>
+</div>
+</sc-if>
+
+<sc-if value="{{hasCard}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 20px; top: {{cardTop}}px; width: 350px; box-sizing: border-box; padding: 20px; border-radius: 26px; background: #FBFAF6; box-shadow: 0 18px 40px rgba(0,0,0,0.28); animation: v6tuIn 500ms cubic-bezier(.2,.8,.2,1) both">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<div style="display: flex; gap: 5px"><sc-for list="{{dots}}" as="d" hint-placeholder-count="9"><span style="width: {{d.w}}px; height: 6px; border-radius: 3px; background: {{d.c}}"></span></sc-for></div>
+<span style="font-size: 14px; font-weight: 600; color: #5F5B55">Пропустить</span>
+</div>
+<div style="margin-top: 14px; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em">{{step.t}}</div>
+<div style="margin-top: 6px; font-size: 16px; line-height: 1.45; color: #4A463F">{{step.s}}</div>
+<button type="button" onClick="{{next}}" style="margin-top: 16px; height: 48px; padding: 0 22px; border: 0; border-radius: 16px; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">{{step.b}}</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["auto","map","top","lens","friends","feed","swipe","plans","chats","me","done"],"default":"auto"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: 0 }; }
+  componentDidMount() { if ((this.props.step ?? 'auto') === 'auto') this.iv = setInterval(() => this.setState({ i: (this.state.i + 1) % 10 }), 4600); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  renderVals() {
+    const S = [
+      { k: 'map', t: 'Это карта', s: 'Тут всё, что происходит рядом сегодня и завтра. Нажми на точку — откроется событие.', b: 'Дальше', spot: [116, 296, 128, 92, 30], tap: [156, 318], top: 450, scr: 'map' },
+      { k: 'top', t: 'Поиск и фильтры', s: 'Найди событие по названию. В фильтрах — дата, цена и разделы. Слева — погода.', b: 'Дальше', spot: [10, 46, 370, 92, 28], tap: [272, 52], top: 190, scr: 'map' },
+      { k: 'lens', t: 'Слои карты', s: 'Обычная карта, пробки или «Где я был» — какие районы ты уже открыл.', b: 'Дальше', spot: [208, 46, 60, 60, 30], tap: [213, 51], top: 150, scr: 'map' },
+      { k: 'friends', t: 'Тут друзья', s: 'Ты видишь друзей, а они — тебя. Больше никто. Нажми на друга — напиши или позови.', b: 'Дальше', spot: [44, 168, 76, 76, 38], tap: [57, 181], top: 290, scr: 'map' },
+      { k: 'feed', t: 'Рекомендации', s: 'Нажми сюда — тут события под твой вкус.', b: 'Открыть', spot: [88, 754, 74, 64, 26], tap: [100, 762], top: 520, scr: 'map' },
+      { k: 'swipe', t: 'Смахивай', s: 'Вправо — пойду. Влево — не моё. Вверх — посмотреть подробнее.', b: 'Понятно', top: 560, scr: 'feed' },
+      { k: 'plans', t: 'Планы', s: 'Всё, куда ты идёшь, и куда тебя зовут друзья. За час напомним.', b: 'Дальше', spot: [160, 754, 74, 64, 26], tap: [172, 762], top: 520, scr: 'plans' },
+      { k: 'chats', t: 'Чаты', s: 'Друзья и компании на событие. Стикеры и «я тут» — точка на 15 минут, 30 минут или 2 часа.', b: 'Дальше', spot: [232, 754, 74, 64, 26], tap: [244, 762], top: 500, scr: 'chats' },
+      { k: 'me', t: 'Профиль', s: 'Твои места, кто тебя видит, невидимка и настройки.', b: 'Дальше', spot: [304, 754, 74, 64, 26], tap: [316, 762], top: 520, scr: 'me' },
+      { k: 'done', scr: 'map' }
+    ];
+    const p = this.props.step ?? 'auto';
+    const i = p === 'auto' ? this.state.i : Math.max(0, S.findIndex((x) => x.k === p));
+    const st = S[i];
+    const sp = st.spot || [0, 0, 0, 0, 0];
+    return {
+      step: { t: st.t || '', s: st.s || '', b: st.b || '' },
+      hasSpot: !!st.spot, scrMap: st.scr === 'map', scrFeed: st.scr === 'feed', scrPlans: st.scr === 'plans', scrChats: st.scr === 'chats', scrMe: st.scr === 'me', hasCard: st.k !== 'done', isDone: st.k === 'done', isSwipe: st.k === 'swipe',
+      spot: { x: String(sp[0]), y: String(sp[1]), w: String(sp[2]), h: String(sp[3]), r: String(sp[4]) },
+      tap: { x: String((st.tap || [0, 0])[0]), y: String((st.tap || [0, 0])[1]) },
+      cardTop: String(st.top || 0),
+      dots: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ w: k === i ? '18' : '6', c: k === i ? '#F0521F' : '#DDD8CC' })),
+      next: () => this.setState({ i: (i + 1) % 10 }),
+      pins: [[126, 300, '#F0521F', 'M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z'], [196, 340, '#2447B8', 'M3 21h18M5 21V8l7-5 7 5v13M10 21v-6h4v6'], [160, 352, '#2F8F5B', 'M3 20l6-12 4 7 3-4 5 9z'], [300, 420, '#C77A12', 'M5 9h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 11h2a2 2 0 010 4h-2']].map(([x, y, bg, icon]) => ({ x: String(x), y: String(y), bg, icon })),
+      friends: [['../assets/igor.jpg', 58, 182], ['../assets/arman.jpg', 296, 560]].map(([p2, x, y]) => ({ p: p2, x: String(x), y: String(y) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

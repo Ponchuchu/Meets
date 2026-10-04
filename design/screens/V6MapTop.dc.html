@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Верх карты: поиск, линзы, фильтры, создать; погода</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 140px; position: relative; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 16px; right: 16px; top: 52px; display: flex; gap: 8px">
+<div role="search" style="flex: 1; min-width: 0; height: 48px; box-sizing: border-box; border-radius: 24px; border: 1px solid rgba(23,22,26,0.08); background: rgba(251,250,246,0.97); box-shadow: 0 4px 14px rgba(23,22,26,0.12); display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 15px; color: #55524C; white-space: nowrap; overflow: hidden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0"><path d="M11 4a7 7 0 110 14 7 7 0 010-14zM20 20l-4-4"></path></svg>Куда сходить?</div>
+<span role="button" aria-label="Линзы карты" style="position: relative; width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; border: 1px solid rgba(23,22,26,0.08); background: {{lensBg}}; box-shadow: 0 4px 14px rgba(23,22,26,0.12); box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{lensFg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 12.5l9 5 9-5M3 16.5l9 5 9-5"></path></svg></span>
+<span role="button" aria-label="Фильтры и дата" style="position: relative; width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; border: 1px solid rgba(23,22,26,0.08); background: rgba(251,250,246,0.97); box-shadow: 0 4px 14px rgba(23,22,26,0.12); box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 4.5v5M10 14.5v5"></path></svg><sc-if value="{{hasFilter}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: 9px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: #F0521F; box-shadow: 0 0 0 2px #FBFAF6"></span></sc-if></span>
+<span role="button" aria-label="Создать встречу" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: #17161A; box-shadow: 0 4px 14px rgba(23,22,26,0.2); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>
+</div>
+<div role="img" aria-label="{{weatherLabel}}" style="position: absolute; left: 24px; top: 108px; display: flex; align-items: center; gap: 5px; color: {{wFg}}">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{wIcon}}"></path></svg>
+<span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -0.02em">{{temp}}</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lens":{"editor":"enum","options":["normal","traffic","explore"],"default":"normal"},"weather":{"editor":"enum","options":["cloud","sun","rain","snow"],"default":"cloud"},"theme":{"editor":"enum","options":["day","night"],"default":"day"},"filter":{"editor":"boolean","default":false},"$preview":{"width":390,"height":140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lens = this.props.lens ?? 'normal';
+    const w = this.props.weather ?? 'cloud';
+    const W = {
+      cloud: ['M7 18h10a4 4 0 00.6-7.95A6 6 0 006.2 11.2 3.4 3.4 0 007 18z', '+14°', 'облачно'],
+      sun: ['M12 7a5 5 0 110 10 5 5 0 010-10zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4', '+21°', 'солнечно'],
+      rain: ['M7 15h10a4 4 0 00.6-7.95A6 6 0 006.2 8.2 3.4 3.4 0 007 15zM8 19l-1 2M12 19l-1 2M16 19l-1 2', '+9°', 'дождь'],
+      snow: ['M7 14h10a4 4 0 00.6-7.95A6 6 0 006.2 7.2 3.4 3.4 0 007 14zM8 18h.01M12 20h.01M16 18h.01', '−4°', 'снег']
+    }[w] || [];
+    const on = lens !== 'normal';
+    return {
+      lensBg: on ? '#17161A' : 'rgba(251,250,246,0.97)', lensFg: on ? '#F3F0E8' : '#17161A',
+      hasFilter: !!this.props.filter,
+      wIcon: W[0], temp: W[1], weatherLabel: 'Погода: ' + W[2] + ', ' + W[1],
+      wFg: (this.props.theme ?? 'day') === 'night' ? '#F3F0E8' : '#17161A'
+    };
+  }
+}
+</script>
+</body>
+</html>

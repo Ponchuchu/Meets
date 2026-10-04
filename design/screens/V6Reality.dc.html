@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Что легко, что сложно, чего нельзя</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6reIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 1600px; height: 1000px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">ПРОВЕРКА РЕАЛЬНОСТЬЮ · ГЛАЗАМИ ПОЛЬЗОВАТЕЛЯ, ТЕСТИРОВЩИКА И БЭКЕНДЕРА</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 42px; font-weight: 800; letter-spacing: -0.04em">Что легко сделать, что сложно, а чего нельзя</h1>
+<div style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="3">
+<div>
+<div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; border-radius: 16px; background: {{c.hbg}}; color: {{c.hfg}}"><span style="width: 12px; height: 12px; border-radius: 50%; background: {{c.dot}}"></span><span style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">{{c.t}}</span><span style="margin-left: auto; font-size: 13px; opacity: 0.8">{{c.s}}</span></div>
+<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{c.items}}" as="it" hint-placeholder-count="8">
+<div style="padding: 12px 14px; border-radius: 16px; background: #FBFAF6; animation: v6reIn 400ms ease {{it.dl}}s both">
+<div style="font-size: 15px; font-weight: 700">{{it.t}}</div>
+<div style="margin-top: 3px; font-size: 13.5px; line-height: 1.4; color: #4A463F">{{it.s}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 56px; right: 56px; bottom: 44px; padding: 18px 20px; border-radius: 22px; background: #17161A; color: #F3F0E8">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">Тестировщик проверит перед запуском</div>
+<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{tests}}" as="t" hint-placeholder-count="12"><span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 11px; background: #2A292E; font-size: 13.5px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{t}}</span></sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (arr, base) => arr.map(([t, s], k) => ({ t, s, dl: String((base + k * 0.06).toFixed(2)) }));
+    return {
+      cols: [
+        { t: 'Легко', s: 'готовые инструменты', hbg: '#FBFAF6', hfg: '#17161A', dot: '#2F8F5B', items: mk([
+          ['Рукописный запуск', 'анимация из макета, полторы секунды, без загрузки'],
+          ['Обучение один раз', 'запоминаем на телефоне, что подсказки уже показали'],
+          ['Свайпы, раскрытие карточки, остров «Планов»', 'обычные анимации, работают плавно на любом телефоне'],
+          ['Чаты: удалить, закрепить, без звука, ответить свайпом', 'как в Telegram, всё на телефоне'],
+          ['Галочки', 'сервер помечает «доставлено» и «прочитано»'],
+          ['Пуш: «Ответить», «Прочитано», «Открыть чат»', 'штатная возможность iOS и Android'],
+          ['Нет сети, нет геолокации', 'телефон сам сообщает — показываем одну строку'],
+          ['Скорость и «куда смотришь»', 'GPS и компас есть в каждом телефоне']
+        ], 0.1) },
+        { t: 'Сложно, но можно', s: 'нужен сервер и время', hbg: '#FBFAF6', hfg: '#17161A', dot: '#C77A12', items: mk([
+          ['Друзья на карте вживую', 'сервер рассылает точки за секунду; фоновую геолокацию разрешает человек'],
+          ['10 стикеров летят у друга на карте', 'если приложение открыто. Закрыто — придёт обычный пуш'],
+          ['Удалить «у меня и у друга»', 'сервер удаляет обе копии, друг увидит, что чат пропал'],
+          ['Ссылка на сайт → карточка события', 'сайты разные: ИИ разбирает, человек проверяет и публикует'],
+          ['Рекомендации', 'сначала простые правила, потом учимся на свайпах'],
+          ['Дом и работа сами', 'нужна история мест за 1–2 недели'],
+          ['Батарея', 'стоишь — обновляем реже, едешь — чаще'],
+          ['Погода на карте', 'берём из бесплатного сервиса раз в час']
+        ], 0.5) },
+        { t: 'Нельзя — делаем иначе', s: 'честно', hbg: '#17161A', hfg: '#F3F0E8', dot: '#F0521F', items: mk([
+          ['Точное место в здании', 'GPS ошибается на 30–100 м → пишем тип места, без названия'],
+          ['Следить без разрешения', 'без «Всегда» точка обновляется, только когда приложение открыто'],
+          ['Живой стикер на заблокированном экране', 'iOS покажет картинку; движение — уже в приложении'],
+          ['«Доставлено», если у друга выключен телефон', 'одна галочка, пока он не включит'],
+          ['Скорость в метро и туннеле', 'нет GPS → «в пути» без цифры'],
+          ['Точно знать, что человек спит', 'только догадка: ночь, дома, телефон не двигается'],
+          ['Чей это дом', 'не узнаём и не нужно → «в гостях»'],
+          ['Удалить сообщение, которое уже прочитали в пуше', 'удалим в чате, но текст из уведомления не отзовём']
+        ], 0.9) }
+      ],
+      tests: ['Пропал интернет посреди отправки', 'Отказал в геолокации — потом передумал', 'Включил невидимку — точка замерла', 'Удалил чат у обоих', 'Друг удалил тебя из друзей', 'Событие отменили', 'Батарея 5%', 'Два телефона на один номер', 'Сменил часовой пояс', 'Очень длинное имя', 'Тёмная тема', 'Маленький экран iPhone SE', 'Слабый интернет в горах', '100 друзей на одной улице']
+    };
+  }
+}
+</script>
+</body>
+</html>

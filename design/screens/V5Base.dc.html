@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Демо-база: аккаунты и роли</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1200px; height: 760px; box-sizing: border-box; padding: 48px 56px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #F7B08A">ДЕМО-БАЗА · ТОЛЬКО ДЛЯ МАКЕТА И ТЕСТОВ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.04em">Аккаунты и роли</h1>
+<table style="margin-top: 26px; width: 100%; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 0.06em; color: #8F897C"><th style="padding: 10px 12px">ИМЯ</th><th style="padding: 10px 12px">НОМЕР</th><th style="padding: 10px 12px">РОЛЬ</th><th style="padding: 10px 12px">КОД (ДЕМО)</th><th style="padding: 10px 12px">ЧТО ВИДИТ</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<tr style="border-top: 1px solid #2A292E; background: {{r.bg}}">
+<td style="padding: 14px 12px; font-weight: 700">{{r.name}}</td>
+<td style="padding: 14px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600">{{r.phone}}</td>
+<td style="padding: 14px 12px"><span style="padding: 4px 10px; border-radius: 9px; background: {{r.roleBg}}; color: {{r.roleFg}}; font-size: 13px; font-weight: 700">{{r.role}}</span></td>
+<td style="padding: 14px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #F7B08A">{{r.code}}</td>
+<td style="padding: 14px 12px; color: #CFC9BB">{{r.sees}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px">
+<div style="padding: 18px; border-radius: 20px; background: #2A292E"><div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">В демо</div><div style="margin-top: 6px; font-size: 14.5px; line-height: 1.5; color: #CFC9BB">Номер +7 747 446 07 49 уже в базе с ролью «разработчик». SMS не уходит — код всегда 0000. Панель разработчика сразу первой строкой в профиле.</div></div>
+<div style="padding: 18px; border-radius: 20px; background: #2A292E"><div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">В настоящем приложении</div><div style="margin-top: 6px; font-size: 14.5px; line-height: 1.5; color: #CFC9BB">Настоящий SMS-код через Supabase Auth. Код 0000 работает только в демо-сборке. Роль хранится в таблице ролей, выдаёт её только админ.</div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rows: [
+        ['Данил', '+7 747 446 07 49', 'разработчик', '0000', 'всё + панель разработчика, админка событий', true],
+        ['Игорь (демо)', '+7 700 000 00 01', 'пользователь', '0000', 'как обычный человек', false],
+        ['Арман (демо)', '+7 700 000 00 02', 'пользователь', '0000', 'как обычный человек', false],
+        ['Новый человек', 'любой', 'пользователь', 'из SMS', 'после входа — пустые друзья и подборка по интересам', false]
+      ].map(([name, phone, role, code, sees, dev]) => ({ name, phone, role, code, sees, bg: dev ? 'rgba(240,82,31,0.12)' : 'transparent', roleBg: dev ? '#F0521F' : '#3A383F', roleFg: dev ? '#17161A' : '#F3F0E8' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

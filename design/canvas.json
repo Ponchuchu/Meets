@@ -1,1432 +1,2913 @@
 {
-  "v": 3,
-  "attachments": {},
-  "boards": {
-    "Flow.dc.html": {
-      "x": 0,
-      "y": 0,
-      "w": 1800,
-      "h": 800,
-      "title": "Карта переходов"
-    },
-    "SignUp.dc.html": {
-      "x": 0,
-      "y": 1300,
-      "w": 390,
-      "h": 844,
-      "title": "0 · Вход: Google, Apple, телефон",
-      "is_interactive": true
-    },
-    "SignUpCode.dc.html": {
-      "x": 470,
-      "y": 1300,
-      "w": 390,
-      "h": 844,
-      "title": "0а · Код из SMS",
-      "is_interactive": true
-    },
-    "SignUpProfile.dc.html": {
-      "x": 940,
-      "y": 1300,
-      "w": 390,
-      "h": 844,
-      "title": "0б · О себе (после Google)",
-      "is_interactive": true
-    },
-    "Onboarding.dc.html": {
-      "x": 1410,
-      "y": 1300,
-      "w": 390,
-      "h": 844,
-      "title": "0в · Что вытаскивает из дома",
-      "is_interactive": true
-    },
-    "SignUpRhythm.dc.html": {
-      "x": 1880,
-      "y": 1300,
-      "w": 390,
-      "h": 844,
-      "title": "0г · Когда, с кем, бюджет",
-      "is_interactive": true
-    },
-    "Main.dc.html": {
-      "x": 0,
-      "y": 2530,
-      "w": 390,
-      "h": 849,
-      "title": "1 · Карта",
-      "is_interactive": true
-    },
-    "MapCalendar.dc.html": {
-      "x": 470,
-      "y": 2550,
-      "w": 390,
-      "h": 844,
-      "title": "1а · Тап по дате: календарь с погодой",
-      "is_interactive": true
-    },
-    "MapFilters.dc.html": {
-      "x": 940,
-      "y": 2550,
-      "w": 390,
-      "h": 844,
-      "title": "1б · Фильтр: шторка на карте",
-      "is_interactive": true
-    },
-    "Event.dc.html": {
-      "x": 1410,
-      "y": 2550,
-      "w": 390,
-      "h": 1500,
-      "title": "3 · Событие: джаз (единый шаблон)",
-      "is_interactive": true
-    },
-    "HikeEvent.dc.html": {
-      "x": 1880,
-      "y": 2550,
-      "w": 390,
-      "h": 1500,
-      "title": "3б · Событие: поход (тот же шаблон)",
-      "is_interactive": true
-    },
-    "Company.dc.html": {
-      "x": 2350,
-      "y": 2550,
-      "w": 390,
-      "h": 844,
-      "title": "4 · Ищу компанию: шторка",
-      "is_interactive": true
-    },
-    "Feed.dc.html": {
-      "x": 0,
-      "y": 4450,
-      "w": 390,
-      "h": 844,
-      "title": "2 · Для тебя: бесконечные свайпы",
-      "is_interactive": true
-    },
-    "FeedDemo.dc.html": {
-      "x": 470,
-      "y": 4450,
-      "w": 1387,
-      "h": 1077,
-      "title": "2а · Как двигаются карточки (анимация)"
-    },
-    "FeedCards.dc.html": {
-      "x": 1937,
-      "y": 4450,
-      "w": 1632,
-      "h": 720,
-      "title": "2б · Какие бывают карточки"
-    },
-    "MapFocus.dc.html": {
-      "x": 0,
-      "y": 5930,
-      "w": 390,
-      "h": 844,
-      "title": "5 · Тап по другу",
-      "is_interactive": true
-    },
-    "MapMoving.dc.html": {
-      "x": 470,
-      "y": 5930,
-      "w": 390,
-      "h": 844,
-      "title": "5а · Друг в пути: скорость",
-      "is_interactive": true
-    },
-    "MapInvite.dc.html": {
-      "x": 940,
-      "y": 5930,
-      "w": 390,
-      "h": 844,
-      "title": "5б · Позвать куда-то",
-      "is_interactive": true
-    },
-    "MarkerStyle.dc.html": {
-      "x": 1410,
-      "y": 5930,
-      "w": 390,
-      "h": 1640,
-      "title": "5в · Мой значок на карте",
-      "is_interactive": true
-    },
-    "Person.dc.html": {
-      "x": 0,
-      "y": 7970,
-      "w": 390,
-      "h": 1680,
-      "title": "6 · Профиль: не в друзьях",
-      "is_interactive": true
-    },
-    "PersonFriend.dc.html": {
-      "x": 470,
-      "y": 7970,
-      "w": 390,
-      "h": 1960,
-      "title": "6б · Профиль: друг",
-      "is_interactive": true
-    },
-    "DirectChat.dc.html": {
-      "x": 940,
-      "y": 7970,
-      "w": 390,
-      "h": 900,
-      "title": "7 · Личный чат",
-      "is_interactive": true
-    },
-    "ChatAttach.dc.html": {
-      "x": 1410,
-      "y": 7970,
-      "w": 390,
-      "h": 900,
-      "title": "7а · Фото и видео в чате",
-      "is_interactive": true
-    },
-    "ChatSheets.dc.html": {
-      "x": 1880,
-      "y": 7970,
-      "w": 860,
-      "h": 1000,
-      "title": "7б · Нажал на аватарку в чате",
-      "is_interactive": true
-    },
-    "Chats.dc.html": {
-      "x": 2820,
-      "y": 7970,
-      "w": 390,
-      "h": 844,
-      "title": "8 · Чаты и заявки",
-      "is_interactive": true
-    },
-    "EventChat.dc.html": {
-      "x": 3290,
-      "y": 7970,
-      "w": 390,
-      "h": 844,
-      "title": "9 · Чат события",
-      "is_interactive": true
-    },
-    "Friends.dc.html": {
-      "x": 3760,
-      "y": 7970,
-      "w": 390,
-      "h": 1520,
-      "title": "10 · Люди",
-      "is_interactive": true
-    },
-    "CreateEvent.dc.html": {
-      "x": 4230,
-      "y": 7970,
-      "w": 390,
-      "h": 1960,
-      "title": "11 · Создать встречу",
-      "is_interactive": true
-    },
-    "Me.dc.html": {
-      "x": 0,
-      "y": 10330,
-      "w": 390,
-      "h": 2660,
-      "title": "12 · Профиль: всё на одной странице",
-      "is_interactive": true
-    },
-    "MeBadges.dc.html": {
-      "x": 470,
-      "y": 10330,
-      "w": 390,
-      "h": 844,
-      "title": "12а · Все значки — шторкой",
-      "is_interactive": true
-    },
-    "Settings.dc.html": {
-      "x": 940,
-      "y": 10330,
-      "w": 390,
-      "h": 2380,
-      "title": "13 · Настройки",
-      "is_interactive": true
-    },
-    "Suggest.dc.html": {
-      "x": 1410,
-      "y": 10330,
-      "w": 390,
-      "h": 1220,
-      "title": "14 · Предложить событие",
-      "is_interactive": true
-    },
-    "Logic.dc.html": {
-      "x": 0,
-      "y": 13390,
-      "w": 1840,
-      "h": 2320,
-      "title": "Логика продукта"
-    },
-    "Recs.dc.html": {
-      "x": 1920,
-      "y": 13390,
-      "w": 1840,
-      "h": 1800,
-      "title": "Как работают рекомендации (для команды)"
-    },
-    "Pipeline.dc.html": {
-      "x": 0,
-      "y": 16110,
-      "w": 1840,
-      "h": 1320,
-      "title": "Процесс: от ссылки до карты"
-    },
-    "Admin.dc.html": {
-      "x": 1920,
-      "y": 16110,
-      "w": 390,
-      "h": 1060,
-      "title": "Админка: модерация",
-      "is_interactive": true
-    },
-    "TasteAdmin.dc.html": {
-      "x": 2390,
-      "y": 16110,
-      "w": 1440,
-      "h": 1000,
-      "title": "Админка: вкус пользователя (видит только команда)",
-      "is_interactive": true
-    },
-    "MapStyles.dc.html": {
-      "x": 0,
-      "y": 17830,
-      "w": 1120,
-      "h": 720,
-      "title": "Стили карты"
-    },
-    "MapBase.dc.html": {
-      "x": 1200,
-      "y": 17830,
-      "w": 390,
-      "h": 844,
-      "title": "Подложка карты (компонент)"
-    },
-    "TabBar.dc.html": {
-      "x": 1670,
-      "y": 17830,
-      "w": 390,
-      "h": 84,
-      "title": "Таб-бар: Карта · Для тебя · Чаты · Люди · Профиль",
-      "is_interactive": true
-    },
-    "EventPage.dc.html": {
-      "x": 2140,
-      "y": 17830,
-      "w": 390,
-      "h": 1500,
-      "title": "Шаблон события (компонент)",
-      "is_interactive": true
-    },
-    "V2Flow.dc.html": {
-      "x": 0,
-      "y": 260,
-      "w": 1800,
-      "h": 1200,
-      "title": "v2 · Что куда нажимается",
-      "page": "v2"
-    },
-    "V2Why.dc.html": {
-      "x": 1880,
-      "y": 260,
-      "w": 1800,
-      "h": 1260,
-      "title": "v2 · Что мешает сейчас и что меняем",
-      "page": "v2"
-    },
-    "V2Afisha.dc.html": {
-      "x": 0,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А1 · Афиша: рядом с домом",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2AfishaPin.dc.html": {
-      "x": 470,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А2 · Тап по точке",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2AfishaList.dc.html": {
-      "x": 940,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А3 · Списком",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2AfishaCalendar.dc.html": {
-      "x": 1410,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А4 · Выбрать дату",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2AfishaFilter.dc.html": {
-      "x": 1880,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А5 · Что показать",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2AfishaPlus.dc.html": {
-      "x": 2350,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "А6 · Кнопка «+»",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2Feed.dc.html": {
-      "x": 2820,
-      "y": 2240,
-      "w": 390,
-      "h": 844,
-      "title": "П1 · Подборка: «Пойду» летит в Планы",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2Event.dc.html": {
-      "x": 0,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С1 · Событие: одна кнопка «Пойду»",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2EventHow.dc.html": {
-      "x": 470,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С2 · Как пойдёшь?",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2EventFriends.dc.html": {
-      "x": 940,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С3 · Кого позвать",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2EventGoing.dc.html": {
-      "x": 1410,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С4 · Ты идёшь, друзья позваны",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2EventCompany.dc.html": {
-      "x": 1880,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С5 · Один: «Ищут компанию» открыто",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2EventPerson.dc.html": {
-      "x": 2350,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С6 · Человек и правило чата",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2Chat.dc.html": {
-      "x": 2820,
-      "y": 3590,
-      "w": 390,
-      "h": 844,
-      "title": "С7 · Чат знакомства",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2Plans.dc.html": {
-      "x": 0,
-      "y": 4940,
-      "w": 390,
-      "h": 844,
-      "title": "Пл1 · Планы: ждут ответа и скоро",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2PlansPast.dc.html": {
-      "x": 470,
-      "y": 4940,
-      "w": 390,
-      "h": 844,
-      "title": "Пл2 · Были: с кем познакомился",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2People.dc.html": {
-      "x": 940,
-      "y": 4940,
-      "w": 390,
-      "h": 844,
-      "title": "Л1 · Люди: друзья, знакомства, сообщения",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2Profile.dc.html": {
-      "x": 1410,
-      "y": 4940,
-      "w": 390,
-      "h": 844,
-      "title": "Пр1 · Профиль на один экран",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V2TabBar.dc.html": {
-      "x": 1880,
-      "y": 4940,
-      "w": 390,
-      "h": 96,
-      "title": "Таб-бар v2: подписи всегда",
-      "page": "v2",
-      "is_interactive": true
-    },
-    "V3Scenarios.dc.html": {
-      "x": 0,
-      "y": 260,
-      "w": 1800,
-      "h": 1680,
-      "title": "v3 · 10 сценариев, тапы и самокритика",
-      "page": "v3"
-    },
-    "V3NearIdeas.dc.html": {
-      "x": 1880,
-      "y": 260,
-      "w": 1800,
-      "h": 560,
-      "title": "v3 · «Рядом» без отдельной кнопки",
-      "page": "v3"
-    },
-    "V3Notify.dc.html": {
-      "x": 1880,
-      "y": 900,
-      "w": 1800,
-      "h": 1000,
-      "title": "v3 · Уведомления на iOS и Android",
-      "page": "v3"
-    },
-    "V3Map.dc.html": {
-      "x": 0,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К1 · Карта: сейчас, погода на карте",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapPin.dc.html": {
-      "x": 1880,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К2 · Тап по пину → «Пойду»",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapFriend.dc.html": {
-      "x": 2350,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К3 · Тап по другу: значок, стикер",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Filter.dc.html": {
-      "x": 3290,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К4 · Фильтр без дат: что, цена, порядок",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapPlus.dc.html": {
-      "x": 3760,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К5 · Кнопка «+»: точка или событие",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3FirstRun.dc.html": {
-      "x": 4230,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К6 · Первый запуск: 4 подсказки",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Feed.dc.html": {
-      "x": 4700,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "П1 · Подборка: свайп → «Планы»",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Event.dc.html": {
-      "x": 0,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С1 · Событие: видно всех, кто идёт",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3EventHow.dc.html": {
-      "x": 940,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С2 · Как пойдёшь?",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3EventFriends.dc.html": {
-      "x": 1410,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С3 · Позвать друзей",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3EventGoing.dc.html": {
-      "x": 1880,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С4 · Ты идёшь",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Person.dc.html": {
-      "x": 2350,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С5 · Профиль: листать фото",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3PersonWrite.dc.html": {
-      "x": 2820,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С6 · Незнакомому — запросом",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3PersonFriend.dc.html": {
-      "x": 3290,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С7 · Профиль друга",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3FriendsOf.dc.html": {
-      "x": 3760,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С8 · Друзья друга",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Chats.dc.html": {
-      "x": 0,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч1 · Чаты: друзья сверху",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3ChatsFriend.dc.html": {
-      "x": 940,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч2 · Тап по другу сверху",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Chat.dc.html": {
-      "x": 1410,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч3 · Чат: приглашение внутри",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3ChatTray.dc.html": {
-      "x": 1880,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч4 · Плюс в чате: позвать, точка, фото",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Requests.dc.html": {
-      "x": 2820,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч5 · Запросы",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3ChatRequest.dc.html": {
-      "x": 3290,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч6 · Запрос: ответить или удалить",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3FindPeople.dc.html": {
-      "x": 3760,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч7 · Найти людей",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Plans.dc.html": {
-      "x": 0,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пл1 · Планы: зовут и по дням",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3PlansPast.dc.html": {
-      "x": 940,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пл2 · Были: добавить знакомых",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Me.dc.html": {
-      "x": 1410,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пр1 · Мой профиль",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3Quests.dc.html": {
-      "x": 1880,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пр2 · Задания и награды",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3LevelUp.dc.html": {
-      "x": 2350,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пр3 · Новый уровень",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3TabBar.dc.html": {
-      "x": 2820,
-      "y": 6520,
-      "w": 390,
-      "h": 96,
-      "title": "Таб-бар v3: Карта · Подборка · Планы · Чаты · Профиль",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapDays.dc.html": {
-      "x": 470,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К1а · День и погода: лента на 2 недели",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapRain.dc.html": {
-      "x": 940,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К1б · Суббота: дождь, друзья на пинах",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapSnow.dc.html": {
-      "x": 1410,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К1в · Первый снег",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3MapPoint.dc.html": {
-      "x": 2820,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "К3а · Точка: «тут, в 20:30»",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3FeedHint.dc.html": {
-      "x": 5170,
-      "y": 2440,
-      "w": 390,
-      "h": 844,
-      "title": "П1а · Подсказка: как листать",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3EventHint.dc.html": {
-      "x": 470,
-      "y": 3800,
-      "w": 390,
-      "h": 844,
-      "title": "С1а · Подсказка: кто идёт",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3ChatsHint.dc.html": {
-      "x": 470,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч1а · Подсказка: друзья и значки",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3ChatInvite.dc.html": {
-      "x": 2350,
-      "y": 5160,
-      "w": 390,
-      "h": 844,
-      "title": "Ч4а · Позвать: куда?",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V3PlansHint.dc.html": {
-      "x": 470,
-      "y": 6520,
-      "w": 390,
-      "h": 844,
-      "title": "Пл1а · Подсказка: тебя зовут",
-      "page": "v3",
-      "is_interactive": true
-    },
-    "V4Overview.dc.html": {
-      "x": 0,
-      "y": 260,
-      "w": 1800,
-      "h": 1000,
-      "title": "v4 · что нового: 8 фишек и правила без глюков",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Splash.dc.html": {
-      "x": 0,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "З1 · Запуск: «рядом.» рисуется",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SplashNight.dc.html": {
-      "x": 470,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "З1а · Запуск ночью",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SignUp.dc.html": {
-      "x": 940,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "В1 · Вход — только на первом «Пойду»",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SignUpCode.dc.html": {
-      "x": 1410,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "В2 · Код из SMS подставился сам",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SignUpName.dc.html": {
-      "x": 1880,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "В3 · Имя и фото",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SignUpTaste.dc.html": {
-      "x": 2350,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "В4 · Что вытаскивает из дома",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4SignUpAllow.dc.html": {
-      "x": 2820,
-      "y": 1640,
-      "w": 390,
-      "h": 844,
-      "title": "В5 · Геолокация и пуши: зачем",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Point.dc.html": {
-      "x": 0,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т1 · Точка: тапни по карте, время ±15",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4PointPark.dc.html": {
-      "x": 470,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т1а · Точка переехала",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4PointSent.dc.html": {
-      "x": 940,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т1б · Отправлено: таймер в «Планах»",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Route.dc.html": {
-      "x": 1410,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т2 · Как добраться: пешком",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4RouteTaxi.dc.html": {
-      "x": 1880,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т2а · Такси: время с пробками",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4RouteBus.dc.html": {
-      "x": 2350,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т2б · Автобус",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4RouteLive.dc.html": {
-      "x": 2820,
-      "y": 2830,
-      "w": 390,
-      "h": 844,
-      "title": "Т2в · «Я выхожу»: друг видит",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Countdown.dc.html": {
-      "x": 0,
-      "y": 4020,
-      "w": 390,
-      "h": 844,
-      "title": "Т3 · Планы: таймер до встречи",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Lock.dc.html": {
-      "x": 470,
-      "y": 4020,
-      "w": 390,
-      "h": 844,
-      "title": "Т4 · Экран блокировки: отсчёт и пуши",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4CheckIn.dc.html": {
-      "x": 940,
-      "y": 4020,
-      "w": 390,
-      "h": 844,
-      "title": "Т5 · Встреча состоялась: огоньки и ачивка",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Together.dc.html": {
-      "x": 0,
-      "y": 5210,
-      "w": 390,
-      "h": 844,
-      "title": "Д1 · Друзья вместе: огонёк на карте",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4TogetherOpen.dc.html": {
-      "x": 470,
-      "y": 5210,
-      "w": 390,
-      "h": 844,
-      "title": "Д2 · Тап по огоньку",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4Explore.dc.html": {
-      "x": 940,
-      "y": 5210,
-      "w": 390,
-      "h": 844,
-      "title": "О1 · Открытие карты: где гулял",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4ExploreFriends.dc.html": {
-      "x": 1410,
-      "y": 5210,
-      "w": 390,
-      "h": 844,
-      "title": "О1а · Карта с друзьями",
-      "page": "v4",
-      "is_interactive": true
-    },
-    "V4MyCity.dc.html": {
-      "x": 1880,
-      "y": 5210,
-      "w": 390,
-      "h": 844,
-      "title": "О2 · Мой город: ночёвки и ачивки",
-      "page": "v4",
-      "is_interactive": true
-    }
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Admin.dc.html": {
+   "h": 1060,
+   "is_interactive": true,
+   "title": "Админка: модерация",
+   "w": 390,
+   "x": 1920,
+   "y": 16110
   },
-  "createdOnFiles": {
-    "at": "2026-09-28T03:45:00Z",
-    "v": 1
+  "ChatAttach.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "7а · Фото и видео в чате",
+   "w": 390,
+   "x": 1410,
+   "y": 7970
   },
-  "designSystems": [],
-  "launch": {
-    "view": "canvas",
-    "page": "v4"
+  "ChatSheets.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "7б · Нажал на аватарку в чате",
+   "w": 860,
+   "x": 1880,
+   "y": 7970
   },
-  "notes": {
-    "row_signup": {
-      "kind": "title1",
-      "maxW": 2270,
-      "text": "Вход и регистрация",
-      "w": 240,
-      "x": 0,
-      "y": 1030
-    },
-    "row_main": {
-      "kind": "title1",
-      "maxW": 2740,
-      "text": "Главный путь: карта → событие → компания",
-      "w": 240,
-      "x": 0,
-      "y": 2280
-    },
-    "row_foryou": {
-      "kind": "title1",
-      "maxW": 3569,
-      "text": "«Для тебя»: бесконечные свайпы",
-      "w": 240,
-      "x": 0,
-      "y": 4180
-    },
-    "row_friends": {
-      "kind": "title1",
-      "maxW": 1800,
-      "text": "Друзья на карте",
-      "w": 240,
-      "x": 0,
-      "y": 5660
-    },
-    "row_social": {
-      "kind": "title1",
-      "maxW": 4620,
-      "text": "Люди, общение и свои встречи",
-      "w": 240,
-      "x": 0,
-      "y": 7700
-    },
-    "row_me": {
-      "kind": "title1",
-      "maxW": 1800,
-      "text": "Профиль: планы, карта города, значки",
-      "w": 240,
-      "x": 0,
-      "y": 10060
-    },
-    "row_logic": {
-      "kind": "title1",
-      "maxW": 3760,
-      "text": "Логика продукта и рекомендации",
-      "w": 240,
-      "x": 0,
-      "y": 13120
-    },
-    "row_pipe": {
-      "kind": "title1",
-      "maxW": 3830,
-      "text": "Для команды: события и рекомендации",
-      "w": 240,
-      "x": 0,
-      "y": 15840
-    },
-    "row_map": {
-      "kind": "title1",
-      "maxW": 2530,
-      "text": "Стиль карты и компоненты",
-      "w": 240,
-      "x": 0,
-      "y": 17560
-    },
-    "v2_map": {
-      "kind": "title1",
-      "maxW": 3680,
-      "text": "v2: найти рядом с домом → пойти → познакомиться",
-      "w": 240,
-      "x": 0,
-      "y": 0,
-      "page": "v2"
-    },
-    "v2_find": {
-      "kind": "title1",
-      "maxW": 3210,
-      "text": "Найти: Афиша и Подборка",
-      "w": 240,
-      "x": 0,
-      "y": 1980,
-      "page": "v2"
-    },
-    "v2_go": {
-      "kind": "title1",
-      "maxW": 3210,
-      "text": "Пойти и познакомиться: событие → чат",
-      "w": 240,
-      "x": 0,
-      "y": 3330,
-      "page": "v2"
-    },
-    "v2_mine": {
-      "kind": "title1",
-      "maxW": 2270,
-      "text": "Планы, люди, профиль",
-      "w": 240,
-      "x": 0,
-      "y": 4680,
-      "page": "v2"
-    },
-    "v3_top": {
-      "kind": "title1",
-      "maxW": 3680,
-      "text": "v3: иконками, без лишнего текста — 10 сценариев",
-      "w": 240,
-      "x": 0,
-      "y": 0,
-      "page": "v3"
-    },
-    "v3_map": {
-      "kind": "title1",
-      "maxW": 5560,
-      "text": "Карта и Подборка: сейчас или любой день, погода прямо на карте",
-      "w": 240,
-      "x": 0,
-      "y": 2180,
-      "page": "v3"
-    },
-    "v3_go": {
-      "kind": "title1",
-      "maxW": 4150,
-      "text": "Событие и люди: видно всех, незнакомым — запросом",
-      "w": 240,
-      "x": 0,
-      "y": 3540,
-      "page": "v3"
-    },
-    "v3_chat": {
-      "kind": "title1",
-      "maxW": 4150,
-      "text": "Чаты: друзья сверху, запросы, позвать и точка внутри",
-      "w": 240,
-      "x": 0,
-      "y": 4900,
-      "page": "v3"
-    },
-    "v3_mine": {
-      "kind": "title1",
-      "maxW": 3210,
-      "text": "Планы, профиль, уровень",
-      "w": 240,
-      "x": 0,
-      "y": 6260,
-      "page": "v3"
-    },
-    "v4_start": {
-      "kind": "title1",
-      "maxW": 3210,
-      "text": "Запуск и вход: смотреть можно сразу, вход — на первом «Пойду»",
-      "w": 240,
-      "x": 0,
-      "y": 1380,
-      "page": "v4"
-    },
-    "v4_meet": {
-      "kind": "title1",
-      "maxW": 3210,
-      "text": "Встреча: точка, время и дорога",
-      "w": 240,
-      "x": 0,
-      "y": 2570,
-      "page": "v4"
-    },
-    "v4_timer": {
-      "kind": "title1",
-      "maxW": 1330,
-      "text": "Таймер, «через час» и «встреча состоялась»",
-      "w": 240,
-      "x": 0,
-      "y": 3760,
-      "page": "v4"
-    },
-    "v4_city": {
-      "kind": "title1",
-      "maxW": 2270,
-      "text": "Друзья вместе и город, который открывается",
-      "w": 240,
-      "x": 0,
-      "y": 4950,
-      "page": "v4"
-    },
-    "v4_top": {
-      "kind": "title1",
-      "maxW": 1800,
-      "text": "v4: договорились — дошли — встретились — засчиталось",
-      "w": 240,
-      "x": 0,
-      "y": 0,
-      "page": "v4"
-    }
+  "Chats.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "8 · Чаты и заявки",
+   "w": 390,
+   "x": 2820,
+   "y": 7970
   },
-  "order": [
-    "Flow.dc.html",
-    "SignUp.dc.html",
-    "SignUpCode.dc.html",
-    "SignUpProfile.dc.html",
-    "Onboarding.dc.html",
-    "SignUpRhythm.dc.html",
-    "Main.dc.html",
-    "MapCalendar.dc.html",
-    "MapFilters.dc.html",
-    "Event.dc.html",
-    "HikeEvent.dc.html",
-    "Company.dc.html",
-    "Feed.dc.html",
-    "FeedDemo.dc.html",
-    "FeedCards.dc.html",
-    "MapFocus.dc.html",
-    "MapMoving.dc.html",
-    "MapInvite.dc.html",
-    "MarkerStyle.dc.html",
-    "Person.dc.html",
-    "PersonFriend.dc.html",
-    "DirectChat.dc.html",
-    "ChatAttach.dc.html",
-    "ChatSheets.dc.html",
-    "Chats.dc.html",
-    "EventChat.dc.html",
-    "Friends.dc.html",
-    "CreateEvent.dc.html",
-    "Me.dc.html",
-    "MeBadges.dc.html",
-    "Settings.dc.html",
-    "Suggest.dc.html",
-    "Logic.dc.html",
-    "Recs.dc.html",
-    "Pipeline.dc.html",
-    "Admin.dc.html",
-    "TasteAdmin.dc.html",
-    "MapStyles.dc.html",
-    "MapBase.dc.html",
-    "TabBar.dc.html",
-    "EventPage.dc.html",
-    "V2Flow.dc.html",
-    "V2Why.dc.html",
-    "V2Afisha.dc.html",
-    "V2AfishaPin.dc.html",
-    "V2AfishaList.dc.html",
-    "V2AfishaCalendar.dc.html",
-    "V2AfishaFilter.dc.html",
-    "V2AfishaPlus.dc.html",
-    "V2Feed.dc.html",
-    "V2Event.dc.html",
-    "V2EventHow.dc.html",
-    "V2EventFriends.dc.html",
-    "V2EventGoing.dc.html",
-    "V2EventCompany.dc.html",
-    "V2EventPerson.dc.html",
-    "V2Chat.dc.html",
-    "V2Plans.dc.html",
-    "V2PlansPast.dc.html",
-    "V2People.dc.html",
-    "V2Profile.dc.html",
-    "V2TabBar.dc.html",
-    "V3Scenarios.dc.html",
-    "V3NearIdeas.dc.html",
-    "V3Notify.dc.html",
-    "V3Map.dc.html",
-    "V3MapPin.dc.html",
-    "V3MapFriend.dc.html",
-    "V3Filter.dc.html",
-    "V3MapPlus.dc.html",
-    "V3FirstRun.dc.html",
-    "V3Feed.dc.html",
-    "V3Event.dc.html",
-    "V3EventHow.dc.html",
-    "V3EventFriends.dc.html",
-    "V3EventGoing.dc.html",
-    "V3Person.dc.html",
-    "V3PersonWrite.dc.html",
-    "V3PersonFriend.dc.html",
-    "V3FriendsOf.dc.html",
-    "V3Chats.dc.html",
-    "V3ChatsFriend.dc.html",
-    "V3Chat.dc.html",
-    "V3ChatTray.dc.html",
-    "V3Requests.dc.html",
-    "V3ChatRequest.dc.html",
-    "V3FindPeople.dc.html",
-    "V3Plans.dc.html",
-    "V3PlansPast.dc.html",
-    "V3Me.dc.html",
-    "V3Quests.dc.html",
-    "V3LevelUp.dc.html",
-    "V3TabBar.dc.html",
-    "V3MapDays.dc.html",
-    "V3MapRain.dc.html",
-    "V3MapSnow.dc.html",
-    "V3MapPoint.dc.html",
-    "V3FeedHint.dc.html",
-    "V3EventHint.dc.html",
-    "V3ChatsHint.dc.html",
-    "V3ChatInvite.dc.html",
-    "V3PlansHint.dc.html",
-    "V4Overview.dc.html",
-    "V4Splash.dc.html",
-    "V4SplashNight.dc.html",
-    "V4SignUp.dc.html",
-    "V4SignUpCode.dc.html",
-    "V4SignUpName.dc.html",
-    "V4SignUpTaste.dc.html",
-    "V4SignUpAllow.dc.html",
-    "V4Point.dc.html",
-    "V4PointPark.dc.html",
-    "V4PointSent.dc.html",
-    "V4Route.dc.html",
-    "V4RouteTaxi.dc.html",
-    "V4RouteBus.dc.html",
-    "V4RouteLive.dc.html",
-    "V4Countdown.dc.html",
-    "V4Lock.dc.html",
-    "V4CheckIn.dc.html",
-    "V4Together.dc.html",
-    "V4TogetherOpen.dc.html",
-    "V4Explore.dc.html",
-    "V4ExploreFriends.dc.html",
-    "V4MyCity.dc.html"
-  ],
-  "pages": [
-    {
-      "id": "v1",
-      "name": "v1 · первый макет"
-    },
-    {
-      "id": "v2",
-      "name": "v2 · простой путь"
-    },
-    {
-      "id": "v3",
-      "name": "v3 · иконками и сценариями"
-    },
-    {
-      "id": "v4",
-      "name": "v4 · встречи по-настоящему"
-    }
-  ],
-  "title": "рядом — макет приложения"
+  "Company.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "4 · Ищу компанию: шторка",
+   "w": 390,
+   "x": 2350,
+   "y": 2550
+  },
+  "CreateEvent.dc.html": {
+   "h": 1960,
+   "is_interactive": true,
+   "title": "11 · Создать встречу",
+   "w": 390,
+   "x": 4230,
+   "y": 7970
+  },
+  "DirectChat.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "7 · Личный чат",
+   "w": 390,
+   "x": 940,
+   "y": 7970
+  },
+  "Event.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "title": "3 · Событие: джаз (единый шаблон)",
+   "w": 390,
+   "x": 1410,
+   "y": 2550
+  },
+  "EventChat.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "9 · Чат события",
+   "w": 390,
+   "x": 3290,
+   "y": 7970
+  },
+  "EventPage.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "title": "Шаблон события (компонент)",
+   "w": 390,
+   "x": 2140,
+   "y": 17830
+  },
+  "Feed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "2 · Для тебя: бесконечные свайпы",
+   "w": 390,
+   "x": 0,
+   "y": 4450
+  },
+  "FeedCards.dc.html": {
+   "h": 720,
+   "title": "2б · Какие бывают карточки",
+   "w": 1632,
+   "x": 1937,
+   "y": 4450
+  },
+  "FeedDemo.dc.html": {
+   "h": 1077,
+   "title": "2а · Как двигаются карточки (анимация)",
+   "w": 1387,
+   "x": 470,
+   "y": 4450
+  },
+  "Flow.dc.html": {
+   "h": 800,
+   "title": "Карта переходов",
+   "w": 1800,
+   "x": 0,
+   "y": 0
+  },
+  "Friends.dc.html": {
+   "h": 1520,
+   "is_interactive": true,
+   "title": "10 · Люди",
+   "w": 390,
+   "x": 3760,
+   "y": 7970
+  },
+  "HikeEvent.dc.html": {
+   "h": 1500,
+   "is_interactive": true,
+   "title": "3б · Событие: поход (тот же шаблон)",
+   "w": 390,
+   "x": 1880,
+   "y": 2550
+  },
+  "Logic.dc.html": {
+   "h": 2320,
+   "title": "Логика продукта",
+   "w": 1840,
+   "x": 0,
+   "y": 13390
+  },
+  "Main.dc.html": {
+   "h": 849,
+   "is_interactive": true,
+   "title": "1 · Карта",
+   "w": 390,
+   "x": 0,
+   "y": 2530
+  },
+  "MapBase.dc.html": {
+   "h": 844,
+   "title": "Подложка карты (компонент)",
+   "w": 390,
+   "x": 1200,
+   "y": 17830
+  },
+  "MapCalendar.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "1а · Тап по дате: календарь с погодой",
+   "w": 390,
+   "x": 470,
+   "y": 2550
+  },
+  "MapFilters.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "1б · Фильтр: шторка на карте",
+   "w": 390,
+   "x": 940,
+   "y": 2550
+  },
+  "MapFocus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "5 · Тап по другу",
+   "w": 390,
+   "x": 0,
+   "y": 5930
+  },
+  "MapInvite.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "5б · Позвать куда-то",
+   "w": 390,
+   "x": 940,
+   "y": 5930
+  },
+  "MapMoving.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "5а · Друг в пути: скорость",
+   "w": 390,
+   "x": 470,
+   "y": 5930
+  },
+  "MapStyles.dc.html": {
+   "h": 720,
+   "title": "Стили карты",
+   "w": 1120,
+   "x": 0,
+   "y": 17830
+  },
+  "MarkerStyle.dc.html": {
+   "h": 1640,
+   "is_interactive": true,
+   "title": "5в · Мой значок на карте",
+   "w": 390,
+   "x": 1410,
+   "y": 5930
+  },
+  "Me.dc.html": {
+   "h": 2660,
+   "is_interactive": true,
+   "title": "12 · Профиль: всё на одной странице",
+   "w": 390,
+   "x": 0,
+   "y": 10330
+  },
+  "MeBadges.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "12а · Все значки — шторкой",
+   "w": 390,
+   "x": 470,
+   "y": 10330
+  },
+  "Onboarding.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "0в · Что вытаскивает из дома",
+   "w": 390,
+   "x": 1410,
+   "y": 1300
+  },
+  "Person.dc.html": {
+   "h": 1680,
+   "is_interactive": true,
+   "title": "6 · Профиль: не в друзьях",
+   "w": 390,
+   "x": 0,
+   "y": 7970
+  },
+  "PersonFriend.dc.html": {
+   "h": 1960,
+   "is_interactive": true,
+   "title": "6б · Профиль: друг",
+   "w": 390,
+   "x": 470,
+   "y": 7970
+  },
+  "Pipeline.dc.html": {
+   "h": 1320,
+   "title": "Процесс: от ссылки до карты",
+   "w": 1840,
+   "x": 0,
+   "y": 16110
+  },
+  "Recs.dc.html": {
+   "h": 1800,
+   "title": "Как работают рекомендации (для команды)",
+   "w": 1840,
+   "x": 1920,
+   "y": 13390
+  },
+  "Settings.dc.html": {
+   "h": 2380,
+   "is_interactive": true,
+   "title": "13 · Настройки",
+   "w": 390,
+   "x": 940,
+   "y": 10330
+  },
+  "SignUp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "0 · Вход: Google, Apple, телефон",
+   "w": 390,
+   "x": 0,
+   "y": 1300
+  },
+  "SignUpCode.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "0а · Код из SMS",
+   "w": 390,
+   "x": 470,
+   "y": 1300
+  },
+  "SignUpProfile.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "0б · О себе (после Google)",
+   "w": 390,
+   "x": 940,
+   "y": 1300
+  },
+  "SignUpRhythm.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "0г · Когда, с кем, бюджет",
+   "w": 390,
+   "x": 1880,
+   "y": 1300
+  },
+  "Suggest.dc.html": {
+   "h": 1220,
+   "is_interactive": true,
+   "title": "14 · Предложить событие",
+   "w": 390,
+   "x": 1410,
+   "y": 10330
+  },
+  "TabBar.dc.html": {
+   "h": 84,
+   "is_interactive": true,
+   "title": "Таб-бар: Карта · Для тебя · Чаты · Люди · Профиль",
+   "w": 390,
+   "x": 1670,
+   "y": 17830
+  },
+  "TasteAdmin.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Админка: вкус пользователя (видит только команда)",
+   "w": 1440,
+   "x": 2390,
+   "y": 16110
+  },
+  "V2Afisha.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А1 · Афиша: рядом с домом",
+   "w": 390,
+   "x": 0,
+   "y": 2240
+  },
+  "V2AfishaCalendar.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А4 · Выбрать дату",
+   "w": 390,
+   "x": 1410,
+   "y": 2240
+  },
+  "V2AfishaFilter.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А5 · Что показать",
+   "w": 390,
+   "x": 1880,
+   "y": 2240
+  },
+  "V2AfishaList.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А3 · Списком",
+   "w": 390,
+   "x": 940,
+   "y": 2240
+  },
+  "V2AfishaPin.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А2 · Тап по точке",
+   "w": 390,
+   "x": 470,
+   "y": 2240
+  },
+  "V2AfishaPlus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "А6 · Кнопка «+»",
+   "w": 390,
+   "x": 2350,
+   "y": 2240
+  },
+  "V2Chat.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С7 · Чат знакомства",
+   "w": 390,
+   "x": 2820,
+   "y": 3590
+  },
+  "V2Event.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С1 · Событие: одна кнопка «Пойду»",
+   "w": 390,
+   "x": 0,
+   "y": 3590
+  },
+  "V2EventCompany.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С5 · Один: «Ищут компанию» открыто",
+   "w": 390,
+   "x": 1880,
+   "y": 3590
+  },
+  "V2EventFriends.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С3 · Кого позвать",
+   "w": 390,
+   "x": 940,
+   "y": 3590
+  },
+  "V2EventGoing.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С4 · Ты идёшь, друзья позваны",
+   "w": 390,
+   "x": 1410,
+   "y": 3590
+  },
+  "V2EventHow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С2 · Как пойдёшь?",
+   "w": 390,
+   "x": 470,
+   "y": 3590
+  },
+  "V2EventPerson.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "С6 · Человек и правило чата",
+   "w": 390,
+   "x": 2350,
+   "y": 3590
+  },
+  "V2Feed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "П1 · Подборка: «Пойду» летит в Планы",
+   "w": 390,
+   "x": 2820,
+   "y": 2240
+  },
+  "V2Flow.dc.html": {
+   "h": 1200,
+   "page": "v2",
+   "title": "v2 · Что куда нажимается",
+   "w": 1800,
+   "x": 0,
+   "y": 260
+  },
+  "V2People.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "Л1 · Люди: друзья, знакомства, сообщения",
+   "w": 390,
+   "x": 940,
+   "y": 4940
+  },
+  "V2Plans.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "Пл1 · Планы: ждут ответа и скоро",
+   "w": 390,
+   "x": 0,
+   "y": 4940
+  },
+  "V2PlansPast.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "Пл2 · Были: с кем познакомился",
+   "w": 390,
+   "x": 470,
+   "y": 4940
+  },
+  "V2Profile.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "Пр1 · Профиль на один экран",
+   "w": 390,
+   "x": 1410,
+   "y": 4940
+  },
+  "V2TabBar.dc.html": {
+   "h": 96,
+   "is_interactive": true,
+   "page": "v2",
+   "title": "Таб-бар v2: подписи всегда",
+   "w": 390,
+   "x": 1880,
+   "y": 4940
+  },
+  "V2Why.dc.html": {
+   "h": 1260,
+   "page": "v2",
+   "title": "v2 · Что мешает сейчас и что меняем",
+   "w": 1800,
+   "x": 1880,
+   "y": 260
+  },
+  "V3Chat.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч3 · Чат: приглашение внутри",
+   "w": 390,
+   "x": 1410,
+   "y": 5160
+  },
+  "V3ChatInvite.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч4а · Позвать: куда?",
+   "w": 390,
+   "x": 2350,
+   "y": 5160
+  },
+  "V3ChatRequest.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч6 · Запрос: ответить или удалить",
+   "w": 390,
+   "x": 3290,
+   "y": 5160
+  },
+  "V3ChatTray.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч4 · Плюс в чате: позвать, точка, фото",
+   "w": 390,
+   "x": 1880,
+   "y": 5160
+  },
+  "V3Chats.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч1 · Чаты: друзья сверху",
+   "w": 390,
+   "x": 0,
+   "y": 5160
+  },
+  "V3ChatsFriend.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч2 · Тап по другу сверху",
+   "w": 390,
+   "x": 940,
+   "y": 5160
+  },
+  "V3ChatsHint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч1а · Подсказка: друзья и значки",
+   "w": 390,
+   "x": 470,
+   "y": 5160
+  },
+  "V3Event.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С1 · Событие: видно всех, кто идёт",
+   "w": 390,
+   "x": 0,
+   "y": 3800
+  },
+  "V3EventFriends.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С3 · Позвать друзей",
+   "w": 390,
+   "x": 1410,
+   "y": 3800
+  },
+  "V3EventGoing.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С4 · Ты идёшь",
+   "w": 390,
+   "x": 1880,
+   "y": 3800
+  },
+  "V3EventHint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С1а · Подсказка: кто идёт",
+   "w": 390,
+   "x": 470,
+   "y": 3800
+  },
+  "V3EventHow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С2 · Как пойдёшь?",
+   "w": 390,
+   "x": 940,
+   "y": 3800
+  },
+  "V3Feed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "П1 · Подборка: свайп → «Планы»",
+   "w": 390,
+   "x": 4700,
+   "y": 2440
+  },
+  "V3FeedHint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "П1а · Подсказка: как листать",
+   "w": 390,
+   "x": 5170,
+   "y": 2440
+  },
+  "V3Filter.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К4 · Фильтр без дат: что, цена, порядок",
+   "w": 390,
+   "x": 3290,
+   "y": 2440
+  },
+  "V3FindPeople.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч7 · Найти людей",
+   "w": 390,
+   "x": 3760,
+   "y": 5160
+  },
+  "V3FirstRun.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К6 · Первый запуск: 4 подсказки",
+   "w": 390,
+   "x": 4230,
+   "y": 2440
+  },
+  "V3FriendsOf.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С8 · Друзья друга",
+   "w": 390,
+   "x": 3760,
+   "y": 3800
+  },
+  "V3LevelUp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пр3 · Новый уровень",
+   "w": 390,
+   "x": 2350,
+   "y": 6520
+  },
+  "V3Map.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К1 · Карта: сейчас, погода на карте",
+   "w": 390,
+   "x": 0,
+   "y": 2440
+  },
+  "V3MapDays.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К1а · День и погода: лента на 2 недели",
+   "w": 390,
+   "x": 470,
+   "y": 2440
+  },
+  "V3MapFriend.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К3 · Тап по другу: значок, стикер",
+   "w": 390,
+   "x": 2350,
+   "y": 2440
+  },
+  "V3MapPin.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К2 · Тап по пину → «Пойду»",
+   "w": 390,
+   "x": 1880,
+   "y": 2440
+  },
+  "V3MapPlus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К5 · Кнопка «+»: точка или событие",
+   "w": 390,
+   "x": 3760,
+   "y": 2440
+  },
+  "V3MapPoint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К3а · Точка: «тут, в 20:30»",
+   "w": 390,
+   "x": 2820,
+   "y": 2440
+  },
+  "V3MapRain.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К1б · Суббота: дождь, друзья на пинах",
+   "w": 390,
+   "x": 940,
+   "y": 2440
+  },
+  "V3MapSnow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "К1в · Первый снег",
+   "w": 390,
+   "x": 1410,
+   "y": 2440
+  },
+  "V3Me.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пр1 · Мой профиль",
+   "w": 390,
+   "x": 1410,
+   "y": 6520
+  },
+  "V3NearIdeas.dc.html": {
+   "h": 560,
+   "page": "v3",
+   "title": "v3 · «Рядом» без отдельной кнопки",
+   "w": 1800,
+   "x": 1880,
+   "y": 260
+  },
+  "V3Notify.dc.html": {
+   "h": 1000,
+   "page": "v3",
+   "title": "v3 · Уведомления на iOS и Android",
+   "w": 1800,
+   "x": 1880,
+   "y": 900
+  },
+  "V3Person.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С5 · Профиль: листать фото",
+   "w": 390,
+   "x": 2350,
+   "y": 3800
+  },
+  "V3PersonFriend.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С7 · Профиль друга",
+   "w": 390,
+   "x": 3290,
+   "y": 3800
+  },
+  "V3PersonWrite.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "С6 · Незнакомому — запросом",
+   "w": 390,
+   "x": 2820,
+   "y": 3800
+  },
+  "V3Plans.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пл1 · Планы: зовут и по дням",
+   "w": 390,
+   "x": 0,
+   "y": 6520
+  },
+  "V3PlansHint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пл1а · Подсказка: тебя зовут",
+   "w": 390,
+   "x": 470,
+   "y": 6520
+  },
+  "V3PlansPast.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пл2 · Были: добавить знакомых",
+   "w": 390,
+   "x": 940,
+   "y": 6520
+  },
+  "V3Quests.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Пр2 · Задания и награды",
+   "w": 390,
+   "x": 1880,
+   "y": 6520
+  },
+  "V3Requests.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Ч5 · Запросы",
+   "w": 390,
+   "x": 2820,
+   "y": 5160
+  },
+  "V3Scenarios.dc.html": {
+   "h": 1680,
+   "page": "v3",
+   "title": "v3 · 10 сценариев, тапы и самокритика",
+   "w": 1800,
+   "x": 0,
+   "y": 260
+  },
+  "V3TabBar.dc.html": {
+   "h": 96,
+   "is_interactive": true,
+   "page": "v3",
+   "title": "Таб-бар v3: Карта · Подборка · Планы · Чаты · Профиль",
+   "w": 390,
+   "x": 2820,
+   "y": 6520
+  },
+  "V4Avatars.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Д0 · Как меняется аватарка друга",
+   "w": 390,
+   "x": 0,
+   "y": 5210
+  },
+  "V4ChatPoint.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч3 · Точка «я тут»: 15 мин, 30 мин, 2 часа",
+   "w": 390,
+   "x": 1880,
+   "y": 2830
+  },
+  "V4ChatPointSent.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч3а · Точка горит в чате",
+   "w": 390,
+   "x": 2350,
+   "y": 2830
+  },
+  "V4ChatSticker.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч1 · Стикеры в чате — свои, без эмодзи",
+   "w": 390,
+   "x": 0,
+   "y": 2830
+  },
+  "V4ChatStickerSent.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч1а · Стикер улетел",
+   "w": 390,
+   "x": 470,
+   "y": 2830
+  },
+  "V4Countdown.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "С2 · Планы: отсчёт до события",
+   "w": 390,
+   "x": 1410,
+   "y": 4020
+  },
+  "V4Explore.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "О1 · Открытие карты: где гулял",
+   "w": 390,
+   "x": 1410,
+   "y": 5210
+  },
+  "V4ExploreFriends.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "О1а · Карта с друзьями",
+   "w": 390,
+   "x": 1880,
+   "y": 5210
+  },
+  "V4Journey.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "v4 · Весь путь: два телефона, листается само",
+   "w": 1800,
+   "x": 0,
+   "y": 260
+  },
+  "V4Lock.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "С3 · Экран блокировки: отсчёт и пуши",
+   "w": 390,
+   "x": 1880,
+   "y": 4020
+  },
+  "V4MyCity.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "О2 · Мой город: ночёвки и ачивки",
+   "w": 390,
+   "x": 2350,
+   "y": 5210
+  },
+  "V4Overview.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "v4 · что нового: 8 фишек и правила без глюков",
+   "w": 1800,
+   "x": 1880,
+   "y": 260
+  },
+  "V4PointOpen.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч4 · У друга: точка с кнопкой «Маршрут»",
+   "w": 390,
+   "x": 2820,
+   "y": 2830
+  },
+  "V4PointOpenMap.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч4а · Точка на карте",
+   "w": 390,
+   "x": 3290,
+   "y": 2830
+  },
+  "V4PointOpenRoute.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч4б · Маршрут к точке",
+   "w": 390,
+   "x": 3760,
+   "y": 2830
+  },
+  "V4PushSticker.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч2 · У друга: пуш с большим стикером",
+   "w": 390,
+   "x": 940,
+   "y": 2830
+  },
+  "V4PushStickerInApp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Ч2а · Друг в приложении: стикер над тобой на карте",
+   "w": 390,
+   "x": 1410,
+   "y": 2830
+  },
+  "V4Route.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "С1 · Событие → «Как добраться»",
+   "w": 390,
+   "x": 0,
+   "y": 4020
+  },
+  "V4RouteBus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "С1б · Автобус",
+   "w": 390,
+   "x": 940,
+   "y": 4020
+  },
+  "V4RouteTaxi.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "С1а · Такси: время с пробками",
+   "w": 390,
+   "x": 470,
+   "y": 4020
+  },
+  "V4SignUp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "В1 · Вход — только на первом «Пойду»",
+   "w": 390,
+   "x": 940,
+   "y": 1640
+  },
+  "V4SignUpAllow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "В5 · Геолокация и пуши: зачем",
+   "w": 390,
+   "x": 2820,
+   "y": 1640
+  },
+  "V4SignUpCode.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "В2 · Код из SMS подставился сам",
+   "w": 390,
+   "x": 1410,
+   "y": 1640
+  },
+  "V4SignUpName.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "В3 · Имя и фото",
+   "w": 390,
+   "x": 1880,
+   "y": 1640
+  },
+  "V4SignUpTaste.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "В4 · Что вытаскивает из дома",
+   "w": 390,
+   "x": 2350,
+   "y": 1640
+  },
+  "V4Splash.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "З1 · Запуск: «рядом.» рисуется",
+   "w": 390,
+   "x": 0,
+   "y": 1640
+  },
+  "V4SplashNight.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "З1а · Запуск ночью",
+   "w": 390,
+   "x": 470,
+   "y": 1640
+  },
+  "V4Together.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Д1 · Друзья вместе: огонёк на карте",
+   "w": 390,
+   "x": 470,
+   "y": 5210
+  },
+  "V4TogetherOpen.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v4",
+   "title": "Д2 · Тап по огоньку",
+   "w": 390,
+   "x": 940,
+   "y": 5210
+  },
+  "V5Base.dc.html": {
+   "h": 760,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р6 · Демо-база: аккаунты и роли",
+   "w": 1200,
+   "x": 1880,
+   "y": 9432
+  },
+  "V5Chat.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Ч1 · Стикеры: поиск вместо надписи",
+   "w": 390,
+   "x": 470,
+   "y": 2944
+  },
+  "V5ChatRead.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Ч3 · Одна галочка → две",
+   "w": 390,
+   "x": 1410,
+   "y": 2944
+  },
+  "V5ChatSearch.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Ч2 · Поиск «кофе»",
+   "w": 390,
+   "x": 940,
+   "y": 2944
+  },
+  "V5Dev.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р2 · Профиль: панель разработчика первой строкой",
+   "w": 390,
+   "x": 0,
+   "y": 9432
+  },
+  "V5DevCard.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р4 · Карточка собралась — проверить и опубликовать",
+   "w": 390,
+   "x": 940,
+   "y": 9432
+  },
+  "V5DevMap.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р5 · Событие встало на карту",
+   "w": 390,
+   "x": 1410,
+   "y": 9432
+  },
+  "V5DevParse.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р3 · Вставил ссылку — разбор по шагам",
+   "w": 390,
+   "x": 470,
+   "y": 9432
+  },
+  "V5Hello.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "З1 · Первый запуск: «привет» и «рядом» пишутся от руки",
+   "w": 390,
+   "x": 0,
+   "y": 1720
+  },
+  "V5HelloBack.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "З2 · Вернулся: «с возвращением»",
+   "w": 390,
+   "x": 470,
+   "y": 1720
+  },
+  "V5Journey.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "v5 · Весь путь: 15 шагов, листается само",
+   "w": 1800,
+   "x": 0,
+   "y": 260
+  },
+  "V5Login.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В1 · Приветствие: войти по номеру, Apple, Google",
+   "w": 390,
+   "x": 940,
+   "y": 1720
+  },
+  "V5LoginAllow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В6 · Геолокация и уведомления",
+   "w": 390,
+   "x": 3290,
+   "y": 1720
+  },
+  "V5LoginCode.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В3 · Код 0000 (демо)",
+   "w": 390,
+   "x": 1880,
+   "y": 1720
+  },
+  "V5LoginDone.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В7 · «добро пожаловать, Данил»",
+   "w": 390,
+   "x": 3760,
+   "y": 1720
+  },
+  "V5LoginName.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В4 · «Это ты?» — роль разработчик",
+   "w": 390,
+   "x": 2350,
+   "y": 1720
+  },
+  "V5LoginPhone.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В2 · Номер +7 747 446 07 49 — есть в базе",
+   "w": 390,
+   "x": 1410,
+   "y": 1720
+  },
+  "V5LoginTaste.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "В5 · Интересы — старт ленты",
+   "w": 390,
+   "x": 2820,
+   "y": 1720
+  },
+  "V5Map.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "К1 · Друзья двигаются, счётчик сообщений, без имён",
+   "w": 390,
+   "x": 0,
+   "y": 5648
+  },
+  "V5MapStickers.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "К2 · Игорь прислал 10 — летят все 10",
+   "w": 390,
+   "x": 470,
+   "y": 5648
+  },
+  "V5Messages.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "П1 · Процесс: пришло сообщение → открыл чат",
+   "w": 390,
+   "x": 0,
+   "y": 2944
+  },
+  "V5Notify.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "У1 · Пуш на заблокированном экране",
+   "w": 390,
+   "x": 1880,
+   "y": 2944
+  },
+  "V5NotifyExpand.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "У2 · Зажал: Ответить · Прочитано · Открыть",
+   "w": 390,
+   "x": 2350,
+   "y": 2944
+  },
+  "V5NotifyOpen.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "У5 · Тап — открылся этот чат",
+   "w": 390,
+   "x": 3760,
+   "y": 2944
+  },
+  "V5NotifyRead.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "У4 · «Прочитано»",
+   "w": 390,
+   "x": 3290,
+   "y": 2944
+  },
+  "V5NotifyReply.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "У3 · Ответ, не открывая приложение",
+   "w": 390,
+   "x": 2820,
+   "y": 2944
+  },
+  "V5Offline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Н1 · Нет сети — сохранённое и очередь",
+   "w": 390,
+   "x": 0,
+   "y": 6928
+  },
+  "V5OfflineGps.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Н2 · Неточно — круг ±300 м",
+   "w": 390,
+   "x": 470,
+   "y": 6928
+  },
+  "V5OfflineNoGeo.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Н3 · Геолокация выключена",
+   "w": 390,
+   "x": 940,
+   "y": 6928
+  },
+  "V5Recs.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "Р1 · Рекомендации: сигналы → оценка → лента (видит только команда)",
+   "w": 1440,
+   "x": 470,
+   "y": 8152
+  },
+  "V5Sheet.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "П2 · Процесс: пин → карточка → весь экран",
+   "w": 390,
+   "x": 940,
+   "y": 5648
+  },
+  "V5Statuses.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "К3 · Статусы: дома, работа, бар… и «спит»",
+   "w": 1440,
+   "x": 1410,
+   "y": 5648
+  },
+  "V5Stickers.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "С1 · Все стикеры по категориям",
+   "w": 1440,
+   "x": 0,
+   "y": 4168
+  },
+  "V5Swipe.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v5",
+   "title": "П3 · Процесс: вправо, влево, вверх",
+   "w": 390,
+   "x": 0,
+   "y": 8152
+  },
+  "V6Journey.dc.html": {
+   "x": 0,
+   "y": 260,
+   "w": 1800,
+   "h": 1080,
+   "title": "v6 · Весь путь: 16 шагов, листается само",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6FirstRun.dc.html": {
+   "x": 1880,
+   "y": 260,
+   "w": 1400,
+   "h": 1000,
+   "title": "v6 · Первый запуск: вход → добро пожаловать → обучение по вкладкам",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Scenarios.dc.html": {
+   "x": 3360,
+   "y": 260,
+   "w": 1600,
+   "h": 1040,
+   "title": "v6 · Все сценарии",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Splash.dc.html": {
+   "x": 0,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "З1 · Запуск днём",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6SplashNight.dc.html": {
+   "x": 470,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "З2 · Запуск ночью",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Tutorial.dc.html": {
+   "x": 940,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О0 · Обучение: листается само",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialMap.dc.html": {
+   "x": 1410,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О1 · Карта",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialTop.dc.html": {
+   "x": 1880,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О2 · Поиск, слои, фильтры, +",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialLens.dc.html": {
+   "x": 2350,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О3 · Слои",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialFriends.dc.html": {
+   "x": 2820,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О4 · Друзья",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialFeed.dc.html": {
+   "x": 3290,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О5 · Открой Рекомендации",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialSwipe.dc.html": {
+   "x": 3760,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О6 · Смахивай",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialPlans.dc.html": {
+   "x": 4230,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О7 · Планы",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialChats.dc.html": {
+   "x": 4700,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О8 · Чаты",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialMe.dc.html": {
+   "x": 5170,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О9 · Профиль",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TutorialDone.dc.html": {
+   "x": 5640,
+   "y": 1720,
+   "w": 390,
+   "h": 844,
+   "title": "О10 · Готово",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6MapMove.dc.html": {
+   "x": 0,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К1 · Друзья: след из точек, «38 км/ч», «2 мин»",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Filters.dc.html": {
+   "x": 470,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К2 · Фильтры: «Ближайшее время», цена ползунком",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6FiltersDate.dc.html": {
+   "x": 940,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К3 · Галочку снял — календарь",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6MapLens.dc.html": {
+   "x": 1410,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К4 · Слои",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6MapLensTraffic.dc.html": {
+   "x": 1880,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К5 · Слой «Пробки»",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6MapLensExplore.dc.html": {
+   "x": 2350,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К6 · «Где я был» — 18% открыто",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Offline.dc.html": {
+   "x": 2820,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К7 · Нет интернета",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6OfflineGps.dc.html": {
+   "x": 3290,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К8 · Неточно",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6OfflineNoGeo.dc.html": {
+   "x": 3760,
+   "y": 2944,
+   "w": 390,
+   "h": 844,
+   "title": "К9 · Включи геолокацию",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Venue.dc.html": {
+   "x": 0,
+   "y": 4168,
+   "w": 390,
+   "h": 844,
+   "title": "М1 · ТРЦ на карте, тап по MEGA",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6VenuePage.dc.html": {
+   "x": 470,
+   "y": 4168,
+   "w": 390,
+   "h": 844,
+   "title": "М2 · Страница ТРЦ: фильмы и события",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6VenueFilm.dc.html": {
+   "x": 940,
+   "y": 4168,
+   "w": 390,
+   "h": 844,
+   "title": "М3 · Фильм: день и сеанс",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6VenueSite.dc.html": {
+   "x": 1410,
+   "y": 4168,
+   "w": 390,
+   "h": 844,
+   "title": "М4 · Сайт кинотеатра внутри приложения",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardOpen.dc.html": {
+   "x": 0,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р1 · Процесс: вверх → весь экран → вниз",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardOpenTap.dc.html": {
+   "x": 470,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р2 · Или просто тап — тоже раскрывается",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardOpenFull.dc.html": {
+   "x": 940,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р3 · Карточка раскрыта",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardOpenScroll.dc.html": {
+   "x": 1410,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р4 · Сайт события и адрес",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardOpenWhere.dc.html": {
+   "x": 1880,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р5 · Тап по адресу: здесь, 2ГИС или Яндекс",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Route.dc.html": {
+   "x": 2350,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р6 · Маршрут здесь: автобус 63",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6RouteCar.dc.html": {
+   "x": 2820,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р7 · Машина с пробками",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6RouteWalk.dc.html": {
+   "x": 3290,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р8 · Пешком",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6CardPeople.dc.html": {
+   "x": 3760,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р9 · Кнопка «Я тоже ищу компанию»",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6PlansFly.dc.html": {
+   "x": 4230,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р10 · Вправо: плавно улетает в «Планы»",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Empty.dc.html": {
+   "x": 4700,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р11 · Ты всё посмотрел",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6EmptyPlans.dc.html": {
+   "x": 5170,
+   "y": 5392,
+   "w": 390,
+   "h": 844,
+   "title": "Р12 · Планов пока нет",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6RealEvents.dc.html": {
+   "x": 5640,
+   "y": 5392,
+   "w": 1600,
+   "h": 1010,
+   "title": "Р13 · Настоящие события 4–12 октября",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ChatMedia.dc.html": {
+   "x": 0,
+   "y": 6782,
+   "w": 390,
+   "h": 844,
+   "title": "Ч1 · Голосовое: держи, вверх — замок",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ChatCircle.dc.html": {
+   "x": 470,
+   "y": 6782,
+   "w": 390,
+   "h": 844,
+   "title": "Ч2 · Кружок",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ChatSwipe.dc.html": {
+   "x": 940,
+   "y": 6782,
+   "w": 390,
+   "h": 844,
+   "title": "Ч3 · Смахнул чат — удалить",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ChatReply.dc.html": {
+   "x": 1410,
+   "y": 6782,
+   "w": 390,
+   "h": 844,
+   "title": "Ч4 · Смахнул сообщение — ответить",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Bump.dc.html": {
+   "x": 0,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д1 · Бамп: весь процесс",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6BumpSearch.dc.html": {
+   "x": 470,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д2 · Ищем рядом",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6BumpFound.dc.html": {
+   "x": 940,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д3 · Бамп засчитан",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6BumpPush.dc.html": {
+   "x": 1410,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д4 · Пуш общим друзьям",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6EmptyAdd.dc.html": {
+   "x": 1880,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д5 · Добавить и позвать",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileFriend.dc.html": {
+   "x": 2350,
+   "y": 8006,
+   "w": 390,
+   "h": 844,
+   "title": "Д6 · Профиль друга",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Profile.dc.html": {
+   "x": 0,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр1 · Мой профиль",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Achieve.dc.html": {
+   "x": 470,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр2 · Значки и уровень",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6AchieveDetail.dc.html": {
+   "x": 940,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр3 · Как получить значок",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6AchieveRewards.dc.html": {
+   "x": 1410,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр4 · Награды за уровни",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfilePrivacy.dc.html": {
+   "x": 1880,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр5 · Кто видит · невидимка 1/8/24 ч",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileSettings.dc.html": {
+   "x": 2350,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр6 · Настройки",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileAccount.dc.html": {
+   "x": 2820,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр7 · Аккаунт",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileNotify.dc.html": {
+   "x": 3290,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр8 · Уведомления",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileChats.dc.html": {
+   "x": 3760,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр9 · Сообщения и стикеры",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6ProfileBlack.dc.html": {
+   "x": 4230,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр10 · Чёрный список",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Places.dc.html": {
+   "x": 4700,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр11 · Мои места",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6PlacesAdd.dc.html": {
+   "x": 5170,
+   "y": 9230,
+   "w": 390,
+   "h": 844,
+   "title": "Пр12 · Отметить место",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6AutoStatus.dc.html": {
+   "x": 0,
+   "y": 10454,
+   "w": 1600,
+   "h": 1060,
+   "title": "С1 · Как это работает",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6StatusRules.dc.html": {
+   "x": 1680,
+   "y": 10454,
+   "w": 1600,
+   "h": 900,
+   "title": "С2 · Все условия и что важнее",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Dev.dc.html": {
+   "x": 0,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз1 · Главная панели",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevRun.dc.html": {
+   "x": 470,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз2 · «Искать сейчас»",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevSchedule.dc.html": {
+   "x": 940,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз3 · Расписание: колесо даты и времени",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevSources.dc.html": {
+   "x": 1410,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз4 · Темы и сайты",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevQueue.dc.html": {
+   "x": 1880,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз5 · Согласование",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevQueueReview.dc.html": {
+   "x": 2350,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз6 · Страница → карточка",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevTables.dc.html": {
+   "x": 2820,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз7 · Таблицы",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DevRow.dc.html": {
+   "x": 3290,
+   "y": 11894,
+   "w": 390,
+   "h": 844,
+   "title": "Раз8 · Правка события",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6DataPlan.dc.html": {
+   "x": 3760,
+   "y": 11894,
+   "w": 1700,
+   "h": 960,
+   "title": "Раз9 · Откуда берутся события и данные",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6MapTop.dc.html": {
+   "x": 0,
+   "y": 13234,
+   "w": 390,
+   "h": 140,
+   "title": "Верх карты: поиск, слои, фильтры, +, погода",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6TabBar.dc.html": {
+   "x": 470,
+   "y": 13234,
+   "w": 390,
+   "h": 96,
+   "title": "Нижняя панель: только иконки",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Edge.dc.html": {
+   "x": 0,
+   "y": 13754,
+   "w": 1600,
+   "h": 1070,
+   "title": "Н1 · Не по плану",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6Reality.dc.html": {
+   "x": 1680,
+   "y": 13754,
+   "w": 1600,
+   "h": 1000,
+   "title": "Н2 · Что легко, сложно, нельзя",
+   "page": "v6",
+   "is_interactive": true
+  },
+  "V6IconAll.dc.html": {
+   "x": 0,
+   "y": 260,
+   "w": 1600,
+   "h": 1010,
+   "title": "Все 8 вариантов",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon1.dc.html": {
+   "x": 0,
+   "y": 1400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 1 · Точка — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon2.dc.html": {
+   "x": 1700,
+   "y": 1400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 2 · р. — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon3.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 3 · Кисть — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon4.dc.html": {
+   "x": 1700,
+   "y": 2400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 4 · Слово — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon5.dc.html": {
+   "x": 0,
+   "y": 3400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 5 · Двое — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon6.dc.html": {
+   "x": 1700,
+   "y": 3400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 6 · Пин — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon7.dc.html": {
+   "x": 0,
+   "y": 4400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 7 · Бамп — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  },
+  "V6Icon8.dc.html": {
+   "x": 1700,
+   "y": 4400,
+   "w": 1600,
+   "h": 900,
+   "title": "Иконка 8 · Город — iOS и Android",
+   "page": "icon",
+   "is_interactive": true
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T03:45:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas",
+  "page": "v6"
+ },
+ "notes": {
+  "row_foryou": {
+   "kind": "title1",
+   "maxW": 3569,
+   "text": "«Для тебя»: бесконечные свайпы",
+   "w": 240,
+   "x": 0,
+   "y": 4180
+  },
+  "row_friends": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Друзья на карте",
+   "w": 240,
+   "x": 0,
+   "y": 5660
+  },
+  "row_logic": {
+   "kind": "title1",
+   "maxW": 3760,
+   "text": "Логика продукта и рекомендации",
+   "w": 240,
+   "x": 0,
+   "y": 13120
+  },
+  "row_main": {
+   "kind": "title1",
+   "maxW": 2740,
+   "text": "Главный путь: карта → событие → компания",
+   "w": 240,
+   "x": 0,
+   "y": 2280
+  },
+  "row_map": {
+   "kind": "title1",
+   "maxW": 2530,
+   "text": "Стиль карты и компоненты",
+   "w": 240,
+   "x": 0,
+   "y": 17560
+  },
+  "row_me": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Профиль: планы, карта города, значки",
+   "w": 240,
+   "x": 0,
+   "y": 10060
+  },
+  "row_pipe": {
+   "kind": "title1",
+   "maxW": 3830,
+   "text": "Для команды: события и рекомендации",
+   "w": 240,
+   "x": 0,
+   "y": 15840
+  },
+  "row_signup": {
+   "kind": "title1",
+   "maxW": 2270,
+   "text": "Вход и регистрация",
+   "w": 240,
+   "x": 0,
+   "y": 1030
+  },
+  "row_social": {
+   "kind": "title1",
+   "maxW": 4620,
+   "text": "Люди, общение и свои встречи",
+   "w": 240,
+   "x": 0,
+   "y": 7700
+  },
+  "v2_find": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "v2",
+   "text": "Найти: Афиша и Подборка",
+   "w": 240,
+   "x": 0,
+   "y": 1980
+  },
+  "v2_go": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "v2",
+   "text": "Пойти и познакомиться: событие → чат",
+   "w": 240,
+   "x": 0,
+   "y": 3330
+  },
+  "v2_map": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "v2",
+   "text": "v2: найти рядом с домом → пойти → познакомиться",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "v2_mine": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "v2",
+   "text": "Планы, люди, профиль",
+   "w": 240,
+   "x": 0,
+   "y": 4680
+  },
+  "v3_chat": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v3",
+   "text": "Чаты: друзья сверху, запросы, позвать и точка внутри",
+   "w": 240,
+   "x": 0,
+   "y": 4900
+  },
+  "v3_go": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v3",
+   "text": "Событие и люди: видно всех, незнакомым — запросом",
+   "w": 240,
+   "x": 0,
+   "y": 3540
+  },
+  "v3_map": {
+   "kind": "title1",
+   "maxW": 5560,
+   "page": "v3",
+   "text": "Карта и Подборка: сейчас или любой день, погода прямо на карте",
+   "w": 240,
+   "x": 0,
+   "y": 2180
+  },
+  "v3_mine": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "v3",
+   "text": "Планы, профиль, уровень",
+   "w": 240,
+   "x": 0,
+   "y": 6260
+  },
+  "v3_top": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "v3",
+   "text": "v3: иконками, без лишнего текста — 10 сценариев",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "v4_chat": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v4",
+   "text": "Чаты: стикер — и у друга пуш; точка «я тут» — и у друга маршрут",
+   "w": 240,
+   "x": 0,
+   "y": 2570
+  },
+  "v4_city2": {
+   "kind": "title1",
+   "maxW": 2740,
+   "page": "v4",
+   "text": "Друзья и город: аватарки, вместе, карта открывается",
+   "w": 240,
+   "x": 0,
+   "y": 4950
+  },
+  "v4_event": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "v4",
+   "text": "Событие: как добраться и напоминания",
+   "w": 240,
+   "x": 0,
+   "y": 3760
+  },
+  "v4_start": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "v4",
+   "text": "Запуск и вход: смотреть можно сразу, вход — на первом «Пойду»",
+   "w": 240,
+   "x": 0,
+   "y": 1380
+  },
+  "v4_top": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "v4",
+   "text": "v4: весь путь — от запуска до друзей",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "v5_chat": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v5",
+   "text": "Чаты, стикеры и пуши: галочки как в Telegram, поиск стикеров, ответ из уведомления",
+   "w": 240,
+   "x": 0,
+   "y": 2684
+  },
+  "v5_dev": {
+   "kind": "title1",
+   "maxW": 3080,
+   "page": "v5",
+   "text": "Панель разработчика: ссылка на сайт → карточка события сама",
+   "w": 240,
+   "x": 0,
+   "y": 9172
+  },
+  "v5_feed": {
+   "kind": "title1",
+   "maxW": 1910,
+   "page": "v5",
+   "text": "Подборка: как работают свайпы и как лента понимает вкус",
+   "w": 240,
+   "x": 0,
+   "y": 7892
+  },
+  "v5_map": {
+   "kind": "title1",
+   "maxW": 2850,
+   "page": "v5",
+   "text": "Живая карта: друзья едут со следом, значки статусов, стикеры летят к тебе",
+   "w": 240,
+   "x": 0,
+   "y": 5388
+  },
+  "v5_off": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "v5",
+   "text": "Когда что-то не так: нет интернета, неточная геолокация, геолокация выключена",
+   "w": 240,
+   "x": 0,
+   "y": 6668
+  },
+  "v5_start": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v5",
+   "text": "Запуск и вход: рукописное «привет», без мероприятий, твой номер в демо-базе",
+   "w": 240,
+   "x": 0,
+   "y": 1460
+  },
+  "v5_stk": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "v5",
+   "text": "Набор стикеров: 51 штука, объёмные, часть двигается",
+   "w": 240,
+   "x": 0,
+   "y": 3908
+  },
+  "v5_top": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "v5",
+   "text": "v5: всё приложение — каждый экран, процесс и решение",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "v6_top": {
+   "kind": "title1",
+   "maxW": 4960,
+   "text": "v6: всё приложение, первый запуск по шагам и карта всех сценариев",
+   "w": 240,
+   "x": 0,
+   "y": 0,
+   "page": "v6"
+  },
+  "v6_start": {
+   "kind": "title1",
+   "maxW": 6030,
+   "text": "Запуск: кистью, точка там, где ты, карта приближает тебя в центр. Обучение — по настоящим вкладкам",
+   "w": 240,
+   "x": 0,
+   "y": 1460,
+   "page": "v6"
+  },
+  "v6_map": {
+   "kind": "title1",
+   "maxW": 4150,
+   "text": "Карта: сверху поиск → слои → фильтры → +, погода на карте, дата в фильтрах, «18% открыто»",
+   "w": 240,
+   "x": 0,
+   "y": 2684,
+   "page": "v6"
+  },
+  "v6_venue": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "ТРЦ: MEGA, Dostyk Plaza, Esentai — кино по фильмам и события. Фильм → день → сеанс → сайт",
+   "w": 240,
+   "x": 0,
+   "y": 3908,
+   "page": "v6"
+  },
+  "v6_feed": {
+   "kind": "title1",
+   "maxW": 7240,
+   "text": "Рекомендации: раскрыть свайпом или тапом, сайт и адрес, «ищу компанию», улёт в «Планы»",
+   "w": 240,
+   "x": 0,
+   "y": 5132,
+   "page": "v6"
+  },
+  "v6_chat": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Чаты: голосовые и кружки, смахнуть — удалить или ответить",
+   "w": 240,
+   "x": 0,
+   "y": 6522,
+   "page": "v6"
+  },
+  "v6_friends": {
+   "kind": "title1",
+   "maxW": 2740,
+   "text": "Друзья: бамп от поиска до пуша общим друзьям, ссылка, позвать",
+   "w": 240,
+   "x": 0,
+   "y": 7746,
+   "page": "v6"
+  },
+  "v6_profile": {
+   "kind": "title1",
+   "maxW": 5560,
+   "text": "Профиль: «Где я был», уровень, значки, награды и все настройки",
+   "w": 240,
+   "x": 0,
+   "y": 8970,
+   "page": "v6"
+  },
+  "v6_status": {
+   "kind": "title1",
+   "maxW": 3280,
+   "text": "Статусы ставятся сами — все условия",
+   "w": 240,
+   "x": 0,
+   "y": 10194,
+   "page": "v6"
+  },
+  "v6_dev": {
+   "kind": "title1",
+   "maxW": 5460,
+   "text": "Панель разработчика: робот поиска, вручную и по расписанию, источники, таблицы, согласование",
+   "w": 240,
+   "x": 0,
+   "y": 11634,
+   "page": "v6"
+  },
+  "v6_parts": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Детали: верх карты и нижняя панель — только иконки",
+   "w": 240,
+   "x": 0,
+   "y": 12974,
+   "page": "v6"
+  },
+  "v6_edge": {
+   "kind": "title1",
+   "maxW": 3280,
+   "text": "Редкие случаи и проверка реальностью",
+   "w": 240,
+   "x": 0,
+   "y": 13494,
+   "page": "v6"
+  },
+  "icon_top": {
+   "kind": "title1",
+   "maxW": 3400,
+   "text": "Иконка «рядом.»: 8 вариантов. Ниже — каждый на iPhone и Android во всех темах",
+   "w": 240,
+   "x": 0,
+   "y": 0,
+   "page": "icon"
+  }
+ },
+ "order": [
+  "Flow.dc.html",
+  "SignUp.dc.html",
+  "SignUpCode.dc.html",
+  "SignUpProfile.dc.html",
+  "Onboarding.dc.html",
+  "SignUpRhythm.dc.html",
+  "Main.dc.html",
+  "MapCalendar.dc.html",
+  "MapFilters.dc.html",
+  "Event.dc.html",
+  "HikeEvent.dc.html",
+  "Company.dc.html",
+  "Feed.dc.html",
+  "FeedDemo.dc.html",
+  "FeedCards.dc.html",
+  "MapFocus.dc.html",
+  "MapMoving.dc.html",
+  "MapInvite.dc.html",
+  "MarkerStyle.dc.html",
+  "Person.dc.html",
+  "PersonFriend.dc.html",
+  "DirectChat.dc.html",
+  "ChatAttach.dc.html",
+  "ChatSheets.dc.html",
+  "Chats.dc.html",
+  "EventChat.dc.html",
+  "Friends.dc.html",
+  "CreateEvent.dc.html",
+  "Me.dc.html",
+  "MeBadges.dc.html",
+  "Settings.dc.html",
+  "Suggest.dc.html",
+  "Logic.dc.html",
+  "Recs.dc.html",
+  "Pipeline.dc.html",
+  "Admin.dc.html",
+  "TasteAdmin.dc.html",
+  "MapStyles.dc.html",
+  "MapBase.dc.html",
+  "TabBar.dc.html",
+  "EventPage.dc.html",
+  "V2Flow.dc.html",
+  "V2Why.dc.html",
+  "V2Afisha.dc.html",
+  "V2AfishaPin.dc.html",
+  "V2AfishaList.dc.html",
+  "V2AfishaCalendar.dc.html",
+  "V2AfishaFilter.dc.html",
+  "V2AfishaPlus.dc.html",
+  "V2Feed.dc.html",
+  "V2Event.dc.html",
+  "V2EventHow.dc.html",
+  "V2EventFriends.dc.html",
+  "V2EventGoing.dc.html",
+  "V2EventCompany.dc.html",
+  "V2EventPerson.dc.html",
+  "V2Chat.dc.html",
+  "V2Plans.dc.html",
+  "V2PlansPast.dc.html",
+  "V2People.dc.html",
+  "V2Profile.dc.html",
+  "V2TabBar.dc.html",
+  "V3Scenarios.dc.html",
+  "V3NearIdeas.dc.html",
+  "V3Notify.dc.html",
+  "V3Map.dc.html",
+  "V3MapPin.dc.html",
+  "V3MapFriend.dc.html",
+  "V3Filter.dc.html",
+  "V3MapPlus.dc.html",
+  "V3FirstRun.dc.html",
+  "V3Feed.dc.html",
+  "V3Event.dc.html",
+  "V3EventHow.dc.html",
+  "V3EventFriends.dc.html",
+  "V3EventGoing.dc.html",
+  "V3Person.dc.html",
+  "V3PersonWrite.dc.html",
+  "V3PersonFriend.dc.html",
+  "V3FriendsOf.dc.html",
+  "V3Chats.dc.html",
+  "V3ChatsFriend.dc.html",
+  "V3Chat.dc.html",
+  "V3ChatTray.dc.html",
+  "V3Requests.dc.html",
+  "V3ChatRequest.dc.html",
+  "V3FindPeople.dc.html",
+  "V3Plans.dc.html",
+  "V3PlansPast.dc.html",
+  "V3Me.dc.html",
+  "V3Quests.dc.html",
+  "V3LevelUp.dc.html",
+  "V3TabBar.dc.html",
+  "V3MapDays.dc.html",
+  "V3MapRain.dc.html",
+  "V3MapSnow.dc.html",
+  "V3MapPoint.dc.html",
+  "V3FeedHint.dc.html",
+  "V3EventHint.dc.html",
+  "V3ChatsHint.dc.html",
+  "V3ChatInvite.dc.html",
+  "V3PlansHint.dc.html",
+  "V4Overview.dc.html",
+  "V4Splash.dc.html",
+  "V4SplashNight.dc.html",
+  "V4SignUp.dc.html",
+  "V4SignUpCode.dc.html",
+  "V4SignUpName.dc.html",
+  "V4SignUpTaste.dc.html",
+  "V4SignUpAllow.dc.html",
+  "V4Route.dc.html",
+  "V4RouteTaxi.dc.html",
+  "V4RouteBus.dc.html",
+  "V4Countdown.dc.html",
+  "V4Lock.dc.html",
+  "V4Together.dc.html",
+  "V4TogetherOpen.dc.html",
+  "V4Explore.dc.html",
+  "V4ExploreFriends.dc.html",
+  "V4MyCity.dc.html",
+  "V4Journey.dc.html",
+  "V4ChatSticker.dc.html",
+  "V4ChatStickerSent.dc.html",
+  "V4PushSticker.dc.html",
+  "V4PushStickerInApp.dc.html",
+  "V4ChatPoint.dc.html",
+  "V4ChatPointSent.dc.html",
+  "V4PointOpen.dc.html",
+  "V4PointOpenMap.dc.html",
+  "V4PointOpenRoute.dc.html",
+  "V4Avatars.dc.html",
+  "V5Journey.dc.html",
+  "V5Hello.dc.html",
+  "V5HelloBack.dc.html",
+  "V5Login.dc.html",
+  "V5LoginPhone.dc.html",
+  "V5LoginCode.dc.html",
+  "V5LoginName.dc.html",
+  "V5LoginTaste.dc.html",
+  "V5LoginAllow.dc.html",
+  "V5LoginDone.dc.html",
+  "V5Messages.dc.html",
+  "V5Chat.dc.html",
+  "V5ChatSearch.dc.html",
+  "V5ChatRead.dc.html",
+  "V5Notify.dc.html",
+  "V5NotifyExpand.dc.html",
+  "V5NotifyReply.dc.html",
+  "V5NotifyRead.dc.html",
+  "V5NotifyOpen.dc.html",
+  "V5Stickers.dc.html",
+  "V5Map.dc.html",
+  "V5MapStickers.dc.html",
+  "V5Sheet.dc.html",
+  "V5Statuses.dc.html",
+  "V5Offline.dc.html",
+  "V5OfflineGps.dc.html",
+  "V5OfflineNoGeo.dc.html",
+  "V5Swipe.dc.html",
+  "V5Recs.dc.html",
+  "V5Dev.dc.html",
+  "V5DevParse.dc.html",
+  "V5DevCard.dc.html",
+  "V5DevMap.dc.html",
+  "V5Base.dc.html",
+  "V6Journey.dc.html",
+  "V6FirstRun.dc.html",
+  "V6Scenarios.dc.html",
+  "V6Splash.dc.html",
+  "V6SplashNight.dc.html",
+  "V6Tutorial.dc.html",
+  "V6TutorialMap.dc.html",
+  "V6TutorialTop.dc.html",
+  "V6TutorialLens.dc.html",
+  "V6TutorialFriends.dc.html",
+  "V6TutorialFeed.dc.html",
+  "V6TutorialSwipe.dc.html",
+  "V6TutorialPlans.dc.html",
+  "V6TutorialChats.dc.html",
+  "V6TutorialMe.dc.html",
+  "V6TutorialDone.dc.html",
+  "V6MapMove.dc.html",
+  "V6Filters.dc.html",
+  "V6FiltersDate.dc.html",
+  "V6MapLens.dc.html",
+  "V6MapLensTraffic.dc.html",
+  "V6MapLensExplore.dc.html",
+  "V6Offline.dc.html",
+  "V6OfflineGps.dc.html",
+  "V6OfflineNoGeo.dc.html",
+  "V6Venue.dc.html",
+  "V6VenuePage.dc.html",
+  "V6VenueFilm.dc.html",
+  "V6VenueSite.dc.html",
+  "V6CardOpen.dc.html",
+  "V6CardOpenTap.dc.html",
+  "V6CardOpenFull.dc.html",
+  "V6CardOpenScroll.dc.html",
+  "V6CardOpenWhere.dc.html",
+  "V6Route.dc.html",
+  "V6RouteCar.dc.html",
+  "V6RouteWalk.dc.html",
+  "V6CardPeople.dc.html",
+  "V6PlansFly.dc.html",
+  "V6Empty.dc.html",
+  "V6EmptyPlans.dc.html",
+  "V6RealEvents.dc.html",
+  "V6ChatMedia.dc.html",
+  "V6ChatCircle.dc.html",
+  "V6ChatSwipe.dc.html",
+  "V6ChatReply.dc.html",
+  "V6Bump.dc.html",
+  "V6BumpSearch.dc.html",
+  "V6BumpFound.dc.html",
+  "V6BumpPush.dc.html",
+  "V6EmptyAdd.dc.html",
+  "V6ProfileFriend.dc.html",
+  "V6Profile.dc.html",
+  "V6Achieve.dc.html",
+  "V6AchieveDetail.dc.html",
+  "V6AchieveRewards.dc.html",
+  "V6ProfilePrivacy.dc.html",
+  "V6ProfileSettings.dc.html",
+  "V6ProfileAccount.dc.html",
+  "V6ProfileNotify.dc.html",
+  "V6ProfileChats.dc.html",
+  "V6ProfileBlack.dc.html",
+  "V6Places.dc.html",
+  "V6PlacesAdd.dc.html",
+  "V6AutoStatus.dc.html",
+  "V6StatusRules.dc.html",
+  "V6Dev.dc.html",
+  "V6DevRun.dc.html",
+  "V6DevSchedule.dc.html",
+  "V6DevSources.dc.html",
+  "V6DevQueue.dc.html",
+  "V6DevQueueReview.dc.html",
+  "V6DevTables.dc.html",
+  "V6DevRow.dc.html",
+  "V6DataPlan.dc.html",
+  "V6MapTop.dc.html",
+  "V6TabBar.dc.html",
+  "V6Edge.dc.html",
+  "V6Reality.dc.html",
+  "V6IconAll.dc.html",
+  "V6Icon1.dc.html",
+  "V6Icon2.dc.html",
+  "V6Icon3.dc.html",
+  "V6Icon4.dc.html",
+  "V6Icon5.dc.html",
+  "V6Icon6.dc.html",
+  "V6Icon7.dc.html",
+  "V6Icon8.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "v1",
+   "name": "v1 · первый макет"
+  },
+  {
+   "id": "v2",
+   "name": "v2 · простой путь"
+  },
+  {
+   "id": "v3",
+   "name": "v3 · иконками и сценариями"
+  },
+  {
+   "id": "v4",
+   "name": "v4 · встречи по-настоящему"
+  },
+  {
+   "id": "v5",
+   "name": "v5 · весь процесс"
+  },
+  {
+   "id": "v6",
+   "name": "v6 · кисть, свайпы, статусы, профиль"
+  },
+  {
+   "id": "icon",
+   "name": "Иконка приложения · 8 вариантов"
+  }
+ ],
+ "title": "рядом — макет приложения"
 }

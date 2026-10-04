@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Процесс: пришло сообщение → открыл чат → галочки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5Bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-8%) scale(0.96,1.04)}60%{transform:translateY(0) scale(1.06,0.94)}80%{transform:translateY(-2%) scale(1)}}
+@keyframes v5Wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes v5Pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes v5Shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3%) rotate(-2deg)}75%{transform:translateX(3%) rotate(2deg)}}
+@keyframes v5Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%)}}
+@keyframes v5Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@keyframes v5Tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+@keyframes v5Zzz{0%{transform:translate(0,6px) scale(0.6);opacity:0}40%{opacity:1}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+@keyframes v5Dash{0%{transform:translateX(6px);opacity:0}50%{opacity:1}100%{transform:translateX(-10px);opacity:0}}
+@keyframes v5Look{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes v5Steam{0%{transform:translateY(4px);opacity:0}40%{opacity:1}100%{transform:translateY(-8px);opacity:0}}
+@keyframes v5Flicker{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(0.95,1.07) rotate(2deg)}}
+@keyframes v5msNew{0%,6%{transform:translateY(-90px);opacity:0}11%,100%{transform:translateY(0);opacity:1}}
+@keyframes v5msShift{0%,6%{transform:translateY(0)}11%,100%{transform:translateY(82px)}}
+@keyframes v5msBadge{0%,10%{transform:scale(0)}13%{transform:scale(1.3)}16%,100%{transform:scale(1)}}
+@keyframes v5msRowHi{0%,18%{background:#FBFAF6}21%,28%{background:#E7E2D6}30%,100%{background:#FBFAF6}}
+@keyframes v5msRip{0%,19%{transform:scale(0.3);opacity:0}20%{opacity:0.8}27%,100%{transform:scale(3);opacity:0}}
+@keyframes v5msChat{0%,28%{transform:translateX(390px)}35%,90%{transform:translateX(0)}97%,100%{transform:translateX(390px)}}
+@keyframes v5msList{0%,28%{transform:translateX(0)}35%,90%{transform:translateX(-90px)}97%,100%{transform:translateX(0)}}
+@keyframes v5msOut{0%,44%{opacity:0;transform:translateY(14px) scale(0.9)}48%,100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes v5msRead{0%,58%{opacity:0}62%,100%{opacity:1}}
+@keyframes v5msTyping{0%,66%{opacity:0}69%,77%{opacity:1}79%,100%{opacity:0}}
+@keyframes v5msSticker{0%,78%{opacity:0;transform:scale(0.3) translateY(20px)}83%{opacity:1;transform:scale(1.1)}86%,100%{opacity:1;transform:scale(1)}}
+@keyframes v5msDot{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-4px);opacity:1}}
+@keyframes v5msCap1{0%,5%{opacity:0}8%,17%{opacity:1}19%,100%{opacity:0}}
+@keyframes v5msCap2{0%,18%{opacity:0}20%,36%{opacity:1}38%,100%{opacity:0}}
+@keyframes v5msCap3{0%,44%{opacity:0}47%,58%{opacity:1}60%,100%{opacity:0}}
+@keyframes v5msCap4{0%,59%{opacity:0}61%,68%{opacity:1}70%,100%{opacity:0}}
+@keyframes v5msCap5{0%,68%{opacity:0}70%,88%{opacity:1}90%,100%{opacity:0}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; animation: v5msList 12s cubic-bezier(.3,.7,.2,1) infinite">
+<div style="padding: 58px 20px 0; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Чаты</div>
+<div style="display: flex; gap: 12px; padding: 14px 20px 6px">
+<sc-for list="{{tops}}" as="t" hint-placeholder-count="5"><span style="position: relative"><img src="{{t.p}}" alt="" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2.5px #2447B8, 0 0 0 5px #F3F0E8"></span></sc-for>
+</div>
+<div style="position: relative; margin-top: 10px">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 82px; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #E7E2D6; animation: v5msNew 12s cubic-bezier(.3,.7,.2,1) infinite, v5msRowHi 12s ease infinite">
+<img src="../assets/igor.jpg" alt="" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover">
+<div style="flex: 1; min-width: 0"><div style="display: flex; justify-content: space-between"><b style="font-size: 16px">Игорь</b><span style="font-size: 12px; color: #8A3A12; font-weight: 700">сейчас</span></div><div style="margin-top: 3px; font-size: 14px; color: #3A3833; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600">Ты где? Уже начинается</div></div>
+<span style="min-width: 24px; height: 24px; padding: 0 7px; box-sizing: border-box; border-radius: 12px; background: #F0521F; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; animation: v5msBadge 12s ease infinite">1</span>
+</div>
+<div style="animation: v5msShift 12s cubic-bezier(.3,.7,.2,1) infinite">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="height: 82px; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #E7E2D6">
+<img src="{{r.p}}" alt="" style="width: 54px; height: 54px; border-radius: 50%; object-fit: cover">
+<div style="flex: 1; min-width: 0"><div style="display: flex; justify-content: space-between"><b style="font-size: 16px">{{r.n}}</b><span style="font-size: 12px; color: #8A857C">{{r.t}}</span></div><div style="margin-top: 3px; font-size: 14px; color: #6B665E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.m}}</div></div>
+<svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#2447B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-label="Прочитано"><path d="M1 6.5l3 3L10 3M7 9.5l1 0L14 3"></path></svg>
+</div>
+</sc-for>
+</div>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 120px; top: 220px; width: 60px; height: 60px; margin: -30px; border-radius: 50%; background: rgba(23,22,26,0.15); border: 4px solid rgba(251,250,246,0.9); opacity: 0; animation: v5msRip 12s ease-out infinite"></span>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: #F3F0E8; box-shadow: -10px 0 30px rgba(23,22,26,0.15); animation: v5msChat 12s cubic-bezier(.3,.7,.2,1) infinite">
+<div style="height: 112px; box-sizing: border-box; padding: 52px 14px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #E7E2D6">
+<span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<img src="../assets/igor.jpg" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover">
+<div><div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 700">Игорь</div><div style="font-size: 12.5px; color: #2F8F5B; font-weight: 600">в сети</div></div>
+</div>
+<div style="position: absolute; left: 0; top: 112px; width: 390px; bottom: 90px; box-sizing: border-box; padding: 0 12px 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px">
+<div style="align-self: flex-start; padding: 9px 12px 7px 14px; border-radius: 18px 18px 18px 6px; background: #FBFAF6; font-size: 15.5px">Ты где? Уже начинается <span style="font-size: 11px; color: #8A857C; margin-left: 8px">20:21</span></div>
+<div style="align-self: flex-end; padding: 9px 10px 7px 14px; border-radius: 18px 18px 6px 18px; background: #F0521F; font-size: 15.5px; display: flex; align-items: center; gap: 8px; animation: v5msOut 12s cubic-bezier(.2,.8,.2,1) infinite">Бегу, 5 минут!
+<span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(23,22,26,0.7)">20:22
+<span style="position: relative; width: 18px; height: 12px; display: inline-block"><svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 0; top: 0"><path d="M1 6.5l3 3L10 3"></path></svg><svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-label="Прочитано" style="position: absolute; left: 0; top: 0; animation: v5msRead 12s ease infinite"><path d="M7 9.5l1 0L14 3"></path></svg></span></span>
+</div>
+<div style="align-self: flex-start; display: flex; gap: 4px; padding: 12px 14px; border-radius: 18px; background: #FBFAF6; animation: v5msTyping 12s ease infinite"><span style="width: 7px; height: 7px; border-radius: 50%; background: #8A857C; animation: v5msDot 1s ease infinite"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #8A857C; animation: v5msDot 1s ease 0.15s infinite"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #8A857C; animation: v5msDot 1s ease 0.3s infinite"></span></div>
+<div style="align-self: flex-start; margin-top: -40px; animation: v5msSticker 12s cubic-bezier(.2,.8,.2,1) infinite"><span style="position: relative; display: block; width: {{lol.size}}px; height: {{lol.size}}px; animation: {{lol.st.anim}}"><svg width="{{lol.size}}" height="{{lol.size}}" viewBox="-6 -10 132 132" aria-hidden="true" style="overflow: visible; display: block"><defs><sc-for list="{{lol.st.grads}}" as="lg" hint-placeholder-count="1"><radialGradient id="{{lg.id}}" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="{{lg.hi}}"></stop><stop offset="0.6" stop-color="{{lg.base}}"></stop><stop offset="1" stop-color="{{lg.lo}}"></stop></radialGradient></sc-for></defs><ellipse cx="60" cy="114" rx="34" ry="5" fill="rgba(23,22,26,0.18)"></ellipse><sc-for list="{{lol.st.shapes}}" as="lp" hint-placeholder-count="6"><path d="{{lp.d}}" fill="{{lp.f}}" stroke="{{lp.s}}" stroke-width="{{lp.w}}" stroke-linecap="round" stroke-linejoin="round" style="transform-origin: {{lp.o}}; animation: {{lp.a}}"></path></sc-for></svg><sc-if value="{{lol.st.hasText}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; {{lol.st.tPos}}; text-align: center; transform: rotate({{lol.st.rot}}); font-family: 'Geologica', sans-serif; font-weight: 800; font-size: calc({{lol.size}}px * {{lol.st.fs}}); line-height: 1.02; letter-spacing: -0.01em; color: {{lol.st.tc}}; white-space: pre-line; text-shadow: 0 0.06em 0 #17161A, 0.06em 0 0 #17161A, -0.06em 0 0 #17161A, 0 -0.06em 0 #17161A, 0.05em 0.05em 0 #17161A, -0.05em 0.05em 0 #17161A, 0.05em -0.05em 0 #17161A, -0.05em -0.05em 0 #17161A, 0 0.14em 0 #17161A, 0 0.22em 0.3em rgba(23,22,26,0.3); pointer-events: none">{{lol.st.text}}</span></sc-if></span></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 26px; width: 390px; height: 62px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; gap: 8px"><span style="width: 46px; height: 46px; border-radius: 23px; background: #E7E2D6"></span><div style="flex: 1; height: 46px; border-radius: 23px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #E7E2D6; display: flex; align-items: center; padding-left: 16px; font-size: 15px; color: #8A857C">Сообщение</div></div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 0; bottom: 110px; width: 390px; height: 40px; display: flex; justify-content: center">
+<sc-for list="{{caps}}" as="c" hint-placeholder-count="5"><span style="position: absolute; padding: 9px 14px; border-radius: 14px; background: #17161A; color: #F3F0E8; font-size: 13.5px; font-weight: 700; white-space: nowrap; opacity: 0; animation: {{c.anim}} 12s ease infinite">{{c.t}}</span></sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const PACK = (() => {
+      const K = '#17161A', W = '#FBFAF6';
+      const C = {
+        orange: ['#FF9A6B', '#F0521F', '#B8360F'], ink: ['#55515E', '#17161A', '#000000'], blue: ['#7C95F0', '#2447B8', '#142C80'],
+        green: ['#86D3A3', '#2F8F5B', '#1C6040'], peach: ['#FFE0CE', '#F7B08A', '#D9805A'], cream: ['#FFFFFF', '#F3F0E8', '#CFC9BB'],
+        coffee: ['#EDB46A', '#C77A12', '#8A520A'], yellow: ['#FFEB99', '#F5C542', '#C99214'], red: ['#FF8A80', '#E0413B', '#A32620'],
+        lilac: ['#E2DAFF', '#A99BEA', '#7565C2'], sky: ['#DDEEFF', '#8FC1F2', '#5A8FC7'], mint: ['#E3F6EA', '#9FD8B6', '#5FA67E']
+      };
+      const g = (c) => 'url(#v5g-' + c + ')';
+      const grad = (c) => ({ id: 'v5g-' + c, hi: C[c][0], base: C[c][1], lo: C[c][2] });
+      const sh = (d, f, s, w, a, o) => ({ d, f: f || 'none', s: s || 'none', w: String(w || 0), a: a || 'none', o: o || '60px 60px' });
+      const body = (d, c) => [sh(d, W, W, 14), sh(d, g(c), K, 3.5)];
+      const ell = (x, y, rx, ry) => 'M' + (x - rx) + ' ' + y + 'a' + rx + ' ' + ry + ' 0 1 0 ' + 2 * rx + ' 0a' + rx + ' ' + ry + ' 0 1 0 ' + (-2 * rx) + ' 0Z';
+      const gloss = (x, y, rx, ry) => sh(ell(x, y, rx || 12, ry || 7), 'rgba(255,255,255,0.6)');
+      const B = {
+        blob: 'M18 58a42 42 0 1 0 84 0a42 42 0 1 0 -84 0Z',
+        pin: 'M60 12C86 12 100 30 100 52C100 78 60 108 60 108C60 108 20 78 20 52C20 30 34 12 60 12Z',
+        heart: 'M60 100L24 66C10 52 14 28 34 24C46 22 54 30 60 38C66 30 74 22 86 24C106 28 110 52 96 66Z',
+        flame: 'M60 8C70 28 96 40 96 70A36 36 0 0 1 24 70C24 54 32 44 40 38C42 50 48 56 54 58C48 42 50 24 60 8Z',
+        cloud: 'M30 90a22 22 0 0 1 0-44a28 28 0 0 1 52-8a24 24 0 0 1 8 52Z',
+        ghost: 'M24 104V58a36 36 0 0 1 72 0v46l-12-8-12 8-12-8-12 8-12-8z',
+        apple: 'M60 36c10-8 32-8 40 10 8 18-2 46-18 54-8 4-14 0-22 0s-14 4-22 0C22 92 12 64 20 46c8-18 30-18 40-10Z',
+        cup: 'M26 48H86V70A24 24 0 0 1 62 94H50A24 24 0 0 1 26 70Z',
+        clock: 'M16 60a44 44 0 1 0 88 0a44 44 0 1 0 -88 0Z',
+        moon: 'M74 14a44 44 0 1 0 30 70a36 36 0 1 1 -30 -70Z',
+        plate: 'M12 40L108 30L112 86L16 96Z',
+        tag: 'M18 34h84a14 14 0 0 1 14 14v26a14 14 0 0 1-14 14H18A14 14 0 0 1 4 74V48a14 14 0 0 1 14-14Z',
+        bubble: 'M20 26h80a14 14 0 0 1 14 14v30a14 14 0 0 1-14 14H54L36 100l2-16H20A14 14 0 0 1 6 70V40a14 14 0 0 1 14-14Z',
+        sun: 'M30 60a30 30 0 1 0 60 0a30 30 0 1 0 -60 0Z',
+        umbrella: 'M12 62a48 42 0 0 1 96 0Z',
+        mountain: 'M8 100L46 36L64 62L78 46L112 100Z',
+        bed: 'M10 74h100v22a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8Z'
+      };
+      const eyes = (cx, cy, dx) => [sh(ell(cx - (dx || 12), cy, 4.5, 6), K), sh(ell(cx + (dx || 12), cy, 4.5, 6), K), sh(ell(cx - (dx || 12) + 1.5, cy - 2.5, 1.6, 1.8), W), sh(ell(cx + (dx || 12) + 1.5, cy - 2.5, 1.6, 1.8), W)];
+      const smile = (cx, cy, w) => sh('M' + (cx - (w || 11)) + ' ' + cy + 'Q' + cx + ' ' + (cy + 11) + ' ' + (cx + (w || 11)) + ' ' + cy, 'none', K, 4);
+      const laughEyes = (cx, cy) => sh('M' + (cx - 19) + ' ' + cy + 'q6-7 12 0M' + (cx + 7) + ' ' + cy + 'q6-7 12 0', 'none', K, 4);
+      const openMouth = (cx, cy) => [sh('M' + (cx - 13) + ' ' + cy + 'h26a13 13 0 0 1-26 0Z', K, K, 2), sh('M' + (cx - 6) + ' ' + (cy + 9) + 'q6-5 12 0q-6 5-12 0Z', '#E0413B')];
+      const cheeks = (cx, cy) => [sh(ell(cx - 22, cy, 6, 3.5), 'rgba(224,65,59,0.35)'), sh(ell(cx + 22, cy, 6, 3.5), 'rgba(224,65,59,0.35)')];
+      const A = {
+        bounce: 'v5Bounce 1.2s ease-in-out infinite', wiggle: 'v5Wiggle 1.6s ease-in-out infinite', pulse: 'v5Pulse 1s ease-in-out infinite',
+        shake: 'v5Shake 0.5s ease-in-out infinite', float: 'v5Float 2.4s ease-in-out infinite', spin: 'v5Spin 6s linear infinite', none: 'none'
+      };
+      const hand = (x, y) => sh('M' + x + ' ' + y + 'c-4-10 0-18 6-16 2-6 10-6 11 0 4-4 10-2 10 4 4-2 9 1 8 7-1 10-8 18-18 20-8 1-14-5-17-15Z', g('peach'), K, 3, 'v5Wave 0.9s ease-in-out infinite', (x + 6) + 'px ' + (y + 12) + 'px');
+      const S = [];
+      const add = (id, name, cat, tags, grads, shapes, opt) => S.push(Object.assign({ id, name, cat, tags, grads: grads.map(grad), shapes, anim: 'none', text: '', hasText: false, tPos: 'left: -14%; right: -14%; bottom: 0%', fs: '0.2', tc: W, rot: '-5deg' }, opt || {}, opt && opt.text ? { hasText: true } : {}));
+      // emotions
+      add('hi', 'Привет', 'emo', 'привет хай помахать hi', ['orange', 'peach'], [...body(B.blob, 'orange'), gloss(42, 36), ...eyes(56, 56), smile(56, 70), ...cheeks(56, 68), hand(88, 34)]);
+      add('lol', 'Ору', 'emo', 'ору смешно лол ахах', ['yellow'], [...body(B.blob, 'yellow'), gloss(42, 36), laughEyes(60, 52), ...openMouth(60, 66), sh(ell(28, 60, 5, 7), '#8FC1F2', K, 2, 'v5Tear 1s ease-in infinite', '28px 60px'), sh(ell(92, 60, 5, 7), '#8FC1F2', K, 2, 'v5Tear 1s ease-in 0.3s infinite', '92px 60px')], { anim: A.bounce, text: 'ОРУ' });
+      add('love', 'Люблю', 'emo', 'люблю сердце любовь', ['peach', 'red'], [...body(B.heart, 'peach'), gloss(38, 40), sh('M38 54c-6-8 4-14 8-6 4-8 14-2 8 6l-8 8z', g('red'), K, 2), sh('M66 54c-6-8 4-14 8-6 4-8 14-2 8 6l-8 8z', g('red'), K, 2), smile(60, 72, 8)], { anim: A.pulse });
+      add('cool', 'Изи', 'emo', 'изи круто очки легко', ['ink'], [...body(B.blob, 'ink'), gloss(42, 36, 10, 6), sh('M30 48h24v8a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8ZM66 48h24v8a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8ZM54 52h12', '#2A292E', W, 2.5), sh('M34 51l6 0', 'none', 'rgba(255,255,255,0.7)', 2.5), sh('M50 76q10 4 20-4', 'none', W, 3.5)], { text: 'ИЗИ' });
+      add('cry', 'Плачу', 'emo', 'плачу грусть слёзы', ['sky'], [...body(B.blob, 'sky'), gloss(42, 36), ...eyes(60, 52), sh('M48 80q12-10 24 0', 'none', K, 4), sh('M46 60q-3 8 0 12q3-4 0-12Z', '#2447B8', 'none', 0, 'v5Tear 1.1s ease-in infinite', '46px 60px'), sh('M74 60q-3 8 0 12q3-4 0-12Z', '#2447B8', 'none', 0, 'v5Tear 1.1s ease-in 0.5s infinite', '74px 60px')]);
+      add('shock', 'Шок', 'emo', 'шок что офигеть', ['cream'], [...body(B.blob, 'cream'), gloss(42, 36), sh(ell(46, 52, 9, 10), W, K, 3), sh(ell(74, 52, 9, 10), W, K, 3), sh(ell(46, 54, 3.5, 4), K), sh(ell(74, 54, 3.5, 4), K), sh(ell(60, 78, 7, 9), K)], { anim: A.shake, text: 'ШОК' });
+      add('sleep', 'Сплю', 'emo', 'сплю спать устал ночь', ['lilac'], [...body(B.cloud, 'lilac'), gloss(44, 48, 10, 6), sh('M42 64q5 4 10 0M66 64q5 4 10 0', 'none', K, 3.5), sh(ell(60, 76, 3, 3.5), K), sh('M88 28h10l-10 10h10M100 14h7l-7 7h7', 'none', K, 3, 'v5Zzz 2s ease-in-out infinite', '96px 24px')], { anim: A.float });
+      add('angry', 'Злюсь', 'emo', 'злюсь бесит грр', ['red'], [...body(B.blob, 'red'), gloss(42, 36), sh('M38 44l14 6M82 44l-14 6', 'none', K, 4), ...eyes(60, 56), sh('M48 78q12-8 24 0', 'none', K, 4)], { anim: A.shake, text: 'ГРР' });
+      add('skeptic', 'Ну-ну', 'emo', 'ну-ну сомневаюсь ага', ['green'], [...body(B.blob, 'green'), gloss(42, 36), sh('M38 42q8-6 16 0M68 48h14', 'none', K, 4), ...eyes(60, 54), sh('M50 74h20', 'none', K, 4)], { text: 'НУ-НУ' });
+      add('wink', 'Подмигнул', 'emo', 'подмигнуть хитро', ['orange'], [...body(B.pin, 'orange'), gloss(44, 30), sh(ell(48, 48, 4.5, 6), K), sh('M66 48q6-5 12 0', 'none', K, 4), smile(60, 62, 12)], { anim: A.wiggle });
+      add('think', 'Хм', 'emo', 'хм думаю вопрос что', ['mint'], [...body(B.blob, 'mint'), gloss(42, 36), sh(ell(50, 50, 4.5, 6), K), sh(ell(74, 50, 4.5, 6), K), sh('M52 76q8-4 16 0', 'none', K, 4), sh('M92 22q0-10 8-10q8 0 8 8q0 6-8 8v6M100 40v1', 'none', K, 4, 'v5Float 1.6s ease-in-out infinite', '100px 28px')], { text: 'ХМ' });
+      add('blush', 'Смущаюсь', 'emo', 'смущаюсь мило няш', ['peach'], [...body(B.blob, 'peach'), gloss(42, 36), sh('M40 56q6-5 12 0M68 56q6-5 12 0', 'none', K, 4), ...cheeks(60, 66), sh('M54 72q6 5 12 0', 'none', K, 3.5)], { anim: A.float });
+      add('party', 'Праздник', 'emo', 'праздник ура др день рождения', ['orange', 'blue', 'yellow'], [...body(B.blob, 'orange'), gloss(42, 40), sh('M44 22L60 -6L76 22Z', g('blue'), K, 3), sh(ell(60, -6, 4, 4), g('yellow'), K, 2), laughEyes(60, 56), smile(60, 70, 12), sh('M14 30l6 4M106 34l-6 4M18 94l6-4M100 96l-4-6', 'none', '#F5C542', 4, 'v5Pulse 0.8s ease-in-out infinite', '60px 60px')], { anim: A.bounce });
+      add('ok', 'Ок', 'emo', 'ок хорошо класс лайк', ['yellow', 'peach'], [...body(B.blob, 'yellow'), gloss(42, 36), ...eyes(52, 50), smile(52, 66, 10), sh('M80 92V72c0-4 2-6 4-12l4-10c2-4 8-2 7 3l-2 13h10c4 0 6 3 5 7l-3 14c-1 3-3 5-6 5Z', g('peach'), K, 3, 'v5Bounce 1s ease-in-out infinite', '90px 80px')], { text: 'ОК' });
+      add('awk', 'Неловко', 'emo', 'неловко пот упс', ['sky'], [...body(B.blob, 'sky'), gloss(42, 36), ...eyes(60, 54), sh('M50 74q5-4 10 0t10 0', 'none', K, 3.5), sh('M90 30q-6 10 0 14q6-4 0-14Z', '#2447B8', W, 2, 'v5Tear 1.4s ease-in infinite', '90px 34px')], { text: 'УПС' });
+      add('ghost', 'Ой всё', 'emo', 'ой всё ушёл призрак', ['cream'], [...body(B.ghost, 'cream'), gloss(42, 40), ...eyes(60, 56), sh(ell(60, 74, 4, 5), K)], { anim: A.float, text: 'ОЙ ВСЁ' });
+      // meetings
+      add('go', 'Иду!', 'meet', 'иду пойду го еду', ['orange'], [...body(B.pin, 'orange'), gloss(44, 30), ...eyes(60, 46), smile(60, 60, 12)], { anim: A.bounce, text: 'ИДУ!' });
+      add('bed', 'Уже выхожу', 'meet', 'уже выхожу опаздываю кровать', ['cream', 'blue', 'orange'], [sh('M28 76a20 18 0 1 1 40 0Z', g('orange'), K, 3), sh('M36 68q4 3 8 0M50 68q4 3 8 0', 'none', K, 3), sh('M76 66h28a6 6 0 0 1 6 6v4H72v-6a4 4 0 0 1 4-4Z', g('cream'), K, 3), ...body(B.bed, 'blue'), sh('M24 86h80M30 96h66', 'none', 'rgba(255,255,255,0.35)', 3), sh('M86 30h10l-10 10h10', 'none', K, 3, 'v5Zzz 2s ease-in-out infinite', '90px 34px')], { text: 'УЖЕ ВЫХОЖУ', fs: '0.13' });
+      add('late', 'Опаздываю', 'meet', 'опаздываю бегу спешу', ['coffee'], [...body(B.blob, 'coffee'), gloss(42, 36), ...eyes(64, 52), sh(ell(66, 72, 5, 6), K), sh('M4 44h14M0 60h12M6 76h14', 'none', K, 4, 'v5Dash 0.6s linear infinite', '10px 60px'), sh('M96 30q-5 8 0 12q5-4 0-12Z', '#8FC1F2', K, 2)], { anim: A.shake, text: 'БЕГУ', rot: '4deg' });
+      add('where', 'Ты где?', 'meet', 'ты где где ты потерялся', ['blue'], [...body(B.blob, 'blue'), gloss(42, 36), sh(ell(42, 54, 9, 9), W, K, 3), sh(ell(70, 54, 9, 9), W, K, 3), sh(ell(46, 54, 3.5, 4), K, 'none', 0, 'v5Look 2s ease-in-out infinite', '46px 54px'), sh(ell(74, 54, 3.5, 4), K, 'none', 0, 'v5Look 2s ease-in-out infinite', '74px 54px'), sh('M50 78h20', 'none', W, 4)], { text: 'ТЫ ГДЕ?' });
+      add('geo', 'Скинь гео', 'meet', 'скинь гео где адрес точка', ['green', 'cream'], [...body(B.pin, 'green'), gloss(44, 30), sh(ell(60, 50, 16, 16), g('cream'), K, 3), sh(ell(60, 50, 5, 5), K, 'none', 0, 'v5Pulse 1s ease-in-out infinite', '60px 50px')], { text: 'СКИНЬ ГЕО', fs: '0.14' });
+      add('wait', 'Жду', 'meet', 'жду время часы', ['cream'], [...body(B.clock, 'cream'), gloss(40, 34), sh('M60 60V34', 'none', K, 5, 'v5Spin 4s linear infinite', '60px 60px'), sh('M60 60h16', 'none', K, 5), sh(ell(60, 60, 4, 4), K), sh('M60 20v6M100 60h-6M60 100v-6M20 60h6', 'none', K, 4)], { text: 'ЖДУ' });
+      add('here', 'Я тут', 'meet', 'я тут здесь пришёл', ['orange', 'yellow'], [...body(B.pin, 'orange'), gloss(44, 30), laughEyes(60, 46), smile(60, 58, 12), sh('M22 30l-10-8M98 30l10-8M60 4V-6', 'none', '#F5C542', 5, 'v5Pulse 0.9s ease-in-out infinite', '60px 40px')], { anim: A.bounce, text: 'Я ТУТ' });
+      add('coffee', 'Кофе?', 'meet', 'кофе кофеек встретимся', ['coffee'], [...body(B.cup, 'coffee'), gloss(40, 58, 9, 5), sh('M86 54H92A10 10 0 0 1 92 74H86', 'none', K, 5), sh('M46 38C40 30 52 26 46 16M60 38C54 30 66 26 60 16M74 38C68 30 80 26 74 16', 'none', K, 3.5, 'v5Steam 1.6s ease-in-out infinite', '60px 30px'), ...eyes(56, 64, 9), sh('M50 76Q56 82 62 76', 'none', K, 3)], { text: 'КОФЕ?' });
+      add('tea', 'По чайку?', 'meet', 'чай по чайку чаёк', ['mint'], [...body(B.cup, 'mint'), gloss(40, 58, 9, 5), sh('M86 54H92A10 10 0 0 1 92 74H86', 'none', K, 5), sh('M70 48V30h10v8h-10', 'none', K, 3), laughEyes(56, 66), smile(56, 76, 7)], { anim: A.wiggle, text: 'ПО ЧАЙКУ?', fs: '0.14' });
+      add('dance', 'Танцуем', 'meet', 'танцуем танцы музыка вечеринка', ['lilac', 'orange'], [...body(B.blob, 'lilac'), gloss(42, 36), laughEyes(60, 54), smile(60, 68, 12), sh('M96 30V12l12-3v16M8 42V26l10-2v14', 'none', K, 4, 'v5Float 1s ease-in-out infinite', '100px 20px'), sh(ell(93, 31, 4, 3.5), K), sh(ell(5, 43, 4, 3.5), K)], { anim: A.wiggle, text: 'ТАНЦУЕМ', fs: '0.14' });
+      add('company', 'Ищу компанию', 'meet', 'ищу компанию кто со мной рука помахать', ['peach'], [sh('M36 56V30a6 6 0 0 1 12 0v26Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M50 54V22a6 6 0 0 1 12 0v32Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M64 54V24a6 6 0 0 1 12 0v30Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M78 58V34a6 6 0 0 1 12 0v24Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 66L22 54a6.5 6.5 0 0 1 10-8l12 12Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 56h56v24q0 24-28 24q-28 0-28-24Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M36 56V30a6 6 0 0 1 12 0v26Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M50 54V22a6 6 0 0 1 12 0v32Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M64 54V24a6 6 0 0 1 12 0v30Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M78 58V34a6 6 0 0 1 12 0v24Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 66L22 54a6.5 6.5 0 0 1 10-8l12 12Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 56h56v24q0 24-28 24q-28 0-28-24Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M40 70h.1M84 70h.1', 'none', 'rgba(224,65,59,0.4)', 8, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh(ell(52, 36, 3, 6), 'rgba(255,255,255,0.6)', 'none', 0, 'v5Wave 1s ease-in-out infinite', '62px 100px')], { text: 'КТО СО МНОЙ?', fs: '0.15' });
+      // text memes
+      const meme = (id, text, c, tc, fs, tags) => add(id, text, 'meme', tags + ' ' + text.toLowerCase(), [c], [...body(B.tag, c), sh('M22 40h50', 'none', 'rgba(255,255,255,0.5)', 5)], { text, tc: tc || W, fs: fs || '0.15', tPos: 'left: 2%; right: 2%; top: 26%; bottom: 22%; display: flex; align-items: center; justify-content: center', rot: '-4deg' });
+      meme('baza', 'ЭТО БАЗА', 'ink', '#F5C542', '0.15', 'база правда');
+      meme('cringe', 'КРИНЖ', 'lilac', W, '0.2', 'кринж стыд');
+      meme('moment', 'Я В МОМЕНТЕ', 'orange', W, '0.13', 'момент кайф');
+      meme('nuinu', 'НУ И НУ', 'cream', '#F0521F', '0.17', 'ну и ну удивление');
+      meme('zhiza', 'ЖИЗА', 'green', W, '0.2', 'жиза правда');
+      meme('bezb', 'БЕЗ Б', 'blue', W, '0.2', 'без базара точно');
+      meme('slay', 'СЛЭЙ', 'red', W, '0.2', 'слэй огонь класс');
+      meme('ponyal', 'ПОНЯЛ, ПРИНЯЛ', 'cream', K, '0.12', 'понял принял ок');
+      meme('shockc', 'ШОК КОНТЕНТ', 'yellow', K, '0.13', 'шок контент');
+      meme('nichego', 'НИЧЕГО НЕ ПОНЯЛ,\nНО ОЧЕНЬ ИНТЕРЕСНО', 'sky', K, '0.085', 'ничего не понял интересно');
+      meme('vzhuh', 'ВЖУХ', 'lilac', '#F5C542', '0.2', 'вжух магия');
+      meme('sidim', 'ХОРОШО СИДИМ', 'coffee', W, '0.12', 'хорошо сидим посиделки');
+      meme('sps', 'СПС', 'mint', K, '0.22', 'спасибо спс');
+      meme('plan', 'ВСЁ ИДЁТ\nПО ПЛАНУ', 'orange', W, '0.12', 'план всё идёт');
+      meme('go2', 'ГО', 'orange', W, '0.3', 'го пошли идём');
+      // city
+      add('alma', 'Алма', 'city', 'алма яблоко алматы', ['red', 'green'], [...body(B.apple, 'red'), gloss(40, 52, 10, 6), sh('M60 36q0-12 6-18', 'none', K, 4), sh('M64 26q14-10 24 0q-14 10-24 0Z', g('green'), K, 3, 'v5Wiggle 2s ease-in-out infinite', '64px 26px'), ...eyes(60, 64), smile(60, 78, 9)], { text: 'АЛМА' });
+      add('mount', 'В горы', 'city', 'горы поход медеу шымбулак', ['sky', 'green', 'cream'], [...body(B.mountain, 'green'), sh('M46 36L38 50L46 46L54 51Z', W, K, 2), sh('M78 46L72 56L78 53L84 57Z', W, K, 2), sh(ell(92, 26, 9, 9), '#F5C542', K, 3, 'v5Pulse 1.6s ease-in-out infinite', '92px 26px')], { text: 'В ГОРЫ' });
+      add('snow', 'Первый снег', 'city', 'снег зима первый снег', ['sky'], [sh('M60 12v96M18 36l84 48M18 84l84-48', 'none', W, 14), sh('M60 12v96M18 36l84 48M18 84l84-48', 'none', g('sky'), 8, 'v5Spin 8s linear infinite', '60px 60px'), sh(ell(60, 60, 14, 14), g('sky'), K, 3), sh('M55 58h.1M65 58h.1', 'none', K, 5), sh('M56 64q4 3 8 0', 'none', K, 2.5)], { text: 'СНЕГ!' });
+      add('rain', 'Дождь', 'city', 'дождь зонт погода', ['blue'], [...body(B.umbrella, 'blue'), sh('M60 62v34q0 8-8 8', 'none', K, 4), sh('M24 74l-4 10M44 80l-4 10M80 78l-4 10M100 72l-4 10', 'none', '#8FC1F2', 4, 'v5Tear 0.8s linear infinite', '60px 80px')], { text: 'ДОЖДЬ' });
+      add('sun', 'Жара', 'city', 'жара солнце лето', ['yellow'], [sh('M60 10v14M60 96v14M10 60h14M96 60h14M24 24l10 10M86 86l10 10M24 96l10-10M86 34l10-10', 'none', '#F5C542', 6, 'v5Spin 6s linear infinite', '60px 60px'), ...body(B.sun, 'yellow'), sh('M42 54h14v4a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5ZM64 54h14v4a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5ZM56 56h8', K, K, 2), smile(60, 70, 8)], { text: '+30' });
+      add('night', 'Споки', 'city', 'споки спокойной ночи луна', ['lilac', 'yellow'], [...body(B.moon, 'yellow'), gloss(36, 40, 9, 6), sh('M40 60q4 4 8 0', 'none', K, 3.5), sh(ell(46, 72, 3, 3.5), K), sh('M96 24h.1M104 44h.1M88 8h.1', 'none', '#F5C542', 6, 'v5Pulse 1.2s ease-in-out infinite', '96px 24px')], { anim: A.float, text: 'СПОКИ' });
+      add('fire', 'Огонь', 'city', 'огонь круто топ', ['orange'], [...body(B.flame, 'orange'), gloss(48, 56, 8, 5), ...eyes(60, 70, 10), sh('M52 82Q60 88 68 82', 'none', K, 3.5)], { anim: 'v5Flicker 0.8s ease-in-out infinite', text: 'ОГОНЬ' });
+      add('miss', 'Скучаю', 'city', 'скучаю обнимаю сердце', ['peach'], [...body(B.heart, 'peach'), gloss(38, 40), sh('M44 56Q48 60 52 56M68 56Q72 60 76 56', 'none', K, 3.5), ...cheeks(60, 64)], { anim: A.pulse, text: 'СКУЧАЮ' });
+      add('bubble', 'Напиши', 'city', 'напиши ответь сообщение', ['cream'], [...body(B.bubble, 'cream'), sh('M30 56h.1M50 56h.1M70 56h.1', 'none', K, 9, 'v5Pulse 1s ease-in-out infinite', '50px 56px')], {});
+      return { list: S, cats: [['all', 'Все'], ['recent', 'Недавние'], ['meme', 'Мемы'], ['emo', 'Эмоции'], ['meet', 'Встречи'], ['city', 'Город']] };
+    })();
+    const STKBY = {}; PACK.list.forEach((s) => { STKBY[s.id] = s; });
+
+    const P = { arman: '../assets/arman.jpg', timur: '../assets/timur.jpg', erlan: '../assets/erlan.jpg', kamila: '../assets/kamila.jpg', anton: '../assets/anton.jpg' };
+    return {
+      lol: { st: STKBY.lol, size: '110' },
+      tops: [P.arman, P.kamila, P.timur, P.erlan, P.anton].map((p) => ({ p })),
+      rows: [[P.kamila, 'Камила', 'Завтра на йогу?', '19:40'], [P.timur, 'Тимур', 'Стикер «Это база»', '18:12'], [P.arman, 'Арман', 'Точка: я тут · 30 мин', '17:05'], [P.erlan, 'Ерлан', 'Го в горы в субботу', 'вчера']].map(([p, n, m, t]) => ({ p, n, m, t })),
+      caps: [['пришло сообщение — чат наверху', 'v5msCap1'], ['тап — чат выезжает справа', 'v5msCap2'], ['одна галочка — доставлено', 'v5msCap3'], ['две — Игорь прочитал', 'v5msCap4'], ['Игорь печатает… и стикер', 'v5msCap5']].map(([t, anim]) => ({ t, anim }))
+    };
+  }
+}
+</script>
+</body>
+</html>

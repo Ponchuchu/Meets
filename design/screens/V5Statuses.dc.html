@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статусы друзей: где он сейчас</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5sBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes v5sDrive{0%,100%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+@keyframes v5sPulse{0%{transform:scale(0.9);opacity:0.7}100%{transform:scale(1.7);opacity:0}}
+@keyframes v5sZ{0%{transform:translate(0,0) scale(0.6);opacity:0}30%{opacity:1}100%{transform:translate(14px,-30px) scale(1.15);opacity:0}}
+@keyframes v5sWiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@keyframes v5sFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes v5sSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 48px 56px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">ЗНАЧОК НА АВАТАРКЕ · СТАВИТ СЕРВЕР САМ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 46px; font-weight: 800; letter-spacing: -0.04em">Где друг сейчас — по значку</h1>
+<div style="margin-top: 6px; font-size: 16px; color: #4A463F; max-width: 1100px">Имени под аватаркой нет — только лицо и значок. Сообщения — оранжевый счётчик сверху. Ночью и без сети 1–2 часа аватарка становится серой и «засыпает».</div>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 28px">
+<sc-for list="{{items}}" as="s" hint-placeholder-count="18">
+<div style="height: 196px; border-radius: 22px; background: #FBFAF6; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; text-align: center">
+<div style="position: relative; width: 72px; height: 72px; animation: {{s.anim}}">
+<sc-if value="{{s.pulse}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; inset: -4px; border-radius: 50%; border: 3px solid {{s.bg}}; animation: v5sPulse 1.4s ease-out infinite"></span></sc-if>
+<img src="{{s.photo}}" alt="" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; filter: {{s.filter}}; box-shadow: 0 0 0 3px {{s.ring}}, 0 0 0 5px #FBFAF6">
+<sc-if value="{{s.pair}}" hint-placeholder-val="{{ false }}"><img src="../assets/arman.jpg" alt="" style="position: absolute; left: 40px; top: -4px; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #FBFAF6"></sc-if>
+<span style="position: absolute; right: -6px; bottom: -4px; width: 30px; height: 30px; border-radius: 50%; background: {{s.bg}}; box-shadow: 0 0 0 3px #FBFAF6; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{s.fg}}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="animation: {{s.iconAnim}}"><path d="{{s.icon}}"></path></svg></span>
+<sc-if value="{{s.sleep}}" hint-placeholder-val="{{ false }}">
+<span style="position: absolute; left: 56px; top: -6px; font-family: 'Geologica', sans-serif; font-weight: 800; font-size: 16px; color: #5F5B55; animation: v5sZ 2.4s ease-out infinite">z</span>
+<span style="position: absolute; left: 60px; top: -10px; font-family: 'Geologica', sans-serif; font-weight: 800; font-size: 12px; color: #5F5B55; animation: v5sZ 2.4s ease-out 0.8s infinite">z</span>
+<span style="position: absolute; left: 64px; top: -14px; font-family: 'Geologica', sans-serif; font-weight: 800; font-size: 10px; color: #5F5B55; animation: v5sZ 2.4s ease-out 1.6s infinite">z</span>
+</sc-if>
+<sc-if value="{{s.ago}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); padding: 2px 6px; border-radius: 8px; background: #5F5B55; color: #FBFAF6; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; white-space: nowrap">3 Ч</span></sc-if>
+</div>
+<div style="margin-top: 18px; font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 700">{{s.name}}</div>
+<div style="margin-top: 4px; font-size: 12.5px; line-height: 1.35; color: #5F5B55">{{s.rule}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = { igor: '../assets/igor.jpg', timur: '../assets/timur.jpg', kamila: '../assets/kamila.jpg', erlan: '../assets/erlan.jpg', daniel: '../assets/daniel.jpg', anton: '../assets/anton.jpg', denis: '../assets/denis.jpg', mira: '../assets/mira.jpg' };
+    const S = [
+      ['Дома', 'Значок без точного адреса — лицо стоит в центре района', P.mira, '#8F897C', '#FBFAF6', 'M4 11l8-7 8 7v9H4zM10 20v-6h4v6'],
+      ['На работе', 'Будни, днём, в одном месте 2+ часа', P.kamila, '#17161A', '#FBFAF6', 'M4 8h16v11H4zM9 8V5h6v3M4 13h16'],
+      ['Учится', 'Университет или курсы из профиля', P.denis, '#2447B8', '#FBFAF6', 'M4 5h7a3 3 0 013 3v12a2 2 0 00-2-2H4zM20 5h-7a3 3 0 00-3 3v12a2 2 0 012-2h8z'],
+      ['В баре', 'Место на карте — бар, вечером', P.timur, '#7565C2', '#FBFAF6', 'M5 4h14l-7 8zM12 12v8M8 20h8', { iconAnim: 'v5sWiggle 1.6s ease-in-out infinite' }],
+      ['В кофейне', 'Кофейня, 10+ минут', P.igor, '#C77A12', '#FBFAF6', 'M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8zM17 9h1.5a2.5 2.5 0 010 5H17'],
+      ['Ужинает', 'Ресторан или кафе вечером', P.anton, '#E0413B', '#FBFAF6', 'M7 3v8M5 3v4a2 2 0 004 0V3M7 11v10M17 3c-2 2-2 6 0 8v10'],
+      ['Спортзал', 'Зал, бассейн, корт', P.erlan, '#2F8F5B', '#FBFAF6', 'M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12', { iconAnim: 'v5sWiggle 1s ease-in-out infinite' }],
+      ['В парке', 'Парк или сквер', P.denis, '#5FA67E', '#FBFAF6', 'M12 22v-6M6 16h12L12 3z'],
+      ['На событии', 'Нажал «Пойду» и он там', P.igor, '#F0521F', '#17161A', 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', { pulse: true }],
+      ['В кино', 'Кинотеатр, сеанс идёт', P.kamila, '#17161A', '#F5C542', 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4'],
+      ['В горах', 'Выше 1500 м или маршрут в горы', P.timur, '#2F8F5B', '#FBFAF6', 'M3 20l6-10 4 6 3-4 5 8z'],
+      ['Идёт пешком', 'Двигается 3–7 км/ч, за ним след', P.igor, '#2447B8', '#FBFAF6', 'M13 4a2 2 0 110 4 2 2 0 010-4zM10 21l2-6 3 3v3M9 13l2-4 4 3 3 1M7 10l3-1', { anim: 'v5sBob 0.6s ease-in-out infinite' }],
+      ['Едет', 'Машина или такси, 15+ км/ч', P.anton, '#C77A12', '#FBFAF6', 'M5 16V11l2-5h10l2 5v5M5 16h14M7.5 13h.01M16.5 13h.01', { anim: 'v5sDrive 1s ease-in-out infinite' }],
+      ['В автобусе', 'Едет по маршруту автобуса', P.erlan, '#2447B8', '#FBFAF6', 'M6 4h12a2 2 0 012 2v10H4V6a2 2 0 012-2zM4 11h16M7 16v3M17 16v3'],
+      ['В пути далеко', 'Аэропорт или вокзал', P.mira, '#17161A', '#FBFAF6', 'M2 16l20-6-20-6 3 6zM5 10h7', { iconAnim: 'v5sFloat 1.6s ease-in-out infinite' }],
+      ['Спит', 'Ночь и не в сети 1–2 часа: серая, «z z z»', P.daniel, '#5F5B55', '#FBFAF6', 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', { sleep: true, filter: 'grayscale(1) brightness(0.95)', ring: '#8F897C' }],
+      ['Давно не в сети', 'Днём 3+ часа без сети: серая, с часами', P.anton, '#8F897C', '#FBFAF6', 'M12 7v5l3 2M12 3a9 9 0 110 18 9 9 0 010-18z', { ago: true, filter: 'grayscale(1)', ring: '#8F897C' }],
+      ['Вместе', 'С другом 10+ минут — один пузырь', P.igor, '#F0521F', '#17161A', 'M12 2c1 4 5 5.5 5 11a5 5 0 01-10 0c0-2.5 1.2-4 2.5-5 .2 1.8 1 2.8 2 3.2C11 9 11 5 12 2z', { pair: true, anim: 'v5sFloat 3s ease-in-out infinite' }]
+    ];
+    return {
+      items: S.map(([name, rule, photo, bg, fg, icon, o]) => Object.assign({ name, rule, photo, bg, fg, icon, ring: bg, anim: 'none', iconAnim: 'none', pulse: false, sleep: false, ago: false, pair: false, filter: 'none' }, o || {}))
+    };
+  }
+}
+</script>
+</body>
+</html>

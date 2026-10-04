@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Линзы карты: обычная, пробки, где я был</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6lnSheet{from{transform:translateY(420px)}to{transform:translateY(0)}}
+@keyframes v6lnFlow{to{stroke-dashoffset:-28}}
+@keyframes v6lnReveal{from{opacity:0}to{opacity:1}}
+@keyframes v6lnGrow{0%{transform:scale(0.2);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes v6lnRing{from{stroke-dasharray:0 138}to{stroke-dasharray:25 138}}
+@keyframes v6lnCone{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(16deg)}}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+
+<sc-if value="{{isTraffic}}" hint-placeholder-val="{{ false }}">
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0; animation: v6lnReveal 600ms ease both">
+<sc-for list="{{roads}}" as="r" hint-placeholder-count="10"><path d="{{r.d}}" stroke="{{r.c}}" stroke-width="6" fill="none" stroke-linecap="round" stroke-opacity="0.9"></path><path d="{{r.d}}" stroke="#FBFAF6" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="3 11" stroke-opacity="0.8" style="animation: v6lnFlow {{r.s}}s linear infinite"></path></sc-for>
+</svg>
+<div style="position: absolute; left: 16px; bottom: 112px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: 22px; background: rgba(251,250,246,0.96); box-shadow: 0 6px 16px rgba(23,22,26,0.14); font-size: 14px; font-weight: 600"><span style="width: 28px; height: 28px; border-radius: 50%; background: #E0A21B; color: #17161A; font-family: 'Geologica', sans-serif; font-weight: 800; display: flex; align-items: center; justify-content: center">6</span>Пробки 6 баллов · до Абая 25 мин</div>
+</sc-if>
+
+<sc-if value="{{isExplore}}" hint-placeholder-val="{{ false }}">
+<svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844" style="position: absolute; left: 0; top: 0; animation: v6lnReveal 800ms ease both">
+<defs>
+<filter id="v6lnSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>
+<mask id="v6lnFog" maskUnits="userSpaceOnUse" x="0" y="0" width="390" height="844">
+<rect x="0" y="0" width="390" height="844" fill="#fff"></rect>
+<g filter="url(#v6lnSoft)">
+<path d="M54 160V500M54 294H270M126 294V620M198 158V500M126 498H330M180 470L120 600" stroke="#000" stroke-width="46" stroke-linecap="round" fill="none"></path>
+<circle cx="198" cy="380" r="70" fill="#000"></circle><circle cx="300" cy="200" r="40" fill="#000"></circle><circle cx="90" cy="700" r="50" fill="#000"></circle>
+</g>
+</mask>
+</defs>
+<rect x="0" y="0" width="390" height="844" fill="#D9D3C6" fill-opacity="0.76" mask="url(#v6lnFog)"></rect>
+<g fill="none" stroke="#F0521F" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round"><path d="M54 160V500M54 294H270M126 294V620M198 158V500M126 498H330"></path></g>
+</svg>
+<sc-for list="{{spots}}" as="s" hint-placeholder-count="4"><span aria-hidden="true" style="position: absolute; left: {{s.x}}px; top: {{s.y}}px; width: 30px; height: 30px; border-radius: 10px; background: #FBFAF6; box-shadow: 0 4px 10px rgba(23,22,26,0.15); display: flex; align-items: center; justify-content: center; animation: v6lnGrow 500ms cubic-bezier(.2,.8,.2,1) {{s.d}}s both"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A3A12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.i}}"></path></svg></span></sc-for>
+<div style="position: absolute; left: 20px; bottom: 116px; display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 8px; border-radius: 34px; background: rgba(251,250,246,0.82); backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(23,22,26,0.12)">
+<span style="position: relative; width: 52px; height: 52px"><svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="22" fill="none" stroke="#E4DFD3" stroke-width="5"></circle><circle cx="26" cy="26" r="22" fill="none" stroke="#F0521F" stroke-width="5" stroke-linecap="round" stroke-dasharray="25 138" transform="rotate(-90 26 26)" style="animation: v6lnRing 1.2s cubic-bezier(.2,.8,.2,1) both"></circle></svg></span>
+<span><span style="display: block; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1">18%</span><span style="display: block; font-size: 13px; font-weight: 600; color: #5F5B55">открыто</span></span>
+</div>
+</sc-if>
+
+<sc-for list="{{friends}}" as="f" hint-placeholder-count="3"><img src="{{f.p}}" alt="" style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 3px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 6px 14px rgba(23,22,26,0.22)"></sc-for>
+<span aria-hidden="true" style="position: absolute; left: 136px; top: 300px; width: 120px; height: 120px; transform-origin: 60px 100px; animation: v6lnCone 7s ease-in-out infinite"><svg width="120" height="120" viewBox="0 0 120 120"><defs><radialGradient id="v6lnCg" cx="60" cy="100" r="96" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F0521F" stop-opacity="0.55"></stop><stop offset="1" stop-color="#F0521F" stop-opacity="0"></stop></radialGradient></defs><path d="M60 100L22 14A96 96 0 0198 14Z" fill="url(#v6lnCg)"></path></svg></span>
+<span aria-hidden="true" style="position: absolute; left: 184px; top: 388px; width: 24px; height: 24px; border-radius: 50%; background: #F0521F; border: 4px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 4px 12px rgba(23,22,26,0.3)"></span>
+<div style="position: absolute; left: 0; top: 0"><dc-import name="V6MapTop" lens="{{lens}}" hint-size="390px,140px"></dc-import></div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V6TabBar" active="map" plans="2" chats="1" hint-size="390px,96px"></dc-import></div>
+
+<sc-if value="{{isPicker}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; background: rgba(23,22,26,0.35)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 12px 16px 34px; border-radius: 30px 30px 0 0; background: #FBFAF6; animation: v6lnSheet 500ms cubic-bezier(.2,.8,.2,1) both">
+<span style="display: block; width: 40px; height: 5px; margin: 0 auto; border-radius: 3px; background: #DDD8CC"></span>
+<div style="margin-top: 14px; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em">Линзы</div>
+<div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{lenses}}" as="l" hint-placeholder-count="3">
+<div style="text-align: center">
+<div style="position: relative; height: 120px; border-radius: 20px; overflow: hidden; background: #EFEBE2; box-shadow: {{l.ring}}">
+<svg width="104" height="120" viewBox="0 0 104 120" aria-hidden="true" style="display: block; width: 100%; height: 120px" preserveAspectRatio="none"><rect width="104" height="120" fill="#EFEBE2"></rect><path d="M0 30H104M0 70H104M0 100H104M24 0V120M60 0V120M88 0V120" stroke="#FBF9F4" stroke-width="5"></path><path d="{{l.over}}" stroke="{{l.oc}}" stroke-width="{{l.ow}}" fill="{{l.of}}" fill-opacity="{{l.fo}}" stroke-linecap="round"></path></svg>
+<sc-if value="{{l.on}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: 8px; top: 8px; width: 24px; height: 24px; border-radius: 50%; background: #F0521F; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></sc-if>
+</div>
+<div style="margin-top: 8px; font-size: 14.5px; font-weight: 700">{{l.t}}</div>
+<div style="font-size: 12.5px; color: #5F5B55">{{l.s}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["picker","traffic","explore"],"default":"picker"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.mode ?? 'picker';
+    const R = [['M0 158H390', '#2F8F5B', 1.2], ['M0 294H120', '#E0A21B', 2.4], ['M120 294H390', '#C2321F', 4], ['M0 396H390', '#2F8F5B', 1.2], ['M0 498H200', '#E0A21B', 2.4], ['M200 498H390', '#2F8F5B', 1.2], ['M54 0V650', '#2F8F5B', 1.2], ['M126 0V320', '#C2321F', 4], ['M126 320V650', '#E0A21B', 2.4], ['M198 0V640', '#2F8F5B', 1.2], ['M270 0V600', '#E0A21B', 2.4], ['M0 622C120 612 250 628 390 606', '#C2321F', 4]];
+    return {
+      lens: m === 'picker' ? 'normal' : m,
+      isPicker: m === 'picker', isTraffic: m === 'traffic', isExplore: m === 'explore',
+      roads: R.map(([d, c, s]) => ({ d, c, s: String(s) })),
+      spots: [[186, 240, 'M5 9h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 11h2a2 2 0 010 4h-2', 0.4], [286, 186, 'M3 20l6-12 4 7 3-4 5 9z', 0.5], [76, 686, 'M3 11l9-7 9 7M5 10v10h14V10', 0.6], [40, 420, 'M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z', 0.7]].map(([x, y, i, d]) => ({ x: String(x), y: String(y), i, d: String(d) })),
+      friends: [['../assets/igor.jpg', 92, 236], ['../assets/arman.jpg', 262, 330], ['../assets/kamila.jpg', 60, 560]].map(([p, x, y]) => ({ p, x: String(x), y: String(y) })),
+      lenses: [
+        ['Обычная', 'события и друзья', 'M50 50h8v8h-8zM20 84h8v8h-8z', '#F0521F', '0', '#F0521F', '1', true],
+        ['Пробки', 'зелёный — свободно', 'M0 30H104M60 0V120M0 100H104', '#C2321F', '5', 'none', '0', false],
+        ['Где я был', 'открытые районы', 'M0 0H104V120H0Z', '#D9D3C6', '0', '#D9D3C6', '0.7', false]
+      ].map(([t, s, over, oc, ow, of, fo, on]) => ({ t, s, over, oc, ow, of, fo, on, ring: on ? '0 0 0 3px #F0521F' : '0 0 0 1px #E4DFD3' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

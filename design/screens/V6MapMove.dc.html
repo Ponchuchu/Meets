@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карта: друзья в движении и куда ты смотришь</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6mvGo{0%{offset-distance:0%;opacity:0}5%{opacity:1}94%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes v6mvPop{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes v6mvFade{0%{opacity:0}5%,94%{opacity:1}100%{opacity:0}}
+@keyframes v6mvCone{0%,30%{transform:rotate(-34deg)}55%,80%{transform:rotate(28deg)}100%{transform:rotate(-34deg)}}
+@keyframes v6mvHalo{0%{transform:scale(0.6);opacity:0.5}100%{transform:scale(2.2);opacity:0}}
+@keyframes v6mvNeedle{0%,30%{transform:rotate(34deg)}55%,80%{transform:rotate(-28deg)}100%{transform:rotate(34deg)}}
+@keyframes v6mvPlace{0%,40%{opacity:0;transform:translateY(6px) scale(0.9)}48%,92%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0}}
+@keyframes v6mvBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+
+<span aria-hidden="true" style="position: absolute; left: 162px; top: 430px; width: 0; height: 0">
+<span style="position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; border-radius: 50%; background: rgba(240,82,31,0.22); animation: v6mvHalo 2.4s ease-out infinite"></span>
+<span style="position: absolute; left: -70px; top: -120px; width: 140px; height: 140px; transform-origin: 70px 120px; animation: v6mvCone 12s cubic-bezier(.45,0,.2,1) infinite">
+<svg width="140" height="140" viewBox="0 0 140 140"><defs><radialGradient id="v6mvCg" cx="70" cy="120" r="118" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F0521F" stop-opacity="0.6"></stop><stop offset="0.75" stop-color="#F0521F" stop-opacity="0.12"></stop><stop offset="1" stop-color="#F0521F" stop-opacity="0"></stop></radialGradient></defs><path d="M70 120L24 8A118 118 0 01116 8Z" fill="url(#v6mvCg)"></path></svg>
+</span>
+<span style="position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; background: #F0521F; border: 4px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 4px 12px rgba(23,22,26,0.3)"></span>
+</span>
+<span role="button" aria-label="Отметить это место" style="position: absolute; left: 182px; top: 444px; display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px 0 6px; border-radius: 15px; background: #FBFAF6; box-shadow: 0 4px 12px rgba(23,22,26,0.18); font-size: 12.5px; font-weight: 700; animation: v6mvPlace 12s ease infinite"><span style="width: 20px; height: 20px; border-radius: 50%; background: #17161A; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>Это место</span>
+
+<div style="position: absolute; left: 296px; top: 360px; ">
+<img src="../assets/mira.jpg" alt="" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 3px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 6px 14px rgba(23,22,26,0.2); display: block">
+<span style="position: absolute; left: 50%; top: 42px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 3px; height: 20px; padding: 0 7px; border-radius: 10px; background: #FBFAF6; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 6px rgba(23,22,26,0.15)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2"></path></svg>2 мин</span>
+</div>
+
+<sc-for list="{{echo}}" as="b" hint-placeholder-count="12">
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; offset-path: path('{{b.d}}'); offset-rotate: 0deg; animation: v6mvGo {{b.dur}}s linear {{b.dl}}s infinite">
+<span style="display: block; width: {{b.s}}px; height: {{b.s}}px; margin: {{b.m}}px 0 0 {{b.m}}px; border-radius: 50%; background: #17161A; border: 2.5px solid #FBFAF6; box-sizing: border-box; opacity: {{b.o}}; box-shadow: 0 2px 6px rgba(23,22,26,0.25); animation: v6mvPop 1.2s ease-in-out {{b.pd}}s infinite"></span>
+</div>
+</sc-for>
+
+<sc-for list="{{fr}}" as="f" hint-placeholder-count="4">
+<div style="position: absolute; left: 0; top: 0; offset-path: path('{{f.d}}'); offset-rotate: 0deg; animation: v6mvGo {{f.dur}}s linear {{f.dl}}s infinite">
+<div style="position: relative; width: 50px; height: 50px; margin: -25px 0 0 -25px">
+<img src="{{f.p}}" alt="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 3px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 6px 16px rgba(23,22,26,0.28); display: block">
+<span style="position: absolute; left: 50%; top: -24px; transform: translateX(-50%); height: 20px; padding: 0 7px; border-radius: 10px; background: #17161A; color: #FBFAF6; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; white-space: nowrap; display: flex; align-items: center">{{f.speed}}</span>
+<sc-if value="{{f.hasMsg}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; right: -4px; top: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #F0521F; border: 2px solid #FBFAF6; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center">2</span></sc-if>
+</div>
+</div>
+</sc-for>
+
+<div style="position: absolute; left: 0; top: 0"><dc-import name="V6MapTop" lens="normal" hint-size="390px,140px"></dc-import></div>
+<div style="position: absolute; right: 16px; top: 164px; width: 44px; height: 44px; border-radius: 50%; background: rgba(251,250,246,0.96); box-shadow: 0 6px 16px rgba(23,22,26,0.16); display: flex; align-items: center; justify-content: center" role="img" aria-label="Компас">
+<svg width="26" height="26" viewBox="0 0 30 30" style="animation: v6mvNeedle 12s cubic-bezier(.45,0,.2,1) infinite" aria-hidden="true"><path d="M15 3l4 12h-8z" fill="#F0521F"></path><path d="M15 27l-4-12h8z" fill="#BDB6A8"></path></svg>
+</div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V6TabBar" active="map" plans="2" chats="2" hint-size="390px,96px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const F = [
+      { id: 'i', p: '../assets/igor.jpg', pts: [[270, 640], [270, 566], [234, 566], [234, 498]], dur: 12, dl: 0, c: '#C77A12', speed: '5 км/ч', msg: true, tail: 130 },
+      { id: 't', p: '../assets/timur.jpg', pts: [[126, 600], [126, 294], [300, 294]], dur: 12, dl: -3, c: '#2F8F5B', speed: '17 км/ч', tail: 170 },
+      { id: 'a', p: '../assets/arman.jpg', pts: [[-30, 396], [90, 396], [90, 158], [420, 158]], dur: 8, dl: -1, c: '#2447B8', speed: '54 км/ч', tail: 220 },
+      { id: 'e', p: '../assets/erlan.jpg', pts: [[-40, 636], [100, 616], [200, 626], [300, 614], [430, 600]], dur: 9, dl: -7.5, c: '#8A5BC7', speed: '38 км/ч', tail: 200 }
+    ];
+    const len = (pts) => pts.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]), 0);
+    const echo = [];
+    const out = {
+      fr: F.map((f) => {
+        const L = len(f.pts), v = L / f.dur, d = 'M' + f.pts.map(([x, y]) => x + ' ' + y).join(' L');
+        const gap = Math.max(13, Math.min(30, parseInt(f.speed) * 0.55 + 10));
+        [15, 12, 10, 8].forEach((sz, k) => echo.push({ d, dur: String(f.dur), dl: String(+(f.dl + (34 + gap * k) / v).toFixed(3)), s: String(sz), m: String(-sz / 2), o: String([0.85, 0.6, 0.4, 0.22][k]), pd: String(k * 0.15) }));
+        return { p: f.p, d, dur: String(f.dur), dl: String(f.dl), speed: f.speed, hasMsg: !!f.msg };
+      })
+    };
+    out.echo = echo;
+    return out;
+  }
+}
+</script>
+</body>
+</html>

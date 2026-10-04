@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ТРЦ на карте: кино по фильмам и события</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6vnSheet{from{transform:translateY(300px)}to{transform:translateY(0)}}
+@keyframes v6vnPin{0%{transform:scale(0.6)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6vnRing{0%{transform:scale(0.8);opacity:0.6}100%{transform:scale(2);opacity:0}}
+@keyframes v6vnIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6vnBuy{0%,30%{transform:translateY(260px)}38%,100%{transform:translateY(0)}}
+@keyframes v6vnPick{0%,22%{background:#FBFAF6;color:#17161A}26%,100%{background:#F0521F;color:#17161A}}
+@keyframes v6vnFinger{0%,12%{left:68px;top:424px;opacity:0}16%{opacity:1;left:68px;top:424px;transform:scale(1)}20%{transform:scale(0.8)}24%{transform:scale(1);opacity:1}28%{opacity:0}54%{opacity:0;left:144px;top:774px}58%{opacity:1;left:144px;top:774px;transform:scale(1)}62%{transform:scale(0.8)}66%{transform:scale(1);opacity:1}70%,100%{opacity:0;left:144px;top:774px}}
+@keyframes v6vnUp{from{transform:translateY(844px)}to{transform:translateY(0)}}
+@keyframes v6vnLoad{0%{transform:scaleX(0)}70%{transform:scaleX(0.85)}100%{transform:scaleX(1);opacity:0}}
+@keyframes v6vnShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isPeek}}" hint-placeholder-val="{{ true }}">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+<sc-for list="{{malls}}" as="m" hint-placeholder-count="3"><div style="position: absolute; left: {{m.x}}px; top: {{m.y}}px; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%)"><span style="width: {{m.s}}px; height: {{m.s}}px; border-radius: {{m.r}}px; background: #17161A; border: 3px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 6px 16px rgba(23,22,26,0.3); display: flex; align-items: center; justify-content: center"><svg width="{{m.is}}" height="{{m.is}}" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 21V9l8-5 8 5v12M9 21v-5h6v5"></path></svg></span><span style="margin-top: 4px; padding: 3px 8px; border-radius: 8px; background: {{m.lb}}; color: {{m.lf}}; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; white-space: nowrap">{{m.t}}</span></div></sc-for>
+<span aria-hidden="true" style="position: absolute; left: 155px; top: 262px; width: 80px; height: 80px; border-radius: 50%; background: rgba(23,22,26,0.16); animation: v6vnRing 1.8s ease-out infinite"></span>
+<div style="position: absolute; left: 0; top: 0"><dc-import name="V6MapTop" lens="normal" hint-size="390px,140px"></dc-import></div>
+<div style="position: absolute; left: 10px; right: 10px; bottom: 26px; box-sizing: border-box; padding: 18px; border-radius: 30px; background: #FBFAF6; box-shadow: 0 -10px 40px rgba(23,22,26,0.18); animation: v6vnSheet 500ms cubic-bezier(.2,.8,.2,1) both">
+<span style="display: block; width: 40px; height: 5px; margin: -6px auto 10px; border-radius: 3px; background: #DDD8CC"></span>
+<div style="display: flex; justify-content: space-between; align-items: flex-start"><div><div style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em">MEGA Alma-Ata</div><div style="font-size: 14px; color: #5F5B55">ТРЦ · Розыбакиева, 247а · до 22:00</div></div><span style="display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 4px; border-radius: 16px; background: #EDE9DF; font-size: 13px; font-weight: 600"><img src="../assets/arman.jpg" alt="" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover">тут</span></div>
+<div style="margin-top: 14px; display: flex; gap: 8px">
+<sc-for list="{{films}}" as="f" hint-placeholder-count="3"><div style="width: 76px"><div style="position: relative; width: 76px; height: 104px; border-radius: 14px; overflow: hidden; background: {{f.bg}}; flex-shrink: 0">
+<span style="position: absolute; left: {{f.cx}}%; top: {{f.cy}}%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: {{f.glow}}; filter: blur(6px)"></span>
+<svg aria-hidden="true" width="76" height="104" viewBox="0 0 100 140" preserveAspectRatio="none" style="position: absolute; left: 0; top: 0; opacity: 0.55"><path d="{{f.art}}" fill="none" stroke="{{f.line}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(rgba(10,9,12,0), rgba(10,9,12,0.85))"></span>
+<span style="position: absolute; left: 7px; right: 6px; bottom: 6px; color: #FBFAF6; font-family: 'Geologica', sans-serif; font-size: 12.5px; font-weight: 800; line-height: 1.05">{{f.t}}</span></div></div></sc-for>
+<div style="flex: 1; height: 104px; box-sizing: border-box; padding: 10px; border-radius: 14px; background: #F0521F; display: flex; flex-direction: column; justify-content: space-between"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 9h18M5 5h14v16H5z"></path></svg><span style="font-family: 'Geologica', sans-serif; font-size: 14px; font-weight: 800; line-height: 1.1">+ 4 события</span></div>
+</div>
+<button type="button" style="margin-top: 14px; width: 100%; height: 52px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Всё в MEGA</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isPage}}" hint-placeholder-val="{{ false }}">
+<div style="position: relative; height: 214px; background: linear-gradient(135deg, #17161A, #3A2A22, #8A3A12, #17161A); background-size: 300% 300%; animation: v6vnShift 12s ease infinite; color: #F3F0E8">
+<svg aria-hidden="true" width="390" height="214" viewBox="0 0 390 214" style="position: absolute; left: 0; top: 0; opacity: 0.16"><path d="M40 190V110l60-40 60 40v80M200 190V80l80-50 80 50v110M0 190H390M70 190v-40h60v40M240 190v-50h80v50" stroke="#F7B08A" stroke-width="3" fill="none"></path></svg>
+<span role="button" aria-label="Назад" style="position: absolute; left: 12px; top: 50px; width: 44px; height: 44px; border-radius: 50%; background: rgba(251,250,246,0.15); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<div style="position: absolute; left: 20px; bottom: 18px; right: 20px">
+<div style="display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #7FD3A0"><span style="width: 7px; height: 7px; border-radius: 50%; background: #7FD3A0"></span>ОТКРЫТО ДО 22:00</div>
+<div style="margin-top: 4px; font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">MEGA Alma-Ata</div>
+<div style="font-size: 14px; color: #CFC9BB">ТРЦ · Розыбакиева, 247а · 2,4 км</div>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px 16px 0">
+<sc-for list="{{acts}}" as="a" hint-placeholder-count="3"><span style="height: 46px; border-radius: 14px; background: #FBFAF6; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{a.i}}"></path></svg>{{a.t}}</span></sc-for>
+</div>
+<div style="display: flex; gap: 6px; padding: 12px 16px 0; overflow: hidden">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><span style="flex-shrink: 0; height: 34px; padding: 0 13px; border-radius: 17px; background: {{t.bg}}; color: {{t.fg}}; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px">{{t.t}}<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: 0.6">{{t.n}}</span></span></sc-for>
+</div>
+<div style="margin: 16px 20px 8px; display: flex; justify-content: space-between; align-items: baseline"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">КИНО · CHAPLIN · 2 ЭТАЖ</span><span style="font-size: 13px; font-weight: 600; color: #5F5B55">все фильмы</span></div>
+<div style="display: flex; gap: 10px; padding: 0 16px; overflow: hidden">
+<sc-for list="{{films}}" as="f" hint-placeholder-count="4"><div style="width: 116px; flex-shrink: 0; animation: v6vnIn 450ms ease {{f.d}}s both"><div style="position: relative; width: 116px; height: 160px; border-radius: 18px; overflow: hidden; background: {{f.bg}}; flex-shrink: 0">
+<span style="position: absolute; left: {{f.cx}}%; top: {{f.cy}}%; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; background: {{f.glow}}; filter: blur(6px)"></span>
+<svg aria-hidden="true" width="116" height="160" viewBox="0 0 100 140" preserveAspectRatio="none" style="position: absolute; left: 0; top: 0; opacity: 0.55"><path d="{{f.art}}" fill="none" stroke="{{f.line}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(rgba(10,9,12,0), rgba(10,9,12,0.85))"></span>
+<span style="position: absolute; left: 8px; top: 8px; padding: 2px 6px; border-radius: 6px; background: rgba(251,250,246,0.2); color: #FBFAF6; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600">{{f.age}}</span><span style="position: absolute; left: 10px; right: 8px; bottom: 9px; color: #FBFAF6; font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em">{{f.t}}</span></div><div style="margin-top: 6px; font-size: 12.5px; color: #5F5B55">{{f.n}}</div></div></sc-for>
+</div>
+<div style="margin: 16px 20px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">СОБЫТИЯ В ТРЦ</div>
+<div style="margin: 0 16px; border-radius: 20px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{events}}" as="e" hint-placeholder-count="3"><div style="height: 62px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-top: {{e.bt}}; animation: v6vnIn 400ms ease {{e.d}}s both"><span style="width: 40px; height: 40px; border-radius: 12px; background: {{e.bg}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{e.fg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{e.i}}"></path></svg></span><div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">{{e.t}}</div><div style="font-size: 12.5px; color: #5F5B55">{{e.s}}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8F897C" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"></path></svg></div></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isFilm}}" hint-placeholder-val="{{ false }}">
+<div style="position: relative; height: 236px; overflow: hidden; background: linear-gradient(160deg, #6B4A1E, #2A1C0E 70%)">
+<span style="position: absolute; left: 70%; top: 30%; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%; background: rgba(240,160,80,0.45); filter: blur(30px)"></span>
+<svg aria-hidden="true" width="390" height="236" viewBox="0 0 390 236" style="position: absolute; left: 0; top: 0; opacity: 0.4"><path d="M0 200 Q100 150 200 190 T390 170 M40 236 L120 120 L170 180 L240 90 L330 236 M240 90 L250 60" fill="none" stroke="#F7B08A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(rgba(23,22,26,0), rgba(23,22,26,0.9))"></span>
+<span role="button" aria-label="Назад" style="position: absolute; left: 12px; top: 50px; width: 44px; height: 44px; border-radius: 50%; background: rgba(251,250,246,0.15); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 18px; color: #FBFAF6"><div style="font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: -0.03em">Диггер</div><div style="font-size: 14px; color: #CFC9BB">Chaplin MEGA Alma-Ata · 2D · от 4 000 ₸</div></div>
+</div>
+<div style="display: flex; gap: 6px; padding: 14px 16px 0">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="4"><span style="width: 74px; height: 56px; border-radius: 16px; background: {{d.bg}}; color: {{d.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; opacity: 0.75">{{d.w}}</span><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800">{{d.n}}</span></span></sc-for>
+</div>
+<div style="margin: 16px 20px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">СЕАНСЫ</div>
+<div style="margin: 0 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{sessions}}" as="x" hint-placeholder-count="5"><div style="padding: 11px 12px; border-radius: 16px; background: {{x.bg}}; color: {{x.fg}}; animation: {{x.anim}} 6s ease infinite"><div style="font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 600">{{x.t}}</div><div style="margin-top: 2px; font-size: 12px; opacity: 0.75">{{x.s}}</div></div></sc-for>
+</div>
+<div style="margin: 14px 16px 0; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 18px; background: #FBFAF6"><span style="display: flex"><img src="../assets/igor.jpg" alt="" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #FBFAF6"><img src="../assets/arman.jpg" alt="" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #FBFAF6; margin-left: -10px"></span><span style="flex: 1; font-size: 14px; font-weight: 600">Игорь и Арман тоже хотят на «Диггера»</span></div>
+<div style="position: absolute; left: 10px; right: 10px; bottom: 26px; box-sizing: border-box; padding: 18px; border-radius: 28px; background: #17161A; color: #F3F0E8; animation: v6vnBuy 6s cubic-bezier(.2,.8,.2,1) infinite">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #F7B08A">СЕАНС 19:50 · ПН, 5 ОКТЯБРЯ · ЗАЛ 5</div>
+<div style="margin-top: 6px; font-size: 14.5px; color: #CFC9BB">Билеты продаёт кинотеатр — откроем его сайт прямо здесь.</div>
+<div style="margin-top: 14px; display: flex; gap: 8px"><span style="flex: 1; height: 52px; border-radius: 16px; background: #F0521F; color: #17161A; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">Купить билет<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"></path></svg></span><span style="height: 52px; padding: 0 16px; border-radius: 16px; background: #3A383F; font-size: 15px; font-weight: 700; display: flex; align-items: center">Позвать</span></div>
+</div>
+<span aria-hidden="true" style="position: absolute; width: 50px; height: 50px; margin: -25px; border-radius: 50%; background: rgba(23,22,26,0.2); border: 4px solid rgba(251,250,246,0.95); box-sizing: border-box; z-index: 9; animation: v6vnFinger 6s ease infinite"></span>
+</sc-if>
+
+<sc-if value="{{isSite}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: #FFFFFF; animation: v6vnUp 500ms cubic-bezier(.2,.8,.2,1) both">
+<div style="padding: 50px 12px 10px; background: #F3F0E8; border-bottom: 1px solid #E4DFD3; display: flex; align-items: center; gap: 8px">
+<span role="button" aria-label="Закрыть" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+<div style="flex: 1; height: 36px; border-radius: 12px; background: #E7E2D6; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14.5px; font-weight: 600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2.4" stroke-linecap="round"><path d="M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z"></path></svg>chaplin.kz</div>
+<span role="button" aria-label="Открыть в браузере" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"></path></svg></span>
+</div>
+<span aria-hidden="true" style="display: block; height: 3px; background: #F0521F; transform-origin: 0 50%; animation: v6vnLoad 2.4s ease infinite"></span>
+<div style="padding: 20px 16px; display: flex; flex-direction: column; gap: 12px">
+<span style="height: 160px; border-radius: 14px; background: #EEECE7"></span>
+<span style="width: 70%; height: 22px; border-radius: 6px; background: #EEECE7"></span>
+<span style="width: 45%; height: 16px; border-radius: 6px; background: #F3F1EC"></span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px"><span style="height: 44px; border-radius: 10px; background: #EEECE7"></span><span style="height: 44px; border-radius: 10px; background: #EEECE7"></span><span style="height: 44px; border-radius: 10px; background: #FBE3D9"></span><span style="height: 44px; border-radius: 10px; background: #EEECE7"></span></div>
+<span style="height: 120px; border-radius: 14px; background: #F3F1EC"></span>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px; padding: 12px 14px; border-radius: 16px; background: #17161A; color: #F3F0E8; font-size: 13.5px; line-height: 1.4">Сайт кинотеатра открыт внутри «рядом.». Купил билет — вернись, и мы добавим сеанс в «Планы».</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["peek","page","film","site"],"default":"peek"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.mode ?? 'peek';
+    const ART = {
+      heart: ['linear-gradient(160deg, #1F4A35, #0E1A14)', 'rgba(127,211,160,0.6)', 30, 30, '#7FD3A0', 'M20 70 Q50 30 80 70 Q50 110 20 70 M50 52 L50 88 M35 70 L65 70'],
+      digger: ['linear-gradient(160deg, #8A5A1E, #2A1C0E)', 'rgba(247,176,138,0.7)', 70, 25, '#F7B08A', 'M0 110 L30 70 L45 90 L70 50 L100 110 M70 50 L74 36'],
+      evil: ['linear-gradient(160deg, #7A1414, #120707)', 'rgba(240,82,31,0.6)', 50, 35, '#F0521F', 'M50 20 L50 120 M20 50 L80 90 M80 50 L20 90 M30 30 L70 110']
+    };
+    const FL = [['Сердце зверя', 'heart', '12+', '4 сеанса сегодня'], ['Диггер', 'digger', '16+', '5 сеансов сегодня'], ['Обитель зла', 'evil', '18+', '2 сеанса сегодня'], ['Семь пиратов', 'heart', '6+', '3 сеанса сегодня']];
+    const ic = { route: 'M3 11l18-8-8 18-2-8z', invite: 'M16 11a4 4 0 100-8 4 4 0 000 8zM2 21v-1a6 6 0 0112 0v1M19 8v6M22 11h-6', save: 'M6 3h12v18l-6-4-6 4z' };
+    return {
+      isPeek: m === 'peek', isPage: m === 'page', isFilm: m === 'film', isSite: m === 'site',
+      malls: [['MEGA · 3 фильма, 4 события', 195, 270, true], ['Dostyk Plaza · 3', 300, 196, false], ['Esentai Mall · 5', 82, 186, false]].map(([t, x, y, on]) => ({ t, x: String(x), y: String(y), s: on ? '64' : '44', r: on ? '20' : '14', is: on ? '30' : '20', lb: on ? '#17161A' : '#FBFAF6', lf: on ? '#F3F0E8' : '#17161A' })),
+      films: FL.slice(0, m === 'peek' ? 3 : 4).map(([t, a, age, n], k) => { const A = ART[a]; return { t, age, n, bg: A[0], glow: A[1], cx: String(A[2]), cy: String(A[3]), line: A[4], art: A[5], d: String(k * 0.07) }; }),
+      acts: [['Маршрут', ic.route], ['Позвать', ic.invite], ['Сохранить', ic.save]].map(([t, i]) => ({ t, i })),
+      tabs: [['Всё', '7', true], ['Кино', '3', false], ['События', '4', false], ['Друзья тут', '1', false]].map(([t, n, on]) => ({ t, n, bg: on ? '#17161A' : '#EDE9DF', fg: on ? '#F3F0E8' : '#17161A' })),
+      events: [['Маркет локальных брендов', 'сб 10 · 12:00–20:00 · атриум · бесплатно', '#F0521F', '#17161A', 'M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6'], ['Мастер-класс для детей', 'вс 11 · 11:00 · 2 этаж · 3 000 ₸', '#2F8F5B', '#FBFAF6', 'M12 3a4 4 0 110 8 4 4 0 010-8zM6 21v-2a6 6 0 0112 0v2'], ['Акустика у фонтана', 'пт 9 · 19:00 · 1 этаж · бесплатно', '#2447B8', '#FBFAF6', 'M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z']].map(([t, s2, bg, fg, i], k) => ({ t, s: s2, bg, fg, i, bt: k ? '1px solid #EDE9DF' : 'none', d: String(0.2 + k * 0.07) })),
+      sessions: [['13:30', 'зал 3', ''], ['16:10', 'зал 3', ''], ['18:40', 'зал 7', ''], ['19:50', 'зал 5', 'v6vnPick'], ['21:50', 'зал 3', '']].map(([t, s2, anim]) => ({ t, s: s2, anim: anim || 'none', bg: '#FBFAF6', fg: '#17161A' })),
+      days: [['ПН', '5', true], ['ВТ', '6', false], ['СР', '7', false], ['ЧТ', '8', false]].map(([w, n, on]) => ({ w, n, bg: on ? '#17161A' : '#FBFAF6', fg: on ? '#F3F0E8' : '#17161A' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Профиль: мой, друга, настройки, приватность</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6prIn{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v6prGlow{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.35)}50%{box-shadow:0 0 0 10px rgba(240,82,31,0)}}
+@keyframes v6prGrad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isMe}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 250px; background: linear-gradient(120deg, #F0521F, #F7B08A, #F0521F); background-size: 220% 220%; animation: v6prGrad 10s ease infinite"></div>
+<div style="position: absolute; right: 12px; top: 50px; display: flex; gap: 6px">
+<span role="button" aria-label="QR-код для друзей" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(251,250,246,0.3); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"></path></svg></span>
+<span role="button" aria-label="Настройки" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(251,250,246,0.3); display: flex; align-items: center; justify-content: center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9a3 3 0 110 6 3 3 0 010-6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-2.9-1.2l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15H3a2 2 0 110-4h.1a1.7 1.7 0 001.2-2.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010 3.1V3a2 2 0 114 0v.1a1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 001.2 2.9h.1a2 2 0 110 4z"></path></svg></span>
+</div>
+<div style="position: absolute; left: 0; top: 150px; width: 390px; height: 694px; border-radius: 32px 32px 0 0; background: #F3F0E8"></div>
+<div style="position: absolute; left: 20px; top: 96px; width: 108px; height: 108px; border-radius: 50%; background: #17161A; color: #F0521F; border: 5px solid #F3F0E8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 48px; font-weight: 800">Д
+<span role="img" aria-label="Сейчас дома" style="position: absolute; right: -2px; bottom: 2px; width: 34px; height: 34px; border-radius: 50%; background: #FBFAF6; border: 3px solid #F3F0E8; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10"></path></svg></span>
+</div>
+<div style="position: absolute; left: 140px; top: 162px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.03em">Данил</div>
+<div style="font-size: 14px; color: #5F5B55">@danil · сейчас дома</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 222px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px; height: 56px; box-sizing: border-box; padding: 0 14px; border-radius: 18px; background: #17161A; color: #F3F0E8; animation: v6prGlow 2.4s ease infinite">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 5l-3 14"></path></svg>
+<span style="flex: 1; font-size: 15.5px; font-weight: 700">Панель разработчика</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #F7B08A">3 НОВЫХ</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="3"><div style="padding: 12px; border-radius: 18px; background: #FBFAF6; animation: v6prIn 500ms ease {{s.d}}s both"><div style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em">{{s.n}}</div><div style="font-size: 13px; color: #5F5B55">{{s.t}}</div></div></sc-for>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 20px; background: #FBFAF6"><span style="position: relative; width: 46px; height: 46px; flex-shrink: 0"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#EDE9DF" stroke-width="5"></circle><circle cx="23" cy="23" r="19" fill="none" stroke="#F0521F" stroke-width="5" stroke-linecap="round" stroke-dasharray="21.5 120" transform="rotate(-90 23 23)"></circle></svg><span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 12px; font-weight: 800">18%</span></span><div><div style="font-size: 15px; font-weight: 700">Где я был</div><div style="font-size: 12px; color: #5F5B55">Алматы · Астана</div></div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 20px; background: #17161A; color: #F3F0E8"><span style="position: relative; width: 46px; height: 46px; flex-shrink: 0"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#3A383F" stroke-width="5"></circle><circle cx="23" cy="23" r="19" fill="none" stroke="#F7B08A" stroke-width="5" stroke-linecap="round" stroke-dasharray="76 120" transform="rotate(-90 23 23)"></circle></svg><span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 16px; font-weight: 800">7</span></span><div><div style="font-size: 15px; font-weight: 700">Уровень 7</div><div style="font-size: 12px; color: #CFC9BB">640 / 1000 очков</div></div></div>
+</div>
+<div style="padding: 14px; border-radius: 22px; background: #FBFAF6">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800">Значки</span><span style="font-size: 13.5px; color: #5F5B55">6 из 24</span></div>
+<div style="margin-top: 10px; display: flex; gap: 10px">
+<sc-for list="{{badges}}" as="b" hint-placeholder-count="5"><span role="img" aria-label="{{b.t}}" style="width: 52px; height: 52px; border-radius: 16px; background: {{b.bg}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{b.fg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{b.i}}"></path></svg></span></sc-for>
+</div>
+</div>
+<div style="border-radius: 22px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{rowsMe}}" as="r" hint-placeholder-count="3"><div style="height: 54px; box-sizing: border-box; padding: 0 14px; display: flex; align-items: center; gap: 12px; border-top: {{r.bt}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.i}}"></path></svg><span style="flex: 1; font-size: 15.5px; font-weight: 600">{{r.t}}</span><span style="font-size: 14px; color: #5F5B55">{{r.v}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8F897C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div></sc-for>
+</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V6TabBar" active="me" plans="2" chats="2" hint-size="390px,96px"></dc-import></div>
+</sc-if>
+
+<sc-if value="{{isFriend}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 400px; overflow: hidden"><img src="../assets/igor.jpg" alt="" style="width: 390px; height: 400px; object-fit: cover"><span style="position: absolute; inset: 0; background: linear-gradient(rgba(23,22,26,0.25), rgba(23,22,26,0) 30%, rgba(23,22,26,0.75))"></span></div>
+<div style="position: absolute; left: 12px; right: 12px; top: 50px; display: flex; justify-content: space-between">
+<span role="button" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(23,22,26,0.35); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<span role="button" aria-label="Ещё" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(23,22,26,0.35); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#FBFAF6" aria-hidden="true"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg></span>
+</div>
+<div style="position: absolute; left: 20px; top: 300px; color: #F3F0E8">
+<div style="font-family: 'Geologica', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: -0.03em">Игорь</div>
+<div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(251,250,246,0.2); backdrop-filter: blur(10px); font-size: 14px; font-weight: 600"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 11h2a2 2 0 010 4h-2"></path></svg>в кофейне · 300 м от тебя</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 412px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex: 1; height: 52px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Написать</button>
+<button type="button" style="flex: 1; height: 52px; border: 0; border-radius: 16px; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Позвать</button>
+<button type="button" aria-label="Маршрут к Игорю" style="width: 52px; height: 52px; border: 0; border-radius: 16px; background: #EDE9DF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 20px; background: #FBFAF6">
+<span style="display: flex"><span style="width: 40px; height: 40px; border-radius: 50%; background: #17161A; color: #F0521F; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-weight: 800; border: 2.5px solid #FBFAF6">Д</span><img src="../assets/igor.jpg" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-left: -12px; border: 2.5px solid #FBFAF6"></span>
+<div><div style="font-size: 15.5px; font-weight: 700">Виделись 14 раз</div><div style="font-size: 13.5px; color: #5F5B55">последний — вчера, стендап в Hoper's</div></div>
+</div>
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800; margin-top: 4px">Игорь идёт</div>
+<sc-for list="{{igorGoes}}" as="g" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 18px; background: #FBFAF6">
+<img src="{{g.p}}" alt="" style="width: 54px; height: 54px; border-radius: 14px; object-fit: cover">
+<div style="flex: 1"><div style="font-size: 15.5px; font-weight: 700">{{g.t}}</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; color: #5F5B55">{{g.m}}</div></div>
+<span style="height: 36px; padding: 0 12px; border-radius: 12px; background: #F0521F; font-size: 14px; font-weight: 700; display: flex; align-items: center">Тоже пойду</span>
+</div>
+</sc-for>
+<div style="border-radius: 20px; background: #FBFAF6; overflow: hidden">
+<div style="height: 52px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 600">Не показывать ему, где я<span role="switch" aria-checked="false" aria-label="Не показывать Игорю, где я" style="width: 50px; height: 30px; border-radius: 15px; background: #DDD8CC; position: relative"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #FBFAF6"></span></span></div>
+<div style="height: 52px; padding: 0 14px; display: flex; align-items: center; border-top: 1px solid #EDE9DF; font-size: 15px; font-weight: 600; color: #C2321F">Удалить из друзей</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 54px 12px 0; display: flex; align-items: center; gap: 4px">
+<span role="button" aria-label="Назад" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em">{{page.title}}</span>
+</div>
+<sc-if value="{{page.hasNote}}" hint-placeholder-val="{{ false }}"><div style="margin: 4px 22px 0; font-size: 14px; line-height: 1.45; color: #5F5B55">{{page.note}}</div></sc-if>
+<div style="margin: 10px 16px 0; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{page.sections}}" as="g" hint-placeholder-count="4">
+<div><sc-if value="{{g.hasH}}" hint-placeholder-val="{{ true }}"><div style="margin: 0 6px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">{{g.h}}</div></sc-if>
+<div style="border-radius: 20px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3"><div style="min-height: 50px; box-sizing: border-box; padding: 8px 14px; display: flex; align-items: center; gap: 12px; border-top: {{r.bt}}">
+<sc-if value="{{r.hasIcon}}" hint-placeholder-val="{{ true }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="{{r.c}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="{{r.i}}"></path></svg></sc-if>
+<sc-if value="{{r.hasPhoto}}" hint-placeholder-val="{{ false }}"><img src="{{r.p}}" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; filter: grayscale(1)"></sc-if>
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600; color: {{r.c}}">{{r.t}}</div><sc-if value="{{r.hasS}}" hint-placeholder-val="{{ false }}"><div style="font-size: 12.5px; color: #5F5B55; margin-top: 1px">{{r.s}}</div></sc-if></div>
+<sc-if value="{{r.isVal}}" hint-placeholder-val="{{ true }}"><span style="font-size: 13.5px; color: #5F5B55; white-space: nowrap">{{r.v}}</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#BDB6A8" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+<sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ false }}"><span role="switch" aria-checked="{{r.on}}" aria-label="{{r.t}}" style="width: 50px; height: 30px; flex-shrink: 0; border-radius: 15px; background: {{r.tbg}}; position: relative"><span style="position: absolute; top: 3px; left: {{r.tx}}px; width: 24px; height: 24px; border-radius: 50%; background: #FBFAF6; box-shadow: 0 1px 3px rgba(0,0,0,0.25)"></span></span></sc-if>
+<sc-if value="{{r.isBtn}}" hint-placeholder-val="{{ false }}"><span style="height: 34px; padding: 0 12px; border-radius: 11px; background: #EDE9DF; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; white-space: nowrap">{{r.v}}</span></sc-if>
+</div></sc-for>
+</div></div>
+</sc-for>
+<sc-if value="{{page.hasFoot}}" hint-placeholder-val="{{ false }}"><div style="text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8F897C">{{page.foot}}</div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isPrivacy}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 54px 12px 0; display: flex; align-items: center; gap: 4px">
+<span role="button" aria-label="Назад" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em">Кто видит, где я</span>
+</div>
+<div style="margin: 12px 16px 0; border-radius: 20px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{who}}" as="w" hint-placeholder-count="3"><div style="height: 58px; box-sizing: border-box; padding: 0 14px; display: flex; align-items: center; gap: 12px; border-top: {{w.bt}}"><span style="width: 22px; height: 22px; border-radius: 50%; border: 2px solid {{w.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 12px; height: 12px; border-radius: 50%; background: {{w.dot}}"></span></span><div style="flex: 1"><div style="font-size: 15.5px; font-weight: 600">{{w.t}}</div><div style="font-size: 13px; color: #5F5B55">{{w.s}}</div></div></div></sc-for>
+</div>
+<div style="margin: 14px 16px 0; padding: 18px; border-radius: 24px; background: #FBFAF6; color: #17161A">
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 48px; height: 48px; border-radius: 16px; background: #EDE9DF; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 00-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 00-8-8z"></path></svg></span><div><div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">Невидимка</div><div style="font-size: 13.5px; color: #5F5B55">точка замрёт, потом включится сама</div></div></div>
+<div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{ghost}}" as="g" hint-placeholder-count="3"><span style="height: 44px; border-radius: 14px; background: {{g.bg}}; color: {{g.fg}}; font-size: 14.5px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{g.t}}</span></sc-for>
+</div>
+</div>
+<div style="margin: 14px 16px 0; border-radius: 20px; background: #FBFAF6; overflow: hidden">
+<div style="height: 58px; box-sizing: border-box; padding: 0 14px; display: flex; align-items: center; justify-content: space-between"><div><div style="font-size: 15.5px; font-weight: 600">Только район</div><div style="font-size: 13px; color: #5F5B55">вместо точки — «в Алмалы»</div></div><span role="switch" aria-checked="false" aria-label="Только район" style="width: 50px; height: 30px; border-radius: 15px; background: #DDD8CC; position: relative"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #FBFAF6"></span></span></div>
+<div style="height: 58px; box-sizing: border-box; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #EDE9DF"><div><div style="font-size: 15.5px; font-weight: 600">Статусы</div><div style="font-size: 13px; color: #5F5B55">«на работе», «в кофейне»</div></div><span role="switch" aria-checked="true" aria-label="Статусы" style="width: 50px; height: 30px; border-radius: 15px; background: #2F8F5B; position: relative"><span style="position: absolute; top: 3px; left: 23px; width: 24px; height: 24px; border-radius: 50%; background: #FBFAF6"></span></span></div>
+</div>
+<div style="margin: 14px 22px 0; display: flex; gap: 8px; font-size: 13.5px; line-height: 1.45; color: #5F5B55"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F8F5B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path></svg>Незнакомые люди никогда не видят тебя на карте.</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["me","friend","settings","privacy","notify","chats","blacklist","account"],"default":"me"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.view ?? 'me';
+    const row = (t, v2, i, c) => ({ t, v: v2 || '', i, c: c || '#17161A' });
+    const I = {
+      phone: 'M7 3h10v18H7zM11 18h2', user: 'M12 4a4 4 0 110 8 4 4 0 010-8zM4 21c1-4 4.2-6 8-6s7 2 8 6', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 110 6 3 3 0 010-6z',
+      home: 'M3 11l9-7 9 7M5 10v10h14V10', block: 'M12 3a9 9 0 110 18 9 9 0 010-18zM5.6 5.6l12.8 12.8', bell: 'M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 003.4 0',
+      chat: 'M4 5h16v11H9l-5 4z', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', lang: 'M4 5h10M9 3v2M6 5c1 4 4 7 7 8M12 5c-1 4-4 7-8 9M14 20l4-9 4 9M15.5 17h5', help: 'M12 3a9 9 0 110 18 9 9 0 010-18zM9.5 9a2.5 2.5 0 015 .5c0 2-2.5 2-2.5 4M12 17h.01',
+      out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11', trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', two: 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5',
+      cal: 'M6 4.5h12a3 3 0 013 3v10.5a3 3 0 01-3 3H6a3 3 0 01-3-3V7.5a3 3 0 013-3zM3 9.5h18', star: 'M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z', sticker: 'M12 3a9 9 0 109 9M12 3a9 9 0 019 9M12 3v4a5 5 0 005 5h4', check: 'M2 12.5l4 4L14 8.5M10 16.5l1 1 9-9', type: 'M4 6h16M4 12h10M4 18h7', img: 'M4 4h16v16H4zM4 15l5-5 4 4 3-3 4 4', clock: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2', at: 'M16 12a4 4 0 11-8 0 4 4 0 018 0zM16 12v1.5a2.5 2.5 0 005 0V12a9 9 0 10-3.5 7.1', key: 'M15 7a4 4 0 11-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0115 7z'
+    };
+    const nav = (t, v2, i, s2) => ({ k: 'nav', t, v: v2 || '', i, s: s2 || '' });
+    const tog = (t, on, i, s2) => ({ k: 'tog', t, on, i, s: s2 || '' });
+    const red = (t, i, s2) => ({ k: 'red', t, i, s: s2 || '' });
+    const P = {
+      settings: { title: 'Настройки', foot: 'рядом. 1.0 · демо', sections: [
+        ['АККАУНТ', [nav('Номер, имя, @ник', '+7 747 ••• •• 49', I.user)]],
+        ['ПРИВАТНОСТЬ', [nav('Кто видит, где я', 'все друзья', I.eye), nav('Мои места', 'дом, работа +2', I.home), nav('Чёрный список', '2', I.block)]],
+        ['УВЕДОМЛЕНИЯ И ЧАТЫ', [nav('Уведомления', 'тихо 23–08', I.bell), nav('Сообщения и стикеры', '', I.chat)]],
+        ['ЕЩЁ', [nav('Тема', 'как в системе', I.moon), nav('Язык', 'русский', I.lang), nav('Помощь и вопросы', '', I.help)]]] },
+      notify: { title: 'Уведомления', note: 'Пуши приходят как в Telegram: зажал — ответил, не открывая.', sections: [
+        ['СООБЩЕНИЯ', [tog('Сообщения', true, I.chat), tog('Стикеры', true, I.sticker), tog('Показывать текст в пуше', true, I.type, 'выключи — будет просто «Новое сообщение»')]],
+        ['ДРУЗЬЯ', [tog('Друг рядом', true, I.two, 'ближе 500 м, не чаще раза в час'), tog('Друзья встретились', true, I.two), tog('Зовут в планы', true, I.cal)]],
+        ['СОБЫТИЯ', [nav('Напомнить о плане', 'за 1 час', I.clock), tog('Новое по вкусу', true, I.star, 'раз в день, в 18:00'), nav('Тихие часы', '23:00–08:00', I.moon)]]] },
+      chats: { title: 'Сообщения и стикеры', sections: [
+        ['ЧАТЫ', [tog('Показывать, что прочитал', true, I.check, 'выключишь — и ты не увидишь чужие галочки'), tog('Показывать «печатает…»', true, I.type), nav('Кто может писать', 'друзья', I.at)]],
+        ['ЧАТЫ СОБЫТИЙ', [tog('Удалять через 7 дней после события', true, I.clock)]],
+        ['СТИКЕРЫ И ФОТО', [nav('Размер стикеров', 'обычный', I.sticker), tog('Двигающиеся стикеры', true, I.sticker), tog('Сохранять фото в галерею', false, I.img)]],
+        ['', [red('Очистить все чаты', I.trash)]]] },
+      blacklist: { title: 'Чёрный список', note: 'Они не видят тебя на карте, не пишут и не зовут. И не узнают, что ты их заблокировал.', sections: [
+        ['', [{ k: 'user', t: 'Пётр', s: 'заблокирован 12 сентября', p: '../assets/anton.jpg', v: 'Убрать' }, { k: 'user', t: 'Неизвестный', s: 'писал из «ищу компанию»', p: '../assets/denis.jpg', v: 'Убрать' }]],
+        ['', [nav('Заблокировать кого-то', '', I.block)]]] },
+      account: { title: 'Аккаунт', sections: [
+        ['ПРОФИЛЬ', [nav('Фото', 'буква Д', I.img), nav('Имя', 'Данил', I.user), nav('Ник', '@danil', I.at)]],
+        ['ВХОД', [nav('Номер', '+7 747 ••• •• 49', I.phone), nav('Apple и Google', 'не привязаны', I.key), nav('Где я вошёл', '1 телефон', I.phone)]],
+        ['', [red('Выйти', I.out), red('Удалить аккаунт', I.trash, 'всё удалится через 30 дней, можно передумать')]]] }
+    };
+    const page = P[v] || P.settings;
+    const pageVals = { title: page.title, note: page.note || '', hasNote: !!page.note, foot: page.foot || '', hasFoot: !!page.foot,
+      sections: page.sections.map(([h, rows]) => ({ h, hasH: !!h, rows: rows.map((r, k) => ({ t: r.t, s: r.s || '', hasS: !!r.s, v: r.v || '', i: r.i || '', p: r.p || '', hasIcon: r.k !== 'user', hasPhoto: r.k === 'user', isVal: r.k === 'nav', isToggle: r.k === 'tog', isBtn: r.k === 'user', on: r.on ? 'true' : 'false', tbg: r.on ? '#2F8F5B' : '#DDD8CC', tx: r.on ? '23' : '3', c: r.k === 'red' ? '#C2321F' : '#17161A', bt: k ? '1px solid #EDE9DF' : '0' })) })) };
+    return {
+      isMe: v === 'me', isFriend: v === 'friend', isList: ['settings', 'notify', 'chats', 'blacklist', 'account'].includes(v), page: pageVals, isPrivacy: v === 'privacy',
+      stats: [['24', 'друга'], ['12', 'событий'], ['31', 'встреча']].map(([n, t], k) => ({ n, t, d: String(k * 0.08) })),
+      badges: [['Первый поход', '#2F8F5B', '#FBFAF6', 'M3 20l6-12 4 7 3-4 5 9z'], ['Ночь в городе', '#17161A', '#F7B08A', 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z'], ['10 встреч', '#F0521F', '#17161A', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5'], ['Кофеман', '#C77A12', '#FBFAF6', 'M5 9h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 11h2a2 2 0 010 4h-2'], ['Ещё не открыт', '#EDE9DF', '#BDB6A8', 'M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z']].map(([t, bg, fg, i]) => ({ t, bg, fg, i })),
+      rowsMe: [['Друзья', '24', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5'], ['Мои места', 'дом, работа', 'M3 11l9-7 9 7M5 10v10h14V10'], ['Позвать друзей', 'ссылка', 'M12 5v14M5 12h14']].map(([t, v2, i], k) => ({ t, v: v2, i, bt: k ? '1px solid #EDE9DF' : '0' })),
+      igorGoes: [['../assets/hike.jpg', 'Тур к Большому Алматинскому', 'СБ 10 · 07:00 · ДУЛАТИ'], ['../assets/pub.jpg', 'Стендап «Подкаты»', 'ПТ 9 · 21:00 · MONROE BAR']].map(([p, t, m]) => ({ p, t, m })),
+      who: [['Все друзья', '24 человека', true], ['Все, кроме…', 'выбери, от кого скрыться', false], ['Только…', 'видят только выбранные', false]].map(([t, s, on], k) => ({ t, s, ring: on ? '#F0521F' : '#BDB6A8', dot: on ? '#F0521F' : 'transparent', bt: k ? '1px solid #EDE9DF' : '0' })),
+      ghost: [['1 час', false], ['8 часов', true], ['24 часа', false]].map(([t, on]) => ({ t, bg: on ? '#F0521F' : '#EDE9DF', fg: '#17161A' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

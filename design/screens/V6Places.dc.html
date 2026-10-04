@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Мои места: дом и работа определяются сами</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6plIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v6plSheet{0%{transform:translateY(340px)}100%{transform:translateY(0)}}
+@keyframes v6plPulse{0%{transform:scale(0.7);opacity:0.7}100%{transform:scale(1.6);opacity:0}}
+@keyframes v6plDash{to{stroke-dashoffset:-24}}
+@keyframes v6plDrag{0%,20%{transform:translate(-40px,30px)}55%,100%{transform:translate(0,0)}}
+@keyframes v6plLift{0%,15%{transform:translateY(0)}20%,50%{transform:translateY(-14px)}58%,100%{transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 54px 12px 0; display: flex; align-items: center; gap: 4px">
+<span role="button" aria-label="Назад" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<span style="font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em">Мои места</span>
+</div>
+<div style="margin: 6px 20px 0; font-size: 15px; line-height: 1.45; color: #5F5B55">Нашли сами. Ошиблись — поменяй.</div>
+<div style="margin: 16px 16px 0; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{places}}" as="p" hint-placeholder-count="3">
+<div style="display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 22px; background: #FBFAF6; animation: v6plIn 500ms cubic-bezier(.2,.8,.2,1) {{p.d}}s both">
+<span style="position: relative; width: 74px; height: 74px; border-radius: 16px; overflow: hidden; flex-shrink: 0; background: #EFEBE2">
+<svg width="74" height="74" viewBox="0 0 74 74" aria-hidden="true"><path d="M0 20H74M0 52H74M22 0V74M54 0V74" stroke="#FBF9F4" stroke-width="5"></path></svg>
+<sc-if value="{{p.has}}" hint-placeholder-val="{{ true }}"><span style="position: absolute; left: 17px; top: 17px; width: 40px; height: 40px; border-radius: 50%; background: {{p.ring}}"></span><span style="position: absolute; left: 25px; top: 25px; width: 24px; height: 24px; border-radius: 8px; background: {{p.c}}; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.i}}"></path></svg></span></sc-if>
+</span>
+<div style="flex: 1; min-width: 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">{{p.t}}</div>
+<div style="margin-top: 3px; font-size: 13.5px; line-height: 1.35; color: #5F5B55">{{p.s}}</div>
+</div>
+<span style="height: 36px; padding: 0 12px; border-radius: 12px; background: #EDE9DF; font-size: 14px; font-weight: 600; display: flex; align-items: center; flex-shrink: 0">{{p.b}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin: 12px 16px 0; height: 52px; border-radius: 18px; border: 2px dashed #BDB6A8; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15.5px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Добавить место</div>
+<div style="margin: 22px 20px 0; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">Как друзья видят тебя сейчас</div>
+<div style="margin: 10px 16px 0; padding: 14px; border-radius: 22px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 12px">
+<span style="position: relative; width: 56px; height: 56px; border-radius: 50%; background: #F0521F; color: #17161A; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; border: 3px solid #FBFAF6; box-sizing: border-box">Д<span style="position: absolute; right: -6px; bottom: -4px; width: 26px; height: 26px; border-radius: 50%; background: #2447B8; border: 2.5px solid #17161A; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FBFAF6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v11H4zM9 8V5h6v3"></path></svg></span></span>
+<div><div style="font-size: 16px; font-weight: 700">на работе</div><div style="font-size: 13.5px; color: #CFC9BB">без адреса и без названия офиса</div></div>
+</div>
+<div style="margin: 14px 16px 0; border-radius: 22px; background: #FBFAF6; overflow: hidden">
+<sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+<div style="height: 58px; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-top: {{t.bt}}"><span style="font-size: 15.5px; font-weight: 600">{{t.t}}</span><span role="switch" aria-checked="{{t.on}}" aria-label="{{t.t}}" style="width: 50px; height: 30px; border-radius: 15px; background: {{t.bg}}; position: relative"><span style="position: absolute; top: 3px; left: {{t.x}}px; width: 24px; height: 24px; border-radius: 50%; background: #FBFAF6; box-shadow: 0 1px 3px rgba(0,0,0,0.25)"></span></span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isAdd}}" hint-placeholder-val="{{ false }}">
+<dc-import name="MapBase" theme="paper" hint-size="390px,844px"></dc-import>
+<span aria-hidden="true" style="position: absolute; left: 135px; top: 290px; width: 120px; height: 120px; border-radius: 50%; background: rgba(240,82,31,0.12); border: 2px solid rgba(240,82,31,0.45); box-sizing: border-box; animation: v6plPulse 2.4s ease-out infinite"></span>
+<span aria-hidden="true" style="position: absolute; left: 182px; top: 337px; width: 26px; height: 26px; border-radius: 50%; background: #F0521F; border: 4px solid #FBFAF6; box-sizing: border-box; box-shadow: 0 4px 12px rgba(23,22,26,0.3)"></span>
+<div style="position: absolute; left: 10px; right: 10px; bottom: 26px; box-sizing: border-box; padding: 20px; border-radius: 30px; background: #FBFAF6; box-shadow: 0 -10px 40px rgba(23,22,26,0.18); animation: v6plSheet 600ms cubic-bezier(.2,.8,.2,1) both">
+<div style="font-family: 'Geologica', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em">Отметить место</div>
+<div style="margin-top: 14px; height: 50px; box-sizing: border-box; padding: 0 16px; border-radius: 16px; background: #EDE9DF; display: flex; align-items: center; font-size: 16px; font-weight: 600">Зал<span style="width: 2px; height: 22px; margin-left: 2px; background: #F0521F"></span></div>
+<div style="margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="6"><span style="height: 64px; border-radius: 16px; background: {{k.bg}}; color: {{k.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{k.i}}"></path></svg>{{k.t}}</span></sc-for>
+</div>
+<button type="button" style="margin-top: 16px; width: 100%; height: 52px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Сохранить</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["list","add"],"default":"list"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.stage ?? 'list';
+    const work = 'M4 8h16v11H4zM9 8V5h6v3', home = 'M3 11l9-7 9 7M5 10v10h14V10', study = 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5';
+    const T = [['Статусы для друзей', true]];
+    const kinds = [['Дом', 'M3 11l9-7 9 7M5 10v10h14V10', false], ['Работа', 'M4 8h16v11H4zM9 8V5h6v3', false], ['Учёба', 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5', false], ['Зал', 'M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12', true], ['Дача', 'M3 21h18M5 21V11l7-6 7 6v10', false], ['Другое', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z', false]].map(([t, i, on]) => ({ t, i, bg: on ? '#F0521F' : '#EDE9DF', fg: '#17161A' }));
+    return {
+      kinds,
+      isList: st === 'list', isAdd: st === 'add',
+      places: [
+        ['Дом', 'определили по ночам · Алмалы', 'Изменить', true, '#17161A', 'rgba(23,22,26,0.14)', home],
+        ['Работа', 'пн–пт, 9:00–18:00 · определили сами', 'Изменить', true, '#2447B8', 'rgba(36,71,184,0.18)', work],
+        ['Зал', 'ты добавил · пн, ср, пт вечером', 'Изменить', true, '#2F8F5B', 'rgba(47,143,91,0.18)', 'M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12']
+      ].map(([t, s, b, has, c, ring, i], k) => ({ t, s, b, has, c, ring, i, d: String(k * 0.08) })),
+      toggles: T.map(([t, on], k) => ({ t, on: on ? 'true' : 'false', bg: on ? '#2F8F5B' : '#DDD8CC', x: on ? '23' : '3', bt: k ? '1px solid #EDE9DF' : '0' })),
+      week: [['Пн', '#EDE9DF', '#8F897C', work], ['Вт', '#EDE9DF', '#8F897C', work], ['Ср', '#2447B8', '#FBFAF6', work], ['Чт', '#2447B8', '#FBFAF6', work], ['Пт', '#F0521F', '#17161A', 'M12 8v5l3 2M12 3a9 9 0 110 18 9 9 0 010-18z']].map(([d, bg, fg, i]) => ({ d, bg, fg, i }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Иконка: все варианты на iOS и Android</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6isIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6isTap{0%,70%,100%{transform:scale(1)}78%{transform:scale(0.88)}86%{transform:scale(1.04)}}
+</style>
+</helmet>
+<div style="width: 1600px; height: 900px; position: relative; box-sizing: border-box; padding: 44px 48px; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 48px; top: 44px; width: 380px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">ИКОНКА · ВАРИАНТ {{c}} ИЗ 8</div>
+<div style="margin-top: 6px; font-family: 'Geologica', sans-serif; font-size: 52px; font-weight: 800; letter-spacing: -0.04em">{{name}}</div>
+<div style="margin-top: 6px; font-size: 16px; line-height: 1.5; color: #5F5B55">{{idea}}</div>
+<div style="margin-top: 26px; animation: v6isIn 500ms ease both"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="300" hint-size="300px,300px"></dc-import></div>
+<div style="margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">МАЛЕНЬКИЕ РАЗМЕРЫ</div>
+<div style="margin-top: 10px; display: flex; align-items: flex-end; gap: 16px"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="87" hint-size="87px,87px"></dc-import><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="60" hint-size="60px,60px"></dc-import><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="40" hint-size="40px,40px"></dc-import><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="29" hint-size="29px,29px"></dc-import><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="20" hint-size="20px,20px"></dc-import></div>
+<div style="margin-top: 6px; font-size: 12.5px; color: #8F897C">главный экран · настройки · Spotlight · уведомления</div>
+</div>
+
+<div style="position: absolute; left: 470px; top: 92px; width: 300px; height: 650px; box-sizing: border-box; border-radius: 52px; padding: 10px; background: #17161A; box-shadow: 0 30px 60px rgba(23,22,26,0.25)">
+<div style="position: relative; width: 280px; height: 630px; border-radius: 43px; overflow: hidden; background: linear-gradient(165deg, #F7D7C2 0%, #F3EEE6 45%, #CADCEE 100%)">
+<div style="display: flex; justify-content: space-between; padding: 16px 26px 0; font-size: 14px; font-weight: 700"><span>9:41</span><span style="width: 86px; height: 26px; margin-top: -6px; border-radius: 13px; background: #17161A"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px">5G ▮</span></div>
+<div style="margin: 30px 18px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 18px"><sc-for list="{{iosGrid}}" as="g" hint-placeholder-count="16"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><sc-if value="{{g.me}}" hint-placeholder-val="{{ false }}"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="50" hint-size="50px,50px"></dc-import></sc-if><sc-if value="{{g.other}}" hint-placeholder-val="{{ true }}"><span style="width: 50px; height: 50px; border-radius: 11px; background: {{g.bg}}; display: flex; align-items: center; justify-content: center; visibility: {{g.vis}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{g.fg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.i}}"></path></svg></span></sc-if><span style="font-size: 9.5px; color: #17161A; white-space: nowrap; visibility: {{g.vis}}">{{g.t}}</span></div></sc-for></div>
+<div style="position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); height: 26px; padding: 0 12px; border-radius: 13px; background: rgba(255,255,255,0.5); font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.4" stroke-linecap="round"><path d="M11 4a7 7 0 110 14 7 7 0 010-14zM20 20l-4-4"></path></svg>Поиск</div>
+<div style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 74px; border-radius: 30px; background: rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: space-around"><sc-for list="{{dock}}" as="g" hint-placeholder-count="4"><span style="width: 50px; height: 50px; border-radius: 11px; background: {{g.bg}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{g.fg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.i}}"></path></svg></span></sc-for></div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: -34px; text-align: center; font-size: 14px; font-weight: 700">iPhone · светлая тема</div>
+</div>
+
+<div style="position: absolute; left: 810px; top: 92px; width: 300px; height: 650px; box-sizing: border-box; border-radius: 40px; padding: 10px; background: #2A2A2E; box-shadow: 0 30px 60px rgba(23,22,26,0.25)">
+<div style="position: relative; width: 280px; height: 630px; border-radius: 32px; overflow: hidden; background: linear-gradient(170deg, #2B3A5C 0%, #151A26 60%, #0E1016 100%); color: #F3F0E8">
+<div style="display: flex; justify-content: space-between; padding: 12px 20px 0; font-size: 13px; font-weight: 600"><span>19:30</span><span style="width: 12px; height: 12px; border-radius: 50%; background: #0E1016"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px">▮ 82%</span></div>
+<div style="margin: 34px 22px 0"><div style="font-family: 'Geologica', sans-serif; font-size: 52px; font-weight: 500; letter-spacing: -0.02em; line-height: 1">19:30</div><div style="margin-top: 4px; font-size: 13px; color: #C9D3E6">вс, 4 октября · +14°</div></div>
+<div style="margin: 40px 16px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 18px"><sc-for list="{{andGrid}}" as="g" hint-placeholder-count="16"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><sc-if value="{{g.me}}" hint-placeholder-val="{{ false }}"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="circle" size="48" hint-size="48px,48px"></dc-import></sc-if><sc-if value="{{g.other}}" hint-placeholder-val="{{ true }}"><span style="width: 48px; height: 48px; border-radius: 50%; background: {{g.bg}}; display: flex; align-items: center; justify-content: center; visibility: {{g.vis}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{g.fg}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.i}}"></path></svg></span></sc-if><span style="font-size: 9.5px; color: #F3F0E8; white-space: nowrap; visibility: {{g.vis}}">{{g.t}}</span></div></sc-for></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 46px; border-radius: 23px; background: rgba(243,240,232,0.12); display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 13px; color: #C9D3E6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9D3E6" stroke-width="2.2" stroke-linecap="round"><path d="M11 4a7 7 0 110 14 7 7 0 010-14zM20 20l-4-4"></path></svg>Поиск</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; bottom: -34px; text-align: center; font-size: 14px; font-weight: 700">Android · тёмные обои</div>
+</div>
+
+<div style="position: absolute; left: 1160px; top: 92px; width: 400px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">IPHONE · iOS 18</div>
+<div style="margin-top: 12px; display: flex; gap: 18px">
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="ios" size="112" hint-size="112px,112px"></dc-import><div style="margin-top: 8px; font-size: 13px; font-weight: 600">Светлая</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="dark" shape="ios" size="112" hint-size="112px,112px"></dc-import><div style="margin-top: 8px; font-size: 13px; font-weight: 600">Тёмная</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="tinted" shape="ios" size="112" hint-size="112px,112px"></dc-import><div style="margin-top: 8px; font-size: 13px; font-weight: 600">Тонированная</div></div>
+</div>
+<div style="margin-top: 30px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">ANDROID · ФОРМА ЗАВИСИТ ОТ ТЕЛЕФОНА</div>
+<div style="margin-top: 12px; display: flex; gap: 14px">
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="circle" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Круг</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="squircle" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Сквиркл</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="rounded" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Квадрат</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="light" shape="teardrop" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Капля</div></div>
+</div>
+<div style="margin-top: 30px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8F897C">ANDROID · ЦВЕТ ПО ОБОЯМ (MATERIAL YOU)</div>
+<div style="margin-top: 12px; display: flex; gap: 14px; align-items: center">
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="mono" shape="circle" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Светлая</div></div>
+<div style="text-align: center"><dc-import name="V6Icon" concept="{{c}}" mode="monodark" shape="circle" size="84" hint-size="84px,84px"></dc-import><div style="margin-top: 8px; font-size: 12.5px; font-weight: 600">Тёмная</div></div>
+<div style="flex: 1; font-size: 13px; line-height: 1.45; color: #5F5B55">Телефон сам красит одноцветный слой в цвет обоев.</div>
+</div>
+<div style="margin-top: 26px; padding: 14px 16px; border-radius: 18px; background: #FBFAF6; font-size: 13.5px; line-height: 1.5; color: #3A3833">{{note}}</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"concept":{"editor":"int","default":1,"min":1,"max":8},"$preview":{"width":1600,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = Number(this.props.concept ?? 1) || 1;
+    const N = [['Точка', 'Твоя точка на карте — то, с чего всё начинается. Самая простая и узнаваемая.', 'Читается даже в 20 px. Риск — похожа на кнопку записи; спасает оранжевый цвет.'],
+      ['р.', 'Первая буква и точка из названия. Строго, как у больших приложений.', 'Лучше всех держится на маленьких размерах и в тонированной теме. Точка — та же, что в «рядом.».'],
+      ['Кисть', '«р» от руки — как пишется на заставке. Тёплая и живая.', 'Связана с заставкой: запуск продолжает иконку. На тёмном фоне смотрится дорого.'],
+      ['Слово', 'Целиком «рядом.» — сразу понятно, что за приложение.', 'На главном экране буквы мелкие, в 29 px почти не читаются. Подходит скорее для App Store-обложки.'],
+      ['Двое', 'Два круга рядом — ты и друг. Про встречи, а не про карту.', 'Самая «про людей». Но без подписи не сразу ясно, что это город и события.'],
+      ['Пин', 'Метка на карте, внутри — точка. Понятно, что это про места.', 'Понятна всем, но таких иконок много — легко спутать с картами.'],
+      ['Бамп', 'Круги расходятся от точки — рядом кто-то есть.', 'Хорошо передаёт «кто-то рядом» и бамп. В тонированной теме — как радар.'],
+      ['Город', 'Кусочек карты Алматы с твоей точкой и конусом взгляда — как на экране карты.', 'Самая «наша»: одно в одно с картой внутри. В 29 px улицы сливаются, остаётся точка — и это нормально.']][c - 1];
+    const ic = { cam: 'M4 8h3l2-3h6l2 3h3v11H4zM12 11a3 3 0 110 6 3 3 0 010-6z', map: 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z', photo: 'M4 4h16v16H4zM4 15l5-5 4 4 3-3 4 4', clock: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2', note: 'M6 3h12v18H6zM9 8h6M9 12h6M9 16h3', sun: 'M12 7a5 5 0 110 10 5 5 0 010-10zM12 2v2M12 20v2M2 12h2M20 12h2', music: 'M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6z', mail: 'M3 6h18v12H3zM3 6l9 7 9-7', cal: 'M4 5h16v15H4zM4 10h16M8 3v4M16 3v4', gear: 'M12 9a3 3 0 110 6 3 3 0 010-6zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2', phone: 'M5 4h4l2 5-3 2a11 11 0 005 5l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z', chat: 'M4 5h16v11H9l-5 4z', web: 'M12 3a9 9 0 110 18 9 9 0 010-18zM3 12h18', calc: 'M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01', bag: 'M5 8h14l-1 13H6zM9 8V6a3 3 0 016 0v2', play: 'M7 4l13 8-13 8z' };
+    const iosT = [['cam', 'Камера', '#3A3A3C', '#FFFFFF'], ['map', 'Карты', '#DCEFD8', '#2F8F5B'], ['photo', 'Фото', '#FFFFFF', '#E0A21B'], ['clock', 'Часы', '#17161A', '#FFFFFF'], ['note', 'Заметки', '#FFF6D6', '#C77A12'], ['me', 'рядом.'], ['sun', 'Погода', '#5B9BE6', '#FFFFFF'], ['music', 'Музыка', '#F1475E', '#FFFFFF'], ['mail', 'Почта', '#3E8BF5', '#FFFFFF'], ['cal', 'Календарь', '#FFFFFF', '#E0442F'], ['calc', 'Калькулятор', '#2C2C2E', '#F5A623'], ['gear', 'Настройки', '#8E8E93', '#FFFFFF'], ['bag', 'Магазин', '#2F7CF6', '#FFFFFF'], ['play', 'Видео', '#17161A', '#FFFFFF'], ['web', 'Браузер', '#FFFFFF', '#2F7CF6'], ['chat', 'Сообщения', '#34C759', '#FFFFFF']];
+    const andT = [['phone', 'Телефон', '#C9D9F6', '#1F3B66'], ['chat', 'Сообщения', '#C9D9F6', '#1F3B66'], ['me', 'рядом.'], ['cam', 'Камера', '#C9D9F6', '#1F3B66'], ['map', 'Карты', '#DCEFD8', '#2F6B45'], ['photo', 'Фото', '#F7E2C7', '#8A4A12'], ['web', 'Браузер', '#E3E3E8', '#2F2F35'], ['mail', 'Почта', '#F6D3CF', '#8C2A1F'], ['music', 'Музыка', '#F2D2E0', '#7A2449'], ['cal', 'Календарь', '#C9D9F6', '#1F3B66'], ['clock', 'Часы', '#E3E3E8', '#2F2F35'], ['gear', 'Настройки', '#E3E3E8', '#2F2F35']];
+    const map = (arr) => arr.map(([k, t, bg, fg]) => k === 'me' ? { me: true, other: false, t, vis: 'visible', i: '', bg: '', fg: '' } : { me: false, other: true, t, i: ic[k], bg, fg, vis: 'visible' });
+    return {
+      c: String(c), name: N[0], idea: N[1], note: N[2],
+      iosGrid: map(iosT), andGrid: map(andT),
+      dock: [['phone', '#34C759', '#FFFFFF'], ['web', '#FFFFFF', '#2F7CF6'], ['chat', '#34C759', '#FFFFFF'], ['music', '#F1475E', '#FFFFFF']].map(([k, bg, fg]) => ({ i: ic[k], bg, fg }))
+    };
+  }
+}
+</script>
+</body>
+</html>

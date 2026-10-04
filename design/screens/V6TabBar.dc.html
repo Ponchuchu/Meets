@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Нижняя панель: только иконки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 96px; box-sizing: border-box; padding: 0 12px 22px; display: flex; align-items: flex-end; font-family: 'Golos Text', sans-serif">
+<nav aria-label="Основная навигация" style="position: relative; width: 366px; height: 66px; box-sizing: border-box; padding: 5px; border-radius: 33px; background: #FBFAF6; border: 1px solid rgba(23,22,26,0.08); box-shadow: 0 10px 28px rgba(23,22,26,0.16); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<a href="#" aria-label="{{t.label}}" aria-current="{{t.current}}" style="position: relative; display: flex; align-items: center; justify-content: center; text-decoration: none">
+<sc-if value="{{t.isIcon}}" hint-placeholder-val="{{ true }}">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="overflow: visible; animation: {{t.pop}}"><path d="{{t.shape}}" fill="{{t.fill}}" stroke="{{t.stroke}}" stroke-width="1.8" style="animation: {{t.fa}}"></path><path d="{{t.details}}" stroke="{{t.detail}}" stroke-width="1.8" style="animation: {{t.da}}"></path></svg>
+</sc-if>
+<sc-if value="{{t.isMe}}" hint-placeholder-val="{{ false }}">
+<span style="width: 30px; height: 30px; border-radius: 50%; box-sizing: border-box; padding: 2px; border: 2px solid {{t.ring}}; display: flex; animation: {{t.ra}}"><span style="flex: 1; border-radius: 50%; background: #17161A; color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center">Д</span></span>
+</sc-if>
+<sc-if value="{{t.hasBadge}}" hint-placeholder-val="{{ false }}"><span aria-label="{{t.badgeLabel}}" style="position: absolute; top: 6px; left: 50%; margin-left: 5px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FBFAF6">{{t.badge}}</span></sc-if>
+</a>
+</sc-for>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["map","feed","plans","chats","me"],"default":"map"},"plans":{"editor":"int","default":2,"min":0,"max":9},"chats":{"editor":"int","default":3,"min":0,"max":9},"$preview":{"width":390,"height":96}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active ?? 'map';
+    const plans = Number(this.props.plans ?? 2) || 0;
+    const chats = Number(this.props.chats ?? 3) || 0;
+    const D = [
+      { key: 'map', label: 'Карта', shape: 'M3 6.5l6-3 6 3 6-3v14l-6 3-6-3-6 3z', details: 'M9 3.5v14M15 6.5v14', badge: 0 },
+      { key: 'feed', label: 'Рекомендации', shape: 'M8.5 2.5h9.5a2.5 2.5 0 012.5 2.5v11.5a2.5 2.5 0 01-2.5 2.5H8.5A2.5 2.5 0 016 16.5V5a2.5 2.5 0 012.5-2.5z', details: 'M3 6.5v12a3 3 0 003 3h9.5M13.25 6.8l1.1 2.3 2.5.35-1.8 1.75.42 2.5-2.22-1.2-2.22 1.2.42-2.5-1.8-1.75 2.5-.35z', badge: 0 },
+      { key: 'plans', label: 'Планы', shape: 'M5 4.5h14a2.5 2.5 0 012.5 2.5v12a2.5 2.5 0 01-2.5 2.5H5A2.5 2.5 0 012.5 19V7A2.5 2.5 0 015 4.5z', details: 'M2.5 9.5h19M8 2.5v4M16 2.5v4M8.5 15l2.3 2.3 4.7-4.6', badge: plans },
+      { key: 'chats', label: 'Чаты', shape: 'M4 4h16a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-1.5 1.5h-9.5L5.5 21.5v-4H4A1.5 1.5 0 012.5 16V5.5A1.5 1.5 0 014 4z', details: 'M7.5 9h9M7.5 12.5h5.5', badge: chats },
+      { key: 'me', label: 'Профиль', badge: 0 }
+    ];
+    return {
+      tabs: D.map((d) => {
+        const on = d.key === a;
+        return {
+          label: d.label, current: on ? 'page' : 'false', isIcon: d.key !== 'me', isMe: d.key === 'me',
+          shape: d.shape || '', details: d.details || '',
+          fill: on ? '#17161A' : 'none', stroke: on ? '#17161A' : '#5F5B55', detail: on ? '#FBFAF6' : '#5F5B55',
+          ring: on ? '#17161A' : 'transparent',
+          pop: on ? 'v6tbPop 520ms cubic-bezier(.3,1.4,.5,1) both' : 'none', fa: on ? 'v6tbFill 420ms ease both' : 'none', da: on ? 'v6tbDet 420ms ease both' : 'none', ra: on ? 'v6tbRing 520ms cubic-bezier(.3,1.4,.5,1) both' : 'none',
+          hasBadge: d.badge > 0, badge: String(d.badge), badgeLabel: d.key === 'plans' ? 'Новых планов: ' + d.badge : 'Непрочитанных: ' + d.badge
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

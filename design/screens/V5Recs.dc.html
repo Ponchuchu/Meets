@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Как работают рекомендации</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5rFlow{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@keyframes v5rBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes v5rCard{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-6px) rotate(var(--r))}}
+@keyframes v5rPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,82,31,0.4)}50%{box-shadow:0 0 0 12px rgba(240,82,31,0)}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">ДЛЯ КОМАНДЫ · ПОЛЬЗОВАТЕЛЬ ЭТОГО НЕ ВИДИТ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.04em">Как «Подборка» понимает твой вкус</h1>
+<svg aria-hidden="true" width="1440" height="900" viewBox="0 0 1440 900" style="position: absolute; left: 0; top: 0; pointer-events: none">
+<sc-for list="{{inputs}}" as="i" hint-placeholder-count="7">
+<path d="{{i.path}}" stroke="#DDD8CC" stroke-width="4" fill="none"></path>
+<path d="{{i.path}}" stroke="{{i.c}}" stroke-width="4" fill="none" stroke-dasharray="6 14" stroke-linecap="round" style="animation: v5rFlow 0.9s linear infinite"></path>
+</sc-for>
+<path d="M940 470C990 470 990 470 1040 470" stroke="#F0521F" stroke-width="6" fill="none" stroke-dasharray="8 14" stroke-linecap="round" style="animation: v5rFlow 0.7s linear infinite"></path>
+</svg>
+<div style="position: absolute; left: 56px; top: 170px; width: 380px; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{inputs}}" as="i" hint-placeholder-count="7">
+<div style="height: 76px; box-sizing: border-box; padding: 0 14px; border-radius: 18px; background: #FBFAF6; display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; border-radius: 14px; background: {{i.c}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{i.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{i.icon}}"></path></svg></span>
+<div><div style="font-size: 15.5px; font-weight: 700">{{i.t}}</div><div style="font-size: 12.5px; color: #5F5B55; margin-top: 2px">{{i.s}}</div></div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 540px; top: 230px; width: 400px; box-sizing: border-box; padding: 22px; border-radius: 28px; background: #17161A; color: #F3F0E8; animation: v5rPulse 2.4s ease infinite">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F7B08A">ОЦЕНКА КАЖДОГО СОБЫТИЯ</div>
+<sc-for list="{{weights}}" as="w" hint-placeholder-count="6">
+<div style="margin-top: 14px"><div style="display: flex; justify-content: space-between; font-size: 14px"><span>{{w.t}}</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600">{{w.p}}%</span></div>
+<div style="margin-top: 6px; height: 8px; border-radius: 4px; background: #2A292E; overflow: hidden"><span style="display: block; width: {{w.p2}}%; height: 8px; border-radius: 4px; background: {{w.c}}; transform-origin: 0 50%; animation: v5rBar 900ms ease {{w.d}}s both"></span></div></div>
+</sc-for>
+<div style="margin-top: 18px; padding: 12px; border-radius: 14px; background: #2A292E; font-size: 13px; line-height: 1.45; color: #CFC9BB">Отсеиваем сразу: прошедшие, дальше 40 минут, то, что смахнул влево, и всё, что уже в «Планах».</div>
+</div>
+<div style="position: absolute; left: 1050px; top: 230px; width: 334px">
+<div style="position: relative; height: 330px">
+<sc-for list="{{feed}}" as="f" hint-placeholder-count="3">
+<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: 250px; height: 300px; border-radius: 24px; overflow: hidden; background: #17161A; box-shadow: 0 16px 36px rgba(23,22,26,0.2); --r: {{f.r}}deg; animation: v5rCard 3s ease-in-out {{f.d}}s infinite">
+<img src="{{f.p}}" alt="" style="width: 250px; height: 210px; object-fit: cover; display: block">
+<div style="padding: 12px 14px; color: #F3F0E8"><div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 800">{{f.t}}</div><div style="margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #F7B08A">{{f.m}}</div></div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 14px; padding: 14px; border-radius: 18px; background: #FBFAF6; font-size: 14px; line-height: 1.45"><b>Каждая 5-я карточка — новое</b>, чтобы лента не застряла в одном вкусе.</div>
+</div>
+<div style="position: absolute; left: 540px; top: 760px; width: 844px; display: flex; gap: 10px">
+<sc-for list="{{stages}}" as="s" hint-placeholder-count="3">
+<div style="flex: 1; padding: 14px 16px; border-radius: 18px; background: {{s.bg}}; color: {{s.fg}}"><div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; opacity: 0.8">{{s.k}}</div><div style="margin-top: 4px; font-size: 15px; font-weight: 700">{{s.t}}</div></div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const I = [
+      ['Интересы при входе', 'холодный старт: первые 20 карточек', '#F0521F', '#17161A', 'M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z'],
+      ['Свайпы вправо и влево', 'самый сильный сигнал', '#17161A', '#F3F0E8', 'M5 12h14M13 6l6 6-6 6M11 18l-6-6 6-6'],
+      ['«Пойду» и «Позвать»', 'сильнее любого свайпа', '#2F8F5B', '#FBFAF6', 'M5 12.5l4.5 4.5L19 7.5'],
+      ['Сколько смотрел карточку', 'задержался — значит, интересно', '#C77A12', '#FBFAF6', 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 110 6 3 3 0 010-6z'],
+      ['Друзья идут', 'идут друзья — карточка выше', '#2447B8', '#FBFAF6', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5'],
+      ['Время и погода', 'дождь — под крышей, вечер — бары', '#8FC1F2', '#17161A', 'M7 15h10a4 4 0 00.5-8A6 6 0 006 6.5 4.3 4.3 0 007 15zM8 21l1-3M12 21l1-3M16 21l1-3'],
+      ['Расстояние', 'время пешком или на такси', '#A99BEA', '#17161A', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z']
+    ];
+    return {
+      inputs: I.map(([t, s, c, fg, icon], k) => { const y = 208 + k * 86; return { t, s, c, fg, icon, path: 'M436 ' + y + 'C490 ' + y + ' 490 470 540 470' }; }),
+      weights: [['Похоже на то, что нравится', 35, '#F0521F'], ['Друзья идут', 20, '#2447B8'], ['Близко', 15, '#A99BEA'], ['Время и погода', 15, '#8FC1F2'], ['Новизна', 10, '#2F8F5B'], ['Популярное в городе', 5, '#C77A12']].map(([t, p, c], i) => ({ t, p: String(p), p2: String(p * 2.6), c, d: String(0.2 + i * 0.12) })),
+      feed: [['../assets/hike.jpg', 'Поход на рассвете', 'ДЛЯ ТЕБЯ · 3 ДРУГА', 70, 40, 6, 0], ['../assets/museum.jpg', 'Ночь в музее', 'ДЛЯ ТЕБЯ', 40, 20, -3, 0.5], ['../assets/pub.jpg', 'Открытый микрофон', 'ДЛЯ ТЕБЯ · 12 МИН', 10, 0, -6, 1]].map(([p, t, m, x, y, r, d]) => ({ p, t, m, x: String(x), y: String(y), r: String(r), d: String(d) })),
+      stages: [['ДЕНЬ 1', 'По интересам из входа', '#FBFAF6', '#17161A'], ['ПОСЛЕ 20 СВАЙПОВ', 'Уже по твоему вкусу', '#F7B08A', '#17161A'], ['ЧЕРЕЗ 2 НЕДЕЛИ', 'Точно и с друзьями', '#17161A', '#F3F0E8']].map(([k, t, bg, fg]) => ({ k, t, bg, fg }))
+    };
+  }
+}
+</script>
+</body>
+</html>

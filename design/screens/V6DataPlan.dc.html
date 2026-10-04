@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>План данных: откуда что берётся</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6dpFlow{to{stroke-dashoffset:-30}}
+@keyframes v6dpIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6dpDot{0%{offset-distance:0%;opacity:0}10%,90%{opacity:1}100%{offset-distance:100%;opacity:0}}
+</style>
+</helmet>
+<div style="width: 1700px; height: 960px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">ПЛАН ДАННЫХ · ПРОВЕРЕНО 4 ОКТЯБРЯ 2026</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 42px; font-weight: 800; letter-spacing: -0.04em">Откуда берутся события и как попадают на карту</h1>
+
+<svg aria-hidden="true" width="1700" height="1180" viewBox="0 0 1700 1180" style="position: absolute; left: 0; top: 0; pointer-events: none">
+<sc-for list="{{wires}}" as="w" hint-placeholder-count="10"><path d="{{w}}" stroke="#DDD8CC" stroke-width="3" fill="none"></path><path d="{{w}}" stroke="#F0521F" stroke-width="3" fill="none" stroke-dasharray="4 11" stroke-linecap="round" style="animation: v6dpFlow 1s linear infinite"></path></sc-for>
+</svg>
+
+<div style="position: absolute; left: 56px; top: 150px; width: 470px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">1 · Источники</div>
+<sc-for list="{{src}}" as="s" hint-placeholder-count="7">
+<div style="height: 76px; box-sizing: border-box; padding: 10px 14px; border-radius: 18px; background: #FBFAF6; display: flex; align-items: center; gap: 12px; animation: v6dpIn 400ms ease {{s.dl}}s both">
+<span style="width: 10px; height: 10px; border-radius: 50%; background: {{s.c}}; flex-shrink: 0"></span>
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 700">{{s.t}}</div><div style="font-size: 12.5px; line-height: 1.35; color: #4A463F">{{s.s}}</div></div>
+<span style="flex-shrink: 0; padding: 4px 8px; border-radius: 8px; background: {{s.bg}}; color: {{s.fg}}; font-size: 11.5px; font-weight: 700; white-space: nowrap">{{s.st}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 610px; top: 190px; width: 300px; display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<div style="padding: 16px; border-radius: 22px; background: {{s.bg}}; color: {{s.fg}}; animation: v6dpIn 400ms ease {{s.dl}}s both">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; opacity: 0.75">{{s.k}}</div>
+<div style="margin-top: 4px; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">{{s.t}}</div>
+<div style="margin-top: 6px; font-size: 13.5px; line-height: 1.45; opacity: 0.85">{{s.s}}</div>
+</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 990px; top: 150px; width: 654px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">3 · Остальные данные</div>
+<div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+<sc-for list="{{other}}" as="o" hint-placeholder-count="8">
+<div style="padding: 12px 14px; border-radius: 18px; background: #FBFAF6; animation: v6dpIn 400ms ease {{o.dl}}s both">
+<div style="display: flex; align-items: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A3A12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{o.i}}"></path></svg><span style="font-size: 15px; font-weight: 700">{{o.t}}</span></div>
+<div style="margin-top: 4px; font-size: 13px; line-height: 1.4; color: #4A463F">{{o.s}}</div>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 14px; padding: 16px 18px; border-radius: 22px; background: #17161A; color: #F3F0E8">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">Чего не делаем</div>
+<ul style="margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.55; color: #E4DFD3">
+<li>Не парсим ticketon.kz, kino.kz и Instagram без разрешения — запрещено их правилами, и они блокируют ботов.</li>
+<li>sxodim.com запрещает коммерческое использование без письменного согласия — сначала договор, до этого только ссылка на их страницу.</li>
+<li>Не копируем чужие тексты и фото целиком — короткое описание своими словами и ссылка на источник.</li>
+</ul>
+</div>
+<div style="margin-top: 12px; padding: 16px 18px; border-radius: 22px; background: #F0521F">
+<div style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">Что сделать тебе</div>
+<div style="margin-top: 6px; font-size: 13.5px; line-height: 1.55">Робот уже работает — только одобрять карточки. Дальше: бесплатный ключ TomTom для пробок, письмо в Chaplin и Kinopark про выгрузку сеансов, отдельный номер для чтения Telegram-каналов.</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1700,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = [
+      ['Поиск Google · Gemini', '6 тем раз в день, 08:40: ИИ ищет события с датой и страницей. Бесплатно до 5 000 поисков в месяц', 'работает', '#F0521F', '#2F8F5B', '#FBFAF6'],
+      ['Твоя ссылка', 'вставил ссылку в панели разработчика — карточка собирается сама', 'уже в макете', '#17161A', '#2F8F5B', '#FBFAF6'],
+      ['Страница события', 'код сам открывает страницу: дата, место, фото. Нет даты или страницы — в мусор', 'работает', '#2F8F5B', '#2F8F5B', '#FBFAF6'],
+      ['Обложки ИИ', 'фото нет — Gemini рисует обложку после одобрения, ~0,04 $ за штуку', 'работает', '#A99BEA', '#2F8F5B', '#FBFAF6'],
+      ['Telegram-каналы', '@sxodim и каналы площадок — читаем отдельным аккаунтом', 'следующий шаг', '#8FC1F2', '#E0A21B', '#17161A'],
+      ['Ticketon, kino.kz', 'закрыты для роботов — берём только ссылку из поиска, билет покупают у них', 'только ссылка', '#CFC9BB', '#E0A21B', '#17161A'],
+      ['Ручной ввод', 'ты или модератор добавляет сам — например, раздача на Арбате', 'всегда', '#8A3A12', '#2F8F5B', '#FBFAF6']
+    ];
+    const steps = [
+      ['2 · ПРОВЕРКА', 'Страница → карточка', 'Название, дата, время, место, цена, фото. Место ищем на карте. Без ИИ — быстро и бесплатно.', '#FBFAF6', '#17161A'],
+      ['СКЛЕЙКА', 'Дубли — в одну', 'Одно событие из трёх источников — одна карточка, все ссылки сохраняются.', '#FBFAF6', '#17161A'],
+      ['СОГЛАСОВАНИЕ', 'Ты нажимаешь «Одобрить»', 'Очередь в панели разработчика. Позже: уверенность выше 95% и проверенный канал — сразу на карту.', '#17161A', '#F3F0E8'],
+      ['В ПРИЛОЖЕНИИ', 'Карта, Рекомендации, место', 'На карте — ближайшие 24 часа. В Рекомендациях — по вкусу. У места (MEGA) — вся афиша.', '#F0521F', '#17161A']
+    ];
+    const O = [
+      ['Места и ТРЦ', '2GIS: адреса, часы работы, категории. Платно: от 4 700 ₽ за 10 тыс. запросов. Или Mapbox.', 'M3 21h18M4 21V9l8-5 8 5v12'],
+      ['Кино', 'Фильмы и сеансы — из поиска по сайтам кинотеатров. Билет — на их сайте внутри приложения. Позже просим выгрузку у Chaplin.', 'M3 7h18v12H3zM3 7l3-4M9 7l3-4M15 7l3-4'],
+      ['Погода', 'Open-Meteo: бесплатно, пока проект не зарабатывает. Обновляем раз в час на весь город.', 'M7 15h10a4 4 0 00.5-8A6 6 0 006 6.5 4.3 4.3 0 007 15z'],
+      ['Пробки', 'TomTom Traffic: Казахстан есть, 200 тыс. запросов в месяц бесплатно. Цвет дорог и «+3 мин» в маршруте.', 'M5 16h14l-1.5-5.5A2 2 0 0015.6 9H8.4a2 2 0 00-1.9 1.5zM5 16v3M19 16v3'],
+      ['Друзья на карте', 'Открыто — точка каждые несколько секунд. Закрыто — раз в 2–3 минуты, на карте «2 мин назад».', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z'],
+      ['Автобусы', 'Номера и остановки — 2GIS или открытые данные города, если дадут. Пешком и на машине — Mapbox Directions.', 'M6 4h12a2 2 0 012 2v10H4V6a2 2 0 012-2zM4 12h16M8 20l1-4M16 20l-1-4'],
+      ['Расход в месяц', 'Робот поиска — 0 $ в бесплатном лимите. Обложки — около 1 $ за 25 штук. Пробки и погода — бесплатно.', 'M12 3a9 9 0 110 18 9 9 0 010-18zM9 15h4.5a2 2 0 000-4h-3a2 2 0 010-4H15M12 5v2M12 17v2'],
+      ['Статусы', 'Тип места — из карты. Дом и работа — из истории мест на телефоне. Названия больниц и т.п. не показываем.', 'M3 11l9-7 9 7M5 10v10h14V10']
+    ];
+    const wires = [0, 1, 2, 3, 4, 5, 6].map((k) => { const y = 228 + k * 84; return 'M526 ' + y + 'C570 ' + y + ' 570 250 610 250'; }).concat(['M910 250C950 250 950 200 990 200']);
+    return {
+      src: S.map(([t, s, st, c, bg, fg], k) => ({ t, s, st, c, bg, fg, dl: String(k * 0.06) })),
+      steps: steps.map(([k, t, s, bg, fg], i) => ({ k, t, s, bg, fg, dl: String(0.4 + i * 0.1) })),
+      other: O.map(([t, s, i], k) => ({ t, s, i, dl: String(0.8 + k * 0.05) })),
+      wires
+    };
+  }
+}
+</script>
+</body>
+</html>

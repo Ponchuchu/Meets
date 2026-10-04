@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Нет сети и плохая геолокация</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5oDrop{from{transform:translateY(-120%)}to{transform:translateY(0)}}
+@keyframes v5oPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes v5oWobble{0%,100%{transform:translate(0,0)}25%{transform:translate(10px,-6px)}50%{transform:translate(-8px,8px)}75%{transform:translate(6px,10px)}}
+@keyframes v5oBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes v5oSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5oUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #EFEBE2; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; filter: {{mapFilter}}"><dc-import name="MapBase" theme="{{theme}}" hint-size="390px,844px"></dc-import></div>
+
+<sc-if value="{{isOff}}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{pins}}" as="p" hint-placeholder-count="4">
+<span aria-hidden="true" style="position: absolute; left: {{p.x}}px; top: {{p.y}}px; width: 36px; height: 36px; border-radius: 12px; background: #8F897C; box-shadow: 0 0 0 3px #FBFAF6; opacity: 0.8"></span>
+</sc-for>
+<div style="position: absolute; left: 250px; top: 380px; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<img src="../assets/igor.jpg" alt="Игорь" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; filter: grayscale(0.7); opacity: 0.8; box-shadow: 0 0 0 3px #8F897C, 0 0 0 5px #FBFAF6">
+<span style="padding: 3px 7px; border-radius: 8px; background: #5F5B55; color: #FBFAF6; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600">12 МИН НАЗАД</span>
+</div>
+<div style="position: absolute; left: 12px; top: 52px; width: 366px; box-sizing: border-box; padding: 12px 14px; border-radius: 20px; background: #17161A; color: #F3F0E8; display: flex; gap: 12px; align-items: center; animation: v5oDrop 420ms cubic-bezier(.2,.8,.2,1) both">
+<span style="width: 38px; height: 38px; border-radius: 12px; background: #2A292E; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7B08A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18"></path></svg></span>
+<div style="flex: 1"><div style="font-weight: 700; font-size: 14.5px">Нет интернета</div><div style="font-size: 12.5px; color: #CFC9BB">Показываем сохранённое · обновим сами</div></div>
+<span style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #5F5B55; border-top-color: #F7B08A; animation: v5oSpin 1s linear infinite"></span>
+</div>
+<div style="position: absolute; left: 16px; bottom: 116px; width: 358px; box-sizing: border-box; padding: 12px 14px; border-radius: 18px; background: #FBFAF6; box-shadow: 0 8px 24px rgba(23,22,26,0.14); animation: v5oUp 400ms ease 0.3s both">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; color: #5F5B55">ЧАТ С ИГОРЕМ</div>
+<div style="display: flex; justify-content: flex-end; margin-top: 8px"><span style="padding: 8px 12px; border-radius: 16px 16px 6px 16px; background: #F7B08A; font-size: 14.5px; display: inline-flex; align-items: center; gap: 6px">Буду через 10 минут<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-label="Ждёт сети" style="animation: v5oPulse 1.2s ease-in-out infinite"><path d="M12 7v5l3 2M12 3a9 9 0 110 18 9 9 0 010-18z"></path></svg></span></div>
+<div style="margin-top: 6px; font-size: 12px; color: #6B665E; text-align: right">Уйдёт, когда появится сеть</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isGps}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; left: 200px; top: 470px; width: 0; height: 0; animation: v5oWobble 5s ease-in-out infinite">
+<span style="position: absolute; left: -120px; top: -120px; width: 240px; height: 240px; border-radius: 50%; background: rgba(240,82,31,0.12); border: 2px dashed rgba(240,82,31,0.6); box-sizing: border-box; animation: v5oBreath 2.4s ease-in-out infinite"></span>
+<span style="position: absolute; left: -12px; top: -12px; width: 24px; height: 24px; border-radius: 50%; background: #F0521F; opacity: 0.7; box-shadow: 0 0 0 4px #FBFAF6"></span>
+</div>
+<div style="position: absolute; left: 12px; top: 52px; width: 366px; box-sizing: border-box; padding: 12px 14px; border-radius: 20px; background: #FBFAF6; box-shadow: 0 10px 28px rgba(23,22,26,0.16); animation: v5oDrop 420ms cubic-bezier(.2,.8,.2,1) both">
+<div style="display: flex; gap: 12px; align-items: center">
+<span style="width: 38px; height: 38px; border-radius: 12px; background: #FCE3D6; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A3A12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M12 7a5 5 0 110 10 5 5 0 010-10z"></path></svg></span>
+<div style="flex: 1"><div style="font-weight: 700; font-size: 14.5px">Геолокация неточная · ±300 м</div><div style="font-size: 12.5px; color: #5F5B55">«Что рядом» может немного врать</div></div>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 10px">
+<button type="button" style="flex: 1; height: 44px; border-radius: 13px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 700">Включить точную</button>
+<button type="button" style="flex: 1; height: 44px; border-radius: 13px; border: 0; background: #F3F0E8; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 700; color: #17161A">Понятно</button>
+</div>
+</div>
+<div style="position: absolute; left: 16px; bottom: 116px; width: 358px; box-sizing: border-box; padding: 12px 14px; border-radius: 16px; background: rgba(23,22,26,0.85); color: #F3F0E8; font-size: 13px; line-height: 1.4; animation: v5oUp 400ms ease 0.3s both">Включи Wi-Fi или выйди к окну — точность станет лучше. Друзья видят тебя кругом, а не точкой.</div>
+</sc-if>
+
+<sc-if value="{{isNoGeo}}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: rgba(243,240,232,0.55); backdrop-filter: blur(3px)"></span>
+<div style="position: absolute; left: 16px; top: 180px; width: 358px; box-sizing: border-box; padding: 22px 20px; border-radius: 28px; background: #FBFAF6; box-shadow: 0 20px 50px rgba(23,22,26,0.18); text-align: center; animation: v5oUp 420ms cubic-bezier(.2,.8,.2,1) both">
+<span style="display: inline-flex; width: 72px; height: 72px; border-radius: 24px; background: #FCE3D6; align-items: center; justify-content: center"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8A3A12" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0111.5-5.4M18.6 7.5c.3.6.4 1.3.4 2C19 14.8 12 21 12 21M3 3l18 18"></path></svg></span>
+<div style="margin-top: 14px; font-family: 'Geologica', sans-serif; font-size: 23px; font-weight: 800; letter-spacing: -0.02em">Геолокация выключена</div>
+<div style="margin-top: 6px; font-size: 14.5px; line-height: 1.45; color: #4A463F">Без неё карта не знает, что рядом с тобой, а друзья тебя не видят.</div>
+<button type="button" style="margin-top: 16px; width: 100%; height: 52px; border-radius: 16px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Включить в настройках</button>
+<div style="margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5F5B55">ИЛИ ВЫБЕРИ РАЙОН</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px">
+<sc-for list="{{districts}}" as="d" hint-placeholder-count="4"><button type="button" style="height: 40px; padding: 0 14px; border-radius: 20px; border: 0; background: #F3F0E8; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-family: 'Golos Text', sans-serif; font-size: 14px; font-weight: 600; color: #17161A">{{d.n}}</button></sc-for>
+</div>
+</div>
+</sc-if>
+<div style="position: absolute; left: 0; bottom: 0"><dc-import name="V3TabBar" active="map" plans="1" chats="2" hint-size="390px,96px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["offline","gps","nogeo"],"default":"offline"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.mode ?? 'offline';
+    return {
+      isOff: m === 'offline', isGps: m === 'gps', isNoGeo: m === 'nogeo',
+      theme: m === 'offline' ? 'mono' : 'paper', mapFilter: m === 'offline' ? 'grayscale(0.6)' : 'none',
+      pins: [[90, 250], [180, 320], [300, 520], [120, 560]].map(([x, y]) => ({ x: String(x), y: String(y) })),
+      districts: ['Алмалинский', 'Медеуский', 'Бостандыкский', 'Ауэзовский'].map((n) => ({ n }))
+    };
+  }
+}
+</script>
+</body>
+</html>

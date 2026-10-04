@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход: разрешения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5Bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-8%) scale(0.96,1.04)}60%{transform:translateY(0) scale(1.06,0.94)}80%{transform:translateY(-2%) scale(1)}}
+@keyframes v5Wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes v5Pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes v5Shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3%) rotate(-2deg)}75%{transform:translateX(3%) rotate(2deg)}}
+@keyframes v5Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%)}}
+@keyframes v5Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@keyframes v5Tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+@keyframes v5Zzz{0%{transform:translate(0,6px) scale(0.6);opacity:0}40%{opacity:1}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+@keyframes v5Dash{0%{transform:translateX(6px);opacity:0}50%{opacity:1}100%{transform:translateX(-10px);opacity:0}}
+@keyframes v5Look{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes v5Steam{0%{transform:translateY(4px);opacity:0}40%{opacity:1}100%{transform:translateY(-8px);opacity:0}}
+@keyframes v5Flicker{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(0.95,1.07) rotate(2deg)}}
+@keyframes v5lIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v5lUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v5lType{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v5lKey{0%,100%{background:#FBFAF6}30%{background:#DDD8CC;transform:scale(0.94)}}
+@keyframes v5lPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes v5lReveal{from{stroke-dashoffset:var(--L)}to{stroke-dashoffset:0}}
+@keyframes v5lPen{0%{offset-distance:0%;opacity:1}95%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes v5lFly{0%{transform:translate(0,0) scale(0.3) rotate(0);opacity:0}20%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(var(--r));opacity:1}}
+@keyframes v5lDrift{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-10px) rotate(var(--r))}}
+.v5lin{animation:v5lIn 320ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V5Login" step="allow" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

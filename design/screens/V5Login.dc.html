@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход: приветствие, номер, код, профиль</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5Bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-8%) scale(0.96,1.04)}60%{transform:translateY(0) scale(1.06,0.94)}80%{transform:translateY(-2%) scale(1)}}
+@keyframes v5Wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes v5Pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes v5Shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3%) rotate(-2deg)}75%{transform:translateX(3%) rotate(2deg)}}
+@keyframes v5Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%)}}
+@keyframes v5Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@keyframes v5Tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+@keyframes v5Zzz{0%{transform:translate(0,6px) scale(0.6);opacity:0}40%{opacity:1}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+@keyframes v5Dash{0%{transform:translateX(6px);opacity:0}50%{opacity:1}100%{transform:translateX(-10px);opacity:0}}
+@keyframes v5Look{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes v5Steam{0%{transform:translateY(4px);opacity:0}40%{opacity:1}100%{transform:translateY(-8px);opacity:0}}
+@keyframes v5Flicker{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(0.95,1.07) rotate(2deg)}}
+@keyframes v5lIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes v5lUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes v5lType{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v5lKey{0%,100%{background:#FBFAF6}30%{background:#DDD8CC;transform:scale(0.94)}}
+@keyframes v5lPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes v5lReveal{from{stroke-dashoffset:var(--L)}to{stroke-dashoffset:0}}
+@keyframes v5lPen{0%{offset-distance:0%;opacity:1}95%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes v5lFly{0%{transform:translate(0,0) scale(0.3) rotate(0);opacity:0}20%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(var(--r));opacity:1}}
+@keyframes v5lDrift{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-10px) rotate(var(--r))}}
+.v5lin{animation:v5lIn 320ms cubic-bezier(.2,.8,.2,1) both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+
+<sc-if value="{{isHello}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 560px; background: linear-gradient(160deg, #F7B08A, #F0521F 60%, #C9471B); overflow: hidden">
+<sc-for list="{{floaters}}" as="f" hint-placeholder-count="5">
+<span aria-hidden="true" style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; --r: {{f.r}}deg; animation: v5lDrift {{f.dur}}s ease-in-out {{f.delay}}s infinite"><span style="position: relative; display: block; width: {{f.size}}px; height: {{f.size}}px; animation: {{f.st.anim}}"><svg width="{{f.size}}" height="{{f.size}}" viewBox="-6 -10 132 132" aria-hidden="true" style="overflow: visible; display: block"><defs><sc-for list="{{f.st.grads}}" as="fg" hint-placeholder-count="1"><radialGradient id="{{fg.id}}" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="{{fg.hi}}"></stop><stop offset="0.6" stop-color="{{fg.base}}"></stop><stop offset="1" stop-color="{{fg.lo}}"></stop></radialGradient></sc-for></defs><ellipse cx="60" cy="114" rx="34" ry="5" fill="rgba(23,22,26,0.18)"></ellipse><sc-for list="{{f.st.shapes}}" as="fp" hint-placeholder-count="6"><path d="{{fp.d}}" fill="{{fp.f}}" stroke="{{fp.s}}" stroke-width="{{fp.w}}" stroke-linecap="round" stroke-linejoin="round" style="transform-origin: {{fp.o}}; animation: {{fp.a}}"></path></sc-for></svg><sc-if value="{{f.st.hasText}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; {{f.st.tPos}}; text-align: center; transform: rotate({{f.st.rot}}); font-family: 'Geologica', sans-serif; font-weight: 800; font-size: calc({{f.size}}px * {{f.st.fs}}); line-height: 1.02; letter-spacing: -0.01em; color: {{f.st.tc}}; white-space: pre-line; text-shadow: 0 0.06em 0 #17161A, 0.06em 0 0 #17161A, -0.06em 0 0 #17161A, 0 -0.06em 0 #17161A, 0.05em 0.05em 0 #17161A, -0.05em 0.05em 0 #17161A, 0.05em -0.05em 0 #17161A, -0.05em -0.05em 0 #17161A, 0 0.14em 0 #17161A, 0 0.22em 0.3em rgba(23,22,26,0.3); pointer-events: none">{{f.st.text}}</span></sc-if></span></span>
+</sc-for>
+<svg aria-hidden="true" width="300" height="103" viewBox="0 0 300 103" style="position: absolute; left: 45px; top: 300px; overflow: visible">
+<defs><mask id="v5lM0" maskUnits="userSpaceOnUse" x="-40" y="-40" width="380" height="183"><path d="M-20 57H320" stroke="#fff" stroke-width="173" fill="none" style="--L: 340; stroke-dasharray: 340 340; animation: v5lReveal 2.2s cubic-bezier(.45,.05,.55,.95) 0.3s both"></path></mask></defs>
+<path d="M42.5 56.8L42.5 56.8L44.6 58.4Q42.4 62.8 38.6 65.8Q34.7 68.8 31.6 68.8Q28.5 68.8 26.7 67.0Q24.9 65.2 24.9 62.5Q24.9 59.8 28.4 53.1Q31.8 46.3 31.8 43.1L31.8 43.1Q31.8 41.7 30.7 40.6Q29.5 39.4 27.9 39.4L27.9 39.4Q22.8 39.4 17.6 47.2Q12.4 54.9 6.0 69.5L6.0 69.5L0.0 67.4Q1.9 55.8 5.5 44.8Q9.0 33.7 12.0 28.9L12.0 28.9L16.1 30.2Q13.3 37.3 9.0 54.7L9.0 54.7Q22.8 31.1 34.4 31.1L34.4 31.1Q36.9 31.1 38.6 32.8Q40.2 34.5 40.2 36.8Q40.2 39.1 39.6 41.0Q39.0 42.8 35.9 49.6Q32.7 56.3 32.7 58.0Q32.7 59.7 33.7 60.7Q34.7 61.6 35.6 61.6Q36.5 61.6 37.1 61.3Q37.7 61.0 38.5 60.4Q39.2 59.8 39.8 59.3Q40.4 58.8 41.3 58.0Q42.1 57.1 42.5 56.8M63.9 50.5Q71.5 39.1 77.1 35.0Q82.7 30.8 86.9 30.8Q91.1 30.8 93.4 33.4Q95.7 35.9 95.7 39.8L95.7 39.8Q95.7 50.6 88.0 59.8Q80.2 68.9 70.5 68.9L70.5 68.9Q66.2 68.9 63.7 67.4L63.7 67.4L66.1 63.1Q71.4 63.8 72.6 63.8L72.6 63.8Q78.0 63.8 82.7 57.5Q87.4 51.2 87.4 44.6L87.4 44.6Q87.4 42.1 86.0 40.5Q84.5 38.8 82.2 38.8L82.2 38.8Q76.7 38.8 69.8 48.5Q62.8 58.2 56.8 72.6Q50.7 86.9 46.2 103.1L46.2 103.1L40.2 101.0Q40.4 100.4 44.0 90.7Q47.5 80.9 50.9 71.3L50.9 71.3Q60.3 44.9 60.3 42.4L60.3 42.4Q60.3 36.0 57.7 30.8L57.7 30.8L62.7 28.3Q65.8 32.6 65.8 37.4Q65.8 42.1 63.9 50.5L63.9 50.5M142.1 57.2L142.1 57.2L144.2 58.9Q142.5 63.1 138.8 66.0Q135.2 68.9 132.3 68.9Q129.3 68.9 127.6 66.9Q125.9 64.8 125.9 61.5Q125.9 58.2 127.0 53.0L127.0 53.0Q122.3 60.4 116.9 64.6Q111.5 68.8 107.8 68.8L107.8 68.8Q102.2 68.8 102.2 62.1Q102.2 55.4 106.8 44.1Q111.5 32.7 113.5 31.1L113.5 31.1L118.3 33.2Q114.2 39.8 112.1 46.2Q110.0 52.6 110.0 54.8Q110.0 56.9 111.3 58.2Q112.7 59.5 114.5 59.5L114.5 59.5Q118.5 59.5 124.5 52.2Q130.4 44.8 136.6 30.2L136.6 30.2L141.7 32.5Q141.5 33.3 137.2 44.1Q132.8 54.9 132.8 57.1Q132.8 59.2 133.8 60.3Q134.7 61.4 135.7 61.4Q136.6 61.4 137.1 61.3Q137.6 61.2 138.1 60.9Q138.6 60.6 138.9 60.4Q139.3 60.2 139.8 59.7L139.8 59.7L140.5 58.9Q140.8 58.7 141.3 58.1Q141.9 57.4 142.1 57.2M162.5 37.5L162.5 37.5Q160.1 48.9 160.0 54.1L160.0 54.1Q160.0 61.2 164.1 61.2L164.1 61.2Q168.5 61.2 172.0 57.4Q175.5 53.6 175.5 48.5Q175.5 43.4 171.7 43.4L171.7 43.4Q170.6 43.4 166.9 44.7L166.9 44.7L165.7 41.7Q172.1 37.2 175.8 37.2L175.8 37.2Q182.7 37.2 182.7 44.1L182.7 44.1Q182.7 52.2 175.9 60.6Q169.2 68.9 161.8 68.9L161.8 68.9Q153.7 68.9 153.7 57.3L153.7 57.3Q153.7 51.8 156.8 39.1L156.8 39.1L148.7 42.1L148.6 39.7Q149.6 39.1 157.7 36.1L157.7 36.1Q161.1 16.1 167.1 8.1Q173.1 0.0 182.3 0.0L182.3 0.0Q186.5 0.0 189.0 2.7Q191.5 5.4 191.5 9.7L191.5 9.7Q191.5 18.3 183.6 25.8Q175.7 33.2 162.5 37.5M163.1 34.5L163.1 34.5Q171.8 30.5 177.5 24.9Q183.2 19.3 183.2 14.7L183.2 14.7Q183.2 12.3 181.8 10.8Q180.4 9.3 178.3 9.3L178.3 9.3Q174.1 9.3 170.0 15.2Q165.9 21.1 163.1 34.5M222.6 57.1L222.6 57.1L224.9 58.9Q221.8 63.2 216.4 66.1Q211.0 68.9 205.9 68.9Q200.8 68.9 197.7 65.9Q194.6 62.9 194.6 58.0L194.6 58.0Q194.6 48.8 204.3 39.9Q214.1 31.0 224.1 31.0L224.1 31.0Q230.7 31.0 230.7 36.2L230.7 36.2Q230.7 41.6 223.8 47.1Q216.8 52.6 204.2 57.1L204.2 57.1Q205.1 59.4 207.0 60.7Q208.9 62.0 210.9 62.0L210.9 62.0Q215.2 62.0 222.6 57.1M203.7 54.1L203.7 54.1Q211.8 51.3 217.6 47.1Q223.4 42.9 223.4 39.4L223.4 39.4Q223.4 38.1 222.4 37.1Q221.4 36.1 220.1 36.1L220.1 36.1Q215.4 36.1 209.9 42.0Q204.5 47.8 203.7 54.1M298.0 55.9L298.0 55.9L300.1 57.9Q294.4 68.1 287.0 68.1L287.0 68.1Q284.0 68.1 282.3 66.5Q280.7 64.8 280.7 62.1Q280.7 59.3 284.0 52.6Q287.3 45.9 287.5 42.4L287.5 42.4Q287.6 40.8 286.5 39.8Q285.5 38.8 283.7 38.8Q281.9 38.8 280.0 39.7Q278.2 40.5 276.4 42.4Q274.7 44.3 273.3 46.1Q271.8 47.9 270.0 51.2Q268.3 54.5 267.1 56.7L267.1 56.7Q265.0 60.8 261.1 69.0L261.1 69.0L255.1 66.9Q255.1 66.6 258.4 55.6Q261.7 44.6 261.7 42.5Q261.7 40.4 260.7 39.5Q259.7 38.5 258.2 38.5L258.2 38.5Q253.7 38.5 245.7 49.7Q237.8 60.9 235.6 68.8L235.6 68.8L229.9 66.9Q230.4 61.6 234.6 47.9Q238.8 34.1 241.7 29.1L241.7 29.1L246.2 30.7Q243.1 37.6 241.9 42.4Q240.7 47.1 239.8 52.5L239.8 52.5Q248.4 40.2 254.2 35.3Q260.0 30.3 264.7 30.3L264.7 30.3Q269.8 30.3 269.8 35.4L269.8 35.4Q269.8 37.4 268.0 43.3Q266.3 49.2 265.3 52.6L265.3 52.6Q279.1 30.4 290.0 30.4L290.0 30.4Q292.7 30.4 294.3 32.1Q295.9 33.7 295.9 37.0Q295.9 40.2 292.1 47.7Q288.4 55.2 288.4 57.2Q288.4 59.1 289.2 60.0Q290.0 60.9 291.2 60.9L291.2 60.9Q293.8 60.9 298.0 55.9" fill="#FBFAF6" mask="url(#v5lM0)"></path>
+</svg>
+<div style="position: absolute; left: 24px; top: 430px; width: 342px; font-size: 17px; line-height: 1.4; font-weight: 600; color: #FBFAF6; animation: v5lType 500ms ease 2.4s both">Карта событий Алматы и друзья, которые рядом</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 22px 20px 30px; border-radius: 28px 28px 0 0; background: #F3F0E8; animation: v5lUp 500ms cubic-bezier(.2,.8,.2,1) 0.2s both">
+<button type="button" onClick="{{toPhone}}" style="width: 100%; height: 56px; border-radius: 18px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zM11 18h2"></path></svg>Войти по номеру</button>
+<div style="display: flex; gap: 8px; margin-top: 10px">
+<button type="button" onClick="{{toName}}" style="flex: 1; height: 52px; border-radius: 16px; border: 0; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; color: #17161A; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="#17161A" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.1 1.8-1 2.9 1.1.1 2.2-.6 2.8-1.4z"></path></svg>Apple</button>
+<button type="button" onClick="{{toName}}" style="flex: 1; height: 52px; border-radius: 16px; border: 0; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700; color: #17161A; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 01-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"></path><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0012 22z" fill="#34A853"></path><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1A10 10 0 002 12c0 1.6.4 3.2 1.1 4.6z" fill="#FBBC05"></path><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 003.1 7.4L6.4 10C7.2 7.7 9.4 6 12 6z" fill="#EA4335"></path></svg>Google</button>
+</div>
+<button type="button" style="margin-top: 8px; width: 100%; height: 46px; border: 0; background: transparent; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 600; color: #17161A; text-decoration: underline; text-underline-offset: 3px">Сначала посмотреть карту</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isFlow}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 96px; box-sizing: border-box; padding: 52px 16px 0; display: flex; align-items: center; gap: 12px">
+<button type="button" onClick="{{back}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #E7E2D6; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+<div role="progressbar" aria-label="{{stepAria}}" style="flex: 1; display: flex; gap: 6px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+<span style="flex: 1; height: 5px; border-radius: 3px; background: {{b.bg}}; transition: background 300ms ease"></span>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isPhone}}" hint-placeholder-val="{{ false }}">
+<div class="v5lin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 22px 24px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Твой номер</div>
+<div style="margin-top: 6px; font-size: 15px; color: #5F5B55">Пришлём код. Номер никто не увидит.</div>
+<div style="display: flex; gap: 8px; margin-top: 22px">
+<span style="height: 60px; padding: 0 14px; border-radius: 18px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600">KZ +7</span>
+<div aria-label="{{phoneAria}}" style="flex: 1; height: 60px; border-radius: 18px; background: #FBFAF6; box-shadow: inset 0 0 0 2px #17161A; display: flex; align-items: center; padding: 0 16px; font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 600; letter-spacing: 0.02em">
+<sc-for list="{{phoneChars}}" as="c" hint-placeholder-count="13"><span style="white-space: pre; animation: v5lType 160ms ease {{c.d}}s both">{{c.ch}}</span></sc-for>
+</div>
+</div>
+<div style="display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 12px; border-radius: 12px; background: #17161A; color: #F3F0E8; font-size: 13px; font-weight: 600; animation: v5lPop 360ms ease 2.4s both"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"></path></svg>Данил · есть в базе · разработчик</div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 390px; box-sizing: border-box; padding: 10px 10px 30px; background: #E7E2D6">
+<button type="button" onClick="{{toCode}}" style="width: 100%; height: 54px; margin-bottom: 10px; border-radius: 16px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 16.5px; font-weight: 700">Получить код</button>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+<span style="height: 50px; border-radius: 12px; background: #FBFAF6; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 1px 0 rgba(23,22,26,0.18); animation: {{k.anim}}"><span style="font-size: 22px; font-weight: 500; line-height: 1">{{k.n}}</span><span style="font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: #5F5B55">{{k.l}}</span></span>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isCode}}" hint-placeholder-val="{{ false }}">
+<div class="v5lin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 22px 24px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Код из SMS</div>
+<div style="margin-top: 6px; font-size: 15px; color: #5F5B55">Отправили на +7 747 446 07 49</div>
+<div style="display: flex; gap: 12px; margin-top: 26px" aria-label="Код 0000">
+<sc-for list="{{digits}}" as="d" hint-placeholder-count="4">
+<span style="width: 72px; height: 86px; border-radius: 20px; background: #FBFAF6; box-shadow: inset 0 0 0 2px #17161A; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 40px; font-weight: 800"><span style="animation: v5lPop 260ms ease {{d.d}}s both">0</span></span>
+</sc-for>
+</div>
+<div style="display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 8px 12px; border-radius: 12px; background: #FCE3D6; font-size: 13px; font-weight: 600; color: #8A3A12; animation: v5lPop 300ms ease 1.4s both">Демо-режим: код всегда 0000</div>
+<div style="margin-top: 22px; font-size: 14px; color: #6B665E">Не пришло? Ещё раз через 0:42</div>
+</div>
+<button type="button" onClick="{{toName}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Дальше</button>
+</sc-if>
+
+<sc-if value="{{isName}}" hint-placeholder-val="{{ false }}">
+<div class="v5lin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 22px 24px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Это ты?</div>
+<div style="margin-top: 6px; font-size: 15px; color: #5F5B55">Нашли тебя в базе — проверь и добавь фото.</div>
+<div style="display: flex; justify-content: center; margin-top: 24px">
+<div style="position: relative; width: 132px; height: 132px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFE0CE, #F7B08A 60%, #D9805A); display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 56px; font-weight: 800; box-shadow: 0 0 0 4px #F3F0E8, 0 0 0 7px #F0521F, 0 16px 34px rgba(23,22,26,0.18)">Д
+<button type="button" aria-label="Добавить фото" style="position: absolute; right: -2px; bottom: 2px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #17161A; box-shadow: 0 0 0 4px #F3F0E8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3 3 0 110 6 3 3 0 010-6z"></path></svg></button>
+</div>
+</div>
+<label style="display: block; margin-top: 24px; font-size: 13px; font-weight: 600; color: #5F5B55">Имя
+<input type="text" value="Данил" aria-label="Имя" style="display: block; width: 100%; box-sizing: border-box; margin-top: 6px; height: 56px; border-radius: 16px; border: 0; box-shadow: inset 0 0 0 2px #17161A; background: #FBFAF6; padding: 0 16px; font-family: 'Golos Text', sans-serif; font-size: 19px; font-weight: 600; color: #17161A">
+</label>
+<div style="display: flex; gap: 8px; margin-top: 12px">
+<span style="height: 40px; padding: 0 14px; border-radius: 12px; background: #FBFAF6; box-shadow: inset 0 0 0 1.5px #DDD8CC; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600">@danil</span>
+<span style="height: 40px; padding: 0 14px; border-radius: 12px; background: #17161A; color: #F3F0E8; display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0521F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"></path></svg>Разработчик</span>
+</div>
+</div>
+<button type="button" onClick="{{toTaste}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Да, это я</button>
+</sc-if>
+
+<sc-if value="{{isTaste}}" hint-placeholder-val="{{ false }}">
+<div class="v5lin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 22px 20px 0">
+<div style="padding: 0 4px; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Что вытаскивает тебя из дома?</div>
+<div style="padding: 0 4px; margin-top: 6px; font-size: 15px; color: #5F5B55">Хотя бы три — лента начнёт с них.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px">
+<sc-for list="{{tastes}}" as="c" hint-placeholder-count="12">
+<button type="button" onClick="{{c.tap}}" aria-pressed="{{c.on}}" style="height: 48px; padding: 0 16px; border-radius: 24px; border: 0; background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.ring}}; font-family: 'Golos Text', sans-serif; font-size: 15.5px; font-weight: 600; transition: background 160ms ease">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+<button type="button" onClick="{{toAllow}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: {{tasteBg}}; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">{{tasteLabel}}</button>
+</sc-if>
+
+<sc-if value="{{isAllow}}" hint-placeholder-val="{{ false }}">
+<div class="v5lin" style="position: absolute; left: 0; top: 96px; width: 390px; box-sizing: border-box; padding: 22px 20px 0">
+<div style="padding: 0 4px; font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Последнее</div>
+<sc-for list="{{perms}}" as="p" hint-placeholder-count="2">
+<div style="margin-top: 14px; padding: 16px; border-radius: 22px; background: #FBFAF6; box-shadow: 0 0 0 1.5px {{p.ring}}">
+<div style="display: flex; gap: 12px"><span aria-hidden="true" style="width: 46px; height: 46px; border-radius: 15px; background: {{p.tile}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg></span>
+<div><div style="font-family: 'Geologica', sans-serif; font-size: 17px; font-weight: 700">{{p.title}}</div><div style="margin-top: 3px; font-size: 13.5px; line-height: 1.4; color: #4A463F">{{p.text}}</div></div></div>
+<button type="button" onClick="{{p.tap}}" aria-pressed="{{p.onAttr}}" style="margin-top: 12px; width: 100%; height: 46px; border-radius: 14px; border: 0; background: {{p.btnBg}}; color: {{p.btnFg}}; font-family: 'Golos Text', sans-serif; font-size: 15px; font-weight: 700">{{p.btnLabel}}</button>
+</div>
+</sc-for>
+</div>
+<button type="button" onClick="{{toDone}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #F0521F; color: #17161A; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700">Готово</button>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 0; top: 0; width: 390px; height: 844px; background: linear-gradient(160deg, #F7B08A, #F0521F 60%, #C9471B)">
+<sc-for list="{{burst}}" as="f" hint-placeholder-count="6">
+<span aria-hidden="true" style="position: absolute; left: 160px; top: 520px; --dx: {{f.dx}}px; --dy: {{f.dy}}px; --r: {{f.r}}deg; animation: v5lFly 900ms cubic-bezier(.2,.8,.3,1) {{f.delay}}s both"><span style="position: relative; display: block; width: {{f.size}}px; height: {{f.size}}px; animation: {{f.st.anim}}"><svg width="{{f.size}}" height="{{f.size}}" viewBox="-6 -10 132 132" aria-hidden="true" style="overflow: visible; display: block"><defs><sc-for list="{{f.st.grads}}" as="bg" hint-placeholder-count="1"><radialGradient id="{{bg.id}}" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="{{bg.hi}}"></stop><stop offset="0.6" stop-color="{{bg.base}}"></stop><stop offset="1" stop-color="{{bg.lo}}"></stop></radialGradient></sc-for></defs><ellipse cx="60" cy="114" rx="34" ry="5" fill="rgba(23,22,26,0.18)"></ellipse><sc-for list="{{f.st.shapes}}" as="bp" hint-placeholder-count="6"><path d="{{bp.d}}" fill="{{bp.f}}" stroke="{{bp.s}}" stroke-width="{{bp.w}}" stroke-linecap="round" stroke-linejoin="round" style="transform-origin: {{bp.o}}; animation: {{bp.a}}"></path></sc-for></svg><sc-if value="{{f.st.hasText}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; {{f.st.tPos}}; text-align: center; transform: rotate({{f.st.rot}}); font-family: 'Geologica', sans-serif; font-weight: 800; font-size: calc({{f.size}}px * {{f.st.fs}}); line-height: 1.02; letter-spacing: -0.01em; color: {{f.st.tc}}; white-space: pre-line; text-shadow: 0 0.06em 0 #17161A, 0.06em 0 0 #17161A, -0.06em 0 0 #17161A, 0 -0.06em 0 #17161A, 0.05em 0.05em 0 #17161A, -0.05em 0.05em 0 #17161A, 0.05em -0.05em 0 #17161A, -0.05em -0.05em 0 #17161A, 0 0.14em 0 #17161A, 0 0.22em 0.3em rgba(23,22,26,0.3); pointer-events: none">{{f.st.text}}</span></sc-if></span></span>
+</sc-for>
+<svg aria-hidden="true" width="306" height="45" viewBox="0 0 727 107" style="position: absolute; left: 42px; top: 300px; overflow: visible">
+<defs><mask id="v5lM1" maskUnits="userSpaceOnUse" x="-40" y="-40" width="807" height="187"><path d="M-20 58H747" stroke="#fff" stroke-width="180" fill="none" style="--L: 767; stroke-dasharray: 767 767; animation: v5lReveal 1.8s cubic-bezier(.45,.05,.55,.95) 0.2s both"></path></mask></defs>
+<path d="M34.4 68.0L42.8 65.3L42.9 67.7Q41.9 68.3 33.8 71.3L33.8 71.3Q30.6 90.4 24.4 98.9Q18.2 107.4 9.2 107.4L9.2 107.4Q5.0 107.4 2.5 104.7Q0.0 102.0 0.0 97.7L0.0 97.7Q0.0 89.1 7.9 81.7Q15.8 74.2 29.0 69.9L29.0 69.9Q30.5 63.2 34.4 51.0L34.4 51.0Q27.7 61.2 22.3 64.8Q16.8 68.4 12.4 68.4Q8.0 68.4 5.8 66.0Q3.5 63.6 3.5 59.6L3.5 59.6Q3.5 53.0 9.0 46.2Q14.5 39.3 22.9 35.0Q31.2 30.6 39.0 30.6L39.0 30.6L39.8 34.1Q28.7 35.3 20.8 41.9Q12.8 48.5 12.8 54.6L12.8 54.6Q12.8 57.2 14.4 58.9Q16.0 60.6 18.3 60.6L18.3 60.6Q21.7 60.6 28.6 53.4Q35.5 46.2 38.3 41.1L38.3 41.1L42.0 43.2Q36.5 57.9 34.4 68.0L34.4 68.0M28.4 72.9L28.4 72.9Q19.7 76.9 14.0 82.5Q8.3 88.1 8.3 92.7L8.3 92.7Q8.3 95.1 9.7 96.6Q11.1 98.1 13.2 98.1L13.2 98.1Q17.4 98.1 21.5 92.2Q25.6 86.3 28.4 72.9M69.9 40.8L75.1 39.2Q77.7 43.5 77.7 48.7L77.7 48.7Q77.7 56.8 72.1 63.2Q66.5 69.5 58.9 69.5L58.9 69.5Q53.1 69.5 49.9 66.2Q46.6 62.8 46.6 56.9L46.6 56.9Q46.6 47.4 54.0 39.9Q61.4 32.3 70.6 32.3L70.6 32.3Q72.3 32.3 73.0 32.4L73.0 32.4L73.3 35.7Q65.3 35.7 60.0 40.3Q54.7 44.9 54.7 52.1L54.7 52.1Q54.7 56.4 56.8 59.1Q58.9 61.7 63.0 61.7Q67.0 61.7 69.4 58.1Q71.8 54.5 71.8 49.7Q71.8 44.8 69.9 40.8L69.9 40.8M90.9 12.9Q90.9 7.5 94.9 4.6Q98.9 1.7 106.3 1.7Q113.6 1.6 116.2 2.8L116.2 2.8L115.3 7.0Q111.8 6.5 107.7 6.5L107.7 6.5Q98.9 6.5 98.9 13.8L98.9 13.8Q98.9 15.8 104.3 25.6Q109.6 35.4 110.5 37.4Q111.3 39.4 112.0 42.7Q112.6 45.9 112.6 47.5L112.6 47.5Q112.6 56.3 107.1 62.7Q101.6 69.0 93.8 69.0L93.8 69.0Q88.0 69.0 84.8 65.7Q81.5 62.3 81.5 56.0Q81.5 49.6 85.6 43.4Q89.7 37.2 96.0 34.1L96.0 34.1L97.3 38.0Q89.6 42.8 89.6 51.6L89.6 51.6Q89.6 55.9 91.7 58.6Q93.8 61.2 97.5 61.2Q101.2 61.2 104.0 57.9Q106.7 54.6 106.7 49.6Q106.7 44.6 105.4 41.6Q104.0 38.6 100.3 32.3L100.3 32.3Q90.9 15.8 90.9 12.9L90.9 12.9M133.7 50.5Q141.3 39.1 146.9 35.0Q152.5 30.8 156.7 30.8Q160.9 30.8 163.2 33.4Q165.5 35.9 165.5 39.8L165.5 39.8Q165.5 50.6 157.8 59.8Q150.0 68.9 140.3 68.9L140.3 68.9Q136.0 68.9 133.5 67.4L133.5 67.4L135.9 63.1Q141.2 63.8 142.4 63.8L142.4 63.8Q147.8 63.8 152.5 57.5Q157.2 51.2 157.2 44.6L157.2 44.6Q157.2 42.1 155.8 40.5Q154.3 38.8 152.0 38.8L152.0 38.8Q146.5 38.8 139.6 48.5Q132.6 58.2 126.6 72.6Q120.5 86.9 116.0 103.1L116.0 103.1L110.0 101.0Q110.2 100.4 113.8 90.7Q117.3 80.9 120.7 71.3L120.7 71.3Q130.1 44.9 130.1 42.4L130.1 42.4Q130.1 36.0 127.5 30.8L127.5 30.8L132.5 28.3Q135.6 32.6 135.6 37.4Q135.6 42.1 133.7 50.5L133.7 50.5M193.6 40.8L198.8 39.2Q201.4 43.5 201.4 48.7L201.4 48.7Q201.4 56.8 195.8 63.2Q190.2 69.5 182.6 69.5L182.6 69.5Q176.8 69.5 173.6 66.2Q170.3 62.8 170.3 56.9L170.3 56.9Q170.3 47.4 177.7 39.9Q185.1 32.3 194.3 32.3L194.3 32.3Q196.0 32.3 196.7 32.4L196.7 32.4L197.0 35.7Q189.0 35.7 183.7 40.3Q178.4 44.9 178.4 52.1L178.4 52.1Q178.4 56.4 180.5 59.1Q182.6 61.7 186.7 61.7Q190.7 61.7 193.1 58.1Q195.5 54.5 195.5 49.7Q195.5 44.8 193.6 40.8L193.6 40.8M295.3 56.8L295.3 56.8L297.4 58.4Q295.2 62.8 291.4 65.8Q287.5 68.8 284.4 68.8Q281.3 68.8 279.5 67.0Q277.7 65.2 277.7 62.5Q277.7 59.8 281.1 53.1Q284.6 46.3 284.6 43.1L284.6 43.1Q284.6 41.7 283.4 40.6Q282.3 39.4 280.7 39.4L280.7 39.4Q275.6 39.4 270.4 47.2Q265.2 54.9 258.8 69.5L258.8 69.5L252.8 67.4Q254.7 55.8 258.3 44.8Q261.8 33.7 264.8 28.9L264.8 28.9L268.9 30.2Q266.1 37.3 261.8 54.7L261.8 54.7Q275.6 31.1 287.2 31.1L287.2 31.1Q289.7 31.1 291.4 32.8Q293.0 34.5 293.0 36.8Q293.0 39.1 292.4 41.0Q291.8 42.8 288.6 49.6Q285.5 56.3 285.5 58.0Q285.5 59.7 286.5 60.7Q287.5 61.6 288.4 61.6Q289.3 61.6 289.9 61.3Q290.5 61.0 291.3 60.4Q292.0 59.8 292.6 59.3Q293.2 58.8 294.1 58.0Q294.9 57.1 295.3 56.8M325.1 40.8L330.3 39.2Q332.9 43.5 332.9 48.7L332.9 48.7Q332.9 56.8 327.3 63.2Q321.7 69.5 314.1 69.5L314.1 69.5Q308.3 69.5 305.1 66.2Q301.8 62.8 301.8 56.9L301.8 56.9Q301.8 47.4 309.2 39.9Q316.6 32.3 325.8 32.3L325.8 32.3Q327.5 32.3 328.2 32.4L328.2 32.4L328.5 35.7Q320.5 35.7 315.2 40.3Q309.9 44.9 309.9 52.1L309.9 52.1Q309.9 56.4 312.0 59.1Q314.1 61.7 318.2 61.7Q322.2 61.7 324.6 58.1Q327.0 54.5 327.0 49.7Q327.0 44.8 325.1 40.8L325.1 40.8M340.4 70.9L337.3 68.1Q342.7 58.0 357.2 46.8L357.2 46.8Q352.7 43.4 348.3 38.6Q343.8 33.7 343.3 30.1L343.3 30.1L349.3 29.4Q349.9 32.5 360.6 42.6L360.6 42.6Q361.0 36.6 361.0 28.6L361.0 28.6L367.5 29.2L366.5 41.1Q378.8 32.4 382.7 31.0L382.7 31.0L387.1 34.9Q383.6 36.0 375.8 41.1Q368.0 46.2 366.7 47.5L366.7 47.5Q369.4 51.1 374.7 55.8Q380.0 60.4 384.0 63.3L384.0 63.3L388.0 66.1L385.1 69.7Q382.2 68.0 375.5 63.2Q368.7 58.3 365.2 54.6L365.2 54.6Q363.8 65.7 362.4 70.6L362.4 70.6L356.3 71.4Q358.7 66.6 360.1 51.8L360.1 51.8Q357.9 52.5 353.0 57.3Q348.1 62.0 344.3 66.5L344.3 66.5L340.4 70.9M436.4 58.8L436.4 58.8L438.7 60.5Q437.3 63.5 433.6 66.2Q429.8 68.9 426.7 68.9L426.7 68.9Q420.8 68.9 420.8 62.7L420.8 62.7Q420.8 59.8 422.3 55.8L422.3 55.8L418.6 59.6Q413.2 65.1 409.3 67.0Q405.3 68.9 401.5 68.9Q397.7 68.9 395.8 66.8Q393.8 64.6 393.8 60.8L393.8 60.8Q393.8 53.8 399.2 47.0Q404.6 40.1 413.0 35.8Q421.4 31.5 429.8 31.4L429.8 31.4L430.0 34.7L425.8 35.6Q416.7 37.6 409.8 43.6Q402.8 49.6 402.8 55.6Q402.8 61.5 407.6 61.5L407.6 61.5Q412.1 61.5 418.7 55.2Q425.3 48.9 429.7 40.4L429.7 40.4L433.9 42.9Q427.7 55.4 427.7 58.8L427.7 58.8Q427.7 60.2 428.7 61.2Q429.6 62.1 430.6 62.1Q431.5 62.1 431.8 62.0Q432.1 61.9 432.4 61.8Q432.7 61.6 433.2 61.3Q433.6 61.0 434.0 60.7Q434.3 60.4 435.1 59.8Q435.9 59.2 436.4 58.8M446.9 60.1L446.9 60.1L451.9 57.6Q451.9 59.4 453.3 60.7Q454.6 62.0 456.4 62.0L456.4 62.0Q464.9 62.0 475.8 39.6L475.8 39.6Q476.4 38.3 477.2 36.7Q478.0 35.0 478.4 34.2Q478.8 33.3 479.4 32.2Q479.9 31.1 480.3 30.6Q480.6 30.0 481.0 29.5L481.0 29.5Q481.9 28.6 483.1 28.6Q484.2 28.6 485.1 29.7Q486.0 30.8 486.0 32.3Q486.0 33.7 482.3 44.7Q478.5 55.6 478.5 57.9Q478.5 60.2 479.5 61.3Q480.4 62.4 481.4 62.4Q482.3 62.4 482.8 62.3Q483.3 62.2 483.8 61.9Q484.3 61.6 484.7 61.4Q485.0 61.2 485.5 60.7L485.5 60.7L486.2 59.9Q486.5 59.7 487.1 59.1Q487.6 58.4 487.8 58.2L487.8 58.2L489.9 59.9Q488.2 64.1 484.6 67.0Q480.9 69.9 478.0 69.9Q475.0 69.9 473.3 67.9Q471.6 65.8 471.6 62.5Q471.6 59.2 472.7 54.0L472.7 54.0Q468.1 61.2 462.6 65.0Q457.1 68.7 453.7 68.7Q450.3 68.7 448.6 66.2Q446.9 63.7 446.9 60.1M523.3 40.8L528.5 39.2Q531.1 43.5 531.1 48.7L531.1 48.7Q531.1 56.8 525.5 63.2Q519.9 69.5 512.3 69.5L512.3 69.5Q506.5 69.5 503.3 66.2Q500.0 62.8 500.0 56.9L500.0 56.9Q500.0 47.4 507.4 39.9Q514.8 32.3 524.0 32.3L524.0 32.3Q525.7 32.3 526.4 32.4L526.4 32.4L526.7 35.7Q518.7 35.7 513.4 40.3Q508.1 44.9 508.1 52.1L508.1 52.1Q508.1 56.4 510.2 59.1Q512.3 61.7 516.4 61.7Q520.4 61.7 522.8 58.1Q525.2 54.5 525.2 49.7Q525.2 44.8 523.3 40.8L523.3 40.8M547.1 37.5L547.1 37.5Q544.7 48.9 544.6 54.1L544.6 54.1Q544.6 61.2 548.7 61.2L548.7 61.2Q553.1 61.2 556.6 57.4Q560.1 53.6 560.1 48.5Q560.1 43.4 556.3 43.4L556.3 43.4Q555.2 43.4 551.5 44.7L551.5 44.7L550.3 41.7Q556.7 37.2 560.4 37.2L560.4 37.2Q567.3 37.2 567.3 44.1L567.3 44.1Q567.3 52.2 560.6 60.6Q553.8 68.9 546.4 68.9L546.4 68.9Q538.3 68.9 538.3 57.3L538.3 57.3Q538.3 51.8 541.4 39.1L541.4 39.1L533.3 42.1L533.2 39.7Q534.2 39.1 542.3 36.1L542.3 36.1Q545.7 16.1 551.7 8.1Q557.7 0.0 566.9 0.0L566.9 0.0Q571.1 0.0 573.6 2.7Q576.1 5.4 576.1 9.7L576.1 9.7Q576.1 18.3 568.2 25.8Q560.3 33.2 547.1 37.5M547.7 34.5L547.7 34.5Q556.4 30.5 562.1 24.9Q567.8 19.3 567.8 14.7L567.8 14.7Q567.8 12.3 566.4 10.8Q565.0 9.3 562.9 9.3L562.9 9.3Q558.7 9.3 554.6 15.2Q550.5 21.1 547.7 34.5M622.1 58.8L622.1 58.8L624.4 60.5Q623.0 63.5 619.3 66.2Q615.5 68.9 612.4 68.9L612.4 68.9Q606.5 68.9 606.5 62.7L606.5 62.7Q606.5 59.8 608.0 55.8L608.0 55.8L604.3 59.6Q598.9 65.1 595.0 67.0Q591.0 68.9 587.2 68.9Q583.4 68.9 581.5 66.8Q579.5 64.6 579.5 60.8L579.5 60.8Q579.5 53.8 584.9 47.0Q590.3 40.1 598.7 35.8Q607.1 31.5 615.5 31.4L615.5 31.4L615.7 34.7L611.5 35.6Q602.4 37.6 595.5 43.6Q588.5 49.6 588.5 55.6Q588.5 61.5 593.3 61.5L593.3 61.5Q597.8 61.5 604.4 55.2Q611.0 48.9 615.4 40.4L615.4 40.4L619.6 42.9Q613.4 55.4 613.4 58.8L613.4 58.8Q613.4 60.2 614.4 61.2Q615.3 62.1 616.3 62.1Q617.2 62.1 617.5 62.0Q617.8 61.9 618.1 61.8Q618.4 61.6 618.9 61.3Q619.3 61.0 619.7 60.7Q620.0 60.4 620.8 59.8Q621.6 59.2 622.1 58.8M695.8 55.9L695.8 55.9L697.9 57.9Q692.2 68.1 684.8 68.1L684.8 68.1Q681.8 68.1 680.2 66.5Q678.5 64.8 678.5 62.1Q678.5 59.3 681.8 52.6Q685.1 45.9 685.3 42.4L685.3 42.4Q685.4 40.8 684.4 39.8Q683.3 38.8 681.5 38.8Q679.7 38.8 677.9 39.7Q676.0 40.5 674.3 42.4Q672.5 44.3 671.1 46.1Q669.6 47.9 667.9 51.2Q666.1 54.5 664.9 56.7L664.9 56.7Q662.8 60.8 658.9 69.0L658.9 69.0L652.9 66.9Q652.9 66.6 656.2 55.6Q659.5 44.6 659.5 42.5Q659.5 40.4 658.5 39.5Q657.5 38.5 656.0 38.5L656.0 38.5Q651.5 38.5 643.6 49.7Q635.6 60.9 633.4 68.8L633.4 68.8L627.7 66.9Q628.2 61.6 632.4 47.9Q636.6 34.1 639.5 29.1L639.5 29.1L644.0 30.7Q640.9 37.6 639.7 42.4Q638.5 47.1 637.6 52.5L637.6 52.5Q646.2 40.2 652.0 35.3Q657.8 30.3 662.5 30.3L662.5 30.3Q667.6 30.3 667.6 35.4L667.6 35.4Q667.6 37.4 665.9 43.3Q664.1 49.2 663.1 52.6L663.1 52.6Q676.9 30.4 687.8 30.4L687.8 30.4Q690.5 30.4 692.1 32.1Q693.7 33.7 693.7 37.0Q693.7 40.2 690.0 47.7Q686.2 55.2 686.2 57.2Q686.2 59.1 687.0 60.0Q687.8 60.9 689.0 60.9L689.0 60.9Q691.6 60.9 695.8 55.9M721.9 46.1L721.9 46.1Q727.4 45.9 727.4 50.6L727.4 50.6Q727.4 56.8 720.8 62.9Q714.1 68.9 707.4 68.9L707.4 68.9Q701.1 68.9 701.1 60.4L701.1 60.4Q701.1 53.7 704.5 43.8Q707.8 33.8 710.0 29.7L710.0 29.7L714.5 31.2Q711.9 38.8 709.2 49.8L709.2 49.8Q717.2 46.1 721.9 46.1M720.3 56.4L720.3 56.4Q720.9 55.1 720.9 53.8L720.9 53.8Q720.6 51.1 716.2 51.1L716.2 51.1Q714.1 51.1 708.4 52.9L708.4 52.9Q707.6 55.9 707.6 58.3Q707.6 60.6 708.8 62.0Q709.9 63.4 711.9 63.4Q713.8 63.4 716.5 61.4Q719.2 59.3 720.3 56.4" fill="#FBFAF6" mask="url(#v5lM1)"></path>
+</svg>
+<svg aria-hidden="true" width="268" height="69" viewBox="0 0 268 69" style="position: absolute; left: 61px; top: 370px; overflow: visible">
+<defs><mask id="v5lM2" maskUnits="userSpaceOnUse" x="-40" y="-40" width="348" height="149"><path d="M-20 38H288" stroke="#fff" stroke-width="140" fill="none" style="--L: 308; stroke-dasharray: 308 308; animation: v5lReveal 1.4s cubic-bezier(.45,.05,.55,.95) 2.1s both"></path></mask></defs>
+<path d="M24.3 0.0L24.3 0.0Q41.7 0.0 54.1 10.3Q66.4 20.6 66.4 34.4Q66.4 48.2 58.0 56.2Q49.6 64.2 36.7 64.0L36.7 64.0Q29.8 63.9 25.7 63.9L25.7 63.9L21.0 63.9Q18.1 63.9 18.1 61.7L18.1 61.7Q18.1 60.9 19.8 57.6L19.8 57.6Q25.4 46.4 28.3 34.7L28.3 34.7Q18.0 34.7 9.0 29.0Q0.0 23.3 0.0 16.1Q0.0 8.8 6.8 4.4Q13.6 0.0 24.3 0.0M23.9 4.1L23.9 4.1Q17.3 4.1 13.5 6.9Q9.7 9.7 9.7 15.1Q9.7 20.6 14.9 24.9Q20.2 29.1 29.0 30.2L29.0 30.2Q32.1 17.1 32.6 13.3L32.6 13.3L38.6 13.9Q38.6 20.1 36.0 30.3L36.0 30.3Q36.8 30.3 45.3 29.3L45.3 29.3L45.8 32.6Q43.8 33.3 34.7 34.7L34.7 34.7Q30.8 47.3 26.6 56.5L26.6 56.5Q36.6 57.3 43.3 57.3Q49.9 57.3 53.8 52.4Q57.7 47.4 57.7 39.0L57.7 39.0Q57.7 24.5 47.8 14.3Q37.9 4.1 23.9 4.1M115.3 53.7L115.3 53.7L117.6 55.4Q116.2 58.4 112.5 61.1Q108.7 63.8 105.6 63.8L105.6 63.8Q99.7 63.8 99.7 57.6L99.7 57.6Q99.7 54.7 101.2 50.7L101.2 50.7L97.5 54.5Q92.1 60.0 88.2 61.9Q84.2 63.8 80.4 63.8Q76.6 63.8 74.7 61.7Q72.7 59.5 72.7 55.7L72.7 55.7Q72.7 48.7 78.1 41.9Q83.5 35.0 91.9 30.7Q100.3 26.4 108.7 26.3L108.7 26.3L108.9 29.6L104.7 30.5Q95.6 32.5 88.7 38.5Q81.7 44.5 81.7 50.5Q81.7 56.4 86.5 56.4L86.5 56.4Q91.0 56.4 97.6 50.1Q104.2 43.8 108.6 35.3L108.6 35.3L112.8 37.8Q106.6 50.3 106.6 53.7L106.6 53.7Q106.6 55.1 107.6 56.1Q108.5 57.0 109.5 57.0Q110.4 57.0 110.7 56.9Q111.0 56.8 111.3 56.7Q111.6 56.5 112.1 56.2Q112.5 55.9 112.9 55.6Q113.2 55.3 114.0 54.7Q114.8 54.1 115.3 53.7M161.6 24.9L161.6 24.9L165.5 25.8Q165.4 26.5 162.7 31.9Q159.9 37.2 156.8 45.9Q153.7 54.5 152.8 63.3L152.8 63.3L146.4 62.8Q146.4 57.3 149.9 48.6L149.9 48.6Q149.0 48.5 146.3 48.5Q143.5 48.5 136.2 49.8L136.2 49.8Q131.1 61.2 131.1 69.3L131.1 69.3L124.4 68.4Q124.4 61.3 129.7 50.9L129.7 50.9Q124.6 51.7 119.5 53.3L119.5 53.3L118.5 49.4Q118.5 49.1 123.9 47.7Q129.2 46.3 131.8 45.9L131.8 45.9Q139.8 27.5 142.7 24.6L142.7 24.6L147.0 26.3Q146.5 27.3 144.7 30.8L144.7 30.8Q140.2 39.5 138.6 44.4L138.6 44.4Q147.3 43.5 149.1 43.5Q150.8 43.5 152.0 43.6L152.0 43.6Q159.0 27.5 161.6 24.9M211.6 52.1L211.6 52.1L213.7 53.8Q212.0 58.0 208.3 60.9Q204.7 63.8 201.8 63.8Q198.8 63.8 197.1 61.8Q195.4 59.7 195.4 56.4Q195.4 53.1 196.5 47.9L196.5 47.9Q191.8 55.3 186.4 59.5Q181.0 63.7 177.3 63.7L177.3 63.7Q171.7 63.7 171.7 57.0Q171.7 50.3 176.3 39.0Q181.0 27.6 183.0 26.0L183.0 26.0L187.8 28.1Q183.7 34.7 181.6 41.1Q179.5 47.5 179.5 49.7Q179.5 51.8 180.8 53.1Q182.2 54.4 184.0 54.4L184.0 54.4Q188.0 54.4 193.9 47.1Q199.9 39.7 206.1 25.1L206.1 25.1L211.2 27.4Q211.0 28.2 206.7 39.0Q202.3 49.8 202.3 52.0Q202.3 54.1 203.3 55.2Q204.2 56.3 205.2 56.3Q206.1 56.3 206.6 56.2Q207.1 56.1 207.6 55.8Q208.1 55.5 208.4 55.3Q208.8 55.1 209.3 54.6L209.3 54.6L210.0 53.8Q210.3 53.6 210.8 53.0Q211.4 52.3 211.6 52.1M224.5 55.0L224.5 55.0L229.5 52.5Q229.5 54.3 230.8 55.6Q232.2 56.9 234.0 56.9L234.0 56.9Q242.5 56.9 253.4 34.5L253.4 34.5Q254.0 33.2 254.8 31.6Q255.6 29.9 256.0 29.1Q256.4 28.2 256.9 27.1Q257.5 26.0 257.9 25.5Q258.2 24.9 258.6 24.4L258.6 24.4Q259.5 23.5 260.6 23.5Q261.8 23.5 262.7 24.6Q263.6 25.7 263.6 27.2Q263.6 28.6 259.9 39.6Q256.1 50.5 256.1 52.8Q256.1 55.1 257.1 56.2Q258.0 57.3 258.9 57.3Q259.9 57.3 260.4 57.2Q260.9 57.1 261.4 56.8Q261.9 56.5 262.3 56.3Q262.6 56.1 263.1 55.6L263.1 55.6L263.8 54.8Q264.1 54.6 264.6 54.0Q265.2 53.3 265.4 53.1L265.4 53.1L267.5 54.8Q265.8 59.0 262.1 61.9Q258.5 64.8 255.6 64.8Q252.6 64.8 250.9 62.8Q249.2 60.7 249.2 57.4Q249.2 54.1 250.3 48.9L250.3 48.9Q245.7 56.1 240.2 59.9Q234.7 63.6 231.3 63.6Q227.9 63.6 226.2 61.1Q224.5 58.6 224.5 55.0" fill="#17161A" mask="url(#v5lM2)"></path>
+</svg>
+<div style="position: absolute; left: 0; top: 470px; width: 390px; text-align: center; font-size: 16px; font-weight: 600; animation: v5lType 500ms ease 3.6s both">Сегодня рядом 12 событий и 3 друга</div>
+<button type="button" onClick="{{restart}}" style="position: absolute; left: 20px; bottom: 34px; width: 350px; height: 56px; border-radius: 18px; border: 0; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 17px; font-weight: 700; animation: v5lType 500ms ease 3.9s both">На карту</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["hello","phone","code","name","taste","allow","done"],"default":"hello"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: props.step ?? 'hello', picked: { jazz: true, mic: true, hike: true }, perm: {} }; }
+  renderVals() {
+    const PACK = (() => {
+      const K = '#17161A', W = '#FBFAF6';
+      const C = {
+        orange: ['#FF9A6B', '#F0521F', '#B8360F'], ink: ['#55515E', '#17161A', '#000000'], blue: ['#7C95F0', '#2447B8', '#142C80'],
+        green: ['#86D3A3', '#2F8F5B', '#1C6040'], peach: ['#FFE0CE', '#F7B08A', '#D9805A'], cream: ['#FFFFFF', '#F3F0E8', '#CFC9BB'],
+        coffee: ['#EDB46A', '#C77A12', '#8A520A'], yellow: ['#FFEB99', '#F5C542', '#C99214'], red: ['#FF8A80', '#E0413B', '#A32620'],
+        lilac: ['#E2DAFF', '#A99BEA', '#7565C2'], sky: ['#DDEEFF', '#8FC1F2', '#5A8FC7'], mint: ['#E3F6EA', '#9FD8B6', '#5FA67E']
+      };
+      const g = (c) => 'url(#v5g-' + c + ')';
+      const grad = (c) => ({ id: 'v5g-' + c, hi: C[c][0], base: C[c][1], lo: C[c][2] });
+      const sh = (d, f, s, w, a, o) => ({ d, f: f || 'none', s: s || 'none', w: String(w || 0), a: a || 'none', o: o || '60px 60px' });
+      const body = (d, c) => [sh(d, W, W, 14), sh(d, g(c), K, 3.5)];
+      const ell = (x, y, rx, ry) => 'M' + (x - rx) + ' ' + y + 'a' + rx + ' ' + ry + ' 0 1 0 ' + 2 * rx + ' 0a' + rx + ' ' + ry + ' 0 1 0 ' + (-2 * rx) + ' 0Z';
+      const gloss = (x, y, rx, ry) => sh(ell(x, y, rx || 12, ry || 7), 'rgba(255,255,255,0.6)');
+      const B = {
+        blob: 'M18 58a42 42 0 1 0 84 0a42 42 0 1 0 -84 0Z',
+        pin: 'M60 12C86 12 100 30 100 52C100 78 60 108 60 108C60 108 20 78 20 52C20 30 34 12 60 12Z',
+        heart: 'M60 100L24 66C10 52 14 28 34 24C46 22 54 30 60 38C66 30 74 22 86 24C106 28 110 52 96 66Z',
+        flame: 'M60 8C70 28 96 40 96 70A36 36 0 0 1 24 70C24 54 32 44 40 38C42 50 48 56 54 58C48 42 50 24 60 8Z',
+        cloud: 'M30 90a22 22 0 0 1 0-44a28 28 0 0 1 52-8a24 24 0 0 1 8 52Z',
+        ghost: 'M24 104V58a36 36 0 0 1 72 0v46l-12-8-12 8-12-8-12 8-12-8z',
+        apple: 'M60 36c10-8 32-8 40 10 8 18-2 46-18 54-8 4-14 0-22 0s-14 4-22 0C22 92 12 64 20 46c8-18 30-18 40-10Z',
+        cup: 'M26 48H86V70A24 24 0 0 1 62 94H50A24 24 0 0 1 26 70Z',
+        clock: 'M16 60a44 44 0 1 0 88 0a44 44 0 1 0 -88 0Z',
+        moon: 'M74 14a44 44 0 1 0 30 70a36 36 0 1 1 -30 -70Z',
+        plate: 'M12 40L108 30L112 86L16 96Z',
+        tag: 'M18 34h84a14 14 0 0 1 14 14v26a14 14 0 0 1-14 14H18A14 14 0 0 1 4 74V48a14 14 0 0 1 14-14Z',
+        bubble: 'M20 26h80a14 14 0 0 1 14 14v30a14 14 0 0 1-14 14H54L36 100l2-16H20A14 14 0 0 1 6 70V40a14 14 0 0 1 14-14Z',
+        sun: 'M30 60a30 30 0 1 0 60 0a30 30 0 1 0 -60 0Z',
+        umbrella: 'M12 62a48 42 0 0 1 96 0Z',
+        mountain: 'M8 100L46 36L64 62L78 46L112 100Z',
+        bed: 'M10 74h100v22a8 8 0 0 1-8 8H18a8 8 0 0 1-8-8Z'
+      };
+      const eyes = (cx, cy, dx) => [sh(ell(cx - (dx || 12), cy, 4.5, 6), K), sh(ell(cx + (dx || 12), cy, 4.5, 6), K), sh(ell(cx - (dx || 12) + 1.5, cy - 2.5, 1.6, 1.8), W), sh(ell(cx + (dx || 12) + 1.5, cy - 2.5, 1.6, 1.8), W)];
+      const smile = (cx, cy, w) => sh('M' + (cx - (w || 11)) + ' ' + cy + 'Q' + cx + ' ' + (cy + 11) + ' ' + (cx + (w || 11)) + ' ' + cy, 'none', K, 4);
+      const laughEyes = (cx, cy) => sh('M' + (cx - 19) + ' ' + cy + 'q6-7 12 0M' + (cx + 7) + ' ' + cy + 'q6-7 12 0', 'none', K, 4);
+      const openMouth = (cx, cy) => [sh('M' + (cx - 13) + ' ' + cy + 'h26a13 13 0 0 1-26 0Z', K, K, 2), sh('M' + (cx - 6) + ' ' + (cy + 9) + 'q6-5 12 0q-6 5-12 0Z', '#E0413B')];
+      const cheeks = (cx, cy) => [sh(ell(cx - 22, cy, 6, 3.5), 'rgba(224,65,59,0.35)'), sh(ell(cx + 22, cy, 6, 3.5), 'rgba(224,65,59,0.35)')];
+      const A = {
+        bounce: 'v5Bounce 1.2s ease-in-out infinite', wiggle: 'v5Wiggle 1.6s ease-in-out infinite', pulse: 'v5Pulse 1s ease-in-out infinite',
+        shake: 'v5Shake 0.5s ease-in-out infinite', float: 'v5Float 2.4s ease-in-out infinite', spin: 'v5Spin 6s linear infinite', none: 'none'
+      };
+      const hand = (x, y) => sh('M' + x + ' ' + y + 'c-4-10 0-18 6-16 2-6 10-6 11 0 4-4 10-2 10 4 4-2 9 1 8 7-1 10-8 18-18 20-8 1-14-5-17-15Z', g('peach'), K, 3, 'v5Wave 0.9s ease-in-out infinite', (x + 6) + 'px ' + (y + 12) + 'px');
+      const S = [];
+      const add = (id, name, cat, tags, grads, shapes, opt) => S.push(Object.assign({ id, name, cat, tags, grads: grads.map(grad), shapes, anim: 'none', text: '', hasText: false, tPos: 'left: -14%; right: -14%; bottom: 0%', fs: '0.2', tc: W, rot: '-5deg' }, opt || {}, opt && opt.text ? { hasText: true } : {}));
+      // emotions
+      add('hi', 'Привет', 'emo', 'привет хай помахать hi', ['orange', 'peach'], [...body(B.blob, 'orange'), gloss(42, 36), ...eyes(56, 56), smile(56, 70), ...cheeks(56, 68), hand(88, 34)]);
+      add('lol', 'Ору', 'emo', 'ору смешно лол ахах', ['yellow'], [...body(B.blob, 'yellow'), gloss(42, 36), laughEyes(60, 52), ...openMouth(60, 66), sh(ell(28, 60, 5, 7), '#8FC1F2', K, 2, 'v5Tear 1s ease-in infinite', '28px 60px'), sh(ell(92, 60, 5, 7), '#8FC1F2', K, 2, 'v5Tear 1s ease-in 0.3s infinite', '92px 60px')], { anim: A.bounce, text: 'ОРУ' });
+      add('love', 'Люблю', 'emo', 'люблю сердце любовь', ['peach', 'red'], [...body(B.heart, 'peach'), gloss(38, 40), sh('M38 54c-6-8 4-14 8-6 4-8 14-2 8 6l-8 8z', g('red'), K, 2), sh('M66 54c-6-8 4-14 8-6 4-8 14-2 8 6l-8 8z', g('red'), K, 2), smile(60, 72, 8)], { anim: A.pulse });
+      add('cool', 'Изи', 'emo', 'изи круто очки легко', ['ink'], [...body(B.blob, 'ink'), gloss(42, 36, 10, 6), sh('M30 48h24v8a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8ZM66 48h24v8a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8ZM54 52h12', '#2A292E', W, 2.5), sh('M34 51l6 0', 'none', 'rgba(255,255,255,0.7)', 2.5), sh('M50 76q10 4 20-4', 'none', W, 3.5)], { text: 'ИЗИ' });
+      add('cry', 'Плачу', 'emo', 'плачу грусть слёзы', ['sky'], [...body(B.blob, 'sky'), gloss(42, 36), ...eyes(60, 52), sh('M48 80q12-10 24 0', 'none', K, 4), sh('M46 60q-3 8 0 12q3-4 0-12Z', '#2447B8', 'none', 0, 'v5Tear 1.1s ease-in infinite', '46px 60px'), sh('M74 60q-3 8 0 12q3-4 0-12Z', '#2447B8', 'none', 0, 'v5Tear 1.1s ease-in 0.5s infinite', '74px 60px')]);
+      add('shock', 'Шок', 'emo', 'шок что офигеть', ['cream'], [...body(B.blob, 'cream'), gloss(42, 36), sh(ell(46, 52, 9, 10), W, K, 3), sh(ell(74, 52, 9, 10), W, K, 3), sh(ell(46, 54, 3.5, 4), K), sh(ell(74, 54, 3.5, 4), K), sh(ell(60, 78, 7, 9), K)], { anim: A.shake, text: 'ШОК' });
+      add('sleep', 'Сплю', 'emo', 'сплю спать устал ночь', ['lilac'], [...body(B.cloud, 'lilac'), gloss(44, 48, 10, 6), sh('M42 64q5 4 10 0M66 64q5 4 10 0', 'none', K, 3.5), sh(ell(60, 76, 3, 3.5), K), sh('M88 28h10l-10 10h10M100 14h7l-7 7h7', 'none', K, 3, 'v5Zzz 2s ease-in-out infinite', '96px 24px')], { anim: A.float });
+      add('angry', 'Злюсь', 'emo', 'злюсь бесит грр', ['red'], [...body(B.blob, 'red'), gloss(42, 36), sh('M38 44l14 6M82 44l-14 6', 'none', K, 4), ...eyes(60, 56), sh('M48 78q12-8 24 0', 'none', K, 4)], { anim: A.shake, text: 'ГРР' });
+      add('skeptic', 'Ну-ну', 'emo', 'ну-ну сомневаюсь ага', ['green'], [...body(B.blob, 'green'), gloss(42, 36), sh('M38 42q8-6 16 0M68 48h14', 'none', K, 4), ...eyes(60, 54), sh('M50 74h20', 'none', K, 4)], { text: 'НУ-НУ' });
+      add('wink', 'Подмигнул', 'emo', 'подмигнуть хитро', ['orange'], [...body(B.pin, 'orange'), gloss(44, 30), sh(ell(48, 48, 4.5, 6), K), sh('M66 48q6-5 12 0', 'none', K, 4), smile(60, 62, 12)], { anim: A.wiggle });
+      add('think', 'Хм', 'emo', 'хм думаю вопрос что', ['mint'], [...body(B.blob, 'mint'), gloss(42, 36), sh(ell(50, 50, 4.5, 6), K), sh(ell(74, 50, 4.5, 6), K), sh('M52 76q8-4 16 0', 'none', K, 4), sh('M92 22q0-10 8-10q8 0 8 8q0 6-8 8v6M100 40v1', 'none', K, 4, 'v5Float 1.6s ease-in-out infinite', '100px 28px')], { text: 'ХМ' });
+      add('blush', 'Смущаюсь', 'emo', 'смущаюсь мило няш', ['peach'], [...body(B.blob, 'peach'), gloss(42, 36), sh('M40 56q6-5 12 0M68 56q6-5 12 0', 'none', K, 4), ...cheeks(60, 66), sh('M54 72q6 5 12 0', 'none', K, 3.5)], { anim: A.float });
+      add('party', 'Праздник', 'emo', 'праздник ура др день рождения', ['orange', 'blue', 'yellow'], [...body(B.blob, 'orange'), gloss(42, 40), sh('M44 22L60 -6L76 22Z', g('blue'), K, 3), sh(ell(60, -6, 4, 4), g('yellow'), K, 2), laughEyes(60, 56), smile(60, 70, 12), sh('M14 30l6 4M106 34l-6 4M18 94l6-4M100 96l-4-6', 'none', '#F5C542', 4, 'v5Pulse 0.8s ease-in-out infinite', '60px 60px')], { anim: A.bounce });
+      add('ok', 'Ок', 'emo', 'ок хорошо класс лайк', ['yellow', 'peach'], [...body(B.blob, 'yellow'), gloss(42, 36), ...eyes(52, 50), smile(52, 66, 10), sh('M80 92V72c0-4 2-6 4-12l4-10c2-4 8-2 7 3l-2 13h10c4 0 6 3 5 7l-3 14c-1 3-3 5-6 5Z', g('peach'), K, 3, 'v5Bounce 1s ease-in-out infinite', '90px 80px')], { text: 'ОК' });
+      add('awk', 'Неловко', 'emo', 'неловко пот упс', ['sky'], [...body(B.blob, 'sky'), gloss(42, 36), ...eyes(60, 54), sh('M50 74q5-4 10 0t10 0', 'none', K, 3.5), sh('M90 30q-6 10 0 14q6-4 0-14Z', '#2447B8', W, 2, 'v5Tear 1.4s ease-in infinite', '90px 34px')], { text: 'УПС' });
+      add('ghost', 'Ой всё', 'emo', 'ой всё ушёл призрак', ['cream'], [...body(B.ghost, 'cream'), gloss(42, 40), ...eyes(60, 56), sh(ell(60, 74, 4, 5), K)], { anim: A.float, text: 'ОЙ ВСЁ' });
+      // meetings
+      add('go', 'Иду!', 'meet', 'иду пойду го еду', ['orange'], [...body(B.pin, 'orange'), gloss(44, 30), ...eyes(60, 46), smile(60, 60, 12)], { anim: A.bounce, text: 'ИДУ!' });
+      add('bed', 'Уже выхожу', 'meet', 'уже выхожу опаздываю кровать', ['cream', 'blue', 'orange'], [sh('M28 76a20 18 0 1 1 40 0Z', g('orange'), K, 3), sh('M36 68q4 3 8 0M50 68q4 3 8 0', 'none', K, 3), sh('M76 66h28a6 6 0 0 1 6 6v4H72v-6a4 4 0 0 1 4-4Z', g('cream'), K, 3), ...body(B.bed, 'blue'), sh('M24 86h80M30 96h66', 'none', 'rgba(255,255,255,0.35)', 3), sh('M86 30h10l-10 10h10', 'none', K, 3, 'v5Zzz 2s ease-in-out infinite', '90px 34px')], { text: 'УЖЕ ВЫХОЖУ', fs: '0.13' });
+      add('late', 'Опаздываю', 'meet', 'опаздываю бегу спешу', ['coffee'], [...body(B.blob, 'coffee'), gloss(42, 36), ...eyes(64, 52), sh(ell(66, 72, 5, 6), K), sh('M4 44h14M0 60h12M6 76h14', 'none', K, 4, 'v5Dash 0.6s linear infinite', '10px 60px'), sh('M96 30q-5 8 0 12q5-4 0-12Z', '#8FC1F2', K, 2)], { anim: A.shake, text: 'БЕГУ', rot: '4deg' });
+      add('where', 'Ты где?', 'meet', 'ты где где ты потерялся', ['blue'], [...body(B.blob, 'blue'), gloss(42, 36), sh(ell(42, 54, 9, 9), W, K, 3), sh(ell(70, 54, 9, 9), W, K, 3), sh(ell(46, 54, 3.5, 4), K, 'none', 0, 'v5Look 2s ease-in-out infinite', '46px 54px'), sh(ell(74, 54, 3.5, 4), K, 'none', 0, 'v5Look 2s ease-in-out infinite', '74px 54px'), sh('M50 78h20', 'none', W, 4)], { text: 'ТЫ ГДЕ?' });
+      add('geo', 'Скинь гео', 'meet', 'скинь гео где адрес точка', ['green', 'cream'], [...body(B.pin, 'green'), gloss(44, 30), sh(ell(60, 50, 16, 16), g('cream'), K, 3), sh(ell(60, 50, 5, 5), K, 'none', 0, 'v5Pulse 1s ease-in-out infinite', '60px 50px')], { text: 'СКИНЬ ГЕО', fs: '0.14' });
+      add('wait', 'Жду', 'meet', 'жду время часы', ['cream'], [...body(B.clock, 'cream'), gloss(40, 34), sh('M60 60V34', 'none', K, 5, 'v5Spin 4s linear infinite', '60px 60px'), sh('M60 60h16', 'none', K, 5), sh(ell(60, 60, 4, 4), K), sh('M60 20v6M100 60h-6M60 100v-6M20 60h6', 'none', K, 4)], { text: 'ЖДУ' });
+      add('here', 'Я тут', 'meet', 'я тут здесь пришёл', ['orange', 'yellow'], [...body(B.pin, 'orange'), gloss(44, 30), laughEyes(60, 46), smile(60, 58, 12), sh('M22 30l-10-8M98 30l10-8M60 4V-6', 'none', '#F5C542', 5, 'v5Pulse 0.9s ease-in-out infinite', '60px 40px')], { anim: A.bounce, text: 'Я ТУТ' });
+      add('coffee', 'Кофе?', 'meet', 'кофе кофеек встретимся', ['coffee'], [...body(B.cup, 'coffee'), gloss(40, 58, 9, 5), sh('M86 54H92A10 10 0 0 1 92 74H86', 'none', K, 5), sh('M46 38C40 30 52 26 46 16M60 38C54 30 66 26 60 16M74 38C68 30 80 26 74 16', 'none', K, 3.5, 'v5Steam 1.6s ease-in-out infinite', '60px 30px'), ...eyes(56, 64, 9), sh('M50 76Q56 82 62 76', 'none', K, 3)], { text: 'КОФЕ?' });
+      add('tea', 'По чайку?', 'meet', 'чай по чайку чаёк', ['mint'], [...body(B.cup, 'mint'), gloss(40, 58, 9, 5), sh('M86 54H92A10 10 0 0 1 92 74H86', 'none', K, 5), sh('M70 48V30h10v8h-10', 'none', K, 3), laughEyes(56, 66), smile(56, 76, 7)], { anim: A.wiggle, text: 'ПО ЧАЙКУ?', fs: '0.14' });
+      add('dance', 'Танцуем', 'meet', 'танцуем танцы музыка вечеринка', ['lilac', 'orange'], [...body(B.blob, 'lilac'), gloss(42, 36), laughEyes(60, 54), smile(60, 68, 12), sh('M96 30V12l12-3v16M8 42V26l10-2v14', 'none', K, 4, 'v5Float 1s ease-in-out infinite', '100px 20px'), sh(ell(93, 31, 4, 3.5), K), sh(ell(5, 43, 4, 3.5), K)], { anim: A.wiggle, text: 'ТАНЦУЕМ', fs: '0.14' });
+      add('company', 'Ищу компанию', 'meet', 'ищу компанию кто со мной рука помахать', ['peach'], [sh('M36 56V30a6 6 0 0 1 12 0v26Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M50 54V22a6 6 0 0 1 12 0v32Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M64 54V24a6 6 0 0 1 12 0v30Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M78 58V34a6 6 0 0 1 12 0v24Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 66L22 54a6.5 6.5 0 0 1 10-8l12 12Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 56h56v24q0 24-28 24q-28 0-28-24Z', W, W, 12, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M36 56V30a6 6 0 0 1 12 0v26Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M50 54V22a6 6 0 0 1 12 0v32Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M64 54V24a6 6 0 0 1 12 0v30Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M78 58V34a6 6 0 0 1 12 0v24Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 66L22 54a6.5 6.5 0 0 1 10-8l12 12Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M34 56h56v24q0 24-28 24q-28 0-28-24Z', g('peach'), K, 3, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh('M40 70h.1M84 70h.1', 'none', 'rgba(224,65,59,0.4)', 8, 'v5Wave 1s ease-in-out infinite', '62px 100px'), sh(ell(52, 36, 3, 6), 'rgba(255,255,255,0.6)', 'none', 0, 'v5Wave 1s ease-in-out infinite', '62px 100px')], { text: 'КТО СО МНОЙ?', fs: '0.15' });
+      // text memes
+      const meme = (id, text, c, tc, fs, tags) => add(id, text, 'meme', tags + ' ' + text.toLowerCase(), [c], [...body(B.tag, c), sh('M22 40h50', 'none', 'rgba(255,255,255,0.5)', 5)], { text, tc: tc || W, fs: fs || '0.15', tPos: 'left: 2%; right: 2%; top: 26%; bottom: 22%; display: flex; align-items: center; justify-content: center', rot: '-4deg' });
+      meme('baza', 'ЭТО БАЗА', 'ink', '#F5C542', '0.15', 'база правда');
+      meme('cringe', 'КРИНЖ', 'lilac', W, '0.2', 'кринж стыд');
+      meme('moment', 'Я В МОМЕНТЕ', 'orange', W, '0.13', 'момент кайф');
+      meme('nuinu', 'НУ И НУ', 'cream', '#F0521F', '0.17', 'ну и ну удивление');
+      meme('zhiza', 'ЖИЗА', 'green', W, '0.2', 'жиза правда');
+      meme('bezb', 'БЕЗ Б', 'blue', W, '0.2', 'без базара точно');
+      meme('slay', 'СЛЭЙ', 'red', W, '0.2', 'слэй огонь класс');
+      meme('ponyal', 'ПОНЯЛ, ПРИНЯЛ', 'cream', K, '0.12', 'понял принял ок');
+      meme('shockc', 'ШОК КОНТЕНТ', 'yellow', K, '0.13', 'шок контент');
+      meme('nichego', 'НИЧЕГО НЕ ПОНЯЛ,\nНО ОЧЕНЬ ИНТЕРЕСНО', 'sky', K, '0.085', 'ничего не понял интересно');
+      meme('vzhuh', 'ВЖУХ', 'lilac', '#F5C542', '0.2', 'вжух магия');
+      meme('sidim', 'ХОРОШО СИДИМ', 'coffee', W, '0.12', 'хорошо сидим посиделки');
+      meme('sps', 'СПС', 'mint', K, '0.22', 'спасибо спс');
+      meme('plan', 'ВСЁ ИДЁТ\nПО ПЛАНУ', 'orange', W, '0.12', 'план всё идёт');
+      meme('go2', 'ГО', 'orange', W, '0.3', 'го пошли идём');
+      // city
+      add('alma', 'Алма', 'city', 'алма яблоко алматы', ['red', 'green'], [...body(B.apple, 'red'), gloss(40, 52, 10, 6), sh('M60 36q0-12 6-18', 'none', K, 4), sh('M64 26q14-10 24 0q-14 10-24 0Z', g('green'), K, 3, 'v5Wiggle 2s ease-in-out infinite', '64px 26px'), ...eyes(60, 64), smile(60, 78, 9)], { text: 'АЛМА' });
+      add('mount', 'В горы', 'city', 'горы поход медеу шымбулак', ['sky', 'green', 'cream'], [...body(B.mountain, 'green'), sh('M46 36L38 50L46 46L54 51Z', W, K, 2), sh('M78 46L72 56L78 53L84 57Z', W, K, 2), sh(ell(92, 26, 9, 9), '#F5C542', K, 3, 'v5Pulse 1.6s ease-in-out infinite', '92px 26px')], { text: 'В ГОРЫ' });
+      add('snow', 'Первый снег', 'city', 'снег зима первый снег', ['sky'], [sh('M60 12v96M18 36l84 48M18 84l84-48', 'none', W, 14), sh('M60 12v96M18 36l84 48M18 84l84-48', 'none', g('sky'), 8, 'v5Spin 8s linear infinite', '60px 60px'), sh(ell(60, 60, 14, 14), g('sky'), K, 3), sh('M55 58h.1M65 58h.1', 'none', K, 5), sh('M56 64q4 3 8 0', 'none', K, 2.5)], { text: 'СНЕГ!' });
+      add('rain', 'Дождь', 'city', 'дождь зонт погода', ['blue'], [...body(B.umbrella, 'blue'), sh('M60 62v34q0 8-8 8', 'none', K, 4), sh('M24 74l-4 10M44 80l-4 10M80 78l-4 10M100 72l-4 10', 'none', '#8FC1F2', 4, 'v5Tear 0.8s linear infinite', '60px 80px')], { text: 'ДОЖДЬ' });
+      add('sun', 'Жара', 'city', 'жара солнце лето', ['yellow'], [sh('M60 10v14M60 96v14M10 60h14M96 60h14M24 24l10 10M86 86l10 10M24 96l10-10M86 34l10-10', 'none', '#F5C542', 6, 'v5Spin 6s linear infinite', '60px 60px'), ...body(B.sun, 'yellow'), sh('M42 54h14v4a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5ZM64 54h14v4a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5ZM56 56h8', K, K, 2), smile(60, 70, 8)], { text: '+30' });
+      add('night', 'Споки', 'city', 'споки спокойной ночи луна', ['lilac', 'yellow'], [...body(B.moon, 'yellow'), gloss(36, 40, 9, 6), sh('M40 60q4 4 8 0', 'none', K, 3.5), sh(ell(46, 72, 3, 3.5), K), sh('M96 24h.1M104 44h.1M88 8h.1', 'none', '#F5C542', 6, 'v5Pulse 1.2s ease-in-out infinite', '96px 24px')], { anim: A.float, text: 'СПОКИ' });
+      add('fire', 'Огонь', 'city', 'огонь круто топ', ['orange'], [...body(B.flame, 'orange'), gloss(48, 56, 8, 5), ...eyes(60, 70, 10), sh('M52 82Q60 88 68 82', 'none', K, 3.5)], { anim: 'v5Flicker 0.8s ease-in-out infinite', text: 'ОГОНЬ' });
+      add('miss', 'Скучаю', 'city', 'скучаю обнимаю сердце', ['peach'], [...body(B.heart, 'peach'), gloss(38, 40), sh('M44 56Q48 60 52 56M68 56Q72 60 76 56', 'none', K, 3.5), ...cheeks(60, 64)], { anim: A.pulse, text: 'СКУЧАЮ' });
+      add('bubble', 'Напиши', 'city', 'напиши ответь сообщение', ['cream'], [...body(B.bubble, 'cream'), sh('M30 56h.1M50 56h.1M70 56h.1', 'none', K, 9, 'v5Pulse 1s ease-in-out infinite', '50px 56px')], {});
+      return { list: S, cats: [['all', 'Все'], ['recent', 'Недавние'], ['meme', 'Мемы'], ['emo', 'Эмоции'], ['meet', 'Встречи'], ['city', 'Город']] };
+    })();
+    const STKBY = {}; PACK.list.forEach((s) => { STKBY[s.id] = s; });
+
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const order = ['phone', 'code', 'name', 'taste', 'allow'];
+    const idx = order.indexOf(s.step);
+    const phone = '747 446 07 49';
+    const T = [['jazz', 'Джаз'], ['mic', 'Стендап'], ['hike', 'Горы'], ['dice', 'Настолки'], ['film', 'Кино'], ['art', 'Музеи'], ['coffee', 'Кофе'], ['dance', 'Танцы'], ['ball', 'Спорт'], ['mask', 'Театр'], ['party', 'Вечеринки'], ['yoga', 'Йога']];
+    const n = Object.values(s.picked).filter(Boolean).length;
+    const typed = '7474460749';
+    const keyOrder = {};
+    [...typed].forEach((ch, i) => { keyOrder[ch] = keyOrder[ch] || []; keyOrder[ch].push(0.3 + i * 0.2); });
+    const KL = ['', 'ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQRS', 'TUV', 'WXYZ'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', ''].map((k, i) => ({ n: k, l: k && k !== '0' ? KL[+k - 1] : (k === '0' ? '+' : ''), anim: keyOrder[k] ? keyOrder[k].map((d) => 'v5lKey 220ms ease ' + d + 's both').join(', ') : 'none' }));
+    let ci = 0;
+    const perm = (key, title, text, tile, icon) => {
+      const on = !!s.perm[key];
+      return { title, text, tile, icon, onAttr: on ? 'true' : 'false', ring: on ? '#2F8F5B' : '#E7E2D6', btnBg: on ? '#D9E4D2' : '#17161A', btnFg: on ? '#17161A' : '#F3F0E8', btnLabel: on ? 'Включено' : 'Разрешить', tap: () => this.setState({ perm: { ...this.state.perm, [key]: !on } }) };
+    };
+    const fl = [['go', 30, 70, -10, 4], ['coffee', 250, 40, 8, 5], ['jazz', 290, 190, -6, 6], ['fire', 40, 210, 10, 5.5], ['hi', 160, 110, 0, 4.5]];
+    return {
+      isHello: s.step === 'hello', isFlow: idx >= 0,
+      isPhone: s.step === 'phone', isCode: s.step === 'code', isName: s.step === 'name', isTaste: s.step === 'taste', isAllow: s.step === 'allow', isDone: s.step === 'done',
+      stepAria: 'Шаг ' + (idx + 1) + ' из 5',
+      bars: order.map((k, i) => ({ bg: i <= idx ? '#17161A' : '#DDD8CC' })),
+      back: () => this.setState({ step: idx <= 0 ? 'hello' : order[idx - 1] }),
+      toPhone: go('phone'), toCode: go('code'), toName: go('name'), toTaste: go('taste'), toAllow: () => { if (n >= 3) this.setState({ step: 'allow' }); }, toDone: go('done'), restart: go('hello'),
+      floaters: fl.map(([id, x, y, r, dur], i) => ({ st: STKBY[id], size: '84', x: String(x), y: String(y), r: String(r), dur: String(dur), delay: String(i * 0.4) })),
+      phoneAria: 'Номер +7 ' + phone,
+      phoneChars: [...phone].map((ch) => ({ ch, d: String(ch === ' ' ? 0 : 0.3 + (ci++) * 0.2) })),
+      keys,
+      digits: [0, 1, 2, 3].map((i) => ({ d: String(0.4 + i * 0.18) })),
+      tastes: T.map(([k, label]) => { const on = !!s.picked[k]; return { label, on: on ? 'true' : 'false', bg: on ? '#17161A' : '#FBFAF6', fg: on ? '#F3F0E8' : '#17161A', ring: on ? 'none' : 'inset 0 0 0 1.5px #DDD8CC', tap: () => this.setState({ picked: { ...this.state.picked, [k]: !on } }) }; }),
+      tasteBg: n >= 3 ? '#F0521F' : '#DDD8CC', tasteLabel: n >= 3 ? 'Дальше · выбрано ' + n : 'Выбери ещё ' + (3 - n),
+      perms: [
+        perm('geo', 'Геолокация', 'Чтобы показать, что рядом. Друзья видят тебя, только если включишь.', '#FCE3D6', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z'),
+        perm('push', 'Уведомления', 'Сообщения, стикеры, «тебя зовут». Ночью — тишина.', '#D6E0EE', 'M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0')
+      ],
+      burst: ['party', 'hi', 'fire', 'love', 'go', 'vzhuh'].map((id, i) => { const P = [[-150, -380], [150, -400], [-150, 90], [150, 110], [-40, -480], [60, -520]][i]; return { st: STKBY[id], size: '76', dx: String(P[0]), dy: String(P[1]), r: String((i % 2 ? 1 : -1) * 12), delay: String(0.1 + i * 0.08) }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

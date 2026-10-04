@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Друг прислал 10 стикеров — летят к тебе</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v5Bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-8%) scale(0.96,1.04)}60%{transform:translateY(0) scale(1.06,0.94)}80%{transform:translateY(-2%) scale(1)}}
+@keyframes v5Wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+@keyframes v5Pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes v5Shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3%) rotate(-2deg)}75%{transform:translateX(3%) rotate(2deg)}}
+@keyframes v5Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%)}}
+@keyframes v5Spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes v5Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(18deg)}}
+@keyframes v5Tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+@keyframes v5Zzz{0%{transform:translate(0,6px) scale(0.6);opacity:0}40%{opacity:1}100%{transform:translate(6px,-10px) scale(1.1);opacity:0}}
+@keyframes v5Dash{0%{transform:translateX(6px);opacity:0}50%{opacity:1}100%{transform:translateX(-10px);opacity:0}}
+@keyframes v5Look{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes v5Steam{0%{transform:translateY(4px);opacity:0}40%{opacity:1}100%{transform:translateY(-8px);opacity:0}}
+@keyframes v5Flicker{0%,100%{transform:scale(1,1) rotate(-2deg)}50%{transform:scale(0.95,1.07) rotate(2deg)}}
+@keyframes v5mGo{from{offset-distance:0%}to{offset-distance:100%}}
+@keyframes v5mGoEase{0%{offset-distance:0%}45%,55%{offset-distance:100%}100%{offset-distance:0%}}
+@keyframes v5mBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes v5mPulse{0%{transform:scale(0.6);opacity:0.6}100%{transform:scale(2.6);opacity:0}}
+@keyframes v5mBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes v5mZ{0%{transform:translate(0,0) scale(0.6);opacity:0}30%{opacity:1}100%{transform:translate(12px,-26px) scale(1.1);opacity:0}}
+@keyframes v5mFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+@keyframes v5mGlow{0%,100%{opacity:0.55;transform:scale(1)}50%{opacity:0.9;transform:scale(1.12)}}
+@keyframes v5mSpark{0%{transform:translate(0,0) scale(0.4);opacity:0}30%{opacity:1}100%{transform:translate(var(--dx),-34px) scale(1);opacity:0}}
+@keyframes v5mFly{0%{offset-distance:0%;transform:scale(0.25);opacity:0}8%{opacity:1}55%{transform:scale(1.15)}88%{offset-distance:100%;transform:scale(0.9);opacity:1}100%{offset-distance:100%;transform:scale(0.2);opacity:0}}
+@keyframes v5mCount{0%{transform:scale(1)}30%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes v5mBanner{0%,8%{transform:translateY(-140%)}14%,88%{transform:translateY(0)}96%,100%{transform:translateY(-140%)}}
+@keyframes v5mLand{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V5Map" mode="stickers" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обучение 4: друзья</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6tuRing{0%{transform:scale(1);opacity:0.9}100%{transform:scale(1.35);opacity:0}}
+@keyframes v6tuIn{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes v6tuTap{0%,30%{transform:scale(1);opacity:0}40%{opacity:1}55%{transform:scale(0.78)}70%{transform:scale(1);opacity:1}100%{opacity:0}}
+@keyframes v6tuSwipeCard{0%,12%{transform:translate(0,0) rotate(0)}38%{transform:translate(120px,-8px) rotate(10deg)}46%{transform:translate(0,0) rotate(0)}62%{transform:translate(-120px,-8px) rotate(-10deg)}70%{transform:translate(0,0) rotate(0)}86%{transform:translate(0,-70px)}94%,100%{transform:translate(0,0)}}
+@keyframes v6tuSwipeHand{0%,12%{transform:translate(0,0);opacity:0}16%{opacity:1}38%{transform:translate(120px,-8px);opacity:1}42%{opacity:0;transform:translate(0,0)}48%{opacity:1}62%{transform:translate(-120px,-8px);opacity:1}66%{opacity:0;transform:translate(0,0)}74%{opacity:1}86%{transform:translate(0,-70px);opacity:1}90%,100%{opacity:0}}
+@keyframes v6tuLbl1{0%,20%{opacity:0}28%,40%{opacity:1}44%,100%{opacity:0}}
+@keyframes v6tuLbl2{0%,50%{opacity:0}56%,64%{opacity:1}68%,100%{opacity:0}}
+@keyframes v6tuLbl3{0%,76%{opacity:0}82%,90%{opacity:1}94%,100%{opacity:0}}
+@keyframes v6tuCheck{from{stroke-dashoffset:60}to{stroke-dashoffset:0}}
+@keyframes v6tuPop{0%{transform:scale(0.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes v6tbFill{0%{fill:rgba(23,22,26,0);stroke:#5F5B55}100%{fill:#17161A;stroke:#17161A}}
+@keyframes v6tbDet{0%{stroke:#5F5B55}100%{stroke:#FBFAF6}}
+@keyframes v6tbPop{0%{transform:scale(0.84)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes v6tbRing{0%{border-color:transparent;transform:scale(0.84)}55%{transform:scale(1.1)}100%{border-color:#17161A;transform:scale(1)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden">
+<dc-import name="V6Tutorial" step="friends" hint-size="390px,844px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

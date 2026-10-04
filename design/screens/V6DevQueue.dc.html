@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Панель разработчика: согласование карточек</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6dqIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6dqNew{0%{opacity:0;transform:translateY(-30px) scale(0.96)}12%,100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes v6dqMark1{0%,15%{background:transparent}20%,100%{background:rgba(240,82,31,0.25)}}
+@keyframes v6dqMark2{0%,25%{background:transparent}30%,100%{background:rgba(36,71,184,0.2)}}
+@keyframes v6dqMark3{0%,35%{background:transparent}40%,100%{background:rgba(47,143,91,0.22)}}
+@keyframes v6dqMark4{0%,45%{background:transparent}50%,100%{background:rgba(199,122,18,0.25)}}
+@keyframes v6dqF1{0%,18%{opacity:0;transform:translateX(-8px)}24%,100%{opacity:1;transform:translateX(0)}}
+@keyframes v6dqF2{0%,28%{opacity:0;transform:translateX(-8px)}34%,100%{opacity:1;transform:translateX(0)}}
+@keyframes v6dqF3{0%,38%{opacity:0;transform:translateX(-8px)}44%,100%{opacity:1;transform:translateX(0)}}
+@keyframes v6dqF4{0%,48%{opacity:0;transform:translateX(-8px)}54%,100%{opacity:1;transform:translateX(0)}}
+@keyframes v6dqScan{0%{transform:translateY(0);opacity:0}5%{opacity:1}55%{transform:translateY(150px);opacity:1}60%,100%{opacity:0;transform:translateY(150px)}}
+@keyframes v6dqBtn{0%,60%{transform:scale(1);box-shadow:0 0 0 0 rgba(240,82,31,0)}66%{transform:scale(1.04);box-shadow:0 0 0 8px rgba(240,82,31,0.25)}72%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(240,82,31,0)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #17161A; font-family: 'Golos Text', sans-serif; color: #F3F0E8">
+<div style="padding: 54px 12px 0; display: flex; align-items: center; gap: 4px">
+<span role="button" aria-label="Назад" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></span>
+<span style="flex: 1; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.03em">{{title}}</span>
+<span style="margin-right: 8px; height: 28px; padding: 0 10px; border-radius: 14px; background: #F0521F; color: #17161A; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; display: flex; align-items: center">5 ждут</span>
+</div>
+
+<sc-if value="{{isQueue}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 6px; padding: 10px 16px 0; overflow: hidden">
+<sc-for list="{{srcs}}" as="c" hint-placeholder-count="5"><span style="flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 16px; background: {{c.bg}}; color: {{c.fg}}; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px">{{c.t}}<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: 0.7">{{c.n}}</span></span></sc-for>
+</div>
+<div style="margin: 12px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+<div style="padding: 12px; border-radius: 20px; background: #222126; animation: {{it.anim}} {{it.dur}} ease {{it.dl}}s both">
+<div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8F897C"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{it.sc}}"></span><span style="flex: 1">{{it.src}}</span><span style="color: {{it.cc}}">ИИ {{it.conf}}%</span></div>
+<div style="margin-top: 6px; font-size: 16px; font-weight: 700">{{it.t}}</div>
+<div style="margin-top: 2px; font-size: 13px; color: #CFC9BB">{{it.m}}</div>
+<sc-if value="{{it.hasWarn}}" hint-placeholder-val="{{ false }}"><div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; background: rgba(199,122,18,0.18); color: #F7B08A; font-size: 12.5px; font-weight: 600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>{{it.warn}}</div></sc-if>
+<div style="margin-top: 10px; display: flex; gap: 6px">
+<span style="flex: 1; height: 38px; border-radius: 12px; background: #F0521F; color: #17161A; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Одобрить</span>
+<span role="button" aria-label="Править" style="width: 44px; height: 38px; border-radius: 12px; background: #3A383F; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"></path></svg></span>
+<span role="button" aria-label="Отклонить" style="width: 44px; height: 38px; border-radius: 12px; background: #3A383F; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F3F0E8" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+<div style="position: relative; margin: 12px 16px 0; padding: 14px; border-radius: 20px; background: #222126; overflow: hidden">
+<div style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8F897C"><span style="width: 8px; height: 8px; border-radius: 50%; background: #8FC1F2"></span>СТРАНИЦА · ПОИСК GOOGLE · sxodim.com</div>
+<div style="margin-top: 8px; font-size: 14.5px; line-height: 1.55; color: #E4DFD3"><span style="border-radius: 4px; animation: v6dqMark1 8s ease infinite">Стендап-шоу «Подкаты»</span>: три блогерки против 10+ комиков, лучшего выбирает зал. <span style="border-radius: 4px; animation: v6dqMark2 8s ease infinite">9 октября в 21:00</span>, <span style="border-radius: 4px; animation: v6dqMark3 8s ease infinite">Monroe Bar, Толе би 19</span>. Вход <span style="border-radius: 4px; animation: v6dqMark4 8s ease infinite">3 000 ₸ + депозит бара</span>. 18+</div>
+<span aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 30px; height: 2px; background: linear-gradient(90deg, rgba(240,82,31,0), #F0521F, rgba(240,82,31,0)); animation: v6dqScan 8s ease infinite"></span>
+</div>
+<div style="margin: 10px 0 0; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #F7B08A">↓ ИИ СОБРАЛ КАРТОЧКУ</div>
+<div style="margin: 10px 16px 0; border-radius: 22px; overflow: hidden; background: #FBFAF6; color: #17161A">
+<div style="position: relative; height: 130px; overflow: hidden"><img src="../assets/pub.jpg" alt="" style="width: 358px; height: 130px; object-fit: cover"><span style="position: absolute; left: 10px; top: 10px; padding: 4px 8px; border-radius: 8px; background: rgba(23,22,26,0.6); color: #F3F0E8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600">ФОТО ИЗ ПОСТА · ЗАМЕНИТЬ</span></div>
+<div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="5"><div style="display: flex; align-items: center; gap: 10px; animation: {{f.anim}} 8s ease infinite"><span style="width: 74px; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #8F897C">{{f.k}}</span><span style="flex: 1; padding: 7px 10px; border-radius: 10px; background: #EDE9DF; font-size: 14px; font-weight: 600; border-left: 3px solid {{f.c}}">{{f.v}}</span></div></sc-for>
+</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px; display: flex; gap: 8px">
+<span style="flex: 1; height: 54px; border-radius: 16px; background: #F0521F; color: #17161A; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; animation: v6dqBtn 8s ease infinite">Опубликовать</span>
+<span style="height: 54px; padding: 0 16px; border-radius: 16px; background: #3A383F; font-size: 15px; font-weight: 700; display: flex; align-items: center">Править</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["queue","review"],"default":"queue"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.stage ?? 'queue';
+    const SC = { tg: '#8FC1F2', ig: '#F7B08A', th: '#CFC9BB', web: '#2F8F5B', link: '#F0521F' };
+    const items = [
+      ['web', 'ПОИСК · стендап · sxodim.com', 96, 'Стендап-шоу «Подкаты»', 'Пт 9 · 21:00 · Monroe Bar · 3 000 ₸', ''],
+      ['link', 'ТВОЯ ССЫЛКА · concordia.kz', 98, 'Nazareth', 'Вс 11 · 19:00 · Театр Concordia · от 20 000 ₸', ''],
+      ['web', 'ПОИСК · концерты · ticketon.kz', 94, 'TODES — «Превью»', 'Вт 6 · 19:00 · Дворец Республики', 'уже есть из сайта — склеить?'],
+      ['tg', 'TELEGRAM · @almaty_sport', 64, 'Denis Ten Memorial Challenge', 'Ср 7 – Сб 10 · Halyk Arena', 'цены нет — «бесплатно»?'],
+      ['web', 'ПОИСК · бесплатное · tengrinews.kz', 58, 'ALA CRAFT', 'Площадь Абая', 'дата неясна — проверь']
+    ];
+    return {
+      title: st === 'review' ? 'Проверка' : 'Согласование',
+      isQueue: st === 'queue', isReview: st === 'review',
+      srcs: [['Все', '5', true], ['Поиск', '3', false], ['Ссылки', '1', false], ['Telegram', '1', false], ['Без фото', '1', false]].map(([t, n, on]) => ({ t, n, bg: on ? '#F3F0E8' : '#2A292E', fg: on ? '#17161A' : '#F3F0E8' })),
+      items: items.map(([s, src, conf, t, m, warn], k) => ({ sc: SC[s], src, conf: String(conf), cc: conf >= 90 ? '#7FD3A0' : '#F7B08A', t, m, warn, hasWarn: !!warn, anim: k === 0 ? 'v6dqNew' : 'v6dqIn', dur: k === 0 ? '6s' : '400ms', dl: k === 0 ? '0' : String(k * 0.08) })),
+      fields: [['НАЗВАНИЕ', 'Стендап-шоу «Подкаты»', '#F0521F', 'v6dqF1'], ['КОГДА', 'пт, 9 октября · 21:00', '#2447B8', 'v6dqF2'], ['ГДЕ', 'Monroe Bar · Толе би, 19', '#2F8F5B', 'v6dqF3'], ['ЦЕНА', '3 000 ₸ + депозит', '#C77A12', 'v6dqF4'], ['РАЗДЕЛ', 'Стендап · 18+', '#17161A', 'v6dqF4']].map(([k, v, c, anim]) => ({ k, v, c, anim }))
+    };
+  }
+}
+</script>
+</body>
+</html>

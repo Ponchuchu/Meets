@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статусы ставятся сами</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6asCell{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes v6asBox{0%,30%{opacity:0;transform:scale(1.04)}40%,100%{opacity:1;transform:scale(1)}}
+@keyframes v6asIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 1600px; height: 1060px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #F3F0E8; font-family: 'Golos Text', sans-serif; color: #17161A">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #8A3A12">СТАТУСЫ · ЧЕЛОВЕК НИЧЕГО НЕ ВЫБИРАЕТ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 42px; font-weight: 800; letter-spacing: -0.04em">Статус понятен по месту, времени и скорости</h1>
+
+<div style="position: absolute; left: 56px; top: 156px; width: 800px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800">Неделя глазами приложения</div>
+<div style="margin-top: 4px; font-size: 14.5px; color: #5F5B55">Каждый квадрат — час. Повторяется из недели в неделю — значит, это твоё место.</div>
+<div style="position: relative; margin-top: 16px">
+<div style="display: flex; margin-left: 44px; gap: 3px">
+<sc-for list="{{hours}}" as="h" hint-placeholder-count="24"><span style="width: 27px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8F897C">{{h}}</span></sc-for>
+</div>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div style="display: flex; align-items: center; margin-top: 3px">
+<span style="width: 44px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #5F5B55">{{d.n}}</span>
+<div style="display: flex; gap: 3px"><sc-for list="{{d.cells}}" as="c" hint-placeholder-count="24"><span style="width: 27px; height: 27px; border-radius: 7px; background: {{c.bg}}; animation: v6asCell 400ms cubic-bezier(.2,.8,.2,1) {{c.dl}}s both"></span></sc-for></div>
+</div>
+</sc-for>
+<span aria-hidden="true" style="position: absolute; left: {{workBox.x}}px; top: 21px; width: {{workBox.w}}px; height: 148px; border: 3px solid #2447B8; border-radius: 12px; box-sizing: border-box; animation: v6asBox 3s ease both"><span style="position: absolute; left: 50%; top: -14px; transform: translateX(-50%); padding: 3px 10px; border-radius: 9px; background: #2447B8; color: #FBFAF6; font-size: 12.5px; font-weight: 700; white-space: nowrap">Работа: пн–пт, 9–18</span></span>
+<span aria-hidden="true" style="position: absolute; left: 41px; top: 21px; width: 238px; height: 210px; border: 3px solid #17161A; border-radius: 12px; box-sizing: border-box; animation: v6asBox 3.4s ease both"><span style="position: absolute; left: 12px; bottom: -14px; padding: 3px 10px; border-radius: 9px; background: #17161A; color: #FBFAF6; font-size: 12.5px; font-weight: 700; white-space: nowrap">Дом: здесь ты ночуешь</span></span>
+</div>
+<div style="margin-top: 24px; display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{legend}}" as="l" hint-placeholder-count="8"><span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 10px; background: #FBFAF6; font-size: 13.5px; font-weight: 600"><span style="width: 14px; height: 14px; border-radius: 4px; background: {{l.c}}"></span>{{l.t}}</span></sc-for>
+</div>
+<div style="margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+<sc-for list="{{changes}}" as="c" hint-placeholder-count="2">
+<div style="padding: 18px; border-radius: 22px; background: #FBFAF6">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; color: #8A3A12">{{c.k}}</div>
+<div style="margin-top: 6px; font-family: 'Geologica', sans-serif; font-size: 19px; font-weight: 800">{{c.t}}</div>
+<div style="margin-top: 10px; display: flex; gap: 4px"><sc-for list="{{c.days}}" as="x" hint-placeholder-count="5"><span style="flex: 1; height: 26px; border-radius: 7px; background: {{x.bg}}; color: {{x.fg}}; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{x.d}}</span></sc-for></div>
+<div style="margin-top: 10px; font-size: 14px; line-height: 1.45; color: #4A463F">{{c.s}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; left: 900px; top: 156px; width: 644px">
+<div style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800">Откуда берётся каждый статус</div>
+<div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{sources}}" as="s" hint-placeholder-count="10">
+<div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 16px; background: #FBFAF6; animation: v6asIn 500ms ease {{s.dl}}s both">
+<span style="width: 38px; height: 38px; border-radius: 12px; background: {{s.c}}; flex-shrink: 0; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="{{s.fg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{s.i}}"></path></svg></span>
+<span style="width: 150px; flex-shrink: 0; font-size: 15px; font-weight: 700">{{s.t}}</span>
+<span style="font-size: 13.5px; line-height: 1.35; color: #4A463F">{{s.r}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; left: 56px; right: 56px; top: 820px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{verdicts}}" as="v" hint-placeholder-count="3">
+<div style="padding: 16px 18px; border-radius: 22px; background: {{v.bg}}; color: {{v.fg}}">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{v.dot}}"></span><span style="font-family: 'Geologica', sans-serif; font-size: 18px; font-weight: 800">{{v.t}}</span></div>
+<ul style="margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5">
+<sc-for list="{{v.items}}" as="it" hint-placeholder-count="4"><li>{{it}}</li></sc-for>
+</ul>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { home: '#17161A', way: '#CFC9BB', work: '#2447B8', gym: '#2F8F5B', bar: '#F0521F', park: '#9FC98A', coffee: '#C77A12', friends: '#A99BEA', event: '#F7B08A', guest: '#D9CFF5', hike: '#1F6B43' };
+    const day = (f) => Array.from({ length: 24 }, (_, h) => f(h));
+    const week = [
+      ['Пн', day((h) => h < 8 || h > 21 ? 'home' : h === 8 || h === 18 ? 'way' : h < 18 ? 'work' : h < 21 ? 'gym' : 'home')],
+      ['Вт', day((h) => h < 8 || h > 20 ? 'home' : h === 8 || h === 18 ? 'way' : h < 18 ? 'work' : 'coffee')],
+      ['Ср', day((h) => h < 8 || h > 21 ? 'home' : h === 8 || h === 18 ? 'way' : h < 18 ? 'work' : h < 21 ? 'gym' : 'home')],
+      ['Чт', day((h) => h < 8 || h > 21 ? 'home' : h === 8 || h === 18 ? 'way' : h < 18 ? 'work' : 'home')],
+      ['Пт', day((h) => h < 8 ? 'home' : h === 8 || h === 18 ? 'way' : h < 18 ? 'work' : h < 20 ? 'friends' : 'bar')],
+      ['Сб', day((h) => h < 2 ? 'bar' : h < 11 ? 'home' : h < 14 ? 'park' : h < 16 ? 'coffee' : h < 19 ? 'friends' : h < 23 ? 'event' : 'home')],
+      ['Вс', day((h) => h < 9 ? 'home' : h < 14 ? 'hike' : h < 18 ? 'home' : h < 21 ? 'guest' : 'home')]
+    ];
+    const ic = {
+      home: 'M3 11l9-7 9 7M5 10v10h14V10', work: 'M4 8h16v11H4zM9 8V5h6v3', place: 'M5 9h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 11h2a2 2 0 010 4h-2',
+      speed: 'M5 16h14l-1.5-5.5A2 2 0 0015.6 9H8.4a2 2 0 00-1.9 1.5zM5 16v3M19 16v3', event: 'M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z',
+      two: 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5',
+      guest: 'M3 21V10l9-6 9 6v11M9 21v-6h6v6', sleep: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', clock: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2', study: 'M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5'
+    };
+    const S = [
+      ['Дома', 'место, где ты ночуешь 4+ ночей в неделю', ic.home, '#17161A', '#FBFAF6'],
+      ['На работе', 'место, где ты 9–18 по будням 3+ дня подряд', ic.work, '#2447B8', '#FBFAF6'],
+      ['Учится', 'то же, но днём в вузе или школе (по типу места)', ic.study, '#2F8F5B', '#FBFAF6'],
+      ['Кофейня, бар, зал…', 'тип места на карте. Без названия: в одном доме бывает 4 кофейни', ic.place, '#C77A12', '#FBFAF6'],
+      ['Идёт · едет · летит', 'по скорости: до 7 км/ч — пешком, до 25 — самокат, дальше — машина', ic.speed, '#F0521F', '#17161A'],
+      ['На событии', 'ты нажал «Пойду» и ты рядом с местом во время события', ic.event, '#F7B08A', '#17161A'],
+      ['Вместе', 'двое друзей ближе 50 м больше 10 минут', ic.two, '#A99BEA', '#17161A'],
+      ['В гостях', 'чужой жилой дом вечером. Чей — не показываем никому', ic.guest, '#D9CFF5', '#17161A'],
+      ['Спит', 'ночь, дома, телефон не двигается 1–2 часа: серая аватарка и z z z', ic.sleep, '#3A383F', '#F3F0E8'],
+      ['Давно не в сети', 'нет данных больше 2 часов — пишем «3 ч назад»', ic.clock, '#DDD8CC', '#17161A']
+    ];
+    const workX = 44 + 9 * 30 - 3, workW = 9 * 30 + 3;
+    return {
+      hours: Array.from({ length: 24 }, (_, h) => (h % 3 === 0 ? String(h).padStart(2, '0') : '·')),
+      days: week.map(([n, cells], r) => ({ n, cells: cells.map((k, h) => ({ bg: C[k], dl: String((h * 0.03 + r * 0.05).toFixed(2)) })) })),
+      workBox: { x: String(workX), w: String(workW) },
+      legend: [['Дом', 'home'], ['Работа', 'work'], ['В пути', 'way'], ['Спортзал', 'gym'], ['Кофейня', 'coffee'], ['Бар', 'bar'], ['С друзьями', 'friends'], ['Событие', 'event'], ['Парк', 'park'], ['Горы', 'hike'], ['В гостях', 'guest']].map(([t, k]) => ({ t, c: C[k] })),
+      changes: [
+        { k: 'СМЕНИЛ РАБОТУ', t: 'Неделя днём в новом месте', s: 'Работа переезжает сама, без вопросов. Видно и можно поправить в «Моих местах».', days: [['пн', '#EDE9DF', '#8F897C'], ['вт', '#EDE9DF', '#8F897C'], ['ср', '#2447B8', '#FBFAF6'], ['чт', '#2447B8', '#FBFAF6'], ['пт', '#F0521F', '#17161A']].map(([d, bg, fg]) => ({ d, bg, fg })) },
+        { k: 'ПЕРЕЕХАЛ', t: 'Неделя ночей в новом месте', s: 'Дом меняется сам. Пару ночей у друзей — это «в гостях», дом не трогаем.', days: [['пн', '#EDE9DF', '#8F897C'], ['вт', '#EDE9DF', '#8F897C'], ['ср', '#17161A', '#FBFAF6'], ['чт', '#17161A', '#FBFAF6'], ['пт', '#F0521F', '#17161A']].map(([d, bg, fg]) => ({ d, bg, fg })) }
+      ],
+      sources: S.map(([t, r, i, c, fg], k) => ({ t, r, i, c, fg, dl: String(0.4 + k * 0.08) })),
+      verdicts: [
+        { t: 'Легко', bg: '#FBFAF6', fg: '#17161A', dot: '#2F8F5B', items: ['Скорость — телефон отдаёт её сам', 'Куда ты смотришь — компас есть в каждом телефоне', 'Тип места (кафе, бар, парк, ТРЦ) — по карте Mapbox', '«Вместе» и «на событии» — сравнить две точки и время'] },
+        { t: 'Можно, но сложно', bg: '#FBFAF6', fg: '#17161A', dot: '#C77A12', items: ['Дом и работа — нужна история мест за 1–2 недели', 'В зданиях GPS прыгает на 30–100 м — поэтому тип, а не название', 'iPhone даёт геолокацию в фоне, только если разрешили «Всегда»', 'Батарея: стоишь — обновляем реже, едешь — чаще'] },
+        { t: 'Нельзя — и что делаем вместо', bg: '#17161A', fg: '#F3F0E8', dot: '#F0521F', items: ['Какая из 4 кофеен в одном доме → пишем просто «в кофейне»', 'Этаж и комната → не показываем', 'Чей это дом → «в гостях», без имени', 'Что человек делает (свидание, собеседование) → никогда не угадываем'] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

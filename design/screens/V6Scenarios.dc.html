@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Все сценарии приложения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6scIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+<div style="width: 1600px; height: 1040px; position: relative; box-sizing: border-box; padding: 44px 56px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<div>
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: #F7B08A">КАРТА СЦЕНАРИЕВ · {{total}} СИТУАЦИЙ</div>
+<h1 style="margin: 8px 0 0; font-family: 'Geologica', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.04em">Всё, что человек может сделать в «рядом.»</h1>
+</div>
+<div style="display: flex; gap: 16px; font-size: 14px; color: #CFC9BB">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #F0521F"></span>новое 4 октября</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #F3F0E8"></span>нарисовано раньше</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid #8F897C; box-sizing: border-box"></span>правило, без экрана</span>
+</div>
+</div>
+<div style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="9">
+<div style="padding: 18px 20px; border-radius: 24px; background: #222126; animation: v6scIn 500ms ease {{g.dl}}s both">
+<div style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 13px; background: {{g.c}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.i}}"></path></svg></span><span style="font-family: 'Geologica', sans-serif; font-size: 20px; font-weight: 800">{{g.t}}</span><span style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8F897C">{{g.n}}</span></div>
+<div style="margin-top: 12px; display: flex; flex-direction: column; gap: 7px">
+<sc-for list="{{g.items}}" as="it" hint-placeholder-count="8"><div style="display: flex; align-items: flex-start; gap: 9px; font-size: 14.5px; line-height: 1.35"><span style="width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; flex-shrink: 0; background: {{it.bg}}; border: {{it.bd}}; box-sizing: border-box"></span><span style="color: {{it.fg}}">{{it.t}}</span></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const G = [
+      ['Первый раз', '#F0521F', 'M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z', [['d', 'Запуск: кистью, точка — там, где ты'], ['d', 'Карта приближает тебя в центр'], ['d', 'Вход по номеру, код 0000 в демо'], ['d', '«Это ты?», интересы, разрешения'], ['d', 'Обучение по настоящим вкладкам'], ['n', 'Нижняя панель — только иконки'], ['t', 'Можно без друзей — просто смотреть события']]],
+      ['Карта', '#F7B08A', 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', [['n', 'Сверху: поиск → слои → фильтры → +'], ['n', 'Погода — значок и «+14°» прямо на карте'], ['n', 'Фильтры: галочка «Ближайшее время», снял — календарь'], ['n', 'Цена ползунком: до 5, 20, 50 тыс. или только бесплатное'], ['n', 'Друзья едут — за ними след из точек и «38 км/ч»'], ['n', 'ТРЦ: кино по фильмам и события — MEGA, Dostyk, Esentai'], ['n', 'Без сети и без гео — верх карты на месте'], ['n', 'Закрыл приложение — «2 мин», аватарка обычная']]],
+      ['Рекомендации и планы', '#2F8F5B', 'M8.5 3h9.5a2.5 2.5 0 012.5 2.5v10a2.5 2.5 0 01-2.5 2.5h-7a2.5 2.5 0 01-2.5-2.5zM5 7.5v10.5a3 3 0 003 3h8', [['n', 'Вверх или просто тап — карточка на весь экран'], ['n', 'Вправо — плавно улетает в «Планы», иконка оживает'], ['d', 'Влево — больше такого не покажем'], ['n', 'Сайт события и адрес — без лишнего'], ['n', 'Тап по адресу: маршрут здесь, 2ГИС или Яндекс'], ['n', 'Кнопка «Я тоже ищу компанию»'], ['d', 'Ты всё посмотрел · планов пока нет'], ['d', 'Событие отменили — сразу замена']]],
+      ['Друзья', '#A99BEA', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5', [['n', 'Бамп: ищем рядом → нашли → «Бамп засчитан»'], ['n', 'Общим друзьям: «Игорь и Данил бампнулись»'], ['d', 'QR-код, ссылка, WhatsApp, Telegram'], ['d', 'Профиль друга: написать, позвать, маршрут'], ['d', 'Друзья вместе — пузырь'], ['d', 'Не показывать одному человеку'], ['t', 'Друг удалил тебя — тихо пропал'], ['d', 'Друг в невидимке — бледная точка']]],
+      ['Чаты и уведомления', '#8FC1F2', 'M4 5h16v11H9l-5 4z', [['n', 'Голосовое: держи — пишется, вверх — замок'], ['n', 'Слушаешь — волна заполняется, бежит точка'], ['n', 'Кружок: камера, кольцо записи, круг в чате'], ['d', 'Смахнул сообщение — ответ с цитатой'], ['d', 'Смахнул чат — удалить у себя или у обоих'], ['d', 'Пуш: ответить, прочитано, открыть чат'], ['d', 'Не отправилось — повторить'], ['t', 'Тихие часы, текст в пуше вкл/выкл']]],
+      ['Статусы', '#2447B8', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM12 7a2.5 2.5 0 110 5 2.5 2.5 0 010-5z', [['d', 'Дом и работа находятся и меняются сами'], ['d', 'Свои места: зал, дача — «Отметить место»'], ['d', '«в MEGA», «в горах», «в аэропорту»'], ['d', 'Больница, полиция — только «в городе»'], ['d', 'Кофейня без названия, «в гостях» без имени'], ['d', 'Спит — серая аватарка и z z z'], ['t', 'Скачок GPS — не показываем']]],
+      ['Профиль и уровень', '#DDD8CC', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', [['n', 'Плитки: «Где я был 18%» и «Уровень 7»'], ['n', 'Значки: прогресс и как получить каждый'], ['n', 'Очки: позвал друга, бамп, км пешком, сходил'], ['n', 'Награды: рамка, точка на карте, цвет следа'], ['n', 'Невидимка — белая карточка, 1 / 8 / 24 ч'], ['d', 'Кто видит: все, кроме…, только…'], ['d', 'Аккаунт, уведомления, чёрный список']]],
+      ['Не по плану', '#C77A12', 'M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01', [['d', 'Нет интернета — одна строка'], ['d', 'Нет геолокации — одна кнопка'], ['d', 'Неточно — круг вместо точки'], ['d', 'Батарея села — «5 мин назад»'], ['n', 'Автобус ушёл — «следующий через 15 мин»'], ['n', 'Сайт кино не открылся — назад к сеансам'], ['t', 'Обновление приложения — без экрана']]],
+      ['Разработчик', '#F3F0E8', 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 5l-3 14', [['n', 'Главная: робот, 8 разделов, переключатели'], ['n', '«Искать сейчас» — 6 тем, лог, расход'], ['n', 'Расписание: колесо даты и времени, как в iPhone'], ['n', 'Источники: темы вкл/выкл, какие сайты читаются'], ['n', 'Таблицы: события, фильтры, правка строки'], ['d', 'Согласование: робот нашёл — ты одобрил'], ['n', 'Обложка: с сайта или нарисовать ИИ'], ['t', 'Пауза робота и пушей — одним тапом']]]
+    ];
+    let total = 0;
+    const groups = G.map(([t, c, i, items], k) => {
+      total += items.length;
+      return { t, c, i, n: String(items.length), dl: String(k * 0.07), items: items.map(([s, tx]) => ({ t: tx, bg: s === 'n' ? '#F0521F' : s === 'd' ? '#F3F0E8' : 'transparent', bd: s === 't' ? '2px solid #8F897C' : '0', fg: s === 't' ? '#CFC9BB' : '#F3F0E8' })) };
+    });
+    return { groups, total: String(total) };
+  }
+}
+</script>
+</body>
+</html>

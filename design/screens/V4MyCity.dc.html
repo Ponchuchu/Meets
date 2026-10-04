@@ -85,14 +85,14 @@ class Component extends DCLogic {
     const LOCK = 'M7 11V8a5 5 0 0110 0v3M5 11h14v9H5z';
     const badge = (t, icon, got) => ({ t, icon: got ? icon : LOCK, bg: got ? '#17161A' : '#E7E2D6', fg: got ? '#F3F0E8' : '#5F5B55', op: '1' });
     return {
-      stats: [{ v: '23', l: 'встречи' }, { v: '48', l: 'новых мест' }, { v: '6/8', l: 'районов' }],
+      stats: [{ v: '23', l: 'события' }, { v: '48', l: 'новых мест' }, { v: '6/8', l: 'районов' }],
       stars: [[40, 20, 0], [120, 60, 0.4], [300, 26, 0.8], [250, 120, 0.2], [180, 18, 1.2], [340, 90, 0.6]].map(([x, y, d]) => ({ x: String(x), y: String(y), d: String(d) })),
       sleeps: [['igor', 'Игорь', 3], ['arman', 'Арман', 2], ['timur', 'Тимур', 1], ['erlan', 'Ерлан', 1]].map(([k, name, n], i) => ({ name, n: String(n), delay: String(0.1 * i), photo: { igor: '../assets/igor.jpg', arman: '../assets/arman.jpg', timur: '../assets/timur.jpg', erlan: '../assets/erlan.jpg' }[k] })),
       sleepOn: on ? 'true' : 'false',
       toggleSleep: () => this.setState({ sleep: !this.state.sleep }),
       sleepBg: on ? '#F7B08A' : '#3A3B58', sleepFg: on ? '#17161A' : '#F3F0E8', sleepLabel: on ? 'Включено' : 'Выключено',
       badges: [
-        badge('Первая точка', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM9 9.5l2 2 4-4', true),
+        badge('Первое событие', 'M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21zM9 9.5l2 2 4-4', true),
         badge('5 встреч', 'M8 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM16 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM2 20c.5-3 3-5 6-5s5.5 2 6 5M10 20c.5-3 3-5 6-5s5.5 2 6 5', true),
         badge('Ночной джаз', 'M9 18V5l11-2v13M6 15a3 3 0 110 6 3 3 0 010-6zM17 13a3 3 0 110 6 3 3 0 010-6z', true),
         badge('Открыл 10 %', 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', true),

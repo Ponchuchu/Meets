@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Бамп: стукнулись телефонами — друзья</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700;800&amp;family=Golos+Text:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes v6bpRadar{0%{transform:scale(0.3);opacity:0.9}100%{transform:scale(1);opacity:0}}
+@keyframes v6bpSweep{to{transform:rotate(360deg)}}
+@keyframes v6bpFall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(900px) rotate(540deg)}}
+@keyframes v6bpMeetL{from{transform:translateX(-160px) rotate(-20deg)}to{transform:translateX(0) rotate(0)}}
+@keyframes v6bpMeetR{from{transform:translateX(160px) rotate(20deg)}to{transform:translateX(0) rotate(0)}}
+@keyframes v6bpUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v6bpL{0%,10%{transform:translateX(-60px) rotate(-8deg)}30%{transform:translateX(18px) rotate(4deg)}33%{transform:translateX(8px) rotate(2deg)}36%{transform:translateX(14px) rotate(3deg)}50%,100%{transform:translateX(-60px) rotate(-8deg)}}
+@keyframes v6bpR{0%,10%{transform:translateX(60px) rotate(8deg)}30%{transform:translateX(-18px) rotate(-4deg)}33%{transform:translateX(-8px) rotate(-2deg)}36%{transform:translateX(-14px) rotate(-3deg)}50%,100%{transform:translateX(60px) rotate(8deg)}}
+@keyframes v6bpBoom{0%,29%{transform:scale(0.2);opacity:0}31%{opacity:1}48%,100%{transform:scale(2.4);opacity:0}}
+@keyframes v6bpSpark{0%,29%{transform:rotate(var(--r)) translateY(0) scale(0);opacity:0}32%{opacity:1;transform:rotate(var(--r)) translateY(-30px) scale(1)}46%,100%{transform:rotate(var(--r)) translateY(-70px) scale(0.4);opacity:0}}
+@keyframes v6bpCard{0%,48%{transform:translateY(260px);opacity:0}56%,94%{transform:translateY(0);opacity:1}100%{transform:translateY(260px);opacity:0}}
+@keyframes v6bpHint{0%,40%{opacity:1}48%,94%{opacity:0}100%{opacity:1}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F0521F; font-family: 'Golos Text', sans-serif; color: #17161A">
+<sc-if value="{{isLoop}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 58px 20px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Бамп</div>
+<div style="margin-top: 6px; font-size: 16px; line-height: 1.45; animation: v6bpHint 6s ease infinite">Стукнись телефоном с другом — и вы сразу друзья.</div>
+</div>
+<div style="position: absolute; left: 0; top: 230px; width: 390px; height: 330px">
+<span aria-hidden="true" style="position: absolute; left: 145px; top: 115px; width: 100px; height: 100px; border-radius: 50%; border: 4px solid #FBFAF6; box-sizing: border-box; animation: v6bpBoom 6s ease-out infinite"></span>
+<sc-for list="{{sparks}}" as="k" hint-placeholder-count="8"><span aria-hidden="true" style="position: absolute; left: 191px; top: 161px; width: 8px; height: 8px; border-radius: 50%; background: #FBFAF6; --r: {{k.r}}deg; animation: v6bpSpark 6s ease-out infinite"></span></sc-for>
+<div style="position: absolute; left: 62px; top: 40px; width: 130px; height: 250px; border-radius: 28px; background: #17161A; box-shadow: 0 20px 40px rgba(23,22,26,0.3); animation: v6bpL 6s cubic-bezier(.5,0,.2,1) infinite; display: flex; align-items: center; justify-content: center">
+<span style="width: 116px; height: 236px; border-radius: 22px; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><span style="width: 56px; height: 56px; border-radius: 50%; background: #17161A; color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 26px; font-weight: 800; display: flex; align-items: center; justify-content: center">Д</span></span>
+</div>
+<div style="position: absolute; left: 198px; top: 40px; width: 130px; height: 250px; border-radius: 28px; background: #17161A; box-shadow: 0 20px 40px rgba(23,22,26,0.3); animation: v6bpR 6s cubic-bezier(.5,0,.2,1) infinite; display: flex; align-items: center; justify-content: center">
+<span style="width: 116px; height: 236px; border-radius: 22px; background: #FBFAF6; display: flex; align-items: center; justify-content: center"><img src="../assets/igor.jpg" alt="" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover"></span>
+</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 40px; padding: 20px; border-radius: 28px; background: #FBFAF6; box-shadow: 0 20px 40px rgba(23,22,26,0.25); animation: v6bpCard 6s cubic-bezier(.2,.8,.2,1) infinite">
+<div style="display: flex; align-items: center; gap: 14px"><img src="../assets/igor.jpg" alt="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover"><div><div style="font-family: 'Geologica', sans-serif; font-size: 22px; font-weight: 800">Игорь</div><div style="font-size: 14px; color: #5F5B55">@igor · 5 общих друзей</div></div></div>
+<button type="button" style="margin-top: 16px; width: 100%; height: 52px; border: 0; border-radius: 16px; background: #17161A; color: #F3F0E8; font-family: 'Golos Text', sans-serif; font-size: 16px; font-weight: 700">Теперь вы друзья</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isSearch}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 58px 20px 0">
+<div style="font-family: 'Geologica', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em">Бамп</div>
+<div style="margin-top: 6px; font-size: 16px; line-height: 1.45">Ищем телефон рядом. Подойди к другу и легко стукнитесь телефонами.</div>
+</div>
+<div style="position: absolute; left: 45px; top: 250px; width: 300px; height: 300px">
+<sc-for list="{{rings}}" as="r" hint-placeholder-count="3"><span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(251,250,246,0.7); animation: v6bpRadar 3s ease-out {{r}}s infinite"></span></sc-for>
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 300px; height: 300px; border-radius: 50%; background: conic-gradient(from 0deg, rgba(251,250,246,0) 0deg, rgba(251,250,246,0.35) 50deg, rgba(251,250,246,0) 60deg); animation: v6bpSweep 2.4s linear infinite"></span>
+<span style="position: absolute; left: 105px; top: 105px; width: 90px; height: 90px; border-radius: 50%; background: #17161A; color: #F0521F; border: 5px solid #FBFAF6; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 38px; font-weight: 800">Д</span>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 50px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 18px; background: rgba(251,250,246,0.25)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17161A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 110 18 9 9 0 010-18zM12 7v5l3 2"></path></svg><span style="font-size: 14.5px; font-weight: 600">У друга тоже должен быть открыт «Бамп»</span></div>
+<span style="height: 54px; border-radius: 18px; background: #FBFAF6; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">Показать мой QR-код</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isFound}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: #17161A"></div>
+<sc-for list="{{confetti}}" as="c" hint-placeholder-count="12"><span aria-hidden="true" style="position: absolute; left: {{c.x}}px; top: -20px; width: {{c.w}}px; height: {{c.h}}px; border-radius: 3px; background: {{c.c}}; animation: v6bpFall {{c.t}}s linear {{c.d}}s infinite"></span></sc-for>
+<div style="position: absolute; left: 0; right: 0; top: 200px; display: flex; justify-content: center; align-items: center">
+<img src="../assets/igor.jpg" alt="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 5px solid #F3F0E8; box-sizing: border-box; animation: v6bpMeetL 900ms cubic-bezier(.2,1.4,.4,1) both">
+<span style="width: 120px; height: 120px; margin-left: -24px; border-radius: 50%; background: #F0521F; color: #17161A; border: 5px solid #F3F0E8; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Geologica', sans-serif; font-size: 50px; font-weight: 800; animation: v6bpMeetR 900ms cubic-bezier(.2,1.4,.4,1) both">Д</span>
+</div>
+<div style="position: absolute; left: 24px; right: 24px; top: 370px; text-align: center; color: #F3F0E8; animation: v6bpUp 600ms ease 500ms both">
+<div style="font-family: 'Geologica', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Бамп засчитан</div>
+<div style="margin-top: 8px; font-size: 16px; line-height: 1.45; color: #CFC9BB">Вы с Игорем теперь друзья и видите друг друга на карте. 5 общих друзей узнают об этом.</div>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 50px; display: flex; gap: 8px; animation: v6bpUp 600ms ease 700ms both"><span style="flex: 1; height: 54px; border-radius: 18px; background: #F0521F; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">Написать Игорю</span><span style="height: 54px; padding: 0 18px; border-radius: 18px; background: #3A383F; color: #F3F0E8; font-size: 16px; font-weight: 700; display: flex; align-items: center">Готово</span></div>
+</sc-if>
+
+<sc-if value="{{isPush}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: linear-gradient(160deg, #3A2A22, #17161A 60%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 90px; text-align: center; color: #F3F0E8"><div style="font-size: 17px; font-weight: 600; opacity: 0.8">воскресенье, 4 октября</div><div style="font-family: 'Geologica', sans-serif; font-size: 84px; font-weight: 700; letter-spacing: -0.04em; line-height: 1">21:42</div></div>
+<div style="position: absolute; left: 12px; right: 12px; top: 300px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{pushes}}" as="n" hint-placeholder-count="3">
+<div style="padding: 12px 14px; border-radius: 22px; background: rgba(243,240,232,0.86); backdrop-filter: blur(16px); display: flex; gap: 12px; animation: v6bpUp 500ms ease {{n.d}}s both">
+<span style="position: relative; width: 44px; height: 44px; flex-shrink: 0"><img src="{{n.p}}" alt="" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; position: absolute; left: 0; top: 0; border: 2px solid #F3F0E8"><span style="position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; border-radius: 50%; background: #17161A; color: #F0521F; font-family: 'Geologica', sans-serif; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #F3F0E8">Д</span></span>
+<div style="flex: 1"><div style="display: flex; justify-content: space-between"><span style="font-size: 14px; font-weight: 700">рядом.</span><span style="font-size: 12.5px; color: #5F5B55">{{n.t}}</span></div><div style="margin-top: 2px; font-size: 14.5px; line-height: 1.35">{{n.m}}</div></div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; bottom: 40px; text-align: center; font-size: 13px; color: rgba(243,240,232,0.6)">Так это увидит Арман — ваш общий друг</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["loop","search","found","push"],"default":"loop"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.stage ?? 'loop';
+    return {
+      isLoop: st === 'loop', isSearch: st === 'search', isFound: st === 'found', isPush: st === 'push',
+      sparks: [0, 45, 90, 135, 180, 225, 270, 315].map((r) => ({ r: String(r) })),
+      rings: ['0', '1', '2'],
+      confetti: Array.from({ length: 14 }, (_, k) => ({ x: String((k * 29) % 380), w: String(6 + (k % 3) * 3), h: String(10 + (k % 4) * 3), c: ['#F0521F', '#F7B08A', '#FBFAF6', '#C77A12'][k % 4], t: String(3 + (k % 5) * 0.6), d: String(-(k % 7) * 0.5) })),
+      pushes: [
+        ['../assets/igor.jpg', 'сейчас', 'Игорь и Данил стукнулись телефонами. Бамп засчитан — теперь они друзья.', 0],
+        ['../assets/timur.jpg', '2 ч назад', 'Тимур и Данил бампнулись. Дружба скреплена официально.', 0.15],
+        ['../assets/kamila.jpg', 'вчера', 'Камила и Данил чокнулись телефонами. Ваш круг стал больше.', 0.3]
+      ].map(([p, t, m, d]) => ({ p, t, m, d: String(d) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
