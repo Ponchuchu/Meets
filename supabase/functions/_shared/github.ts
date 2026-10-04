@@ -1,0 +1,13 @@
+// Запуск GitHub Actions (search.yml, covers.yml) через workflow_dispatch. Токен — секрет GITHUB_DISPATCH_TOKEN.
+export const REPO = 'Ponchuchu/ryadom';
+
+export async function dispatch(workflow: string, inputs: Record<string, string>): Promise<string | null> {
+  const token = Deno.env.get('GITHUB_DISPATCH_TOKEN');
+  if (!token) return 'нет токена GitHub (GITHUB_DISPATCH_TOKEN) — запуск только вручную в Actions';
+  const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'ryadom-robot' },
+    body: JSON.stringify({ ref: 'main', inputs }),
+  });
+  return res.ok ? null : `GitHub ${res.status}: ${(await res.text()).slice(0, 160)}`;
+}

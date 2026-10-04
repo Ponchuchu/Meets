@@ -209,3 +209,11 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 2. **Токен для кнопки «Искать сейчас»:** github.com → аватарка → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**: репозиторий только `Ponchuchu/ryadom`, права **Actions: Read and write** → скопировать. Положить в Supabase secrets (ссылка выше) как `GITHUB_DISPATCH_TOKEN`.
 3. **Пуши на Android:** console.firebase.google.com → **Add project** «ryadom» → **Project settings** → **Service accounts** → **Generate new private key** (скачается .json). Потом expo.dev → проект ryadom → **Credentials** → Android → **FCM V1 service account key** → загрузить этот файл. Сам файл никому не пересылать.
 4. **APK:** GitHub → **Actions** → «Android APK» → **Run workflow**. Через ~20 минут ссылка на APK — в логе. Открыть на телефоне, установить.
+
+## Альфа v6 (5 октября) — что уже сделано и что нужно от тебя
+
+Сделано: таблицы и функции в Supabase, вход тестеров по коду без SMS (номера и коды — только в секрете Supabase `ALPHA_TESTERS`, в репозитории их нет), секрет `ALPHA_SECRET`.
+
+Нужно от тебя:
+1. **Токен GitHub для кнопки «Искать сейчас»** (`GITHUB_DISPATCH_TOKEN`). github.com → аватар → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Repository access: только `ryadom`. Permissions → **Actions: Read and write**. Скопируй токен и положи в Supabase → **Edge Functions → Secrets** → `GITHUB_DISPATCH_TOKEN`. В чат не присылай.
+2. **Пуши на Android (FCM)** — шаги будут в разделе «А9».

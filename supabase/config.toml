@@ -10,3 +10,20 @@ verify_jwt = false
 
 [functions.notify]
 verify_jwt = false
+
+# alpha-login — вход тестеров без SMS (до входа JWT нет).
+[functions.alpha-login]
+verify_jwt = false
+
+[functions.route]
+verify_jwt = true
+
+[functions.bump]
+verify_jwt = true
+
+# robot-run — из панели (JWT staff) и из robot-tick (CRON_SECRET), поэтому проверка JWT — в коде.
+[functions.robot-run]
+verify_jwt = false
+
+[functions.robot-tick]
+verify_jwt = false

@@ -11,7 +11,7 @@ export * from './types';
 const demo = createDemoSource();
 const remote = config.dataMode === 'demo' ? null : createSupabaseSource();
 
-/** Пробует Supabase, при любой ошибке (нет сети, ключа, таблицы) — отдаёт демо. */
+/** Пробует Supabase; в режиме auto при ошибке отдаёт демо, в live — пробрасывает ошибку. */
 function withFallback(primary: DataSource | null, fallback: DataSource): DataSource & { lastSource: () => 'demo' | 'supabase' } {
   let last: 'demo' | 'supabase' = primary ? 'supabase' : 'demo';
   const wrap = <K extends keyof DataSource>(key: K) =>
@@ -22,6 +22,8 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
           last = 'supabase';
           return res;
         } catch (err) {
+          // Альфа (live): никаких демо-подстановок — ошибку видит экран («Нет связи с сервером · Повторить»).
+          if (config.dataMode === 'live') throw err;
           if (__DEV__ && !(err instanceof NoSessionError)) console.warn(`[data] ${String(key)}: Supabase недоступен, демо-режим`, err);
           last = 'demo';
         }
@@ -49,7 +51,8 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
 
 export const data = withFallback(remote, demo);
 
-/** Мгновенный набор событий (демо + seed-файл): показываем сразу, пока идёт запрос в Supabase. */
+/** Мгновенный набор событий (демо + seed-файл): показываем сразу, пока идёт запрос в Supabase.
+ *  В альфе (live) — пусто: никаких демо-событий, только база (и офлайн-кэш). */
 export function eventsSnapshot() {
-  return mergeEvents(demoEvents(), seedEvents());
+  return config.dataMode === 'live' ? [] : mergeEvents(demoEvents(), seedEvents());
 }

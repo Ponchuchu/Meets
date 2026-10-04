@@ -59,13 +59,14 @@ SMS-шлюза пока нет. Для альфы — вход по коду д�
 
 ### А0 — база и бэкенд
 
-- [ ] Миграции по `V6.md` §12 (все таблицы, RLS, функции `can_see_location`, виды), бакеты `voice`, `circles`, `covers`, `avatars`. Создавать через Management API (`CLAUDE.md`, «Секреты»). Не проходит (401) — положить SQL в `supabase/apply-all.sql` и одной строкой попросить владельца вставить в SQL Editor
-- [ ] Realtime: каналы `locations:<user>` (broadcast точек друзьям), `chat:<id>`, `robot:<run>`
-- [ ] Edge Functions: `alpha-login`, `route` (TomTom с пробками, кэш 10 мин), `bump` (сопоставление ударов), `notify` (Expo Push), `robot-run` (запуск поиска), `robot-tick` (расписание по `pg_cron`), `weather` (есть)
-- [ ] Секреты Supabase: `ALPHA_TESTERS`, `ALPHA_SECRET` (случайный), `TomTom_KEY` (уже есть), `GITHUB_DISPATCH_TOKEN` (даёт владелец), `SUPABASE_SERVICE_ROLE_KEY` (есть по умолчанию). Ставить через Management API, если доступно; иначе — список владельцу в `KEYS.md`
-- [ ] Слой данных: режим `live` без демо (§0), офлайн-кэш (react-query persist), очередь отправок
+- [x] Миграции по `V6.md` §12 (все таблицы, RLS, функции `can_see_location`, виды), бакеты `voice`, `circles`, `covers`, `avatars`. Создавать через Management API (`CLAUDE.md`, «Секреты»). Не проходит (401) — положить SQL в `supabase/apply-all.sql` и одной строкой попросить владельца вставить в SQL Editor
+- [x] Realtime: каналы `locations:<user>` (broadcast точек друзьям), `chat:<id>`, `robot:<run>`
+- [x] Edge Functions: `alpha-login`, `route` (TomTom с пробками, кэш 10 мин), `bump` (сопоставление ударов), `notify` (Expo Push), `robot-run` (запуск поиска), `robot-tick` (расписание по `pg_cron`), `weather` (есть)
+- [x] Секреты Supabase: `ALPHA_TESTERS`, `ALPHA_SECRET` (случайный), `TomTom_KEY` (уже есть), `GITHUB_DISPATCH_TOKEN` (даёт владелец), `SUPABASE_SERVICE_ROLE_KEY` (есть по умолчанию). Ставить через Management API, если доступно; иначе — список владельцу в `KEYS.md`
+- [x] Слой данных: режим `live` без демо (§0), офлайн-кэш (react-query persist), очередь отправок
 
-Итог:
+Итог (5 октября): миграции `000010`–`000014` применены через Management API — таблицы v6 §12, `can_see_location` (друзья, чёрный список, все/кроме/только, невидимка), хвост и точки друзей с «только район», бакеты `voice`, `circles`, `covers`, `avatars`, Realtime (`locations_last`, `robot_log`, `robot_runs`, `invites`, `events`; broadcast `locations:`, `chat:`, `robot:`), вид `events_live` (только одобренные). Функции: `alpha-login` (проверен вход обоих тестеров, Данил — staff, тестеры — друзья), `route` (TomTom с пробками, кэш 10 мин — проверен), `bump` (±1,5 с, 100 м — проверен на паре), `robot-run`, `robot-tick` (pg_cron раз в 5 минут, расписание на паузе), `notify` и `weather` уже были. Секреты: `ALPHA_TESTERS`, `ALPHA_SECRET` заданы; `GITHUB_DISPATCH_TOKEN` — нужен от владельца (`KEYS.md`). Слой данных: `EXPO_PUBLIC_DATA_MODE=live` по умолчанию — без демо-подстановок, офлайн-кэш (react-query persist, сутки), очередь отправок, «Нет интернета» / «Нет связи с сервером».
+
 
 ### А1 — каркас v6, вход, обучение
 
