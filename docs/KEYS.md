@@ -193,7 +193,7 @@
 Ключ уже лежит в GitHub как `TOPTOP_TOKEN` — для сборки приложения. Для маршрутов с пробками его же нужно положить в Supabase:
 
 1. Открой https://supabase.com/dashboard/project/xkpchsommtilristiesu/functions/secrets
-2. **Add new secret**: имя `TOMTOM_KEY`, значение — тот же ключ TomTom → **Save**.
+2. **Add new secret**: имя `TomTom_KEY`, значение — тот же ключ TomTom → **Save**. (Сделано 5 октября: секрет называется именно `TomTom_KEY`.)
 
 ## Остановки автобусов (по желанию)
 

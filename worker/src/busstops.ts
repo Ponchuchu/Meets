@@ -3,13 +3,41 @@
 // Данные OSM — ODbL: в приложении подпись «© участники OpenStreetMap».
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const OVERPASS = process.env.OVERPASS_URL ?? 'https://overpass-api.de/api/interpreter';
-const QUERY = `[out:json][timeout:240];
-area["name:en"="Almaty"]["boundary"="administrative"]->.a;
-rel(area.a)["route"~"^(bus|trolleybus)$"]->.r;
+// Несколько серверов Overpass: главный часто отвечает 504 под нагрузкой.
+const SERVERS = process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
+// Рамка вокруг Алматы (юг, запад, север, восток) — быстрее, чем поиск границы города.
+const BBOX = '43.10,76.70,43.42,77.20';
+const QUERY = `[out:json][timeout:300][bbox:${BBOX}];
+rel["route"~"^(bus|trolleybus)$"]->.r;
 .r out body;
 node(r.r);
 out body qt;`;
+
+async function overpass(): Promise<{ elements: (OsmNode | OsmRel)[] }> {
+  let last = '';
+  for (let round = 0; round < 2; round++) {
+    for (const url of SERVERS) {
+      try {
+        const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: QUERY }), headers: { 'User-Agent': 'ryadom-app (github.com/Ponchuchu/ryadom)' }, signal: AbortSignal.timeout(320_000) });
+        if (res.ok) {
+          console.log(`Overpass: ${url}`);
+          return (await res.json()) as { elements: (OsmNode | OsmRel)[] };
+        }
+        last = `${url} → ${res.status}`;
+      } catch (err) {
+        last = `${url} → ${(err as Error).message}`;
+      }
+      console.error(`  не вышло: ${last}`);
+    }
+    await new Promise((r) => setTimeout(r, 20_000));
+  }
+  throw new Error(`Overpass недоступен: ${last}`);
+}
 
 interface OsmNode { type: 'node'; id: number; lat: number; lon: number; tags?: Record<string, string> }
 interface OsmMember { type: string; ref: number; role: string }
@@ -39,9 +67,7 @@ export function directionStops(rel: OsmRel, nodes: Map<number, OsmNode>): Stop[]
 }
 
 async function main() {
-  const res = await fetch(OVERPASS, { method: 'POST', body: new URLSearchParams({ data: QUERY }), headers: { 'User-Agent': 'ryadom-app (github.com/Ponchuchu/ryadom)' } });
-  if (!res.ok) throw new Error(`Overpass ${res.status}`);
-  const json = (await res.json()) as { elements: (OsmNode | OsmRel)[] };
+  const json = await overpass();
   const nodes = new Map<number, OsmNode>();
   for (const e of json.elements) if (e.type === 'node') nodes.set(e.id, e);
   const dirs: Direction[] = [];
