@@ -484,7 +484,7 @@
 
 - [ ] Главная `V6Dev`: робот, 8 разделов, переключатели (`app_flags`)
 - [ ] «Искать сейчас» `V6DevRun`: Edge Function → `workflow_dispatch`, лог через Realtime (`robot_runs`, `robot_log`), «Стоп»
-- [ ] Расписание `V6DevSchedule`: колесо даты и времени, повтор, дни; запускает Supabase (`pg_cron` → Edge Function `robot-tick` → `workflow_dispatch`), cron GitHub — только запасной раз в сутки
+- [ ] Расписание `V6DevSchedule`: колесо даты и времени, повтор, дни; запускает Supabase (`pg_cron` → Edge Function `robot-tick` → `workflow_dispatch`), своего cron у GitHub нет (выключен 5 октября); по умолчанию робот на паузе
 - [ ] Источники `V6DevSources` (`search_topics` вместо `TOPICS` в коде), Согласование `V6DevQueue*`, Таблицы и правка `V6DevTables`, `V6DevRow`
 - [ ] Скриншоты в `docs/progress/stage-31/`
 
