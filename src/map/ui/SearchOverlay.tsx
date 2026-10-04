@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBackClose } from '../../state/app';
 import type { EventItem } from '../../data/types';
 import { formatPrice } from '../../lib/format';
 import { colors, fonts } from '../../theme';
@@ -23,6 +24,7 @@ export function SearchOverlay({ events, whenOf, onPick, onClose }: {
   events: EventItem[]; whenOf: (e: EventItem) => string; onPick: (e: EventItem) => void; onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  useBackClose(onClose);
   const [q, setQ] = useState('');
   const found = useMemo(() => searchEvents(events, q), [events, q]);
   return (

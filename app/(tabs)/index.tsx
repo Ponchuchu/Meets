@@ -1,5 +1,6 @@
 // Карта — вкладка по умолчанию (design/png/Main.png, MapCalendar.png, MapFilters.png).
 import { useQuery } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -93,6 +94,30 @@ export default function MapScreen() {
   const draft = useSession((s) => s.draft);
   const signals = useFeed((s) => s.signals);
   const showToast = (t: ToastData, ms = 3500) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), ms); };
+
+  // Моя точка: разрешение спрашиваем при первом открытии карты, а не только в регистрации.
+  const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const perm = await Location.getForegroundPermissionsAsync();
+      const ok = perm.granted || (perm.canAskAgain && (await Location.requestForegroundPermissionsAsync()).granted);
+      if (!ok || cancelled) return;
+      const p = await Location.getLastKnownPositionAsync() ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      if (p && !cancelled) setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+    })().catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  const goToMe = async () => {
+    try {
+      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+      mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15);
+    } catch {
+      const at = myPos ?? me;
+      if (at) mapRef.current?.flyTo(at.lat, at.lon, 15);
+    }
+  };
 
   // Время идёт — точки живут: обновляем раз в минуту.
   useEffect(() => {
@@ -258,7 +283,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 170 : 0)} onZoom={setZoom} />
+      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 170 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} />
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       {sheet === 'calendar' && <Backdrop onPress={() => { setSheet(null); setPending(false); }} opacity={0.32} label="Закрыть календарь" />}
@@ -301,7 +326,7 @@ export default function MapScreen() {
               <Ic d="M5 12h14" size={20} color={colors.ink} w={2} />
             </Pressable>
           </View>
-          <Pressable onPress={() => me && mapRef.current?.flyTo(me.lat, me.lon, 14)} style={[styles.sideBtn, glass]} accessibilityRole="button" accessibilityLabel="Показать, где я">
+          <Pressable onPress={goToMe} style={[styles.sideBtn, glass]} accessibilityRole="button" accessibilityLabel="Показать, где я">
             <Svg width={19} height={19} viewBox="0 0 24 24"><Path d="M20 4L4 11l7 2 2 7z" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
           </Pressable>
         </View>
@@ -359,7 +384,7 @@ export default function MapScreen() {
               p={focusPerson}
               title={`Позвать ${accusative(focusPerson.name)}`}
               now={clock}
-              ideas={ideasForTwo(tasteFrom({ interests: draft.interests, times: draft.times, withWho: draft.withWho, budget: draft.budget }, signals, clock), focusPerson.id, focusPerson.name, detailsOf(focusPerson.id)!, events, { now: clock, going, savedByFriend: focusPerson.id === 'igor' ? new Set(['standup']) : undefined })}
+              ideas={detailsOf(focusPerson.id) ? ideasForTwo(tasteFrom({ interests: draft.interests, times: draft.times, withWho: draft.withWho, budget: draft.budget }, signals, clock), focusPerson.id, focusPerson.name, detailsOf(focusPerson.id)!, events, { now: clock, going, savedByFriend: focusPerson.id === 'igor' ? new Set(['standup']) : undefined }) : []}
               onOwn={() => { setInviteOpen(false); router.push('/create'); }}
               onSend={(eventId) => {
                 social.invite(focusPerson.id, eventId);

@@ -85,6 +85,7 @@
     "extra": {
       "router": {}
     },
-    "owner": "rilyton"
+    "owner": "rilyton",
+    "backgroundColor": "#F3F0E8"
   }
 }

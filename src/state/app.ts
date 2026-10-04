@@ -1,5 +1,6 @@
 // Локальное состояние интерфейса (Zustand): счётчики на таб-баре.
 import { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 import { create } from 'zustand';
 
 interface AppState {
@@ -41,4 +42,13 @@ export function useCoverTabBar(on = true) {
     useApp.getState().cover();
     return () => useApp.getState().uncover();
   }, [on]);
+}
+
+/** Кнопка «Назад» на Android закрывает открытое (шторку, событие, поиск), а не всё приложение. */
+export function useBackClose(onClose?: () => void, on = true) {
+  useEffect(() => {
+    if (!on || !onClose) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true; });
+    return () => sub.remove();
+  }, [onClose, on]);
 }

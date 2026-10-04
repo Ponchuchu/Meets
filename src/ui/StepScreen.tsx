@@ -1,6 +1,6 @@
 // Каркас шагов регистрации 1–3: отступы как в макете, кнопка внизу, прокрутка на маленьких экранах.
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { Appear } from './motion';
@@ -10,7 +10,7 @@ export function StepScreen({ top, title, subtitle, children, footer, gap = 18, t
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding">
       <ScrollView contentContainerStyle={[styles.content, { gap, paddingTop: Math.max(56, insets.top + 16), paddingBottom: insets.bottom + 30 }]} keyboardShouldPersistTaps="handled">
         {top}
         <Appear style={{ gap: 6 }}>

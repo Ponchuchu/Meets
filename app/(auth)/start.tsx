@@ -2,7 +2,7 @@
 import { router } from 'expo-router';
 import { sendCode as requestSms, signInWithApple } from '../../src/auth/service';
 import { useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapBase } from '../../src/components/MapBase';
 import { formatPhone, isPhoneComplete } from '../../src/auth/rules';
@@ -37,7 +37,7 @@ export default function Start() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding">
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled" bounces={false}>
         <View style={[styles.hero, { height: HERO + insets.top }]}>
           <View style={[styles.map, { top: -150 + insets.top }]} pointerEvents="none">

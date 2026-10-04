@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapBase } from '../src/components/MapBase';
 import { data, eventsSnapshot } from '../src/data';
@@ -90,7 +90,7 @@ export default function CreateScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding">
       <ScrollView contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: 140 + insets.bottom, gap: 18 }} keyboardShouldPersistTaps="handled">
         <View style={styles.head}>
           <Pressable onPress={close} style={styles.round} accessibilityRole="button" accessibilityLabel="Закрыть">
