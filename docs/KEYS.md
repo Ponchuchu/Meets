@@ -187,3 +187,18 @@
 ## Робот выключен (5 октября)
 
 Поиск событий, обложки и сборщик больше не запускаются сами по расписанию. Код и ключи на месте. Запустить вручную: GitHub → вкладка **Actions** → слева `search` (или `covers`, `worker`) → **Run workflow**. Позже это будет кнопка «Искать сейчас» и расписание в панели разработчика.
+
+## Ключ TomTom в Supabase (5 октября)
+
+Ключ уже лежит в GitHub как `TOPTOP_TOKEN` — для сборки приложения. Для маршрутов с пробками его же нужно положить в Supabase:
+
+1. Открой https://supabase.com/dashboard/project/xkpchsommtilristiesu/functions/secrets
+2. **Add new secret**: имя `TOMTOM_KEY`, значение — тот же ключ TomTom → **Save**.
+
+## Остановки автобусов (по желанию)
+
+GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нужны: робот заберёт остановки с координатами из OpenStreetMap и сам сохранит файл `data/seed/bus-stops-almaty.json`.
+
+## Адреса — Qaida.io (позже, по желанию)
+
+Подсказки адресов и «адрес → координаты» по Казахстану. Регистрация на qaida.io → ключ в кабинете → Supabase secrets как `QAIDA_KEY`.

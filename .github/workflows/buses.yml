@@ -1,0 +1,24 @@
+# Остановки автобусов Алматы с координатами из OpenStreetMap → data/seed/bus-stops-almaty.json (коммит в main).
+# Запуск только вручную: Actions → buses → Run workflow. Ключи не нужны.
+name: buses
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  stops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Забрать остановки из OpenStreetMap
+        run: node worker/src/busstops.ts
+      - name: Сохранить в репозиторий
+        run: |
+          git config user.name "ryadom-bot"
+          git config user.email "ryadom-bot@users.noreply.github.com"
+          git add data/seed/bus-stops-almaty.json
+          git diff --cached --quiet || git commit -m "Остановки автобусов из OpenStreetMap" && git push
