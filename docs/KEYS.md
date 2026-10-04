@@ -202,3 +202,10 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 ## Адреса — Qaida.io (позже, по желанию)
 
 Подсказки адресов и «адрес → координаты» по Казахстану. Регистрация на qaida.io → ключ в кабинете → Supabase secrets как `QAIDA_KEY`.
+
+## Альфа (5 октября): что сделать владельцу
+
+1. **Тестеры.** Номера и коды ты передаёшь Claude Code в сообщении. Он сам положит их в секрет Supabase `ALPHA_TESTERS`. Если не сможет — открой https://supabase.com/dashboard/project/xkpchsommtilristiesu/functions/secrets → **Add new secret** → имя `ALPHA_TESTERS`, значение в виде `+7XXXXXXXXXX:0000,+7YYYYYYYYYY:0000` → **Save**.
+2. **Токен для кнопки «Искать сейчас»:** github.com → аватарка → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**: репозиторий только `Ponchuchu/ryadom`, права **Actions: Read and write** → скопировать. Положить в Supabase secrets (ссылка выше) как `GITHUB_DISPATCH_TOKEN`.
+3. **Пуши на Android:** console.firebase.google.com → **Add project** «ryadom» → **Project settings** → **Service accounts** → **Generate new private key** (скачается .json). Потом expo.dev → проект ryadom → **Credentials** → Android → **FCM V1 service account key** → загрузить этот файл. Сам файл никому не пересылать.
+4. **APK:** GitHub → **Actions** → «Android APK» → **Run workflow**. Через ~20 минут ссылка на APK — в логе. Открыть на телефоне, установить.
