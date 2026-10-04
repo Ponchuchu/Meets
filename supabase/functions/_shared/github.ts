@@ -11,3 +11,13 @@ export async function dispatch(workflow: string, inputs: Record<string, string>)
   });
   return res.ok ? null : `GitHub ${res.status}: ${(await res.text()).slice(0, 160)}`;
 }
+
+/** Проверка токена без запуска: видит ли он воркфлоу. null — всё хорошо, иначе — текст ошибки. */
+export async function checkToken(workflow = 'search.yml'): Promise<string | null> {
+  const token = Deno.env.get('GITHUB_DISPATCH_TOKEN');
+  if (!token) return 'нет токена GitHub (GITHUB_DISPATCH_TOKEN)';
+  const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${workflow}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'ryadom-robot' },
+  });
+  return res.ok ? null : `GitHub ${res.status}: ${(await res.text()).slice(0, 160)}`;
+}
