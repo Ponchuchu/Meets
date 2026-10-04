@@ -141,7 +141,7 @@ export default function MeScreen() {
           <Pressable onPress={share} style={styles.halfBtn} accessibilityRole="button"><Text style={styles.halfText}>Поделиться</Text></Pressable>
         </View>
 
-        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} onCalendar={() => router.push('/plans')} />
+        <Plans going={goingRows} invites={inviteRows} saved={savedRows} now={now} onCalendar={() => router.push('/calendar')} />
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {[[String((me?.stats.events ?? 0) + arrivals.length), 'событий'], [String(visited.length), 'мест'], [String(me?.stats.friends ?? 0), 'друзей']].map(([n, l]) => (
             <View key={l} style={styles.stat}><Text style={styles.statN}>{n}</Text><Text style={styles.statL}>{l}</Text></View>

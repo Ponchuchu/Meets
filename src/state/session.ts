@@ -36,12 +36,15 @@ interface SessionState {
   signedIn: boolean;
   onboarded: boolean;
   locationAsked: boolean;
+  /** Обучение пройдено (V6Tutorial) — дублируется на сервер в profile_settings.tutorial_done. */
+  tutorialDone: boolean;
   draft: Draft;
   taste: Taste | null;
   signIn: (provider: Provider, prefill?: Partial<Draft>) => void;
   update: (patch: Partial<Draft>) => void;
   finish: () => void;
   setLocationAsked: () => void;
+  setTutorialDone: (v: boolean) => void;
   signOut: () => void;
 }
 
@@ -52,6 +55,7 @@ export const useSession = create<SessionState>()(
       signedIn: false,
       onboarded: false,
       locationAsked: false,
+      tutorialDone: false,
       draft: INITIAL_DRAFT,
       taste: null,
       signIn: (provider, prefill) => set((s) => ({ signedIn: true, draft: { ...s.draft, provider, ...prefill } })),
@@ -61,7 +65,8 @@ export const useSession = create<SessionState>()(
         set({ onboarded: true, taste: buildStartTaste({ interests: d.interests, times: d.times, withWho: d.withWho, budget: d.budget }) });
       },
       setLocationAsked: () => set({ locationAsked: true }),
-      signOut: () => set({ signedIn: false, onboarded: false, locationAsked: false, draft: INITIAL_DRAFT, taste: null }),
+      setTutorialDone: (v) => set({ tutorialDone: v }),
+      signOut: () => set({ signedIn: false, onboarded: false, locationAsked: false, tutorialDone: false, draft: INITIAL_DRAFT, taste: null }),
     }),
     {
       name: 'ryadom-session',

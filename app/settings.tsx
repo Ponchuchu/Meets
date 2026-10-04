@@ -16,6 +16,7 @@ import { Cap, Group, Row, SwitchRow } from '../src/ui/Section';
 import { Backdrop, BottomSheet } from '../src/ui/sheet';
 import { useChat } from '../src/state/chat';
 import { deleteAccount, signOut as authSignOut } from '../src/auth/service';
+import { queryClient } from '../src/live/query';
 import { savePushPrefs } from '../src/notify/register';
 
 export default function SettingsScreen() {
@@ -48,8 +49,9 @@ export default function SettingsScreen() {
       await AsyncStorage.multiRemove(['ryadom-plans', 'ryadom-feed', 'ryadom-profile']).catch(() => {});
     }
     signOut();
-    void authSignOut();
-    router.replace('/start');
+    await authSignOut();
+    queryClient.clear();
+    router.replace('/hello');
   };
 
   return (

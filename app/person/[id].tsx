@@ -39,7 +39,7 @@ export default function PersonScreen() {
   const focusFriend = useMapState((s) => s.focusFriend);
   const myPhoto = useSession((s) => s.draft.photo);
   const p = people.find((x) => x.id === id);
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/people'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
   if (!p || !d) return <View style={styles.root} />;
 

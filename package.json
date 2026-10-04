@@ -6,6 +6,7 @@
     "@expo-google-fonts/geologica": "^0.4.2",
     "@expo-google-fonts/golos-text": "^0.4.2",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/pacifico": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@rnmapbox/maps": "^10.3.5",
     "@supabase/supabase-js": "^2.117.2",
@@ -86,7 +87,8 @@
     "build:web": "expo export -p web",
     "shots": "NODE_USE_ENV_PROXY=1 node scripts/shots.mjs",
     "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs",
-    "db:bundle": "node scripts/bundle-sql.mjs"
+    "db:bundle": "node scripts/bundle-sql.mjs",
+    "icons": "node scripts/icons.mjs"
   },
   "private": true,
   "jest": {

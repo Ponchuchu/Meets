@@ -10,6 +10,7 @@ import { almaty, dayIndex, dayStart, now as clockNow } from '../src/lib/clock';
 import { CAT_COLOR, CAT_ICON, catFg } from '../src/map/icons';
 import type { PlanRow } from '../src/profile/ui/Plans';
 import { usePlanRows } from '../src/profile/usePlanRows';
+import { useTabInset } from '../src/components/TabBar';
 import { colors, fonts } from '../src/theme';
 import { Avatar } from '../src/ui/Avatar';
 import { Ic } from '../src/ui/Ic';
@@ -38,8 +39,9 @@ function daysOf(e: EventItem): number[] {
   return Array.from({ length: b - a + 1 }, (_, i) => a + i);
 }
 
-export default function PlansCalendar() {
+export default function PlansCalendar({ asTab = false }: { asTab?: boolean }) {
   const insets = useSafeAreaInsets();
+  const tabInset = useTabInset();
   const now = useMemo(() => clockNow(), []);
   const { goingRows, inviteRows, savedRows } = usePlanRows(now);
   const today = dayIndex(now);
@@ -70,10 +72,10 @@ export default function PlansCalendar() {
   const list = byDay.get(sel) ?? [];
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: 40 + insets.bottom, gap: 16 }}>
+    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: (asTab ? tabInset : 40 + insets.bottom), gap: 16 }}>
       <View style={styles.head}>
-        <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace('/me'))} />
-        <Text style={styles.h1} accessibilityRole="header">Календарь планов</Text>
+        {!asTab && <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace('/plans'))} />}
+        <Text style={styles.h1} accessibilityRole="header">{asTab ? 'Планы' : 'Календарь планов'}</Text>
       </View>
 
       <View style={styles.card}>

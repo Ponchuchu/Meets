@@ -54,6 +54,8 @@ export const fonts = {
   body700: 'GolosText_700Bold',
   mono500: 'JetBrainsMono_500Medium',
   mono600: 'JetBrainsMono_600SemiBold',
+  /** «От руки» — заставка, «привет», «добро пожаловать» (V6 §2). */
+  hand: 'Pacifico_400Regular',
 } as const;
 
 export const radius = {
