@@ -133,7 +133,7 @@ for (const [route, name, preset, clicks = [], height = 844, width = 390] of rout
     const byLabel = page.getByLabel(label, { exact: false });
     const target = (await byLabel.count()) ? byLabel.first() : page.getByText(label, { exact: true }).last();
     await target.click({ force: true });
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(Number(process.env.SHOTS_CLICK_WAIT || 700));
   }
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);

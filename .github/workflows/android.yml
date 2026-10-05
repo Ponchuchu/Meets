@@ -28,6 +28,16 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx eas-cli@latest init --non-interactive --force
+      - name: Ключ пробок TomTom для сборки (из секрета TOPTOP_TOKEN, в репозиторий не попадает)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          TOMTOM: ${{ secrets.TOPTOP_TOKEN }}
+        run: |
+          if [ -n "$TOMTOM" ]; then
+            npx eas-cli@latest env:create --name EXPO_PUBLIC_TOMTOM_KEY --value "$TOMTOM" --environment preview --visibility sensitive --force --non-interactive
+          else
+            echo "::warning::Нет секрета TOPTOP_TOKEN — линза «Пробки» будет без данных"
+          fi
       - name: Собрать APK
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

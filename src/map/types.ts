@@ -31,6 +31,9 @@ export interface MapCanvasProps {
   showUser?: boolean;
   /** Отступ сверху для кнопки «i» Mapbox — под кнопками верха карты, а не под пальцем. */
   topInset?: number;
+  /** Линзы (V6MapLens): плитки пробок и туман «Где я был» (GeoJSON-полигон с дырками). */
+  traffic?: string | null;
+  fog?: object | null;
 }
 
 export interface MapCanvasHandle {

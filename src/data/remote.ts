@@ -1,5 +1,6 @@
 // Люди, чаты, сообщения, друзья на карте — из Supabase (таблицы из миграции 20260928000002).
 // Работает только после входа: без сессии бросает NoSessionError, и слой данных показывает демо.
+import { friendLine } from '../live/geo';
 import { almaty } from '../lib/clock';
 import { DEFAULT_PRIVACY } from '../people/visibility';
 import { colors } from '../theme';
@@ -76,15 +77,17 @@ export function mapMessage(r: MessageRow, me: string): Message {
 }
 
 /** Друг на карте. Точка уже огрублена сервером до ~50 м (friend_locations). */
-export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: number | null; heading: number | null; updated_at: string }, at = new Date()): FriendSpot {
-  const kmh = r.speed != null ? Math.round(r.speed * 3.6) : undefined;
+export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: number | null; heading: number | null; updated_at: string; status?: string | null }, at = new Date()): FriendSpot {
+  const kmh = r.speed != null && r.speed >= 0 ? Math.round(r.speed * 3.6) : undefined;
   const minutes = Math.max(0, Math.round((at.getTime() - new Date(r.updated_at).getTime()) / 60000));
+  const moving = r.status === 'moving' || (!!kmh && kmh > 8);
   return {
     personId: r.user_id,
     lat: r.lat,
     lon: r.lon,
-    state: minutes > 15 ? 'paused' : kmh && kmh > 3 ? 'moving' : 'here',
-    place: '',
+    state: minutes > 15 ? 'paused' : moving ? 'moving' : 'here',
+    // Статусы альфы (V6 §9): в пути, дома / на работе, «2 мин», давно не в сети.
+    place: friendLine(moving ? 'moving' : r.status ?? null, kmh, minutes),
     speedKmh: kmh,
     heading: r.heading ?? undefined,
     minutesAgo: minutes,
@@ -136,7 +139,8 @@ export async function getFriendSpots(): Promise<FriendSpot[]> {
   await requireUser();
   const { data, error } = await withTimeout(supabase().rpc('friend_locations'));
   if (error) throw error;
-  return (data as Parameters<typeof mapSpot>[0][]).map((r) => mapSpot(r));
+  // «Только район» приходит без координат — такого друга на карте не рисуем.
+  return (data as (Parameters<typeof mapSpot>[0] & { lat: number | null })[]).filter((r) => r.lat != null && r.lon != null).map((r) => mapSpot(r));
 }
 
 export async function getChats(): Promise<Chat[]> {

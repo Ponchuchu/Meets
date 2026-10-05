@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthWatch } from '../src/live/auth';
+import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
 import { persister, queryClient } from '../src/live/query';
 import { colors } from '../src/theme';

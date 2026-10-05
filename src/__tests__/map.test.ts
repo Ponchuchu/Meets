@@ -1,8 +1,11 @@
 import { demoEvents } from '../data/demo';
 import type { EventItem } from '../data/types';
 import { calendarCells, monthsTitle, rangeLabel, weekend } from '../map/calendar';
-import { activeCount, DEFAULT_FILTERS, matchesPrice, showLabel, visibleEvents } from '../map/filters';
+import { activeCount, DEFAULT_FILTERS as BASE, matchesPrice, showLabel, visibleEvents } from '../map/filters';
 import { phaseOf, whenLabel } from '../map/lifecycle';
+
+// Тесты по датам — с выключенным «Ближайшим временем».
+const DEFAULT_FILTERS = { ...BASE, soon: false };
 
 // Понедельник 28.09.2026, время — по Алматы (UTC+5).
 const at = (hhmm: string, day = 28) => new Date(`2026-09-${String(day).padStart(2, '0')}T${hhmm}:00+05:00`);
@@ -71,8 +74,9 @@ describe('фильтры карты', () => {
     expect(visibleEvents(events, f, late, new Set(['jazz'])).map((e) => e.id)).toContain('jazz');
   });
   it('счётчик активных фильтров и подпись кнопки', () => {
-    expect(activeCount(DEFAULT_FILTERS)).toBe(0);
-    expect(activeCount({ ...DEFAULT_FILTERS, free: true, company: true })).toBe(2);
+    expect(activeCount(BASE)).toBe(0);
+    expect(activeCount(DEFAULT_FILTERS)).toBe(1);
+    expect(activeCount({ ...BASE, free: true, company: true })).toBe(2);
     expect(showLabel(5)).toBe('Показать 5 событий');
     expect(showLabel(1)).toBe('Показать 1 событие');
     expect(showLabel(3)).toBe('Показать 3 события');
@@ -94,5 +98,19 @@ describe('календарь', () => {
     expect(rangeLabel(5, 6, base)).toBe('Выходные');
     expect(rangeLabel(3, 3, base)).toBe('1 окт');
     expect(rangeLabel(0, 6, base)).toBe('28 сен – 4 окт');
+  });
+});
+
+describe('ближайшее время (v6)', () => {
+  it('сейчас и следующие 24 часа, прошедшее — нет', () => {
+    const now = new Date('2026-09-28T18:00:00+05:00');
+    const ev = (id: string, start: string, end: string) => ({ ...demoEvents()[0], id, startsAt: start, endsAt: end, isLong: false, isFree: true, priceMin: 0 });
+    const list = [
+      ev('tonight', '2026-09-28T19:30:00+05:00', '2026-09-28T21:30:00+05:00'),
+      ev('tomorrow-am', '2026-09-29T10:00:00+05:00', '2026-09-29T12:00:00+05:00'),
+      ev('later', '2026-09-30T19:00:00+05:00', '2026-09-30T21:00:00+05:00'),
+      ev('past', '2026-09-28T10:00:00+05:00', '2026-09-28T12:00:00+05:00'),
+    ];
+    expect(visibleEvents(list, BASE, now).map((e) => e.id).sort()).toEqual(['tomorrow-am', 'tonight']);
   });
 });

@@ -6,6 +6,7 @@ import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
 import { useAuth } from '../../src/live/auth';
+import { useLiveLocation } from '../../src/live/useLiveLocation';
 import { useSession } from '../../src/state/session';
 import { useTabBadges } from '../../src/state/tabBadges';
 import { colors } from '../../src/theme';
@@ -38,6 +39,7 @@ function ServerOnboarded() {
 
 function Shell() {
   const demo = config.dataMode === 'demo';
+  useLiveLocation();
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: !demo });
   const draft = useSession((s) => s.draft);
   useEffect(() => {

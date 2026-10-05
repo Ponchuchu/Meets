@@ -218,3 +218,26 @@ setOutboxSender(async (it) => {
     if (error) throw new Error(error.message);
   }
 });
+
+// ——— ТРЦ (V6Venue): пины из venues.kind = 'mall', сеансы кино — если есть в базе ———
+
+export interface Mall { id: string; name: string; address: string | null; hours: string | null; cover: string | null; lat: number; lon: number }
+
+export async function getMalls(): Promise<Mall[]> {
+  const rows = await must(sb().from('venues').select('id,name,address,hours,cover_url,geog').eq('kind', 'mall').limit(100)) as
+    { id: string; name: string; address: string | null; hours: unknown; cover_url: string | null; geog: { coordinates?: [number, number] } | null }[];
+  return rows.filter((r) => r.geog?.coordinates).map((r) => ({
+    id: r.id, name: r.name, address: r.address, cover: r.cover_url,
+    hours: typeof r.hours === 'string' ? r.hours : null,
+    lon: r.geog!.coordinates![0], lat: r.geog!.coordinates![1],
+  }));
+}
+
+export interface Session { id: string; title: string; starts_at: string; hall: string | null; format: string | null; price_from: number | null }
+
+export async function getSessions(venueId: string): Promise<Session[]> {
+  const rows = await must(sb().from('cinema_sessions').select('id,starts_at,hall,format,price_from,cinema_films(title)')
+    .eq('venue_id', venueId).gte('starts_at', new Date().toISOString()).order('starts_at').limit(30)) as unknown as
+    { id: string; starts_at: string; hall: string | null; format: string | null; price_from: number | null; cinema_films: { title: string } | null }[];
+  return rows.map((r) => ({ id: r.id, title: r.cinema_films?.title ?? 'Сеанс', starts_at: r.starts_at, hall: r.hall, format: r.format, price_from: r.price_from }));
+}
