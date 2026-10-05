@@ -8,7 +8,7 @@ import { colors } from '../../theme';
 import { Hand } from '../../ui/v6/Hand';
 import { MascotField } from '../../ui/v6/Mascot';
 import { OrangeBg } from '../../ui/v6/OrangeBg';
-import { skipSplash } from '../../ui/v6/Splash';
+import { skipSplash } from './Splash';
 
 export default function Done() {
   const name = useSession((s) => s.draft.name) || 'друг';

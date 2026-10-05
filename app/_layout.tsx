@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Splash } from '../src/features/auth/Splash';
 import { useAuthWatch } from '../src/live/auth';
 import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
@@ -18,7 +19,6 @@ import { persister, queryClient } from '../src/live/query';
 import { colors } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
 
 export default function RootLayout() {
   useNetWatch();
@@ -55,6 +55,7 @@ function Root() {
     <>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper }, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }} />
+      <Splash />
     </>
   );
 }

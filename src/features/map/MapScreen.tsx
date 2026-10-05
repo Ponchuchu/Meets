@@ -34,7 +34,7 @@ import { useSession } from '../../state/session';
 import { useSocial } from '../../state/social';
 import { Toast, type ToastData } from '../../ui/Toast';
 import { autoTheme } from '../../map/style';
-import { ALMATY_CAMERA, type MapCanvasHandle, type MapMarker } from '../../map/types';
+import { ALMATY_CAMERA, type Camera, type MapCanvasHandle, type MapMarker } from '../../map/types';
 import { EventSheet } from '../../map/ui/EventSheet';
 import { Compass } from 'lucide-react-native';
 import { FiltersSheet } from '../../map/ui/FiltersSheet';
@@ -52,6 +52,8 @@ import { getMalls, getTrail, setSetting, getSettings, type Mall } from '../../li
 import { MallPin, VenueSheet } from '../../map/ui/VenueSheet';
 import { exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
+import { startCamera } from '../../live/startPoint';
+import { useIntro } from '../auth/Splash';
 import { useNet } from '../../live/net';
 import { myId } from '../../live/auth';
 import { supabase } from '../../data/client';
@@ -96,6 +98,17 @@ export default function MapScreen() {
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
+  // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
+  const [startCam, setStartCam] = useState<Camera | null>(null);
+  useEffect(() => { void startCamera().then(setStartCam); }, []);
+  // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
+  const settled = useIntro((s) => s.settled);
+  const settledOnce = useRef(false);
+  useEffect(() => {
+    if (!settled || !startCam || settledOnce.current) return;
+    settledOnce.current = true;
+    if (startCam !== ALMATY_CAMERA) mapRef.current?.zoomBy(Math.log2(1.22));
+  }, [settled, startCam]);
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
   const [stack, setStack] = useState<EventItem[]>([]);
@@ -340,7 +353,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog} />
+      {startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       <View style={[styles.top, { top: topY }]}>

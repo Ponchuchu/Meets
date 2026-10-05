@@ -13,8 +13,7 @@ import { useNotificationTaps } from '../../src/live/reminders';
 import { useSession } from '../../src/state/session';
 import { useTabBadges } from '../../src/state/tabBadges';
 import { colors } from '../../src/theme';
-import { Splash } from '../../src/ui/v6/Splash';
-import { Tutorial } from '../../src/ui/v6/Tutorial';
+import { Tutorial } from '../../src/features/auth/Tutorial';
 
 export default function TabsLayout() {
   const hydrated = useSession((s) => s.hydrated);
@@ -63,7 +62,6 @@ function Shell() {
         <Tabs.Screen name="me" options={{ title: 'Профиль' }} />
       </Tabs>
       <Tutorial />
-      <Splash />
     </>
   );
 }

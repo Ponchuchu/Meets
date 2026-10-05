@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "рядом.",
+    "name": "ryadom",
     "slug": "ryadom",
     "version": "0.6.0",
     "orientation": "portrait",
@@ -13,7 +13,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Показываем события рядом с тобой и твою точку друзьям — только если ты сам включил «делиться».",
-        "NSPhotoLibraryUsageDescription": "Чтобы отправить фото в чат или загрузить афишу в «Предложить событие».",
+        "NSPhotoLibraryUsageDescription": "Чтобы отправить фото в чат или поставить фото профиля.",
         "NSCameraUsageDescription": "Чтобы снять фото или кружок для чата.",
         "NSMicrophoneUsageDescription": "Чтобы записать голосовое или кружок для чата.",
         "ITSAppUsesNonExemptEncryption": false,
@@ -31,7 +31,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-foreground.png",
-        "backgroundColor": "#17161A",
+        "backgroundColor": "#F0521F",
         "monochromeImage": "./assets/icon/adaptive-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,

@@ -1,6 +1,7 @@
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
 // Android: пины в рамке 72×72 (нулевые виды MarkerView пропускает), своя точка — LocationPuck,
-// заглушка — только если карта не загрузилась за 8 с; ошибки после загрузки не роняют карту.
+// тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
+// Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { config } from '../lib/config';
@@ -28,27 +29,34 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
   const loaded = useRef(false);
+  const moved = useRef(false);
   const z = useRef(camera.zoom);
+  const [attempt, setAttempt] = useState(0);
 
-  // Тайлы не пришли за 8 с (пустой голубой фон) — подложка «бумага».
+  // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
     if (failed) return;
     const t = setTimeout(() => {
-      if (!loaded.current) {
-        console.warn('[map] Mapbox не загрузился за 8 с — подложка');
-        setFailed(true);
-        onMode?.('static');
-      }
+      if (loaded.current) return;
+      if (attempt === 0) { console.warn('[map] Mapbox не загрузился за 8 с — перезагружаю стиль'); setAttempt(1); return; }
+      console.warn('[map] Mapbox не загрузился и после повтора — подложка');
+      setFailed(true);
+      onMode?.('static');
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [failed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toStart = () => {
+    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, animationDuration: 0 });
+  };
 
   useImperativeHandle(ref, () => ({
     flyTo: (lat, lon, zoom) => {
+      moved.current = true;
       if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
+      moved.current = true;
       z.current = Math.max(10, Math.min(18, z.current + d));
       if (cam.current) cam.current.setCamera({ zoomLevel: z.current, animationDuration: 300 });
       else staticRef.current?.zoomBy(d);
@@ -60,6 +68,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   return (
     <View style={StyleSheet.absoluteFill}>
       <M.MapView
+        key={attempt}
         style={StyleSheet.absoluteFill}
         styleJSON={JSON.stringify(mapStyle(theme))}
         surfaceView={false}
@@ -69,16 +78,17 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         logoEnabled
         logoPosition={{ bottom: bottomInset + 8, left: 8 }}
         attributionPosition={{ top: topInset, right: 12 }}
-        onCameraChanged={(st: { properties: { zoom: number; center: number[] } }) => { z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }}
+        onCameraChanged={(st: { properties: { zoom: number; center: number[] }; gestures?: { isGestureActive: boolean } }) => { if (st.gestures?.isGestureActive) moved.current = true; z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }}
         onMapIdle={(st: { properties: { center: number[] } }) => onCenter?.(st.properties.center[1], st.properties.center[0])}
-        onDidFinishLoadingMap={() => { loaded.current = true; onMode?.('mapbox'); }}
+        onDidFinishLoadingStyle={toStart}
+        onDidFinishLoadingMap={() => { loaded.current = true; toStart(); onMode?.('mapbox'); }}
         onMapLoadingError={() => {
           if (loaded.current) { console.warn('[map] ошибка тайлов после загрузки — карта остаётся'); return; }
           setFailed(true);
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} />
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} animationMode="none" />
         {traffic && (
           <M.RasterSource id="traffic" tileUrlTemplates={[traffic]} tileSize={256}>
             <M.RasterLayer id="traffic-layer" style={{ rasterOpacity: 0.9 }} />
