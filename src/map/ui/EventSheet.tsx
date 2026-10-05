@@ -3,7 +3,8 @@
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { photo } from '../../data/photos';
 import type { EventItem, Person } from '../../data/types';
@@ -30,8 +31,9 @@ export function stampOf(e: EventItem, now: Date): string {
 
 export const kmText = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10} м` : `${(m / 1000).toFixed(1).replace('.', ',')} км`);
 
-export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, onHide }: {
+export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, onHide, expand, onReveal, onRevealEnd }: {
   e: EventItem; now: Date; people: Person[]; me: { lat: number; lon: number } | null; going: boolean;
+  expand: SharedValue<number>; onReveal: () => void; onRevealEnd: (commit: boolean) => void;
   onOpen: () => void; onGo: () => void; onInvite: () => void; onHide: () => void;
 }) {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -39,17 +41,22 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const bg = CAT_COLOR[e.category];
   const y = useSharedValue(0);
-  const pan = Gesture.Pan().activeOffsetY([-12, 12]).runOnJS(true)
-    .onUpdate((g) => y.set(Math.max(-60, g.translationY)))
+  const revealing = useSharedValue(false);
+  const pan = Gesture.Pan().activeOffsetY([-12, 12]).failOffsetX([-28, 28])
+    .onUpdate((g) => {
+      if (g.translationY < -18 && !revealing.get()) { revealing.set(true); scheduleOnRN(onReveal); }
+      if (revealing.get()) expand.set(Math.max(0, Math.min(0.85, -g.translationY / 300)));
+      else y.set(Math.max(0, g.translationY));
+    })
     .onEnd((g) => {
-      if (g.translationY < -50 || g.velocityY < -700) onOpen();
-      else if (g.translationY > 70 || g.velocityY > 800) onHide();
-      y.set(withSpring(0, { damping: 18 }));
-    });
+      if (revealing.get()) { revealing.set(false); scheduleOnRN(onRevealEnd, g.translationY < -50 || g.velocityY < -500); }
+      else if (g.translationY > 70 || g.velocityY > 800) scheduleOnRN(onHide);
+      y.set(withSpring(0, { damping: 28, stiffness: 240, overshootClamping: true }));
+    }).onFinalize((_e,success)=>{if(!success&&revealing.get()){revealing.set(false);scheduleOnRN(onRevealEnd,false);}});
   const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View entering={SlideInDown.springify().damping(17).stiffness(170)} exiting={SlideOutDown.duration(220)} style={[styles.sheet, st]}>
+      <Animated.View entering={SlideInDown.duration(280)} exiting={SlideOutDown.duration(220)} style={[styles.sheet, st]}>
         <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${e.title}. ${stampOf(e, now)}. Открыть событие`} accessibilityHint="Потяни вверх, чтобы раскрыть">
           <View style={[styles.cover, { backgroundColor: bg }]}>
             {e.cover ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" /> : (
@@ -88,7 +95,7 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
         </Pressable>
         <View style={styles.actions}>
           <Pressable onPress={onGo} style={({ pressed }) => [styles.go, going && styles.goOn, pressed && styles.pressed]} accessibilityRole="button" accessibilityState={{ selected: going }}>
-            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'Иду ✓' : 'Пойду'}</Text>
+            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text>
           </Pressable>
           <Pressable onPress={onInvite} style={({ pressed }) => [styles.invite, pressed && styles.pressed]} accessibilityRole="button">
             <Text style={styles.inviteText}>Позвать</Text>

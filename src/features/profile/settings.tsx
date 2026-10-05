@@ -1,3 +1,4 @@
+import PlacesPage from './PlacesPage';
 // Настройки v6 — design/png/V6ProfileSettings.png и подэкраны (V6.md §8.3). Каждый переключатель сразу
 // сохраняется на сервере (profile_settings), без кнопки «Сохранить». Невидимка и «кто видит» — таблица visibility.
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -260,20 +261,6 @@ function BlackPage() {
         ))}
         {!q.data?.length && <Row title="Пока никого" sub="Заблокировать можно в чате или в профиле человека" last />}
       </Group>
-    </SettingsPage>
-  );
-}
-
-const KIND_RU: Record<string, string> = { home: 'Дом', work: 'Работа', study: 'Учёба', gym: 'Зал', dacha: 'Дача', other: 'Другое' };
-function PlacesPage() {
-  const q = useQuery({ queryKey: ['me', 'places', 'list'], queryFn: async () => ((await supabase().from('user_places').select('id,kind,title,auto').eq('user_id', myId() ?? '')).data ?? []) as { id: string; kind: string; title: string | null; auto: boolean }[] });
-  return (
-    <SettingsPage title="Мои места" sub="Нашли сами. Ошиблись — поменяй.">
-      <Group>
-        {(q.data ?? []).map((p, i, a) => <Row key={p.id} Icon={Home} title={p.title ?? KIND_RU[p.kind] ?? p.kind} sub={p.auto ? 'определили сами' : 'ты добавил'} last={i === a.length - 1} />)}
-        {!q.data?.length && <Row Icon={Home} title="Пока мест нет" sub="Дом и работу определим сами за пару дней" last />}
-      </Group>
-      <Note Icon={ShieldCheck}>Друзья видят только «на работе» или «дома» — без адреса и без названия офиса.</Note>
     </SettingsPage>
   );
 }

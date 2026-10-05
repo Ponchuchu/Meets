@@ -1,7 +1,7 @@
 // Чистая логика геолокации альфы (V6.md §3.2, §9): скачки GPS, статусы, клетки «Где я был», подписи «2 мин».
 // Покрыта тестами — src/__tests__/geo.test.ts.
 
-export interface Pt { lat: number; lon: number; at: number; accuracy?: number | null; speed?: number | null }
+export interface Pt { lat: number; lon: number; at: number; accuracy?: number | null; speed?: number | null; heading?: number | null }
 
 /** Расстояние в метрах. */
 export function distM(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {

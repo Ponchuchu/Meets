@@ -28,8 +28,8 @@ describe('демо-данные', () => {
     const a = demoEvents();
     const merged = mergeEvents(a, [...seedEvents(), a[0]]);
     expect(new Set(merged.map((e) => e.id)).size).toBe(merged.length);
-    const times = merged.map((e) => e.startsAt);
-    expect([...times].sort()).toEqual(times);
+    const times = merged.map((e) => Date.parse(e.startsAt));
+    expect([...times].sort((a,b)=>a-b)).toEqual(times);
   });
 });
 

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { data, eventsSnapshot, type EventItem } from '../../data';
+import { data, eventsSnapshot } from '../../data';
 import { photo } from '../../data/photos';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { tasteFrom, type Signal, type SignalKind } from '../../reco';
@@ -13,6 +13,8 @@ import { useFeed } from '../../state/feed';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Toggle as Switch } from '../../ui/v6/Settings';
+import {resetUserTaste} from '../../live/api';
+import {myId} from '../../live/auth';
 import { loadUserTaste } from '../api';
 import { useAdminDemo } from '../store';
 import { deckRows, modelConfidence, SIGNAL_LABEL, signalWeight, startOf, tasteRows } from '../taste';
@@ -41,15 +43,6 @@ const hm = (iso: string) => {
 };
 
 /** Пример сигналов, если на устройстве их мало: как в макете — джаз, стендап, горы, настолки. */
-function sampleSignals(events: EventItem[], now: Date): Signal[] {
-  const pick = (cat: string, i = 0) => events.filter((e) => e.category === cat)[i] ?? events[0];
-  const plan: [EventItem, SignalKind, number][] = [
-    [pick('lecture'), 'noShow', 1500], [pick('games'), 'arrived', 1440], [pick('standup'), 'company', 8],
-    [pick('party'), 'skip', 6], [pick('hike'), 'go', 5], [pick('hike'), 'open', 4], [pick('concert'), 'skip', 3], [pick('music'), 'go', 2],
-  ];
-  return plan.map(([e, kind, minAgo], i) => ({ id: `sample-${i}`, eventId: e.id, kind, at: new Date(now.getTime() - minAgo * 60e3).toISOString(), tags: e.tags, category: e.category }));
-}
-
 export function TasteAdmin({ live }: { live: boolean }) {
   const { width } = useWindowDimensions();
   const wide = width >= 1000;
@@ -67,7 +60,7 @@ export function TasteAdmin({ live }: { live: boolean }) {
   const remote = live && lookup ? userQ.data : null;
 
   const titleOf = useMemo(() => new Map(events.map((e) => [e.id, e.title])), [events]);
-  const local = feed.signals.length >= 5 ? feed.signals : sampleSignals(events, now);
+  const local = feed.signals;
   const signals: (Signal & { title?: string })[] = remote ? remote.signals.map((s) => ({ ...s, kind: s.kind as SignalKind, category: s.category as Signal['category'] })) : local;
   const answers: StartAnswers = remote?.answers
     ? { interests: remote.answers.interests, times: remote.answers.times, withWho: remote.answers.withWho, budget: remote.answers.budget } as StartAnswers
@@ -94,8 +87,8 @@ export function TasteAdmin({ live }: { live: boolean }) {
     setNote(t);
     setTimeout(() => setNote((x) => (x === t ? null : x)), 2400);
   };
-  const reset = () => {
-    if (remote) return flash('Сброс вкуса у людей — только из базы, по запросу человека');
+  const reset = async () => {
+    if (remote) {try{await resetUserTaste(remote.id);if(remote.id===myId())feed.resetTaste();await userQ.refetch();flash('Вкус сброшен. Планы сохранены');}catch{flash('Не удалось сбросить вкус. Проверь доступ и связь');}return;}
     feed.resetTaste();
     flash('Вкус сброшен — снова считаем от ответов при регистрации');
   };
@@ -170,9 +163,10 @@ export function TasteAdmin({ live }: { live: boolean }) {
   return (
     <Animated.View entering={FadeIn.duration(200)} style={[styles.root, { paddingHorizontal: wide ? 32 : 16 }]}>
       {live && (
-        <View style={styles.search}>
+        <View style={[styles.search,{flexWrap:'wrap'}]}>
           <TextInput value={query} onChangeText={setQuery} onSubmitEditing={() => setLookup(query)} placeholder="Ник или id человека" placeholderTextColor={colors.muted3} style={styles.searchInput} accessibilityLabel="Найти человека" />
           <Pressable onPress={() => setLookup(query)} style={styles.btnDark} accessibilityRole="button"><Text style={styles.btnDarkText}>Показать</Text></Pressable>
+          {userQ.isError&&<Text style={styles.small}>Не удалось загрузить рекомендации</Text>}
           {lookup && userQ.data === null && <Text style={styles.small}>Не нашли</Text>}
         </View>
       )}

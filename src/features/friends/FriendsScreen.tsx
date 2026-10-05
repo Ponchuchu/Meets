@@ -40,7 +40,7 @@ export default function FriendsScreen() {
   const { going, go } = usePlans();
   const addPlan = useApp((s) => s.addPlan);
 
-  const friends = people.filter((p) => isFriendNow(p, social));
+  const friends = [...new Map(people.filter((p) => isFriendNow(p, social)).map((p) => [p.id, p])).values()];
   const byId = (id: string) => people.find((p) => p.id === id);
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3000); };
   const pending = requests.filter((r) => !social.answered[r.personId]);
@@ -57,7 +57,7 @@ export default function FriendsScreen() {
       const who = e.friendsGoing.map(byId).filter((p): p is Person => !!p && isFriendNow(p, social));
       if (who.length && new Date(e.endsAt ?? e.startsAt).getTime() > now.getTime()) map.set(e.id, { e, who });
     }
-    return [...map.values()].sort((a, b) => a.e.startsAt.localeCompare(b.e.startsAt)).slice(0, 5);
+    return [...map.values()].sort((a, b) => Date.parse(a.e.startsAt)-Date.parse(b.e.startsAt)).slice(0, 5);
   }, [events, people, social]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

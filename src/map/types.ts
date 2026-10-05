@@ -47,6 +47,7 @@ export interface MapCanvasProps {
 }
 
 export interface MapCanvasHandle {
+  navigateTo: (lat: number, lon: number, heading: number) => void;
   flyTo: (lat: number, lon: number, zoom?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
   zoomBy: (delta: number) => void;

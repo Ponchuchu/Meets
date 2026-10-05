@@ -25,7 +25,7 @@ const hm = (iso: string) => {
 export function StackSheet({ events, now, onPick }: { events: EventItem[]; now: Date; onPick: (e: EventItem) => void }) {
   const today = dayIndex(now);
   const place = events[0]?.venueName ?? events[0]?.address.split(',')[0] ?? '';
-  const list = [...events].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const list = [...events].sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt));
   return (
     <View style={{ gap: 12 }}>
       <Text style={styles.h1} numberOfLines={1} accessibilityRole="header">{place}</Text>

@@ -1,5 +1,6 @@
 // Данные админки: команда (таблица staff) работает с настоящей очередью, остальные видят демо макета.
 import { requireUser, supabase, withTimeout } from '../data/client';
+import type {Category} from '../data/types';
 import { metaLine, sourceLabel, type QueueFlag, type QueueItem, type QueueStats, type SourceItem } from './model';
 
 export async function isStaff(): Promise<boolean> {
@@ -27,12 +28,14 @@ interface DraftRow {
   venues: { name: string } | null;
   sources: { kind: SourceItem['kind']; handle: string; title: string } | null;
   suggested_by: string | null;
+  cover_url: string | null;
+  category: Category;
 }
 
 export async function loadQueue(): Promise<QueueItem[]> {
   const { data, error } = await withTimeout(
     supabase().from('events')
-      .select('id,title,starts_at,ends_at,address,about,price_min,price_max,is_free,ai_confidence,flags,venues(name),sources(kind,handle,title),suggested_by')
+      .select('id,title,starts_at,ends_at,address,about,price_min,price_max,is_free,ai_confidence,flags,venues(name),sources(kind,handle,title),suggested_by,cover_url,category')
       .eq('status', 'draft').eq('rejected', false).order('created_at').limit(100),
   );
   if (error) throw error;
@@ -57,6 +60,8 @@ export async function loadQueue(): Promise<QueueItem[]> {
     priceMin: r.price_min,
     priceMax: r.price_max,
     isFree: r.is_free,
+    coverUrl:r.cover_url,
+    category:r.category,
   }));
 }
 

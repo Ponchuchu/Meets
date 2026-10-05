@@ -2,7 +2,7 @@
 // дальше по дням — куда я иду: время, кто из друзей тоже, сколько ищут компанию. Тап — событие.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { Check, ChevronRight, Hand, X } from 'lucide-react-native';
+import { CalendarDays, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -11,10 +11,13 @@ import { useTabInset } from '../../components/TabBar';
 import { data, eventsSnapshot, type EventItem, type Person } from '../../data';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { config } from '../../lib/config';
-import { answerInvite, getEventsByIds, getInvites, type Invite } from '../../live/api';
+import { toggleEventReminder, answerInvite, getEventsByIds, getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { usePlans } from '../../state/plans';
+import { MonthCalendar } from '../../event/ui/pickers';
+import { Backdrop, BottomSheet } from '../../ui/sheet';
+import { SwipeActions } from '../../ui/SwipeActions';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
@@ -60,9 +63,15 @@ export default function PlansTab() {
   const insets = useSafeAreaInsets();
   const pad = useTabInset();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'soon' | 'past'>('soon');
-  const [pick, setPick] = useState<number | null>(null);
-  const now = useMemo(() => clockNow(), []);
+  const tab = 'soon';
+  const [pick, setPick] = useState<number[]>([]);
+  const [calendar, setCalendar] = useState(false);
+  const [actionError,setActionError]=useState('');
+  const [action, setAction] = useState<EventItem | null>(null);
+  const muted = usePlans((s) => s.muted);
+  const toggleDay = (d: number) => setPick((p) => p.includes(d) ? p.filter((x) => x !== d) : [...p, d]);
+  const [now,setNow] = useState(clockNow);
+  useFocusEffect(useCallback(()=>{setNow(clockNow());const timer=setInterval(()=>setNow(clockNow()),60000);return()=>clearInterval(timer);},[]));
   const today = dayIndex(now);
   const me = myId();
   const going = usePlans((s) => s.going);
@@ -78,11 +87,10 @@ export default function PlansTab() {
   const { data: extra = [] } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
   const byId = (id: string) => all.find((e) => e.id === id) ?? extra.find((e) => e.id === id);
 
-  const incoming = invites.filter((i) => i.to_id === me && !i.answer && i.event_id && byId(i.event_id) && endOf(byId(i.event_id)!) > now.getTime());
+  const incoming = invites.filter((i) => (!pick.length || (i.event_id && byId(i.event_id) && pick.includes(dayIndex(byId(i.event_id)!.startsAt)))) && i.to_id === me && !i.answer && i.event_id && byId(i.event_id) && endOf(byId(i.event_id)!) > now.getTime());
   const mine = Object.keys(going).map(byId).filter((e): e is EventItem => !!e);
-  const soon = mine.filter((e) => endOf(e) > now.getTime()).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
-  const past = mine.filter((e) => endOf(e) <= now.getTime()).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-  const list = (tab === 'soon' ? soon : past).filter((e) => pick == null || dayIndex(e.startsAt) === pick);
+  const soon = mine.filter((e) => endOf(e) > now.getTime()).sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt));
+  const list = soon.filter((e) => !pick.length || pick.includes(dayIndex(e.startsAt)));
   const sentFor = (eventId: string) => invites.filter((i) => i.from_id === me && i.event_id === eventId);
 
   const answer = async (inv: Invite, yes: boolean) => {
@@ -102,25 +110,19 @@ export default function PlansTab() {
   const open = (e: EventItem) => router.push({ pathname: '/event/[id]', params: { id: e.id } });
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 14 }}>
+    <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 14 }}>
       <View style={styles.head}>
         <Text style={styles.h1} accessibilityRole="header">Планы</Text>
-        <View style={styles.seg} accessibilityRole="tablist">
-          {(['soon', 'past'] as const).map((k) => (
-            <Pressable key={k} onPress={() => { setTab(k); setPick(null); }} style={[styles.segBtn, tab === k && styles.segOn]} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
-              <Text style={[styles.segText, tab === k && { color: colors.paper }]}>{k === 'soon' ? 'Скоро' : 'Были'}</Text>
-            </Pressable>
-          ))}
-        </View>
+
       </View>
 
       {tab === 'soon' && (
-        <View style={styles.week}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.week}>
           {week.map((d) => {
             const a = almaty(new Date(now.getTime() + (d - today) * 86400e3));
-            const on = pick === d || (pick == null && d === today);
+            const on = pick.includes(d);
             return (
-              <Pressable key={d} onPress={() => setPick(pick === d ? null : d)} style={[styles.day, on && styles.dayOn]} accessibilityRole="button" accessibilityState={{ selected: pick === d }}
+              <Pressable key={d} onPress={() => toggleDay(d)} style={[styles.day, on && styles.dayOn]} accessibilityRole="button" accessibilityState={{ selected: pick.includes(d) }}
                 accessibilityLabel={`${WD[a.getUTCDay()]} ${a.getUTCDate()}${has(d) ? ', есть планы' : ''}`}>
                 <Text style={[styles.dayWd, on && { color: '#BDB8AD' }]}>{WD[a.getUTCDay()]}</Text>
                 <Text style={[styles.dayN, on && { color: colors.paper }]}>{a.getUTCDate()}</Text>
@@ -128,8 +130,10 @@ export default function PlansTab() {
               </Pressable>
             );
           })}
-        </View>
+          <Pressable onPress={() => setCalendar(true)} style={styles.day} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={22} color={colors.ink} /><Text style={styles.dayWd}>Месяц</Text></Pressable>
+        </ScrollView>
       )}
+      <Pressable onPress={() => setPick([])} accessibilityRole="button" accessibilityLabel="Показать все планы"><Text style={styles.sub}>{pick.length ? `Выбрано дат: ${pick.length} · показать все` : 'Все предстоящие планы'}</Text></Pressable>
 
       {tab === 'soon' && incoming.length > 0 && (
         <View style={{ gap: 8 }}>
@@ -169,7 +173,7 @@ export default function PlansTab() {
             const sent = sentFor(e.id);
             const looking = Math.max(e.lookingCount, e.lookers?.length ?? 0);
             return (
-              <Pressable key={e.id} onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+              <SwipeActions key={e.id} onActions={() => setAction(e)}><Pressable onLongPress={() => setAction(e)} onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <Tile e={e} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <View style={styles.titleRow}>
@@ -186,7 +190,7 @@ export default function PlansTab() {
                   </View>
                 </View>
                 <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
-              </Pressable>
+              </Pressable></SwipeActions>
             );
           })}
         </View>
@@ -194,7 +198,7 @@ export default function PlansTab() {
 
       {!groups.length && !(tab === 'soon' && incoming.length) && (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>{tab === 'soon' ? (pick == null ? 'Пока пусто' : 'В этот день ничего') : 'Пока нигде не был'}</Text>
+          <Text style={styles.emptyTitle}>{tab === 'soon' ? (!pick.length ? 'Пока пусто' : 'В этот день ничего') : 'Пока нигде не был'}</Text>
           <Text style={styles.emptySub}>{tab === 'soon' ? 'Смахни карточку вправо в «Рекомендациях» — она прилетит сюда.' : 'Здесь появятся события, на которых ты был.'}</Text>
           {tab === 'soon' && (
             <Pressable onPress={() => router.navigate('/foryou')} style={styles.emptyBtn} accessibilityRole="button"><Text style={styles.emptyBtnText}>Открыть рекомендации</Text></Pressable>
@@ -202,6 +206,15 @@ export default function PlansTab() {
         </View>
       )}
     </ScrollView>
+    {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => setCalendar(false)} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
+    {action && <><Backdrop label="Закрыть действия" onPress={() => setAction(null)} /><BottomSheet label={action.title} onClose={() => setAction(null)}>
+      <Text style={styles.title}>{action.title}</Text>
+      <Pressable style={styles.row} onPress={async () => {setActionError('');if(LIVE){try{await toggleEventReminder(action.id);setAction(null);}catch{setActionError('Не удалось сохранить напоминание. Проверь связь');}}else{usePlans.getState().toggleReminder(action.id);setAction(null);}}}><View>{muted[action.id] ? <Bell size={20} /> : <BellOff size={20} />}</View><Text style={styles.title}>{muted[action.id] ? 'Включить напоминание' : 'Не напоминать'}</Text></Pressable>
+      <Pressable style={styles.row} onPress={() => { const e = action; setAction(null); router.push({ pathname: '/event/[id]', params: { id: e.id, invite: '1' } }); }}><UserPlus size={20} /><Text style={styles.title}>Позвать друга</Text></Pressable>
+      <Pressable style={styles.row} onPress={() => { usePlans.getState().ungo(action.id); setAction(null); }}><Trash2 size={20} color={colors.accentText} /><Text style={styles.title}>Убрать из планов</Text></Pressable>
+      {!!actionError&&<Text style={{color:colors.accentText,fontFamily:fonts.body400}}>{actionError}</Text>}
+    </BottomSheet></>}
+    </View>
   );
 }
 
@@ -214,7 +227,7 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: colors.ink },
   segText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   week: { flexDirection: 'row', gap: 6 },
-  day: { flex: 1, height: 64, borderRadius: 14, backgroundColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center', gap: 1 },
+  day: { width:48, height: 64, borderRadius: 14, backgroundColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center', gap: 1 },
   dayOn: { backgroundColor: colors.ink },
   dayWd: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted },
   dayN: { fontFamily: fonts.body600, fontSize: 19, color: colors.ink },

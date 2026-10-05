@@ -1,5 +1,6 @@
 // Модель админки (docs/PIPELINE.md §5, макеты Admin и TasteAdmin). Чистые функции — покрыты тестами.
 import { almaty } from '../lib/clock';
+import type {Category} from '../data/types';
 
 export type QueueFlag = 'needs_pin' | 'check_price' | 'cancel_reported';
 
@@ -17,6 +18,8 @@ export interface QueueItem {
   priceMin: number | null;
   priceMax: number | null;
   isFree: boolean;
+  coverUrl?: string | null;
+  category?: Category;
 }
 
 export interface QueueStats {

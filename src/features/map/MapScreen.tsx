@@ -1,7 +1,7 @@
 // Карта — вкладка по умолчанию (design/png/Main.png, MapCalendar.png, MapFilters.png).
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -10,6 +10,7 @@ import { EventPage } from '../../event/EventPage';
 import { useApp, useCoverTabBar } from '../../state/app';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
+import {openDirectChat,sendMessage} from '../../data/remote';
 import { useLiveFriends } from '../../data/realtime';
 import { DEMO_FORECAST } from '../../data/weather';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
@@ -33,7 +34,6 @@ import { useFeed } from '../../state/feed';
 import { useSession } from '../../state/session';
 import { useSocial } from '../../state/social';
 import { Toast, type ToastData } from '../../ui/Toast';
-import { autoTheme } from '../../map/style';
 import { ALMATY_CAMERA, type Camera, type MapCanvasHandle, type MapMarker } from '../../map/types';
 import { EventSheet } from '../../map/ui/EventSheet';
 import { FiltersSheet } from '../../map/ui/FiltersSheet';
@@ -58,8 +58,8 @@ import { useIntro } from '../auth/Splash';
 import { useNet } from '../../live/net';
 import { myId } from '../../live/auth';
 import { supabase } from '../../data/client';
-import { LensSheet, type Lens } from '../../map/ui/LensSheet';
-import { AccuracyRing, BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
+import { LensSheet } from '../../map/ui/LensSheet';
+import { BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
 import { useSmoothSpots } from '../../map/useSmooth';
 import { queryClient } from '../../live/query';
 
@@ -82,6 +82,8 @@ function pinLabel(e: EventItem): string {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   const tabPad = useTabInset();
   const { width: W, height: winH } = useWindowDimensions();
   const [H, setH] = useState(0);
@@ -128,7 +130,10 @@ export default function MapScreen() {
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
   const [geo, setGeo] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [askBg, setAskBg] = useState(false);
-  const [lens, setLens] = useState<Lens>('normal');
+  const requestedLens = useMapState((s) => s.lens);
+  const setRequestedLens = useMapState((s) => s.setLens);
+  const lens = requestedLens;
+  const setLens = setRequestedLens;
   const net = useNet();
   const fix = useMyFix((s) => s.fix);
   const ensureGeo = useCallback(async (ask: boolean) => {
@@ -230,10 +235,9 @@ export default function MapScreen() {
 
 
   const today = dayIndex(clock);
-  const mapStyle = useProfile((s) => s.settings.mapStyle);
   const popularBigger = useProfile((s) => s.settings.popularBigger);
-  const theme = mapStyle === 'auto' ? autoTheme(almaty(clock).getUTCHours()) : mapStyle;
-  const dark = theme === 'night';
+  const theme = 'paper' as const;
+  const dark = false;
   const visible = useMemo(() => visibleEvents(events, filters, clock, going), [events, filters, clock, going]);
   const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock, going.has(e.id)) !== 'hidden'), [events, clock, going]);
 
@@ -304,14 +308,11 @@ export default function MapScreen() {
         }
       }
     }
-    // Моя точка: оранжевая с конусом (MeDot); GPS неточный (> 60 м) — ещё и круг точности (V6OfflineGps).
+    // Моя точка: оранжевая с конусом и спокойным пульсом.
     if (LIVE) {
       const at = fix ?? myPos;
       if (at) list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
-      if (fix && fix.accuracy && fix.accuracy > 60) {
-        const mpp = (156543 * Math.cos((fix.lat * Math.PI) / 180)) / 2 ** zoom;
-        list.push({ id: 'acc', lat: fix.lat, lon: fix.lon, z: 34, node: <AccuracyRing size={Math.min(320, Math.max(40, (2 * fix.accuracy) / mpp))} /> });
-      }
+
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
   }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -325,9 +326,10 @@ export default function MapScreen() {
   const weatherNow = filters.soon || filters.from === 0;
   const weather = (weatherNow ? nowWx ?? forecast[0] : forecast[filters.from]) ?? null;
 
-  const openEvent = (e: EventItem, sheetFirst: 'invite' | null = null) => {
+  const openEvent = (e: EventItem, sheetFirst: 'invite' | null = null, interactive = false) => {
     setOpenSheet(sheetFirst);
     setOpen(e);
+    if (interactive) return;
     ex.set(0);
     ex.set(withTiming(1, { duration: 360, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
   };
@@ -340,7 +342,7 @@ export default function MapScreen() {
     return {
       left: cardRect.x * (1 - p), top: cardRect.y * (1 - p),
       width: cardRect.w + (W - cardRect.w) * p, height: cardRect.h + (fullH - cardRect.h) * p,
-      borderRadius: 26 * (1 - p), opacity: Math.min(1, 0.4 + p * 1.5),
+      borderRadius: 26 * (1 - p), opacity: 1,
     };
   });
   const clipInner = useAnimatedStyle(() => ({ left: -cardRect.x * (1 - ex.get()), top: -cardRect.y * (1 - ex.get()) }));
@@ -359,17 +361,20 @@ export default function MapScreen() {
   };
 
   // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
-  const sendSticker = (i: number) => {
+  const sendSticker = async (i: number) => {
     if (!focusPerson || fly) return;
     const st = STICKERS[i];
+    try{
+      if(LIVE){const chatId=await openDirectChat(focusPerson.id);await sendMessage(chatId,st.label,'sticker');void queryClient.invalidateQueries({queryKey:['chats']});}
+      else useChat.getState().send({ id: uid(`dm-${focusPerson.id}-st`), chatId: `dm-${focusPerson.id}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
+    }catch{showToast({text:'Не удалось отправить стикер. Проверь связь'});return;}
     social.sticker(focusPerson.id);
-    useChat.getState().send({ id: uid(`dm-${focusPerson.id}-st`), chatId: `dm-${focusPerson.id}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
     setFly({ ...st, x: 40 });
     flyY.set(0);
     flyY.set(withTiming(-300, { duration: 650, easing: Easing.bezier(0.2, 0.9, 0.4, 1) }));
     setTimeout(() => {
       setFly(null);
-      setBubble({ id: focusPerson.id, ...st });
+      setBubble({ ...st, id: focusPerson.id });
     }, 700);
     setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), 3400);
   };
@@ -378,7 +383,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog}
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -403,7 +408,7 @@ export default function MapScreen() {
 
 
       {!focusId && sheet === null && (
-        <MapControls top={topY + 62} bearing={bearing} follow={follow}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 105)} bearing={bearing} follow={follow}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
@@ -434,6 +439,8 @@ export default function MapScreen() {
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
+            expand={ex} onReveal={() => openEvent(selected, null, true)}
+            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeEvent(); }}
             me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();
@@ -519,7 +526,7 @@ export default function MapScreen() {
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
-          <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
+          <Animated.View style={[{ position: 'absolute', width: W, height: fullH, flex: 1 }, clipInner]}>
             <EventPage e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
           </Animated.View>
         </Animated.View>

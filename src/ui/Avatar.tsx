@@ -13,7 +13,7 @@ export function Avatar({ p, size = 40, ring, radius, style, outline }: {
   if (p.photo) return <Image source={photo(p.photo)} style={box as never} accessibilityIgnoresInvertColors />;
   return (
     <View style={[...box, { backgroundColor: p.tint, alignItems: 'center', justifyContent: 'center' }]}>
-      <Text style={{ fontFamily: fonts.display700, fontSize: Math.round(size * 0.38), color: colors.ink }}>{p.initial}</Text>
+      <Text style={{ fontFamily: fonts.body700, fontSize: Math.round(size * 0.38), lineHeight: Math.round(size * 0.55), includeFontPadding: false, textAlign: 'center', color: colors.ink }}>{p.initial}</Text>
     </View>
   );
 }

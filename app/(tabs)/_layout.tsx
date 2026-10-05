@@ -54,7 +54,7 @@ function Shell() {
   }, [prof.data, draft.name, draft.photo]);
   return (
     <>
-      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper } }}>
+      <Tabs detachInactiveScreens tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
         <Tabs.Screen name="index" options={{ title: 'Карта' }} />
         <Tabs.Screen name="foryou" options={{ title: 'Рекомендации' }} />
         <Tabs.Screen name="plans" options={{ title: 'Планы' }} />

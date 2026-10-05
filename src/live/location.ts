@@ -52,11 +52,11 @@ function liveChannel(me: string) {
 
 export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now()): Promise<void> {
   const me = myId();
-  if (!me || hidden()) return;
-  const p: Pt = { lat: c.latitude, lon: c.longitude, at, accuracy: c.accuracy, speed: c.speed };
+  const p: Pt = { lat: c.latitude, lon: c.longitude, at, accuracy: c.accuracy, speed: c.speed, heading: c.heading != null && c.heading >= 0 ? c.heading : null };
   if (isJump(last, p)) return;
   last = p;
   useMyFix.getState().set(p);
+  if (!me || hidden()) return;
   const status = statusOf(p, share.places);
   const speed = c.speed != null && c.speed >= 0 ? c.speed : null;
   const heading = c.heading != null && c.heading >= 0 ? c.heading : null;

@@ -49,12 +49,22 @@ export function SwipeDown({ children, onClose, style }: { children: ReactNode; o
 export function BottomSheet({ children, style, label, onClose }: { children: ReactNode; style?: StyleProp<ViewStyle>; label: string; onClose?: () => void }) {
   useCoverTabBar();
   useBackClose(onClose);
+  const y = useSharedValue(0);
+  const pan = Gesture.Pan().enabled(!!onClose).activeOffsetY(12)
+    .onUpdate((e) => y.set(Math.max(0, e.translationY)))
+    .onEnd((e) => {
+      if (onClose && (e.translationY > 90 || e.velocityY > 900)) scheduleOnRN(onClose);
+      y.set(withSpring(0, { damping: 28, overshootClamping: true }));
+    });
+  const moving = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
   return (
     <Animated.View entering={sheetIn} exiting={sheetOut} accessibilityViewIsModal accessibilityLabel={label} style={styles.host}>
-      <SwipeDown onClose={onClose} style={[styles.sheet, style]}>
-        <View style={styles.handle} />
+      <Animated.View style={[styles.sheet, style, moving]}>
+        <GestureDetector gesture={pan}>
+          <View style={{ height: 28, justifyContent: 'center' }} accessibilityLabel="Потяни вниз, чтобы закрыть"><View style={styles.handle} /></View>
+        </GestureDetector>
         {children}
-      </SwipeDown>
+      </Animated.View>
     </Animated.View>
   );
 }

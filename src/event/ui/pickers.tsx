@@ -4,6 +4,7 @@ import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSh
 import { almaty, dayIndex, dayStart } from '../../lib/clock';
 import { MapCanvas } from '../../map/MapCanvas';
 import type { MapCanvasHandle } from '../../map/types';
+import { searchAddresses, type AddressHit } from '../../live/addresses';
 import { colors, fonts } from '../../theme';
 import { Ic, IC } from '../../ui/Ic';
 
@@ -11,7 +12,7 @@ const WD = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 /** Календарь на два месяца вперёд: листаешь месяцы стрелками, прошедшие дни неактивны. */
-export function MonthCalendar({ now, value, onPick }: { now: Date; value: number; onPick: (offset: number) => void }) {
+export function MonthCalendar({ now, value, onPick, selectedDays, markedDays = [] }: { now: Date; value: number; onPick: (offset: number) => void; selectedDays?: number[]; markedDays?: number[] }) {
   const today = dayIndex(now);
   const t = almaty(now);
   const [month, setMonth] = useState(() => {
@@ -36,11 +37,12 @@ export function MonthCalendar({ now, value, onPick }: { now: Date; value: number
           if (idx == null) return <View key={`e${i}`} style={styles.cell} />;
           const off = idx - today;
           const past = off < 0;
-          const on = off === value;
+          const on = selectedDays ? selectedDays.includes(idx) : off === value;
           return (
             <Pressable key={idx} disabled={past} onPress={() => onPick(off)} style={[styles.cell, on && styles.cellOn, off === 0 && !on && styles.cellToday]}
               accessibilityRole="button" accessibilityState={{ selected: on, disabled: past }}>
               <Text style={[styles.num, past && { color: '#B3AC9E' }, on && { color: colors.paper }]}>{idx - firstIndex + 1}</Text>
+              {markedDays.includes(idx) && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent, position: 'absolute', bottom: 4 }} />}
             </Pressable>
           );
         })}
@@ -115,9 +117,28 @@ export interface PlaceValue {
 export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: PlaceValue) => void }) {
   const [v, setV] = useState(value);
   const [q, setQ] = useState('');
-  const map = useRef<MapCanvasHandle>(null);
+  const [hits, setHits] = useState<AddressHit[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const revision = useRef(0);
   const reverse = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [camera] = useState(()=>({...value.point,zoom:16}));
+  useEffect(() => {
+    const ac = new AbortController();
+    if (q.trim().length < 3) return;
+    const t = setTimeout(() => {
+      setSearching(true);
+      searchAddresses(q, ac.signal).then((r) => { if (!ac.signal.aborted) setHits(r); })
+        .catch(() => { if (!ac.signal.aborted) setSearchError('Нет связи с поиском. Выбери точку на карте или введи адрес'); })
+        .finally(() => { if (!ac.signal.aborted) setSearching(false); });
+    }, 300);
+    return () => { clearTimeout(t); ac.abort(); };
+  }, [q]);
+  useEffect(() => () => { revision.current++; if (reverse.current) clearTimeout(reverse.current); }, []);
+  const map = useRef<MapCanvasHandle>(null);
+
   const onCenter = (lat: number, lon: number) => {
+    const rev = ++revision.current;
     setV((s) => ({ ...s, point: { lat, lon } }));
     if (reverse.current) clearTimeout(reverse.current);
     reverse.current = setTimeout(async () => {
@@ -125,17 +146,17 @@ export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: 
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=ru&zoom=18&lat=${lat}&lon=${lon}`);
         const j = (await r.json()) as { address?: { road?: string; house_number?: string } };
         const a = [j.address?.road, j.address?.house_number].filter(Boolean).join(' ');
-        if (a) setV((s) => ({ ...s, address: a }));
+        if (a && revision.current === rev) setV((s) => ({ ...s, address: a }));
       } catch { /* без сети — адрес вводится вручную */ }
     }, 500);
   };
-  const find = async () => {
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&accept-language=ru&bounded=1&viewbox=76.70,43.40,77.20,43.05&q=${encodeURIComponent(`${q}, Алматы`)}`);
-      const [hit] = (await r.json()) as { lat: string; lon: string }[];
-      if (hit) map.current?.flyTo(Number(hit.lat), Number(hit.lon), 16.5);
-    } catch { /* нет сети */ }
+  const choose = (hit: AddressHit) => {
+    revision.current++;
+    if (reverse.current) clearTimeout(reverse.current);
+    setV((s) => ({ ...s, address: hit.label, point: { lat: hit.lat, lon: hit.lon } }));
+    setQ(''); setHits([]); map.current?.flyTo(hit.lat, hit.lon, 16.5);
   };
+  const find = async () => { if (hits[0]) choose(hits[0]); };
   const field = (key: 'entrance' | 'floor' | 'apt', label: string) => (
     <TextInput value={v[key]} onChangeText={(t) => setV({ ...v, [key]: t.slice(0, 6) })} placeholder={label} placeholderTextColor={colors.muted3}
       style={[styles.input, { flex: 1 }]} accessibilityLabel={label} keyboardType="default" />
@@ -144,10 +165,13 @@ export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: 
     <View style={{ gap: 10 }}>
       <View style={styles.search}>
         <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={17} color={colors.muted} w={2} />
-        <TextInput value={q} onChangeText={setQ} onSubmitEditing={find} placeholder="Найти улицу или место" placeholderTextColor={colors.muted3} style={{ flex: 1, height: 44, fontFamily: fonts.body400, fontSize: 15, color: colors.ink }} accessibilityLabel="Найти адрес" returnKeyType="search" />
+        <TextInput value={q} onChangeText={text=>{setQ(text);setHits([]);setSearchError(null);setSearching(false);}} onSubmitEditing={find} placeholder="Найти улицу или место" placeholderTextColor={colors.muted3} style={{ flex: 1, height: 44, fontFamily: fonts.body400, fontSize: 15, color: colors.ink }} accessibilityLabel="Найти адрес" returnKeyType="search" />
       </View>
+      {searching && <Text style={{ color: colors.muted }}>Ищу адрес…</Text>}
+      {searchError && <Text style={{ color: colors.accentText }}>{searchError}</Text>}
+      {hits.map((hit) => <Pressable key={hit.id} onPress={() => choose(hit)} style={{ padding: 12, borderRadius: 12, backgroundColor: colors.card }} accessibilityRole="button"><Text style={{ fontFamily: fonts.body500, color: colors.ink }}>{hit.label}</Text></Pressable>)}
       <View style={styles.mapBox}>
-        <MapCanvas ref={map} theme="paper" camera={{ ...value.point, zoom: 16 }} markers={[]} onCenter={onCenter} />
+        <MapCanvas ref={map} theme="paper" camera={camera} markers={[]} onCenter={onCenter} />
         <View pointerEvents="none" style={styles.centerPin}>
           <View style={styles.pinHead}><Ic d={IC.home} size={16} color={colors.ink} w={2} /></View>
           <View style={styles.pinLeg} />

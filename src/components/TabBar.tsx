@@ -100,27 +100,6 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   );
 }
 
-const SPARKS = [0, 60, 120, 180, 240, 300];
-
-/** Прилёт карточки в «Планы»: 6 искр разлетаются от иконки. */
-function Sparks({ n }: { n: number }) {
-  const p = useSharedValue(0);
-  useEffect(() => { if (n) { p.set(0); p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) })); } }, [n, p]);
-  return (
-    <>
-      {SPARKS.map((deg) => <Spark key={deg} deg={deg} p={p} />)}
-    </>
-  );
-}
-function Spark({ deg, p }: { deg: number; p: SharedValue<number> }) {
-  const rad = (deg * Math.PI) / 180;
-  const st = useAnimatedStyle(() => ({
-    opacity: p.get() > 0 && p.get() < 1 ? 1 - p.get() : 0,
-    transform: [{ translateX: Math.cos(rad) * 26 * p.get() }, { translateY: Math.sin(rad) * 26 * p.get() }, { scale: 1 - 0.5 * p.get() }],
-  }));
-  return <Animated.View pointerEvents="none" style={[styles.spark, st]} />;
-}
-
 function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boolean; badge: number; land: number; onPress: () => void; onLong: () => void }) {
   const pop = useSharedValue(1);
   const wob = useSharedValue(0);
@@ -133,8 +112,8 @@ function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boo
   // Прилёт карточки: scale 1,42 с покачиванием ±10°, затухание 0,5 с, оранжевая вспышка.
   useEffect(() => {
     if (!land) return;
-    pop.set(withSequence(withTiming(1.42, { duration: 140, easing: Easing.out(Easing.quad) }), withTiming(1, { duration: 500, easing: POP })));
-    wob.set(withSequence(withTiming(10, { duration: 90 }), withTiming(-10, { duration: 120 }), withTiming(6, { duration: 110 }), withTiming(-3, { duration: 100 }), withTiming(0, { duration: 100 })));
+    pop.set(withSequence(withTiming(1.12, { duration: 140, easing: Easing.out(Easing.quad) }), withTiming(1, { duration: 500, easing: POP })));
+    wob.set(0);
     flash.set(withSequence(withTiming(1, { duration: 120 }), withTiming(1, { duration: 380 }), withTiming(0, { duration: 260 })));
   }, [land, pop, wob, flash]);
   const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${wob.get()}deg` }] }));
@@ -143,9 +122,8 @@ function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boo
   return (
     <Pressable onPress={onPress} onLongPress={onLong} delayLongPress={350} style={styles.tab}
       accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={badge ? `${label}, ${badge}` : label}>
-      {name === 'plans' && <Animated.View pointerEvents="none" style={[styles.flash, flashSt]}><Svg width={18} height={18} viewBox="0 0 24 24" fill="none"><Path d="M5 12l5 5 9-10" stroke={colors.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" /></Svg></Animated.View>}
+      {name === 'plans' && <Animated.View pointerEvents="none" style={[styles.flash, flashSt]} />}
       <Animated.View style={wobble}>{name === 'me' ? <MeIcon on={on} pop={pop} /> : <TabIcon name={name} on={on} pop={pop} />}</Animated.View>
-      {name === 'plans' && <Sparks n={land} />}
       {badge > 0 && <Badge n={badge} label={name === 'plans' ? `Новых планов: ${badge}` : `Непрочитанных: ${badge}`} />}
     </Pressable>
   );
@@ -209,12 +187,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FBFAF6',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
-  flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  meRing: { width: 30, height: 30, borderRadius: 15, padding: 2, borderWidth: 2 },
-  meFace: { flex: 1, borderRadius: 13, overflow: 'hidden' },
+  meRing: { width: 34, height: 34, borderRadius: 17, padding: 2, borderWidth: 2 },
+  meFace: { width:26,height:26, borderRadius: 13, overflow: 'hidden' },
   meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  meLetter: { fontFamily: fonts.display800, fontSize: 13, color: colors.accent },
+  meLetter: { fontFamily: fonts.body700, fontSize: 13, lineHeight: 18, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
   hint: { position: 'absolute', bottom: BAR_H + 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.ink },
   hintText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
 });

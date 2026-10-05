@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isStaff } from '../../admin/api';
+import { RobotPanel } from '../../admin/ui/RobotPanel';
 import { Metrics } from '../../admin/ui/Metrics';
 import { Moderation } from '../../admin/ui/Moderation';
 import { Sources } from '../../admin/ui/Sources';
@@ -46,7 +47,7 @@ export default function Admin() {
       <ScrollView contentContainerStyle={{ paddingBottom: wide ? 0 : 76 + insets.bottom }}>
         {tab === 'moderation' && <Moderation live={staff} />}
         {tab === 'taste' && <TasteAdmin live={staff} />}
-        {tab === 'sources' && <Sources live={staff} />}
+        {tab === 'sources' && <><RobotPanel live={staff}/><Sources live={staff}/></>}
         {tab === 'metrics' && <Metrics live={staff} />}
       </ScrollView>
       {!wide && (

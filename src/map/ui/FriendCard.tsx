@@ -9,59 +9,13 @@ import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { CAT_ICON } from '../icons';
 import { planWhen } from '../../lib/planWhen';
+import {STICKERS,stickerUnlocked} from '../../stickers/catalog';
+import {StickerView} from '../../stickers/StickerView';
+import {useQuery} from '@tanstack/react-query';
+import {getMeStats} from '../../live/api';
+import {config} from '../../lib/config';
 
-export interface Sticker {
-  label: string;
-  bg: string;
-  fg: string;
-  rot: number;
-  /** solid — плашка, outline — контур, tape — «скотч» с тенью, big — крупный смайлик без плашки. */
-  look: 'solid' | 'outline' | 'tape' | 'big';
-}
-
-const s = (label: string, bg: string, fg: string, rot: number, look: Sticker['look'] = 'solid'): Sticker => ({ label, bg, fg, rot, look });
-
-/** Стикеры другу: кидать можно сколько угодно, у него приходят пуши (правила частоты — src/notify/rules.ts). */
-export const STICKERS: Sticker[] = [
-  s('ГО?', colors.accent, colors.ink, -4),
-  s('ТЫ ГДЕ?', colors.friend, '#FFFFFF', 3),
-  s('ВЫХОДИ', colors.ink, '#F2B632', -3, 'tape'),
-  s('КОФЕ?', colors.sand, colors.ink, -2),
-  s('ЖДУ', colors.softGreen, colors.ink, 4),
-  s('ОПАЗДЫВАЮ', '#F2B632', colors.ink, -5, 'tape'),
-  s('Я ТУТ', '#FFFFFF', colors.accent, 2, 'outline'),
-  s('ЕДУ', '#179C87', '#FFFFFF', -3),
-  s('БАЗА', colors.ink, colors.paper, 5),
-  s('КРИНЖ', '#8B4FD8', '#FFFFFF', -6, 'tape'),
-  s('ХАЙП', '#D8362A', '#FFFFFF', 4),
-  s('АЛЛО??', '#FFFFFF', colors.ink, -2, 'outline'),
-  s('ШАШЛЫК?', '#E07A2C', colors.ink, 3),
-  s('ТАНЦУЕМ', '#C23B74', '#FFFFFF', -4),
-  s('СКУЧАЮ', colors.softPink, colors.ink, 2),
-  s('ПРИВЕТ', colors.ink, colors.paper, -3),
-  s('🔥', 'transparent', colors.ink, -8, 'big'),
-  s('👀', 'transparent', colors.ink, 6, 'big'),
-  s('🫡', 'transparent', colors.ink, -4, 'big'),
-  s('😭', 'transparent', colors.ink, 5, 'big'),
-  s('🤙', 'transparent', colors.ink, -6, 'big'),
-  s('💃', 'transparent', colors.ink, 4, 'big'),
-];
-
-export function StickerView({ st, size = 'md' }: { st: Sticker; size?: 'md' | 'lg' }) {
-  const big = st.look === 'big';
-  const h = size === 'lg' ? 44 : 40;
-  return (
-    <View style={[
-      styles.sticker, { height: h, transform: [{ rotate: `${st.rot}deg` }] },
-      big ? styles.stickerBig : { backgroundColor: st.bg },
-      st.look === 'outline' && { borderColor: st.fg, borderWidth: 2.5 },
-      st.look === 'tape' && styles.stickerTape,
-    ]}>
-      <Text style={[big ? styles.stickerEmoji : styles.stickerText, { color: st.fg }]}>{st.label}</Text>
-    </View>
-  );
-}
-
+export {STICKERS} from '../../stickers/catalog';
 const cardIn = new Keyframe({ 0: { opacity: 0, transform: [{ translateY: 60 }] }, 100: { opacity: 1, transform: [{ translateY: 0 }] } }).duration(300);
 
 /** «обновлено 2 мин назад», «обновлено только что». */
@@ -76,6 +30,8 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
   p: Person; spot: FriendSpot; ring: string;
   onProfile: () => void; onSticker: (i: number) => void; onWrite: () => void; onInvite: () => void;
 }) {
+  const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
+  const level=stats?.level??1;
   const moving = spot.state === 'moving';
   const status = spot.state === 'paused' ? 'геолокация на паузе' : updatedText(spot.minutesAgo);
   return (
@@ -92,7 +48,7 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
       </Pressable>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
         {STICKERS.map((st, i) => (
-          <Pressable key={st.label} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
+          <Pressable key={st.label} disabled={!stickerUnlocked(st,level)} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
             style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}>
             <StickerView st={st} />
           </Pressable>

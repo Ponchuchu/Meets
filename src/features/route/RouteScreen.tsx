@@ -1,5 +1,5 @@
 // Маршрут в приложении — design/png/V6Route.png, V6RouteCar, V6RouteWalk (V6.md §4.5).
-// Сверху «до места · адрес», «Событие · 20:00», снизу — три способа, шаги, «Поехали» и «В 2ГИС».
+// Сверху адрес и событие, снизу способы передвижения и запуск камеры навигатора.
 // Машина и пешком — функция route (TomTom с пробками), автобус — свой расчёт по остановкам OpenStreetMap.
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,11 +8,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
-import { openDgis, useTrip } from '../../event/v6/WhereSheet';
+import { useTrip } from '../../event/v6/WhereSheet';
 import { almaty } from '../../lib/clock';
 import { useMyFix, useMyPos } from '../../live/location';
+import {getEventsByIds} from '../../live/api';
+import {config} from '../../lib/config';
 import { MapCanvas } from '../../map/MapCanvas';
-import { autoTheme } from '../../map/style';
+import { MeDot, useHeading } from '../../map/MeDot';
+import { useSharedValue } from 'react-native-reanimated';
+import { usePlans } from '../../state/plans';
+import { closestInstruction } from '../../event/navigation';
 import type { MapCanvasHandle, MapMarker } from '../../map/types';
 import { colors, fonts } from '../../theme';
 import { useBackClose } from '../../state/app';
@@ -30,16 +35,21 @@ export default function RouteScreen() {
   const mapRef = useRef<MapCanvasHandle>(null);
   const fix = useMyFix((s) => s.fix);
   const pos = useMyPos();
+  const heading = useHeading();
+  const bearing = useSharedValue(0);
+  const meetups = usePlans((s) => s.meetups);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   useBackClose(back);
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const e = events.find((x) => x.id === id);
+  const known = [...meetups, ...events].find((x) => x.id === id);
+  const detail=useQuery({queryKey:['event',id],queryFn:()=>getEventsByIds([id]),enabled:config.dataMode!=='demo'&&!known,retry:1});
+  const e=known??detail.data?.[0];
 
   // «Поехали»: камера за мной, время пересчитывается раз в 30 с.
   useEffect(() => {
     if (!follow || !fix) return;
-    mapRef.current?.flyTo(fix.lat, fix.lon, 16);
-  }, [follow, fix]);
+    mapRef.current?.navigateTo(fix.lat, fix.lon, fix.heading ?? heading.get());
+  }, [follow, fix, heading]);
 
   const me = follow && fix ? fix : pos;
   const trip = useTrip(e ?? ({ id: '', lat: 0, lon: 0, needsPin: true } as never), e ? me : null);
@@ -47,8 +57,8 @@ export default function RouteScreen() {
     if (!e || !me) return [];
     const to: [number, number] = [e.lon, e.lat];
     const from: [number, number] = [me.lon, me.lat];
-    if (mode === 'car') return [{ id: 'car', coords: trip.route?.car?.line ?? [from, to], color: trip.route?.car?.delayMin ? '#C83A26' : '#2F8F5B', width: 6 }];
-    if (mode === 'walk') return [{ id: 'walk', coords: trip.route?.walk?.line ?? [from, to], color: colors.ink, width: 4, dash: true }];
+    if (mode === 'car') return [{ id: 'car', coords: trip.route?.car?.line ?? [], color: trip.route?.car?.delayMin ? '#C83A26' : '#2F8F5B', width: 6 }];
+    if (mode === 'walk') return [{ id: 'walk', coords: trip.route?.walk?.line ?? [], color: colors.ink, width: 4, dash: true }];
     if (!trip.bus) return [];
     const p = trip.bus.path;
     return [
@@ -58,18 +68,21 @@ export default function RouteScreen() {
     ];
   }, [e, me, mode, trip.route, trip.bus]);
 
-  if (!e) return <View style={styles.root} />;
+  if (!e) return <View style={[styles.root,{justifyContent:'center',alignItems:'center',gap:20}]}><Text>{config.dataMode!=='demo'&&detail.isPending?'Загружаю событие…':'Маршрут недоступен'}</Text><Pressable onPress={back} accessibilityRole="button"><Text>Вернуться</Text></Pressable></View>;
   const markers: MapMarker[] = [
     { id: 'to', lat: e.lat, lon: e.lon, z: 20, node: <View style={[styles.dest, { backgroundColor: CAT_COLOR[e.category] }]}><Ic d={CAT_ICON[e.category]} size={18} color={catFg(e.category)} w={2} /></View> },
-    ...(me ? [{ id: 'me', lat: me.lat, lon: me.lon, z: 30, node: <View style={styles.me} /> }] : []),
+    ...(me ? [{ id: 'me', lat: me.lat, lon: me.lon, z: 30, node: <MeDot heading={heading} bearing={bearing} /> }] : []),
     ...(mode === 'bus' && trip.bus ? trip.bus.path.map(([lon, lat], i) => ({ id: `s${i}`, lat, lon, z: 10, node: <View style={styles.stop} /> })) : []),
   ];
-  const cam = me ? { lat: (me.lat + e.lat) / 2 - 0.004, lon: (me.lon + e.lon) / 2, zoom: 13 } : { lat: e.lat, lon: e.lon, zoom: 14 };
+  const cam = me ? { lat: (me.lat + e.lat) / 2 - 0.004, lon: (me.lon + e.lon) / 2, zoom: Math.max(9,Math.min(15,Math.log2(360/(Math.max(Math.abs(e.lon-me.lon),Math.abs(e.lat-me.lat)*1.8,0.005)*2.6)))) } : { lat: e.lat, lon: e.lon, zoom: 14 };
   const tiles: { m: Mode; Icon: typeof Bus; min: number | null }[] = [
     { m: 'walk', Icon: Footprints, min: trip.walkMin },
     { m: 'car', Icon: Car, min: trip.carMin },
     ...(trip.bus ? [{ m: 'bus' as const, Icon: Bus, min: trip.bus.total }] : []),
   ];
+  const leg = mode === 'car' ? trip.route?.car : trip.route?.walk;
+  const canNavigate = !!me && !e.needsPin && !e.noPoint && (mode === 'bus' ? !!trip.bus : (leg?.line?.length??0)>=2);
+  const instruction = follow && me ? closestInstruction(me, leg?.instructions ?? [],leg?.line ?? []) : null;
   const to = e.venueName ?? e.address.split(',')[0];
   const steps: { icon: React.ReactNode; title: string; sub: string; blue?: boolean }[] = mode === 'bus' && trip.bus ? [
     { icon: <Footprints size={16} color={colors.ink} strokeWidth={2} />, title: `${trip.bus.walkTo} мин пешком`, sub: `до остановки «${trip.bus.board.name}»` },
@@ -83,7 +96,7 @@ export default function RouteScreen() {
 
   return (
     <View style={styles.root}>
-      <MapCanvas ref={mapRef} theme={autoTheme(almaty(new Date()).getUTCHours())} camera={cam} markers={markers} lines={lines} showUser={!!fix} bottomInset={330} topInset={insets.top + 100} />
+      <MapCanvas ref={mapRef} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix} bottomInset={330} topInset={insets.top + 100} />
       <View style={[styles.top, { top: Math.max(14, insets.top + 6) }]}>
         <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад"><ChevronLeft size={24} color={colors.ink} strokeWidth={2} /></Pressable>
         <View style={{ flex: 1 }}>
@@ -91,6 +104,7 @@ export default function RouteScreen() {
           <Text style={styles.topTitle} numberOfLines={1}>{e.title} · {hm(e.startsAt)}</Text>
         </View>
       </View>
+      {follow && instruction && <View style={[styles.top, { top: insets.top + 112 }]}><Text style={styles.stepTitle}>{instruction.message}</Text></View>}
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 18 }]}>
         <View style={styles.tiles}>
           {tiles.map(({ m, Icon, min }) => (
@@ -113,10 +127,10 @@ export default function RouteScreen() {
         </View>
         {mode === 'bus' && <Text style={styles.osm}>Остановки © участники OpenStreetMap</Text>}
         <View style={styles.btns}>
-          <Pressable onPress={() => setFollow(!follow)} style={[styles.go, follow && { backgroundColor: colors.accent }]} accessibilityRole="button">
-            <Text style={[styles.goText, follow && { color: colors.ink }]}>{follow ? 'Едем · стоп' : 'Поехали'}</Text>
+          <Pressable disabled={!canNavigate} onPress={() => { if (!follow && me) mapRef.current?.navigateTo(me.lat, me.lon, heading.get()); setFollow(!follow); }} style={[styles.go, follow && { backgroundColor: colors.accent }]} accessibilityRole="button">
+            <Text style={[styles.goText, follow && { color: colors.ink }]}>{follow ? 'Завершить навигацию' : canNavigate ? (mode === 'car' ? 'Поехали' : 'В путь') : trip.loading ? 'Строю маршрут…' : 'Маршрут недоступен'}</Text>
           </Pressable>
-          <Pressable onPress={() => openDgis(e)} style={styles.dgis} accessibilityRole="button"><Text style={styles.dgisText}>В 2ГИС</Text></Pressable>
+
         </View>
       </View>
     </View>

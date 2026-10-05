@@ -1,5 +1,5 @@
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
-// Android: пины в рамке 72×72 (нулевые виды MarkerView пропускает), своя точка — LocationPuck,
+// Android: пины и своя точка в рамке 72×72 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -52,6 +52,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   };
 
   useImperativeHandle(ref, () => ({
+    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom) => {
       moved.current = true;
       if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 });
@@ -73,7 +74,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       <M.MapView
         key={attempt}
         style={StyleSheet.absoluteFill}
-        styleJSON={JSON.stringify(mapStyle(theme))}
+        styleJSON={JSON.stringify(mapStyle('paper'))}
         surfaceView={false}
         rotateEnabled
         pitchEnabled={false}
@@ -81,15 +82,14 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
         gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: false, simultaneousRotateAndPinchZoomEnabled: true }}
-        // Логотип Mapbox и «i» — маленькие, слева внизу над панелью, не под пальцами (убрать совсем нельзя — условия Mapbox).
-        logoEnabled
+        // В предрелизной сборке скрыто; включается EXPO_PUBLIC_MAP_ATTRIBUTION=true.
+        logoEnabled={config.mapAttribution}
         logoPosition={{ bottom: bottomInset + 6, left: 10 }}
-        attributionEnabled
+        attributionEnabled={config.mapAttribution}
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
           if (st.gestures?.isGestureActive) moved.current = true;
-          z.current = st.properties.zoom;
-          onZoom?.(st.properties.zoom);
+          if (Math.abs(z.current - st.properties.zoom) > 0.03) { z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={() => onPress?.()}
@@ -117,7 +117,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.LineLayer id="fog-edge" style={{ lineColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', lineOpacity: 0.76, lineWidth: 18, lineBlur: 12, lineJoin: 'round' }} />
           </M.ShapeSource>
         )}
-        {lines.map((l) => (
+        {lines.filter(l=>l.coords.length>=2).map((l) => (
           <M.ShapeSource key={l.id} id={`line-${l.id}`} shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } as never}>
             <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
           </M.ShapeSource>

@@ -6,6 +6,8 @@ import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { router, useLocalSearchParams } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
+import { StickerPicker } from '../../stickers/StickerPicker';
+import { getMeStats } from '../../live/api';
 import { answerInvite, type Invite } from '../../live/api';
 import { config } from '../../lib/config';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -60,8 +62,12 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
   const now = clockNow();
+  const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
   const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
-  const meta0 = chats.find((c) => c.id === id);
+  const localGroups = useChat(s => s.groups);
+  const allChats = [...chats,...localGroups];
+  const meta0 = allChats.find((c) => c.id === id);
+  const isGroup = meta0?.kind === 'group';
   // Чат из базы (uuid): кто собеседник и событийный ли он — из списка чатов. «dm-<id>» — личный по человеку.
   const isEvent = id.startsWith('ev-') || meta0?.kind === 'event';
   const personId = isEvent ? null : meta0?.personId ?? (id.startsWith('dm-') ? id.slice(3) : null);
@@ -93,17 +99,16 @@ export default function ChatScreen() {
   const [album, setAlbum] = useState<Album>('recent');
   const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
-  const [recStart, setRecStart] = useState(0);
   const [inputH, setInputH] = useState(44);
   const [poll, setPoll] = useState<null | { q: string; options: string[] }>(null);
   const [picked, setPicked] = useState<string[]>(trayParam === '1' ? ['b', 'a'] : []);
-  const [sheet, setSheet] = useState<null | 'person' | 'menu'>(sheetParam === '1' ? 'person' : null);
+  const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const scroll = useRef<ScrollView>(null);
 
   const person = personId ? people.find((p) => p.id === personId) : undefined;
-  const chatMeta = chats.find((c) => c.id === id);
+  const chatMeta = allChats.find((c) => c.id === id);
   const event = isEvent ? [...plans.meetups, ...events].find((e) => e.id === (chatMeta?.eventId ?? id.slice(3))) : undefined;
   const friend = person ? isFriendNow(person, social) : false;
   const messages = useMemo(() => [...base, ...chat.sent.filter((m) => m.chatId === id)], [base, chat.sent, id]);
@@ -115,7 +120,7 @@ export default function ChatScreen() {
 
   // Можно ли писать: друзья — всегда, незнакомые — только при общем событии и в пределах лимитов.
   const commonEvent = !!person && events.some((e) => (plans.going[e.id] || e.friendsGoing.length) && (e.lookers ?? []).some((l) => l.personId === person.id));
-  const check = isEvent
+  const check = isGroup ? {ok:true,reason:undefined} : isEvent
     ? { ok: !!event && eventChatOpen(event.startsAt, event.endsAt, now), reason: 'closed' as const }
     : canWrite({
       friend, recipientAllows: 'common', commonEvent: commonEvent || !!details?.lookingFor, existing: messages.length > 0,
@@ -134,10 +139,10 @@ export default function ChatScreen() {
     if (isRemoteId(id)) {
       const media = msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? uploadMedia(id, msg.media) : Promise.resolve(msg.media ?? undefined);
       media
-        .then((path) => sendMessage(id, msg.text, msg.kind, path, durationS))
+        .then((path) => sendMessage(id, msg.text, msg.kind, path, durationS, msg.eventId))
         .then(() => qc.invalidateQueries({ queryKey: ['messages', id] }))
         .then(() => chat.unsend(msg.id))
-        .catch(() => undefined);
+        .catch(() => {chat.unsend(msg.id); show({text:'Сообщение не отправлено. Проверь связь и повтори'});});
     }
   };
   const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); setInputH(44); } };
@@ -148,45 +153,56 @@ export default function ChatScreen() {
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
+  const [locked, setLocked] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!recording) return;
+    const timer = setInterval(() => setElapsed(Math.floor((nowMs()-rec.current.started)/1000)),200);
+    return () => clearInterval(timer);
+  },[recording]);
+  useEffect(() => () => { rec.current.active=false; circleRef.current?.stop(false); void recorder.stop().catch(()=>undefined); void setAudioModeAsync({allowsRecording:false}); },[recorder]);
   const startRec = async () => {
+    if(rec.current.active) return;
+    rec.current = {active:true,ready:false,mode:recMode,started:nowMs(),locked:false};
+    setLocked(false);setElapsed(0);setCancelling(false);
     if (recMode === 'circle') {
-      if (Platform.OS === 'web') { show({ text: 'Кружки записываются в приложении на телефоне' }); return; }
-      setRecording('circle');
-      setRecStart(nowMs());
-      return;
+      if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
+      setRecording('circle'); return;
     }
     try {
       const perm = await requestRecordingPermissionsAsync();
-      if (!perm.granted) { show({ text: 'Разреши микрофон в настройках телефона' }); return; }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      if (!rec.current.active) return;
+      if (!perm.granted) {rec.current.active=false;show({text:'Разреши микрофон в настройках телефона'});return;}
+      await setAudioModeAsync({allowsRecording:true,playsInSilentMode:true});
       await recorder.prepareToRecordAsync();
-      recorder.record();
-      setRecording('voice');
-      setRecStart(nowMs());
-    } catch { show({ text: 'Не получилось включить микрофон' }); }
+      // Отпустил во время диалога разрешений — запись не начинается и ничего не отправляется.
+      if (!rec.current.active) {await recorder.stop().catch(()=>undefined);await setAudioModeAsync({allowsRecording:false});return;}
+      rec.current.started=nowMs();recorder.record();rec.current.ready=true;setRecording('voice');
+    } catch {rec.current.active=false;setRecording(null);void setAudioModeAsync({allowsRecording:false});show({text:'Не получилось включить микрофон'});}
   };
-  const stopRec = async (send: boolean) => {
-    if (!recording) return;
-    const sec = Math.max(1, Math.round((nowMs() - recStart) / 1000));
-    setCancelling(false);
-    if (recording === 'circle') { circleRef.current?.stop(send); return; }
+  const stopRec = async (send:boolean) => {
+    if(!rec.current.active) return;
+    const mode=rec.current.mode;
+    const sec=Math.floor((nowMs()-rec.current.started)/1000);
+    rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
+    if(mode==='circle') {if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
     setRecording(null);
+    if(!rec.current.ready)return;
     try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false });
-      if (send && recorder.uri && sec >= 1) push({ kind: 'voice', media: recorder.uri, duration: dur(sec), durationS: sec });
-    } catch { /* запись не удалась — ничего не отправляем */ }
+      await recorder.stop();await setAudioModeAsync({allowsRecording:false});
+      if(send && recorder.uri && sec>=1) push({kind:'voice',media:recorder.uri,duration:dur(sec),durationS:sec});
+    } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});}
   };
-  // Обработчики жеста вызываются только при касании, не во время рендера.
+  // Эти обработчики читает Gesture Handler при касании; при рендере они не выполняются.
   /* eslint-disable react-hooks/refs */
-  // Одна кнопка, как в Telegram: тап — голос ↔ кружок; держишь — запись; увёл влево на 90 — отмена; отпустил — отправилось.
   const recGesture = Gesture.Exclusive(
-    Gesture.Pan().activateAfterLongPress(220).runOnJS(true)
-      .onStart(() => void startRec())
-      .onUpdate((e) => setCancelling(e.translationX < -90))
-      .onEnd((e) => void stopRec(e.translationX >= -90))
-      .onFinalize((_e, ok) => { if (!ok) void stopRec(false); }),
-    Gesture.Tap().runOnJS(true).onEnd(() => setRecMode(recMode === 'voice' ? 'circle' : 'voice')),
+    Gesture.Pan().activateAfterLongPress(250).runOnJS(true)
+      .onStart(()=>void startRec())
+      .onUpdate(e=>{setCancelling(e.translationX < -80);if(e.translationY < -70 && !rec.current.locked){rec.current.locked=true;setLocked(true);}})
+      .onEnd(e=>{if(!rec.current.locked)void stopRec(e.translationX>=-80);})
+      .onFinalize((_e,ok)=>{if(!ok && !rec.current.locked)void stopRec(false);}),
+    Gesture.Tap().runOnJS(true).onEnd(()=>setRecMode(m=>m==='voice'?'circle':'voice')),
   );
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
@@ -205,19 +221,30 @@ export default function ChatScreen() {
     setPicked([]);
     setTray(false);
   };
+  const library = async () => {
+    const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if(!permission.granted){show({text:'Разреши доступ к фотографиям'});return;}
+    try {
+      const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsMultipleSelection:true,selectionLimit:10,quality:0.9});
+      if(!r.canceled)for(const a of r.assets)push({kind:a.type==='video'?'video':'photo',media:a.uri,durationS:a.duration?Math.round(a.duration/1000):undefined});
+      setTray(false);
+    }catch{show({text:'Не удалось открыть галерею'});}
+  };
   const camera = async () => {
     try {
+      const permission=await ImagePicker.requestCameraPermissionsAsync();
+      if(!permission.granted){show({text:'Разреши доступ к камере'});return;}
       const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
       if (!res.canceled && res.assets[0]) push({ kind: 'photo', media: res.assets[0].uri, text: '' });
     } catch { show({ text: 'Камера доступна в приложении на телефоне' }); }
   };
 
-  const title = isEvent ? chatMeta?.title ?? event?.title ?? 'Чат события' : person?.name ?? 'Чат';
-  const status = isEvent
+  const title = isGroup ? chatMeta?.title ?? 'Группа' : isEvent ? chatMeta?.title ?? event?.title ?? 'Чат события' : person?.name ?? 'Чат';
+  const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
     : friend ? 'в друзьях · онлайн' : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
-  const banner = isEvent || friend ? null
+  const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
   const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
@@ -233,7 +260,7 @@ export default function ChatScreen() {
             <Avatar p={person} size={40} ring={friend ? colors.friend : undefined} />
           </Pressable>
         )}
-        <Pressable onPress={() => (isEvent && event ? router.push({ pathname: '/event/[id]', params: { id: event.id } }) : setSheet('person'))} style={{ flex: 1, gap: 1 }} accessibilityRole="button">
+        <Pressable onPress={() => setSheet('attachments')} style={{ flex: 1, gap: 1 }} accessibilityRole="button" accessibilityLabel={`${title}: участники и вложения`}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
           <Text style={styles.status} numberOfLines={2}>{status}</Text>
         </Pressable>
@@ -272,8 +299,8 @@ export default function ChatScreen() {
           const mine = m.authorId === 'me';
           const prev = messages[i - 1];
           return (
-            <Bubble key={m.id} m={m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent}
-              showAuthor={isEvent && (!prev || prev.authorId !== m.authorId)}
+            <Bubble key={m.id} m={m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
+              showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
               revealed={!!chat.revealed[m.id]} onReveal={() => chat.reveal(m.id)}
               voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
               onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
@@ -298,7 +325,7 @@ export default function ChatScreen() {
           {recording ? (
             <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
               <View style={styles.recDot} />
-              <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${recording === 'voice' ? 'Голосовое' : 'Кружок'} · ‹ влево — отмена`}</Text>
+              <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${dur(elapsed)} · ${locked ? 'Запись закреплена' : '← отменить · ↑ закрепить'}`}</Text>
             </View>
           ) : (
             <TextInput value={text} onChangeText={setText} multiline
@@ -306,13 +333,16 @@ export default function ChatScreen() {
               onKeyPress={(ev) => { const ne = ev.nativeEvent as { key: string; shiftKey?: boolean }; if (Platform.OS === 'web' && ne.key === 'Enter' && !ne.shiftKey) { ev.preventDefault?.(); sendText(); } }}
               placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, { height: text ? inputH : 44 }]} accessibilityLabel="Сообщение" />
           )}
-          {text.trim() && !recording ? (
+          {locked ? <View style={{flexDirection:'row',gap:6}}>
+            <Pressable style={styles.iconBtn} onPress={()=>void stopRec(false)} accessibilityLabel="Отменить запись"><Ic d={IC.close} size={20} color={colors.ink}/></Pressable>
+            <Pressable style={[styles.iconBtn,{backgroundColor:colors.accent}]} onPress={()=>void stopRec(true)} accessibilityLabel="Отправить запись"><Ic d={SEND_IC} size={20} color={colors.paper}/></Pressable>
+          </View> : text.trim() && !recording ? (
             <Pressable onPress={sendText} style={[styles.iconBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]} accessibilityRole="button" accessibilityLabel="Отправить">
               <Ic d={SEND_IC} size={19} color={colors.ink} w={2} />
             </Pressable>
           ) : (
             <GestureDetector gesture={recGesture}>
-              <View collapsable={false} style={[styles.iconBtn, { backgroundColor: recording ? colors.accent : colors.ink, borderColor: recording ? colors.accent : colors.ink }, recording && { transform: [{ scale: 1.25 }] }]}
+              <View collapsable={false} style={[styles.iconBtn, { backgroundColor: recording ? colors.accent : colors.ink, borderColor: recording ? colors.accent : colors.ink }, recording && { transform: [{ scale: 1.08 }] }]}
                 accessible accessibilityRole="button" accessibilityLabel={recMode === 'voice' ? 'Голосовое: удерживай, чтобы записать. Нажми — переключить на кружок' : 'Кружок: удерживай, чтобы записать. Нажми — переключить на голосовое'}>
                 <Ic d={recMode === 'voice' ? MIC_IC : CIRCLE_IC} size={20} color={recording ? colors.ink : colors.paper} w={1.9} />
               </View>
@@ -331,6 +361,8 @@ export default function ChatScreen() {
               <Ic d={albumsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} size={16} color={colors.ink} w={2.2} />
             </Pressable>
             <View style={{ flex: 1 }} />
+            <Pressable onPress={()=>{setTray(false);setSheet('stickers');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Стикеры</Text></Pressable>
+            <Pressable onPress={()=>{setTray(false);setSheet('events');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Событие</Text></Pressable>
             <Pressable onPress={() => setPoll({ q: '', options: ['', ''] })} style={styles.trayBtn} accessibilityRole="button">
               <Ic d={POLL_IC} size={16} color={colors.ink} w={2.2} /><Text style={styles.trayBtnText}>Опрос</Text>
             </Pressable>
@@ -348,7 +380,8 @@ export default function ChatScreen() {
               ))}
             </View>
           )}
-          <View style={styles.grid}>
+          <Pressable onPress={()=>void library()} style={styles.sendAll}><Text style={styles.sendAllText}>Выбрать из галереи телефона</Text></Pressable>
+          {config.dataMode==='demo' && <View style={styles.grid}>
             <Pressable onPress={camera} style={[styles.thumb, styles.camTile]} accessibilityRole="button" accessibilityLabel="Камера">
               <View style={styles.camLens}><Ic d={CAM_IC} size={26} color={colors.paper} w={1.8} /></View>
               <Text style={styles.camText}>Камера</Text>
@@ -364,10 +397,10 @@ export default function ChatScreen() {
                 </Pressable>
               );
             })}
-          </View>
-          <Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
+          </View>}
+          {config.dataMode==='demo'&&<Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
-          </Pressable>
+          </Pressable>}
         </SwipeDown>
         </Animated.View>
       )}
@@ -398,9 +431,9 @@ export default function ChatScreen() {
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 90 + insets.bottom }} />}
 
-      {sheet && person && (
+      {(sheet==='person'||sheet==='menu') && person && (
         <>
-          <Backdrop onPress={() => setSheet(null)} opacity={0.35} label="Закрыть" />
+          <Backdrop label="Закрыть" onPress={() => setSheet(null)} opacity={0.35} />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'menu' ? 'Действия' : person.name} style={{ paddingBottom: 30 + insets.bottom }}>
             {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} spot={spot} requested={!!social.sent[person.id]}
               onClose={() => setSheet(null)} onProfile={() => router.push({ pathname: '/person/[id]', params: { id: person.id } })}
@@ -418,11 +451,25 @@ export default function ChatScreen() {
           </BottomSheet>
         </>
       )}
+      {sheet==='events'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet label="Поделиться событием" onClose={()=>setSheet(null)}><Text style={styles.sheetTitle}>Поделиться событием</Text><ScrollView style={{maxHeight:400}}>{[...plans.meetups,...events].filter((e,i,all)=>all.findIndex(a=>a.id===e.id)===i).map(e=><Pressable key={e.id} style={styles.menuRow} onPress={()=>{push({kind:'invite',eventId:e.id,text:e.title});setSheet(null);}}><Text style={styles.menuText}>{e.title}</Text></Pressable>)}</ScrollView></BottomSheet></>}
+      {sheet==='stickers'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Стикеры"><StickerPicker level={stats?.level??1} onSelect={s=>{push({kind:'sticker',text:s.label});setSheet(null);}}/></BottomSheet></>}
+      {sheet==='attachments'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Вложения" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
+        <Text style={styles.sheetTitle}>{title}</Text>
+        <View style={{flexDirection:'row',gap:16}}>
+          {person&&<Pressable onPress={()=>setSheet('person')}><Text style={styles.menuText}>Профиль</Text></Pressable>}
+          {event&&<Pressable onPress={()=>router.push({pathname:'/event/[id]',params:{id:event.id}})}><Text style={styles.menuText}>Событие</Text></Pressable>}
+        </View>
+        <Text style={styles.status}>Фото, видео, файлы и ссылки</Text>
+        <ScrollView style={{maxHeight:450}} contentContainerStyle={{gap:14}}>
+          {messages.filter(m=>['photo','video','circle','voice','invite'].includes(m.kind)||/https?:\/\//.test(m.text)).map(m=><Bubble key={m.id} m={m} mine={m.authorId==='me'} friendChat={friend||isGroup||isEvent} revealed={!!chat.revealed[m.id]} onReveal={()=>chat.reveal(m.id)} onOpenEvent={()=>m.eventId&&router.push({pathname:'/event/[id]',params:{id:m.eventId}})}/>)}
+          {!messages.some(m=>['photo','video','circle','voice','invite'].includes(m.kind)||/https?:\/\//.test(m.text))&&<Text style={styles.status}>Вложений пока нет</Text>}
+        </ScrollView>
+      </BottomSheet></>}
       {recording === 'circle' && (
         <CircleRecorder ref={circleRef} cancelling={cancelling}
-          onDone={(uri, sec) => { setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
-          onCancel={() => setRecording(null)}
-          onDenied={() => { setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
+          onDone={(uri, sec) => { rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
+          onCancel={() => {rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null);}}
+          onDenied={() => { rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
       )}
     </KeyboardAvoidingView>
   );
