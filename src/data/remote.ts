@@ -238,11 +238,6 @@ export async function sendMessage(chatId: string, body: string, kind: MessageKin
   if (error) throw error;
 }
 
-export async function markRead(chatId: string): Promise<void> {
-  const me = await requireUser();
-  await withTimeout(supabase().from('chat_members').update({ last_read_at: new Date().toISOString() }).eq('chat_id', chatId).eq('user_id', me));
-}
-
 /** Открыть личный чат: сервер проверяет правила для незнакомых (общее событие, лимит, 24 часа). */
 export async function openDirectChat(personId: string): Promise<string> {
   await requireUser();
@@ -261,12 +256,6 @@ export async function uploadMedia(chatId: string, uri: string): Promise<string> 
   const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType: blob.type || 'image/jpeg' }), 60000);
   if (error) throw error;
   return path;
-}
-
-export async function mediaUrl(path: string): Promise<string> {
-  const { data, error } = await supabase().storage.from('media').createSignedUrl(path, 3600);
-  if (error) throw error;
-  return data.signedUrl;
 }
 
 // ——— Погода: читаем кэш (обновляет Edge Function weather раз в час) ———

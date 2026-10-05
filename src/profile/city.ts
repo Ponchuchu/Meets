@@ -1,6 +1,6 @@
 // «Открытый город»: соты h3 разрешения 8 (≈0.74 км², ребро ≈ 460 м). Сота открывается отметкой «Я на месте».
 // % города — от сот, где вообще бывают события.
-import { cellToLatLng, latLngToCell } from '../lib/h3';
+import { latLngToCell } from '../lib/h3';
 
 export const H3_RES = 8;
 
@@ -52,9 +52,4 @@ export function levelProgress(pct: number): number {
   const l = levelOf(pct);
   if (l.to == null) return 1;
   return Math.max(0, Math.min(1, (pct - l.from) / (l.to - l.from)));
-}
-
-export function cellCenter(cell: string): { lat: number; lon: number } {
-  const [lat, lon] = cellToLatLng(cell);
-  return { lat, lon };
 }

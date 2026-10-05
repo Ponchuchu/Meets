@@ -14,9 +14,6 @@ export const SKY_PATHS: Record<Sky, string> = {
   rain: 'M7 15.5a4 4 0 01-.5-7.97A6 6 0 0118 6.5a4.5 4.5 0 01-.5 9zM8 22l1.2-2.5M12 22l1.2-2.5M16 22l1.2-2.5',
 };
 
-/** Цвет иконки погоды: солнце — тёплое, дождь — синий, облака — серые. */
-export const SKY_COLOR: Record<Sky, string> = { sun: '#D98A00', part: '#B07A1E', cloud: '#6B675F', rain: '#2E6FA8' };
-
 export const DEMO_FORECAST: DayWeather[] = [
   { sky: 'sun', temp: 18, text: 'ясно' },
   { sky: 'part', temp: 16, text: 'переменная облачность' },

@@ -42,10 +42,6 @@ export async function login(phone: string, code: string): Promise<LoginResult> {
   }
 }
 
-export async function logout() {
-  await supabase().auth.signOut().catch(() => undefined);
-}
-
 interface AuthState { ready: boolean; session: Session | null; set: (s: Session | null) => void }
 export const useAuth = create<AuthState>((set) => ({ ready: false, session: null, set: (session) => set({ session, ready: true }) }));
 

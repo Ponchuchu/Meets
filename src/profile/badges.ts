@@ -86,11 +86,3 @@ export function sortBadges(list: BadgeState[]): BadgeState[] {
   const rank = (b: BadgeState) => (b.got ? 0 : b.progress > 0 ? 1 : 2);
   return [...list].sort((a, b) => rank(a) - rank(b));
 }
-
-/** Ряд из 4 в профиле: 3 полученных и ближайший начатый. */
-export function badgeRow(list: BadgeState[]): BadgeState[] {
-  const s = sortBadges(list);
-  const got = s.filter((b) => b.got).slice(0, 3);
-  const next = s.find((b) => !b.got && b.progress > 0);
-  return [...got, ...(next ? [next] : []), ...s.filter((b) => !got.includes(b) && b !== next)].slice(0, 4);
-}

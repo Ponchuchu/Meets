@@ -92,8 +92,3 @@ export function whenLabel(e: Pick<EventItem, 'startsAt' | 'endsAt' | 'isLong'>, 
 function endOfDayClose(e: Pick<EventItem, 'startsAt' | 'endsAt'>, now: Date): number {
   return closesToday(e, now);
 }
-
-/** Размер пина по фазе: «скоро» — крупнее. */
-export function isVisible(phase: Phase): boolean {
-  return phase !== 'hidden';
-}

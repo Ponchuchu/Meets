@@ -1,16 +1,16 @@
-// Web-админка /admin (docs/PIPELINE.md §5): Модерация / Рекомендации / Источники / Метрики.
+// Панель разработчика /dev (docs/PIPELINE.md §5, вход только для is_staff): Модерация / Рекомендации / Источники / Метрики.
 // Настоящие данные — только команде (таблица staff). Остальным — демо макета, в базу ничего не пишется.
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isStaff } from '../src/admin/api';
-import { Metrics } from '../src/admin/ui/Metrics';
-import { Moderation } from '../src/admin/ui/Moderation';
-import { Sources } from '../src/admin/ui/Sources';
-import { TasteAdmin } from '../src/admin/ui/TasteAdmin';
-import { useSession } from '../src/state/session';
-import { colors, fonts } from '../src/theme';
+import { isStaff } from '../../admin/api';
+import { Metrics } from '../../admin/ui/Metrics';
+import { Moderation } from '../../admin/ui/Moderation';
+import { Sources } from '../../admin/ui/Sources';
+import { TasteAdmin } from '../../admin/ui/TasteAdmin';
+import { useSession } from '../../state/session';
+import { colors, fonts } from '../../theme';
 
 type Tab = 'moderation' | 'taste' | 'sources' | 'metrics';
 const TABS: [Tab, string][] = [['moderation', 'Модерация'], ['taste', 'Рекомендации'], ['sources', 'Источники'], ['metrics', 'Метрики']];

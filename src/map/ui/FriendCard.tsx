@@ -8,7 +8,7 @@ import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { CAT_ICON } from '../icons';
-import { planWhen } from '../../profile/ui/Plans';
+import { planWhen } from '../../lib/planWhen';
 
 export interface Sticker {
   label: string;

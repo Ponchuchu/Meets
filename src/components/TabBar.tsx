@@ -31,7 +31,6 @@ const TABS: Record<string, { label: string; shape?: string; details?: string }> 
 export const tabGap = (bottomInset: number) => Math.max(12, bottomInset);
 /** Сколько места снизу занимает панель — на это поднимаем карточки и отступ списков. */
 export const tabInset = (bottomInset: number) => BAR_H + tabGap(bottomInset) + 10;
-export const TAB_BAR_HEIGHT = BAR_H + 22;
 /** Центр вкладки i (0 — Карта … 4 — Профиль) на экране шириной W и высотой H: сюда летят карточки и смотрит обучение. */
 export function tabCenter(i: number, W: number, H: number, bottomInset: number) {
   const bar = Math.min(366, W * 0.94);

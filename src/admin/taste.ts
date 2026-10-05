@@ -1,6 +1,6 @@
 // Вкладка «Рекомендации» (макет TasteAdmin): что модель знает о человеке и почему колода такая.
 import type { EventItem } from '../data/types';
-import { buildDeck, scoreEvent, SIGNAL_WEIGHT, type Score, type Signal, type SignalKind } from '../reco';
+import { buildDeck, scoreEvent, SIGNAL_WEIGHT, type Score, type SignalKind } from '../reco';
 import { buildStartTaste, type StartAnswers, type Taste } from '../reco/startTaste';
 
 export const SIGNAL_LABEL: Record<SignalKind, string> = {
@@ -61,4 +61,3 @@ export function startOf(answers: StartAnswers): Taste {
   return buildStartTaste(answers);
 }
 
-export type { Signal };
