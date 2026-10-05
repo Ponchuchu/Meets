@@ -36,3 +36,19 @@ describe('геолокация альфы', () => {
     expect(sendInterval(false, 0.05)).toBe(300000);
   });
 });
+
+describe('FIX1 И2 п.14: «Где я был» плавными пятнами', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { cellOutlines, chaikin, fogPolygon } = require('../live/geo') as typeof import('../live/geo');
+  it('соседние клетки — одно пятно без внутренних швов', () => {
+    const rings = cellOutlines(['0:0', '0:1', '1:0', '1:1']);
+    expect(rings).toHaveLength(1);
+    expect(rings[0]).toHaveLength(4); // квадрат 2×2 — 4 угла, швов нет
+  });
+  it('отдельные места — отдельные пятна, углы сглажены', () => {
+    expect(cellOutlines(['0:0', '5:5'])).toHaveLength(2);
+    expect(chaikin([[0, 0], [1, 0], [1, 1], [0, 1]], 3)).toHaveLength(32);
+    const f = fogPolygon(['8660:15400', '8660:15401']);
+    expect(f.geometry.coordinates).toHaveLength(2);
+  });
+});

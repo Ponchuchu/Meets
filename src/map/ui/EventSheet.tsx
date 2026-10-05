@@ -3,7 +3,7 @@
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { photo } from '../../data/photos';
 import type { EventItem, Person } from '../../data/types';
@@ -49,7 +49,7 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
   const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View entering={FadeInDown.duration(260)} style={[styles.sheet, st]}>
+      <Animated.View entering={SlideInDown.springify().damping(17).stiffness(170)} exiting={SlideOutDown.duration(220)} style={[styles.sheet, st]}>
         <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${e.title}. ${stampOf(e, now)}. Открыть событие`} accessibilityHint="Потяни вверх, чтобы раскрыть">
           <View style={[styles.cover, { backgroundColor: bg }]}>
             {e.cover ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" /> : (

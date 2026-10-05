@@ -12,7 +12,7 @@ import type { StartAnswers } from '../../reco/startTaste';
 import { useFeed } from '../../state/feed';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Switch } from '../../ui/controls';
+import { Toggle as Switch } from '../../ui/v6/Settings';
 import { loadUserTaste } from '../api';
 import { useAdminDemo } from '../store';
 import { deckRows, modelConfidence, SIGNAL_LABEL, signalWeight, startOf, tasteRows } from '../taste';

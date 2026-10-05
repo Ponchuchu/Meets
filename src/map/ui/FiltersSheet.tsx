@@ -7,7 +7,7 @@ import type { EventItem } from '../../data/types';
 import { almaty, dayIndex } from '../../lib/clock';
 import { colors, fonts } from '../../theme';
 import { Ic } from '../../ui/Ic';
-import { Switch } from '../../ui/controls';
+import { Toggle as Switch } from '../../ui/v6/Settings';
 import { FILTER_CATS, MAX_PRICE, occursOnDay, PRICE_STOPS, type FilterCat, type MapFilters } from '../filters';
 
 const ICON: Record<FilterCat, LucideIcon> = {
@@ -34,6 +34,15 @@ function monthGrid(now: Date, shift: number) {
   };
 }
 
+/** Клетки месяца по неделям, последняя неделя добита пустыми — в каждой строке ровно 7. */
+function weeks<T>(cells: (T | null)[]): (T | null)[][] {
+  const out: (T | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) out.push(cells.slice(i, i + 7));
+  const last = out[out.length - 1];
+  while (last && last.length < 7) last.push(null);
+  return out;
+}
+
 function Calendar({ now, events, f, set }: { now: Date; events: EventItem[]; f: MapFilters; set: (p: Partial<MapFilters>) => void }) {
   const [shift, setShift] = useState(0);
   const [pending, setPending] = useState(false);
@@ -55,23 +64,28 @@ function Calendar({ now, events, f, set }: { now: Date; events: EventItem[]; f: 
           </Pressable>
         </View>
       </View>
-      <View style={styles.grid}>
-        {WD.map((w) => <Text key={w} style={styles.wd}>{w}</Text>)}
-        {g.cells.map((c, i) => {
-          if (!c) return <View key={`e${i}`} style={styles.cell} />;
-          const past = c.offset < 0;
-          const on = !past && c.offset >= f.from && c.offset <= f.to;
-          const edge = on && (c.offset === f.from || c.offset === f.to);
-          const has = !past && events.some((e) => occursOnDay(e, today + c.offset));
-          return (
-            <Pressable key={c.day} disabled={past} onPress={() => pick(c.offset)} style={[styles.cell, on && styles.cellOn, edge && styles.cellEdge]}
-              accessibilityRole="button" accessibilityState={{ selected: on, disabled: past }} accessibilityLabel={`${c.day} ${g.title}`}>
-              <Text style={[styles.dayText, past && { color: '#B5AFA3' }, edge && { fontFamily: fonts.body700 }]}>{c.day}</Text>
-              {has && <View style={[styles.dot, edge && { backgroundColor: colors.ink }]} />}
-            </Pressable>
-          );
-        })}
-      </View>
+      <View style={styles.wdRow}>{WD.map((w) => <Text key={w} style={styles.wd}>{w}</Text>)}</View>
+      {/* 7 колонок через flex: 1 — без процентов, иначе на Android «вс» уезжает на новую строку (FIX1 И2 п.11). */}
+      {weeks(g.cells).map((week, wi) => (
+        <View key={wi} style={styles.week}>
+          {week.map((c, i) => {
+            if (!c) return <View key={`e${i}`} style={styles.cell} />;
+            const past = c.offset < 0;
+            const on = !past && c.offset >= f.from && c.offset <= f.to;
+            const start = on && c.offset === f.from;
+            const end = on && c.offset === f.to;
+            const has = !past && events.some((e) => occursOnDay(e, today + c.offset));
+            return (
+              <Pressable key={c.day} disabled={past} onPress={() => pick(c.offset)} style={styles.cell}
+                accessibilityRole="button" accessibilityState={{ selected: on, disabled: past }} accessibilityLabel={`${c.day} ${g.title}`}>
+                {on && <View style={[styles.strip, start && styles.stripStart, end && styles.stripEnd, (start || end) && styles.stripEdge]} />}
+                <Text style={[styles.dayText, past && { color: '#B5AFA3' }, (start || end) && { fontFamily: fonts.body700 }]}>{c.day}</Text>
+                {has && <View style={[styles.dot, (start || end) && { backgroundColor: colors.ink }]} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -158,11 +172,15 @@ const styles = StyleSheet.create({
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   calTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   arrow: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  wd: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: fonts.mono600, fontSize: 10.5, color: colors.muted, paddingVertical: 4 },
-  cell: { width: `${100 / 7}%`, height: 40, alignItems: 'center', justifyContent: 'center' },
-  cellOn: { backgroundColor: '#F7C9B3' },
-  cellEdge: { backgroundColor: colors.accent, borderRadius: 10 },
+  wdRow: { flexDirection: 'row' },
+  wd: { flex: 1, textAlign: 'center', fontFamily: fonts.mono600, fontSize: 10.5, color: colors.muted, paddingVertical: 4 },
+  week: { flexDirection: 'row' },
+  cell: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
+  // Диапазон: светлая полоса между днями, концы — оранжевые со скруглением снаружи.
+  strip: { position: 'absolute', left: 0, right: 0, top: 2, bottom: 2, backgroundColor: '#F7C9B3' },
+  stripStart: { left: 2, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
+  stripEnd: { right: 2, borderTopRightRadius: 10, borderBottomRightRadius: 10 },
+  stripEdge: { backgroundColor: colors.accent },
   dayText: { fontFamily: fonts.body500, fontSize: 15, color: colors.ink },
   dot: { position: 'absolute', bottom: 5, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.accent },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
@@ -175,7 +193,8 @@ const styles = StyleSheet.create({
   box: { width: 26, height: 26, borderRadius: 7, borderWidth: 2, borderColor: '#BDB6A8', alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   checkText: { fontFamily: fonts.body700, fontSize: 16, color: colors.ink },
-  track: { height: 30, marginHorizontal: 12, justifyContent: 'center' },
+  // Ползунок: по 15 px с краёв — кружок 30 px целиком внутри шторки (FIX1 И2 п.11).
+  track: { height: 30, marginHorizontal: 15, justifyContent: 'center' },
   rail: { position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2, backgroundColor: '#E2DCD0' },
   railOn: { position: 'absolute', left: 0, height: 4, borderRadius: 2, backgroundColor: colors.ink },
   stop: { position: 'absolute', width: 8, height: 8, marginLeft: -4, borderRadius: 4, backgroundColor: '#BDB6A8' },

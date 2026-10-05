@@ -36,12 +36,22 @@ export interface MapCanvasProps {
   fog?: object | null;
   /** Линии маршрута (V6Route): путь [[lon, lat], …], цвет, толщина, пунктир. */
   lines?: { id: string; coords: [number, number][]; color: string; width?: number; dash?: boolean }[];
+  /** Тап по пустой карте (не по точке) — закрыть шторку события. */
+  onPress?: () => void;
+  /** Поворот карты в градусах (0 — север вверх) — для стрелки компаса. */
+  onBearing?: (deg: number) => void;
+  /** Компас, второй тап: камера следует за мной и поворачивается по направлению телефона. */
+  follow?: boolean;
+  /** Следование выключилось (человек сдвинул карту). */
+  onFollowEnd?: () => void;
 }
 
 export interface MapCanvasHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
   zoomBy: (delta: number) => void;
+  /** Компас: повернуть карту севером вверх. */
+  north: () => void;
 }
 
 // Алматы: стартовая камера — центр так, чтобы джаз на Панфилова был посередине, как в макете.

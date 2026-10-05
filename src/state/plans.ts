@@ -31,6 +31,8 @@ export const NEW_CHATS_PER_DAY = 10;
 export const MAX_MOODS = 4;
 
 interface PlansState {
+  /** Чьи это планы (id аккаунта) — при входе другим аккаунтом всё стирается. */
+  owner: string | null;
   going: Record<string, string>; // eventId → когда нажал
   saved: Record<string, true>;
   company: Record<string, CompanyRequest>;
@@ -53,6 +55,7 @@ interface PlansState {
 export const usePlans = create<PlansState>()(
   persist(
     (set, get) => ({
+      owner: null,
       going: {},
       saved: {},
       company: {},

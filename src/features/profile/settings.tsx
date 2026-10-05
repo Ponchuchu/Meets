@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { deleteAccount, signOut as authSignOut } from '../../auth/service';
+import { setMapTelemetry } from '../../map/telemetry';
 import { supabase } from '../../data/client';
 import { getFriends, getProfile, getSettings, getVisibility, saveProfile, setSetting, setVisibility, type Visibility } from '../../live/api';
 import { myId, useAuth } from '../../live/auth';
@@ -323,7 +324,7 @@ function MapDataPage() {
         <Row title="© Mapbox" onPress={() => void Linking.openURL('https://www.mapbox.com/about/maps/')} />
         <Row title="© участники OpenStreetMap" onPress={() => void Linking.openURL('https://www.openstreetmap.org/copyright')} />
         <Row title="Улучшить карту" onPress={() => void Linking.openURL('https://apps.mapbox.com/feedback/')} />
-        <ToggleRow title="Телеметрия Mapbox" sub="анонимные данные помогают улучшать карту" on={get<boolean>('mapbox_telemetry', false)} onChange={(v) => set('mapbox_telemetry', v)} last />
+        <ToggleRow title="Телеметрия Mapbox" sub="анонимные данные помогают улучшать карту" on={get<boolean>('mapbox_telemetry', false)} onChange={(v) => { set('mapbox_telemetry', v); setMapTelemetry(v); }} last />
       </Group>
       <Note>Пробки — TomTom. Погода — Open-Meteo. Остановки автобусов — OpenStreetMap.</Note>
     </SettingsPage>

@@ -70,6 +70,8 @@ export async function loadStats(): Promise<QueueStats> {
 export async function moderate(id: string, action: 'publish' | 'reject' | 'cancel' | 'pin', point?: { lat: number; lon: number }): Promise<void> {
   const { error } = await withTimeout(supabase().rpc('moderate_event', { ev: id, action, lat: point?.lat ?? null, lon: point?.lon ?? null }));
   if (error) throw error;
+  // Одобрили — точка по адресу (FIX1 И2 п.8). Не нашлось — событие получит флаг «Поставь точку вручную».
+  if (action === 'publish') await supabase().functions.invoke('geocode', { body: { event_id: id } }).catch(() => undefined);
 }
 
 export async function saveDraft(id: string, patch: { title: string; about: string; address: string | null; price_min: number | null; is_free: boolean; flags: QueueFlag[] }): Promise<void> {
