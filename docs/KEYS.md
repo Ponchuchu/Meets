@@ -217,3 +217,11 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 Нужно от тебя:
 1. **Токен GitHub для кнопки «Искать сейчас»** (`GITHUB_DISPATCH_TOKEN`). github.com → аватар → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Repository access: только `ryadom`. Permissions → **Actions: Read and write**. Скопируй токен и положи в Supabase → **Edge Functions → Secrets** → `GITHUB_DISPATCH_TOKEN`. В чат не присылай.
 2. **Пуши на Android (FCM)** — шаги будут в разделе «А9».
+
+## Автодеплой функций Supabase (5 октября)
+
+Чтобы маршруты, пробки и остальное на сервере обновлялись сами:
+1. supabase.com → справа вверху аватар → **Account preferences** → **Access Tokens** → **Generate new token**, имя `github-deploy` → скопировать (`sbp_…`).
+2. GitHub → репозиторий → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**: имя `SUPABASE_ACCESS_TOKEN`, значение — токен → **Add secret**.
+
+Токен никому не пересылать.

@@ -1433,822 +1433,843 @@
    "x": 0,
    "y": 8152
   },
-  "V6Journey.dc.html": {
-   "x": 0,
-   "y": 260,
-   "w": 1800,
-   "h": 1080,
-   "title": "v6 · Весь путь: 16 шагов, листается само",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6FirstRun.dc.html": {
-   "x": 1880,
-   "y": 260,
-   "w": 1400,
-   "h": 1000,
-   "title": "v6 · Первый запуск: вход → добро пожаловать → обучение по вкладкам",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Scenarios.dc.html": {
-   "x": 3360,
-   "y": 260,
-   "w": 1600,
-   "h": 1040,
-   "title": "v6 · Все сценарии",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Splash.dc.html": {
-   "x": 0,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "З1 · Запуск днём",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6SplashNight.dc.html": {
-   "x": 470,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "З2 · Запуск ночью",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Tutorial.dc.html": {
-   "x": 940,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О0 · Обучение: листается само",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialMap.dc.html": {
-   "x": 1410,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О1 · Карта",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialTop.dc.html": {
-   "x": 1880,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О2 · Поиск, слои, фильтры, +",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialLens.dc.html": {
-   "x": 2350,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О3 · Слои",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialFriends.dc.html": {
-   "x": 2820,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О4 · Друзья",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialFeed.dc.html": {
-   "x": 3290,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О5 · Открой Рекомендации",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialSwipe.dc.html": {
-   "x": 3760,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О6 · Смахивай",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialPlans.dc.html": {
-   "x": 4230,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О7 · Планы",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialChats.dc.html": {
-   "x": 4700,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О8 · Чаты",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialMe.dc.html": {
-   "x": 5170,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О9 · Профиль",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6TutorialDone.dc.html": {
-   "x": 5640,
-   "y": 1720,
-   "w": 390,
-   "h": 844,
-   "title": "О10 · Готово",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6MapMove.dc.html": {
-   "x": 0,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К1 · Друзья: след из точек, «38 км/ч», «2 мин»",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Filters.dc.html": {
-   "x": 470,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К2 · Фильтры: «Ближайшее время», цена ползунком",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6FiltersDate.dc.html": {
-   "x": 940,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К3 · Галочку снял — календарь",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6MapLens.dc.html": {
-   "x": 1410,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К4 · Слои",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6MapLensTraffic.dc.html": {
-   "x": 1880,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К5 · Слой «Пробки»",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6MapLensExplore.dc.html": {
-   "x": 2350,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К6 · «Где я был» — 18% открыто",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Offline.dc.html": {
-   "x": 2820,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К7 · Нет интернета",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6OfflineGps.dc.html": {
-   "x": 3290,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К8 · Неточно",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6OfflineNoGeo.dc.html": {
-   "x": 3760,
-   "y": 2944,
-   "w": 390,
-   "h": 844,
-   "title": "К9 · Включи геолокацию",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Venue.dc.html": {
-   "x": 0,
-   "y": 4168,
-   "w": 390,
-   "h": 844,
-   "title": "М1 · ТРЦ на карте, тап по MEGA",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6VenuePage.dc.html": {
-   "x": 470,
-   "y": 4168,
-   "w": 390,
-   "h": 844,
-   "title": "М2 · Страница ТРЦ: фильмы и события",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6VenueFilm.dc.html": {
-   "x": 940,
-   "y": 4168,
-   "w": 390,
-   "h": 844,
-   "title": "М3 · Фильм: день и сеанс",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6VenueSite.dc.html": {
-   "x": 1410,
-   "y": 4168,
-   "w": 390,
-   "h": 844,
-   "title": "М4 · Сайт кинотеатра внутри приложения",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardOpen.dc.html": {
-   "x": 0,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р1 · Процесс: вверх → весь экран → вниз",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardOpenTap.dc.html": {
-   "x": 470,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р2 · Или просто тап — тоже раскрывается",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardOpenFull.dc.html": {
-   "x": 940,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р3 · Карточка раскрыта",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardOpenScroll.dc.html": {
-   "x": 1410,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р4 · Сайт события и адрес",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardOpenWhere.dc.html": {
-   "x": 1880,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р5 · Тап по адресу: здесь, 2ГИС или Яндекс",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Route.dc.html": {
-   "x": 2350,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р6 · Маршрут здесь: автобус 63",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6RouteCar.dc.html": {
-   "x": 2820,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р7 · Машина с пробками",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6RouteWalk.dc.html": {
-   "x": 3290,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р8 · Пешком",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6CardPeople.dc.html": {
-   "x": 3760,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р9 · Кнопка «Я тоже ищу компанию»",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6PlansFly.dc.html": {
-   "x": 4230,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р10 · Вправо: плавно улетает в «Планы»",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Empty.dc.html": {
-   "x": 4700,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р11 · Ты всё посмотрел",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6EmptyPlans.dc.html": {
-   "x": 5170,
-   "y": 5392,
-   "w": 390,
-   "h": 844,
-   "title": "Р12 · Планов пока нет",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6RealEvents.dc.html": {
-   "x": 5640,
-   "y": 5392,
-   "w": 1600,
-   "h": 1010,
-   "title": "Р13 · Настоящие события 4–12 октября",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ChatMedia.dc.html": {
-   "x": 0,
-   "y": 6782,
-   "w": 390,
-   "h": 844,
-   "title": "Ч1 · Голосовое: держи, вверх — замок",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ChatCircle.dc.html": {
-   "x": 470,
-   "y": 6782,
-   "w": 390,
-   "h": 844,
-   "title": "Ч2 · Кружок",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ChatSwipe.dc.html": {
-   "x": 940,
-   "y": 6782,
-   "w": 390,
-   "h": 844,
-   "title": "Ч3 · Смахнул чат — удалить",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ChatReply.dc.html": {
-   "x": 1410,
-   "y": 6782,
-   "w": 390,
-   "h": 844,
-   "title": "Ч4 · Смахнул сообщение — ответить",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Bump.dc.html": {
-   "x": 0,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д1 · Бамп: весь процесс",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6BumpSearch.dc.html": {
-   "x": 470,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д2 · Ищем рядом",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6BumpFound.dc.html": {
-   "x": 940,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д3 · Бамп засчитан",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6BumpPush.dc.html": {
-   "x": 1410,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д4 · Пуш общим друзьям",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6EmptyAdd.dc.html": {
-   "x": 1880,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д5 · Добавить и позвать",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileFriend.dc.html": {
-   "x": 2350,
-   "y": 8006,
-   "w": 390,
-   "h": 844,
-   "title": "Д6 · Профиль друга",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Profile.dc.html": {
-   "x": 0,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр1 · Мой профиль",
-   "page": "v6",
-   "is_interactive": true
-  },
   "V6Achieve.dc.html": {
-   "x": 470,
-   "y": 9230,
-   "w": 390,
    "h": 844,
-   "title": "Пр2 · Значки и уровень",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Пр2 · Значки и уровень",
+   "w": 390,
+   "x": 470,
+   "y": 9230
   },
   "V6AchieveDetail.dc.html": {
-   "x": 940,
-   "y": 9230,
-   "w": 390,
    "h": 844,
-   "title": "Пр3 · Как получить значок",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Пр3 · Как получить значок",
+   "w": 390,
+   "x": 940,
+   "y": 9230
   },
   "V6AchieveRewards.dc.html": {
-   "x": 1410,
-   "y": 9230,
-   "w": 390,
    "h": 844,
+   "is_interactive": true,
+   "page": "v6",
    "title": "Пр4 · Награды за уровни",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfilePrivacy.dc.html": {
-   "x": 1880,
-   "y": 9230,
    "w": 390,
-   "h": 844,
-   "title": "Пр5 · Кто видит · невидимка 1/8/24 ч",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileSettings.dc.html": {
-   "x": 2350,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр6 · Настройки",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileAccount.dc.html": {
-   "x": 2820,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр7 · Аккаунт",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileNotify.dc.html": {
-   "x": 3290,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр8 · Уведомления",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileChats.dc.html": {
-   "x": 3760,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр9 · Сообщения и стикеры",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6ProfileBlack.dc.html": {
-   "x": 4230,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр10 · Чёрный список",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Places.dc.html": {
-   "x": 4700,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр11 · Мои места",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6PlacesAdd.dc.html": {
-   "x": 5170,
-   "y": 9230,
-   "w": 390,
-   "h": 844,
-   "title": "Пр12 · Отметить место",
-   "page": "v6",
-   "is_interactive": true
+   "x": 1410,
+   "y": 9230
   },
   "V6AutoStatus.dc.html": {
-   "x": 0,
-   "y": 10454,
-   "w": 1600,
    "h": 1060,
+   "is_interactive": true,
+   "page": "v6",
    "title": "С1 · Как это работает",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6StatusRules.dc.html": {
-   "x": 1680,
-   "y": 10454,
    "w": 1600,
-   "h": 900,
-   "title": "С2 · Все условия и что важнее",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Dev.dc.html": {
    "x": 0,
-   "y": 11894,
-   "w": 390,
-   "h": 844,
-   "title": "Раз1 · Главная панели",
-   "page": "v6",
-   "is_interactive": true
+   "y": 10454
   },
-  "V6DevRun.dc.html": {
-   "x": 470,
-   "y": 11894,
-   "w": 390,
+  "V6Bump.dc.html": {
    "h": 844,
-   "title": "Раз2 · «Искать сейчас»",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Д1 · Бамп: весь процесс",
+   "w": 390,
+   "x": 0,
+   "y": 8006
   },
-  "V6DevSchedule.dc.html": {
+  "V6BumpFound.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Д3 · Бамп засчитан",
+   "w": 390,
    "x": 940,
-   "y": 11894,
-   "w": 390,
-   "h": 844,
-   "title": "Раз3 · Расписание: колесо даты и времени",
-   "page": "v6",
-   "is_interactive": true
+   "y": 8006
   },
-  "V6DevSources.dc.html": {
+  "V6BumpPush.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Д4 · Пуш общим друзьям",
+   "w": 390,
    "x": 1410,
-   "y": 11894,
-   "w": 390,
-   "h": 844,
-   "title": "Раз4 · Темы и сайты",
-   "page": "v6",
-   "is_interactive": true
+   "y": 8006
   },
-  "V6DevQueue.dc.html": {
+  "V6BumpSearch.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Д2 · Ищем рядом",
+   "w": 390,
+   "x": 470,
+   "y": 8006
+  },
+  "V6CardOpen.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р1 · Процесс: вверх → весь экран → вниз",
+   "w": 390,
+   "x": 0,
+   "y": 5392
+  },
+  "V6CardOpenFull.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р3 · Карточка раскрыта",
+   "w": 390,
+   "x": 940,
+   "y": 5392
+  },
+  "V6CardOpenScroll.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р4 · Сайт события и адрес",
+   "w": 390,
+   "x": 1410,
+   "y": 5392
+  },
+  "V6CardOpenTap.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р2 · Или просто тап — тоже раскрывается",
+   "w": 390,
+   "x": 470,
+   "y": 5392
+  },
+  "V6CardOpenWhere.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р5 · Тап по адресу: здесь, 2ГИС или Яндекс",
+   "w": 390,
    "x": 1880,
-   "y": 11894,
-   "w": 390,
-   "h": 844,
-   "title": "Раз5 · Согласование",
-   "page": "v6",
-   "is_interactive": true
+   "y": 5392
   },
-  "V6DevQueueReview.dc.html": {
-   "x": 2350,
-   "y": 11894,
-   "w": 390,
+  "V6CardPeople.dc.html": {
    "h": 844,
-   "title": "Раз6 · Страница → карточка",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Р9 · Кнопка «Я тоже ищу компанию»",
+   "w": 390,
+   "x": 3760,
+   "y": 5392
   },
-  "V6DevTables.dc.html": {
-   "x": 2820,
-   "y": 11894,
-   "w": 390,
+  "V6ChatCircle.dc.html": {
    "h": 844,
-   "title": "Раз7 · Таблицы",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Ч2 · Кружок",
+   "w": 390,
+   "x": 470,
+   "y": 6782
   },
-  "V6DevRow.dc.html": {
-   "x": 3290,
-   "y": 11894,
-   "w": 390,
+  "V6ChatMedia.dc.html": {
    "h": 844,
-   "title": "Раз8 · Правка события",
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Ч1 · Голосовое: держи, вверх — замок",
+   "w": 390,
+   "x": 0,
+   "y": 6782
+  },
+  "V6ChatReply.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Ч4 · Смахнул сообщение — ответить",
+   "w": 390,
+   "x": 1410,
+   "y": 6782
+  },
+  "V6ChatSwipe.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Ч3 · Смахнул чат — удалить",
+   "w": 390,
+   "x": 940,
+   "y": 6782
   },
   "V6DataPlan.dc.html": {
-   "x": 3760,
-   "y": 11894,
-   "w": 1700,
    "h": 960,
+   "is_interactive": true,
+   "page": "v6",
    "title": "Раз9 · Откуда берутся события и данные",
-   "page": "v6",
-   "is_interactive": true
+   "w": 1700,
+   "x": 3760,
+   "y": 11894
   },
-  "V6MapTop.dc.html": {
+  "V6Dev.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз1 · Главная панели",
+   "w": 390,
    "x": 0,
-   "y": 13234,
-   "w": 390,
-   "h": 140,
-   "title": "Верх карты: поиск, слои, фильтры, +, погода",
-   "page": "v6",
-   "is_interactive": true
+   "y": 11894
   },
-  "V6TabBar.dc.html": {
-   "x": 470,
-   "y": 13234,
-   "w": 390,
-   "h": 96,
-   "title": "Нижняя панель: только иконки",
+  "V6DevQueue.dc.html": {
+   "h": 844,
+   "is_interactive": true,
    "page": "v6",
-   "is_interactive": true
+   "title": "Раз5 · Согласование",
+   "w": 390,
+   "x": 1880,
+   "y": 11894
+  },
+  "V6DevQueueReview.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз6 · Страница → карточка",
+   "w": 390,
+   "x": 2350,
+   "y": 11894
+  },
+  "V6DevRow.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз8 · Правка события",
+   "w": 390,
+   "x": 3290,
+   "y": 11894
+  },
+  "V6DevRun.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз2 · «Искать сейчас»",
+   "w": 390,
+   "x": 470,
+   "y": 11894
+  },
+  "V6DevSchedule.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз3 · Расписание: колесо даты и времени",
+   "w": 390,
+   "x": 940,
+   "y": 11894
+  },
+  "V6DevSources.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз4 · Темы и сайты",
+   "w": 390,
+   "x": 1410,
+   "y": 11894
+  },
+  "V6DevTables.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Раз7 · Таблицы",
+   "w": 390,
+   "x": 2820,
+   "y": 11894
   },
   "V6Edge.dc.html": {
-   "x": 0,
-   "y": 13754,
-   "w": 1600,
    "h": 1070,
+   "is_interactive": true,
+   "page": "v6",
    "title": "Н1 · Не по плану",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6Reality.dc.html": {
-   "x": 1680,
-   "y": 13754,
    "w": 1600,
-   "h": 1000,
-   "title": "Н2 · Что легко, сложно, нельзя",
-   "page": "v6",
-   "is_interactive": true
-  },
-  "V6IconAll.dc.html": {
    "x": 0,
-   "y": 260,
-   "w": 1600,
-   "h": 1010,
-   "title": "Все 8 вариантов",
-   "page": "icon",
-   "is_interactive": true
+   "y": 13754
   },
-  "V6IconPair.dc.html": {
-   "x": 1700,
-   "y": 260,
-   "w": 1600,
-   "h": 780,
-   "title": "«Двое» — выровнено: 5, 9, 10",
-   "page": "icon",
-   "is_interactive": true
+  "V6Empty.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р11 · Ты всё посмотрел",
+   "w": 390,
+   "x": 4700,
+   "y": 5392
+  },
+  "V6EmptyAdd.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Д5 · Добавить и позвать",
+   "w": 390,
+   "x": 1880,
+   "y": 8006
+  },
+  "V6EmptyPlans.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р12 · Планов пока нет",
+   "w": 390,
+   "x": 5170,
+   "y": 5392
+  },
+  "V6Filters.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К2 · Фильтры: «Ближайшее время», цена ползунком",
+   "w": 390,
+   "x": 470,
+   "y": 2944
+  },
+  "V6FiltersDate.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К3 · Галочку снял — календарь",
+   "w": 390,
+   "x": 940,
+   "y": 2944
+  },
+  "V6FirstRun.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "v6 · Первый запуск: вход → добро пожаловать → обучение по вкладкам",
+   "w": 1400,
+   "x": 1880,
+   "y": 260
+  },
+  "V6Icon.dc.html": {
+   "h": 180,
+   "w": 180,
+   "x": 7320,
+   "y": 0
   },
   "V6Icon1.dc.html": {
-   "x": 0,
-   "y": 1400,
-   "w": 1600,
    "h": 900,
+   "is_interactive": true,
+   "page": "icon",
    "title": "Иконка 1 · Точка — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon2.dc.html": {
-   "x": 1700,
-   "y": 1400,
    "w": 1600,
-   "h": 900,
-   "title": "Иконка 2 · р. — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon3.dc.html": {
    "x": 0,
-   "y": 2400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 3 · Кисть — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon4.dc.html": {
-   "x": 1700,
-   "y": 2400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 4 · Слово — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon5.dc.html": {
-   "x": 0,
-   "y": 3400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 5 · Двое — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon6.dc.html": {
-   "x": 1700,
-   "y": 3400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 6 · Пин — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon7.dc.html": {
-   "x": 0,
-   "y": 4400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 7 · Бамп — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon8.dc.html": {
-   "x": 1700,
-   "y": 4400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 8 · Город — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
-  },
-  "V6Icon9.dc.html": {
-   "x": 0,
-   "y": 5400,
-   "w": 1600,
-   "h": 900,
-   "title": "Иконка 9 · Двое ровно — iOS и Android",
-   "page": "icon",
-   "is_interactive": true
+   "y": 1400
   },
   "V6Icon10.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 10 · Двое вместе — iOS и Android",
+   "w": 1600,
    "x": 1700,
-   "y": 5400,
+   "y": 5400
+  },
+  "V6Icon2.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 2 · р. — iOS и Android",
+   "w": 1600,
+   "x": 1700,
+   "y": 1400
+  },
+  "V6Icon3.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 3 · Кисть — iOS и Android",
+   "w": 1600,
+   "x": 0,
+   "y": 2400
+  },
+  "V6Icon4.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 4 · Слово — iOS и Android",
+   "w": 1600,
+   "x": 1700,
+   "y": 2400
+  },
+  "V6Icon5.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 5 · Двое — iOS и Android",
+   "w": 1600,
+   "x": 0,
+   "y": 3400
+  },
+  "V6Icon6.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 6 · Пин — iOS и Android",
+   "w": 1600,
+   "x": 1700,
+   "y": 3400
+  },
+  "V6Icon7.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 7 · Бамп — iOS и Android",
+   "w": 1600,
+   "x": 0,
+   "y": 4400
+  },
+  "V6Icon8.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 8 · Город — iOS и Android",
+   "w": 1600,
+   "x": 1700,
+   "y": 4400
+  },
+  "V6Icon9.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Иконка 9 · Двое ровно — iOS и Android",
+   "w": 1600,
+   "x": 0,
+   "y": 5400
+  },
+  "V6IconAll.dc.html": {
+   "h": 1010,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "Все 8 вариантов",
+   "w": 1600,
+   "x": 0,
+   "y": 260
+  },
+  "V6IconPair.dc.html": {
+   "h": 780,
+   "is_interactive": true,
+   "page": "icon",
+   "title": "«Двое» — выровнено: 5, 9, 10",
+   "w": 1600,
+   "x": 1700,
+   "y": 260
+  },
+  "V6IconSheet.dc.html": {
+   "h": 900,
+   "w": 1600,
+   "x": 7580,
+   "y": 0
+  },
+  "V6Journey.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "v6 · Весь путь: 16 шагов, листается само",
+   "w": 1800,
+   "x": 0,
+   "y": 260
+  },
+  "V6MapLens.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К4 · Слои",
+   "w": 390,
+   "x": 1410,
+   "y": 2944
+  },
+  "V6MapLensExplore.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К6 · «Где я был» — 18% открыто",
+   "w": 390,
+   "x": 2350,
+   "y": 2944
+  },
+  "V6MapLensTraffic.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К5 · Слой «Пробки»",
+   "w": 390,
+   "x": 1880,
+   "y": 2944
+  },
+  "V6MapMove.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К1 · Друзья: след из точек, «38 км/ч», «2 мин»",
+   "w": 390,
+   "x": 0,
+   "y": 2944
+  },
+  "V6MapTop.dc.html": {
+   "h": 140,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Верх карты: поиск, слои, фильтры, +, погода",
+   "w": 390,
+   "x": 0,
+   "y": 13234
+  },
+  "V6Offline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К7 · Нет интернета",
+   "w": 390,
+   "x": 2820,
+   "y": 2944
+  },
+  "V6OfflineGps.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К8 · Неточно",
+   "w": 390,
+   "x": 3290,
+   "y": 2944
+  },
+  "V6OfflineNoGeo.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "К9 · Включи геолокацию",
+   "w": 390,
+   "x": 3760,
+   "y": 2944
+  },
+  "V6Places.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр11 · Мои места",
+   "w": 390,
+   "x": 4700,
+   "y": 9230
+  },
+  "V6PlacesAdd.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр12 · Отметить место",
+   "w": 390,
+   "x": 5170,
+   "y": 9230
+  },
+  "V6PlansFly.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р10 · Вправо: плавно улетает в «Планы»",
+   "w": 390,
+   "x": 4230,
+   "y": 5392
+  },
+  "V6Profile.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр1 · Мой профиль",
+   "w": 390,
+   "x": 0,
+   "y": 9230
+  },
+  "V6ProfileAccount.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр7 · Аккаунт",
+   "w": 390,
+   "x": 2820,
+   "y": 9230
+  },
+  "V6ProfileBlack.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр10 · Чёрный список",
+   "w": 390,
+   "x": 4230,
+   "y": 9230
+  },
+  "V6ProfileChats.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр9 · Сообщения и стикеры",
+   "w": 390,
+   "x": 3760,
+   "y": 9230
+  },
+  "V6ProfileFriend.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Д6 · Профиль друга",
+   "w": 390,
+   "x": 2350,
+   "y": 8006
+  },
+  "V6ProfileNotify.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр8 · Уведомления",
+   "w": 390,
+   "x": 3290,
+   "y": 9230
+  },
+  "V6ProfilePrivacy.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр5 · Кто видит · невидимка 1/8/24 ч",
+   "w": 390,
+   "x": 1880,
+   "y": 9230
+  },
+  "V6ProfileSettings.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Пр6 · Настройки",
+   "w": 390,
+   "x": 2350,
+   "y": 9230
+  },
+  "V6RealEvents.dc.html": {
+   "h": 1010,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р13 · Настоящие события 4–12 октября",
+   "w": 1600,
+   "x": 5640,
+   "y": 5392
+  },
+  "V6Reality.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Н2 · Что легко, сложно, нельзя",
+   "w": 1600,
+   "x": 1680,
+   "y": 13754
+  },
+  "V6Route.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р6 · Маршрут здесь: автобус 63",
+   "w": 390,
+   "x": 2350,
+   "y": 5392
+  },
+  "V6RouteCar.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р7 · Машина с пробками",
+   "w": 390,
+   "x": 2820,
+   "y": 5392
+  },
+  "V6RouteWalk.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Р8 · Пешком",
+   "w": 390,
+   "x": 3290,
+   "y": 5392
+  },
+  "V6Scenarios.dc.html": {
+   "h": 1040,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "v6 · Все сценарии",
+   "w": 1600,
+   "x": 3360,
+   "y": 260
+  },
+  "V6Splash.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "З1 · Запуск днём",
+   "w": 390,
+   "x": 0,
+   "y": 1720
+  },
+  "V6SplashNight.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "З2 · Запуск ночью",
+   "w": 390,
+   "x": 470,
+   "y": 1720
+  },
+  "V6StatusRules.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "С2 · Все условия и что важнее",
+   "w": 1600,
+   "x": 1680,
+   "y": 10454
+  },
+  "V6TabBar.dc.html": {
+   "h": 96,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "Нижняя панель: только иконки",
+   "w": 390,
+   "x": 470,
+   "y": 13234
+  },
+  "V6Tutorial.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О0 · Обучение: листается само",
+   "w": 390,
+   "x": 940,
+   "y": 1720
+  },
+  "V6TutorialChats.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О8 · Чаты",
+   "w": 390,
+   "x": 4700,
+   "y": 1720
+  },
+  "V6TutorialDone.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О10 · Готово",
+   "w": 390,
+   "x": 5640,
+   "y": 1720
+  },
+  "V6TutorialFeed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О5 · Открой Рекомендации",
+   "w": 390,
+   "x": 3290,
+   "y": 1720
+  },
+  "V6TutorialFriends.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О4 · Друзья",
+   "w": 390,
+   "x": 2820,
+   "y": 1720
+  },
+  "V6TutorialLens.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О3 · Слои",
+   "w": 390,
+   "x": 2350,
+   "y": 1720
+  },
+  "V6TutorialMap.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О1 · Карта",
+   "w": 390,
+   "x": 1410,
+   "y": 1720
+  },
+  "V6TutorialMe.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О9 · Профиль",
+   "w": 390,
+   "x": 5170,
+   "y": 1720
+  },
+  "V6TutorialPlans.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О7 · Планы",
+   "w": 390,
+   "x": 4230,
+   "y": 1720
+  },
+  "V6TutorialSwipe.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О6 · Смахивай",
+   "w": 390,
+   "x": 3760,
+   "y": 1720
+  },
+  "V6TutorialTop.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "О2 · Поиск, слои, фильтры, +",
+   "w": 390,
+   "x": 1880,
+   "y": 1720
+  },
+  "V6Venue.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "М1 · ТРЦ на карте, тап по MEGA",
+   "w": 390,
+   "x": 0,
+   "y": 4168
+  },
+  "V6VenueFilm.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "М3 · Фильм: день и сеанс",
+   "w": 390,
+   "x": 940,
+   "y": 4168
+  },
+  "V6VenuePage.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "М2 · Страница ТРЦ: фильмы и события",
+   "w": 390,
+   "x": 470,
+   "y": 4168
+  },
+  "V6VenueSite.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "page": "v6",
+   "title": "М4 · Сайт кинотеатра внутри приложения",
+   "w": 390,
+   "x": 1410,
+   "y": 4168
+  },
+  "V6Icon11.dc.html": {
+   "x": 3400,
+   "y": 260,
    "w": 1600,
    "h": 900,
-   "title": "Иконка 10 · Двое вместе — iOS и Android",
+   "title": "ФИНАЛ · Двое на оранжевом, ryadom",
    "page": "icon",
    "is_interactive": true
   }
@@ -2259,10 +2280,19 @@
  },
  "designSystems": [],
  "launch": {
-  "view": "canvas",
-  "page": "v6"
+  "page": "v6",
+  "view": "canvas"
  },
  "notes": {
+  "icon_top": {
+   "kind": "title1",
+   "maxW": 3400,
+   "text": "Иконка «рядом.»: тебе понравились «Двое» — справа три выровненных варианта (5, 9, 10). Ниже — каждый на iPhone и Android во всех темах",
+   "w": 240,
+   "x": 0,
+   "y": 0,
+   "page": "icon"
+  },
   "row_foryou": {
    "kind": "title1",
    "maxW": 3569,
@@ -2533,122 +2563,113 @@
    "x": 0,
    "y": 0
   },
-  "v6_top": {
-   "kind": "title1",
-   "maxW": 4960,
-   "text": "v6: всё приложение, первый запуск по шагам и карта всех сценариев",
-   "w": 240,
-   "x": 0,
-   "y": 0,
-   "page": "v6"
-  },
-  "v6_start": {
-   "kind": "title1",
-   "maxW": 6030,
-   "text": "Запуск: кистью, точка там, где ты, карта приближает тебя в центр. Обучение — по настоящим вкладкам",
-   "w": 240,
-   "x": 0,
-   "y": 1460,
-   "page": "v6"
-  },
-  "v6_map": {
-   "kind": "title1",
-   "maxW": 4150,
-   "text": "Карта: сверху поиск → слои → фильтры → +, погода на карте, дата в фильтрах, «18% открыто»",
-   "w": 240,
-   "x": 0,
-   "y": 2684,
-   "page": "v6"
-  },
-  "v6_venue": {
-   "kind": "title1",
-   "maxW": 1800,
-   "text": "ТРЦ: MEGA, Dostyk Plaza, Esentai — кино по фильмам и события. Фильм → день → сеанс → сайт",
-   "w": 240,
-   "x": 0,
-   "y": 3908,
-   "page": "v6"
-  },
-  "v6_feed": {
-   "kind": "title1",
-   "maxW": 7240,
-   "text": "Рекомендации: раскрыть свайпом или тапом, сайт и адрес, «ищу компанию», улёт в «Планы»",
-   "w": 240,
-   "x": 0,
-   "y": 5132,
-   "page": "v6"
-  },
   "v6_chat": {
    "kind": "title1",
    "maxW": 1800,
+   "page": "v6",
    "text": "Чаты: голосовые и кружки, смахнуть — удалить или ответить",
    "w": 240,
    "x": 0,
-   "y": 6522,
-   "page": "v6"
-  },
-  "v6_friends": {
-   "kind": "title1",
-   "maxW": 2740,
-   "text": "Друзья: бамп от поиска до пуша общим друзьям, ссылка, позвать",
-   "w": 240,
-   "x": 0,
-   "y": 7746,
-   "page": "v6"
-  },
-  "v6_profile": {
-   "kind": "title1",
-   "maxW": 5560,
-   "text": "Профиль: «Где я был», уровень, значки, награды и все настройки",
-   "w": 240,
-   "x": 0,
-   "y": 8970,
-   "page": "v6"
-  },
-  "v6_status": {
-   "kind": "title1",
-   "maxW": 3280,
-   "text": "Статусы ставятся сами — все условия",
-   "w": 240,
-   "x": 0,
-   "y": 10194,
-   "page": "v6"
+   "y": 6522
   },
   "v6_dev": {
    "kind": "title1",
    "maxW": 5460,
+   "page": "v6",
    "text": "Панель разработчика: робот поиска, вручную и по расписанию, источники, таблицы, согласование",
    "w": 240,
    "x": 0,
-   "y": 11634,
-   "page": "v6"
-  },
-  "v6_parts": {
-   "kind": "title1",
-   "maxW": 1800,
-   "text": "Детали: верх карты и нижняя панель — только иконки",
-   "w": 240,
-   "x": 0,
-   "y": 12974,
-   "page": "v6"
+   "y": 11634
   },
   "v6_edge": {
    "kind": "title1",
    "maxW": 3280,
+   "page": "v6",
    "text": "Редкие случаи и проверка реальностью",
    "w": 240,
    "x": 0,
-   "y": 13494,
-   "page": "v6"
+   "y": 13494
   },
-  "icon_top": {
+  "v6_feed": {
    "kind": "title1",
-   "maxW": 3400,
-   "text": "Иконка «рядом.»: тебе понравились «Двое» — справа три выровненных варианта (5, 9, 10). Ниже — каждый на iPhone и Android во всех темах",
+   "maxW": 7240,
+   "page": "v6",
+   "text": "Рекомендации: раскрыть свайпом или тапом, сайт и адрес, «ищу компанию», улёт в «Планы»",
    "w": 240,
    "x": 0,
-   "y": 0,
-   "page": "icon"
+   "y": 5132
+  },
+  "v6_friends": {
+   "kind": "title1",
+   "maxW": 2740,
+   "page": "v6",
+   "text": "Друзья: бамп от поиска до пуша общим друзьям, ссылка, позвать",
+   "w": 240,
+   "x": 0,
+   "y": 7746
+  },
+  "v6_map": {
+   "kind": "title1",
+   "maxW": 4150,
+   "page": "v6",
+   "text": "Карта: сверху поиск → слои → фильтры → +, погода на карте, дата в фильтрах, «18% открыто»",
+   "w": 240,
+   "x": 0,
+   "y": 2684
+  },
+  "v6_parts": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "v6",
+   "text": "Детали: верх карты и нижняя панель — только иконки",
+   "w": 240,
+   "x": 0,
+   "y": 12974
+  },
+  "v6_profile": {
+   "kind": "title1",
+   "maxW": 5560,
+   "page": "v6",
+   "text": "Профиль: «Где я был», уровень, значки, награды и все настройки",
+   "w": 240,
+   "x": 0,
+   "y": 8970
+  },
+  "v6_start": {
+   "kind": "title1",
+   "maxW": 6030,
+   "page": "v6",
+   "text": "Запуск: кистью, точка там, где ты, карта приближает тебя в центр. Обучение — по настоящим вкладкам",
+   "w": 240,
+   "x": 0,
+   "y": 1460
+  },
+  "v6_status": {
+   "kind": "title1",
+   "maxW": 3280,
+   "page": "v6",
+   "text": "Статусы ставятся сами — все условия",
+   "w": 240,
+   "x": 0,
+   "y": 10194
+  },
+  "v6_top": {
+   "kind": "title1",
+   "maxW": 4960,
+   "page": "v6",
+   "text": "v6: всё приложение, первый запуск по шагам и карта всех сценариев",
+   "w": 240,
+   "x": 0,
+   "y": 0
+  },
+  "v6_venue": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "v6",
+   "text": "ТРЦ: MEGA, Dostyk Plaza, Esentai — кино по фильмам и события. Фильм → день → сеанс → сайт",
+   "w": 240,
+   "x": 0,
+   "y": 3908
   }
  },
  "order": [
@@ -2907,7 +2928,10 @@
   "V6Icon7.dc.html",
   "V6Icon8.dc.html",
   "V6Icon9.dc.html",
-  "V6Icon10.dc.html"
+  "V6Icon10.dc.html",
+  "V6Icon.dc.html",
+  "V6IconSheet.dc.html",
+  "V6Icon11.dc.html"
  ],
  "pages": [
   {

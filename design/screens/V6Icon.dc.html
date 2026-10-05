@@ -43,6 +43,10 @@ body{margin:0}
 <circle cx="31" cy="50" r="17" fill="{{p.a}}"></circle>
 <circle cx="69" cy="50" r="17" fill="{{p.b}}"></circle>
 </sc-if>
+<sc-if value="{{c11}}" hint-placeholder-val="{{ false }}">
+<circle cx="41" cy="55" r="25" fill="{{p.a}}"></circle>
+<circle cx="66" cy="36" r="15.5" fill="{{p.b}}" stroke="{{p.bg}}" stroke-width="5"></circle>
+</sc-if>
 <sc-if value="{{c10}}" hint-placeholder-val="{{ false }}">
 <circle cx="39" cy="50" r="21" fill="{{p.a}}"></circle>
 <circle cx="61" cy="50" r="21" fill="{{p.b}}" stroke="{{p.bg}}" stroke-width="4"></circle>
@@ -69,7 +73,7 @@ body{margin:0}
 </svg>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"concept":{"editor":"int","default":1,"min":1,"max":10},"mode":{"editor":"enum","options":["light","dark","tinted","mono","monodark"],"default":"light"},"shape":{"editor":"enum","options":["ios","circle","squircle","rounded","teardrop","square"],"default":"ios"},"size":{"editor":"int","default":180,"min":16,"max":600},"$preview":{"width":180,"height":180}}'>
+<script type="text/x-dc" data-dc-script data-props='{"concept":{"editor":"int","default":1,"min":1,"max":11},"mode":{"editor":"enum","options":["light","dark","tinted","mono","monodark"],"default":"light"},"shape":{"editor":"enum","options":["ios","circle","squircle","rounded","teardrop","square"],"default":"ios"},"size":{"editor":"int","default":180,"min":16,"max":600},"$preview":{"width":180,"height":180}}'>
 class Component extends DCLogic {
   renderVals() {
     const c = Number(this.props.concept ?? 1) || 1;
@@ -87,7 +91,8 @@ class Component extends DCLogic {
       7: { bg: INK, a: O, b: O },
       8: { bg: PAPER, a: O, b: CR, c: 'rgba(23,22,26,0.13)', d: 'rgba(36,71,184,0.28)' },
       9: { bg: INK, a: O, b: CR },
-      10: { bg: INK, a: O, b: CR }
+      10: { bg: INK, a: O, b: CR },
+      11: { bg: O, a: INK, b: CR }
     };
     const DK = '#1C1B20';
     const D = {
@@ -100,7 +105,8 @@ class Component extends DCLogic {
       7: { bg: DK, a: O, b: O },
       8: { bg: DK, a: O, b: DK, c: 'rgba(243,240,232,0.13)', d: 'rgba(143,193,242,0.3)' },
       9: { bg: DK, a: O, b: CR },
-      10: { bg: DK, a: O, b: CR }
+      10: { bg: DK, a: O, b: CR },
+      11: { bg: DK, a: O, b: CR }
     };
     const tone = (bg, fg, soft) => ({ bg, a: fg, b: c === 6 || c === 8 ? bg : c === 1 ? soft : fg, c: soft, d: soft });
     const T = { tinted: tone('#0D0D10', '#8FC1F2', 'rgba(143,193,242,0.32)'), mono: tone('#DCE5F4', '#20406E', 'rgba(32,64,110,0.25)'), monodark: tone('#1E2638', '#C4D6F5', 'rgba(196,214,245,0.28)') };
@@ -116,7 +122,7 @@ class Component extends DCLogic {
       hl: mode === 'mono' || mode === 'monodark' ? '0' : mode === 'light' ? '0.16' : '0.08',
       gid: 'v6icG' + c + mode + shape + size,
       tf: 'translate(50 50) scale(' + sc + ') translate(-50 -50)',
-      c1: c === 1, c2: c === 2, c3: c === 3, c4: c === 4, c5: c === 5, c6: c === 6, c7: c === 7, c8: c === 8, c9: c === 9, c10: c === 10
+      c1: c === 1, c2: c === 2, c3: c === 3, c4: c === 4, c5: c === 5, c6: c === 6, c7: c === 7, c8: c === 8, c9: c === 9, c10: c === 10, c11: c === 11
     };
   }
 }
