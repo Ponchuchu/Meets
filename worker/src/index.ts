@@ -3,6 +3,7 @@
 //   node worker/src/index.ts --demo     — посты из worker/fixtures, печать черновиков, без записи в базу
 //   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
+import {cancelled,robotUpdate,robotLog} from './robot.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,10 +115,11 @@ async function live() {
   const [sources, venues, known] = loaded;
   let drafts = 0;
   if (searchFile) {
+    if(await cancelled()){await robotLog('Остановлено до публикации черновиков');return;}
     const source = sources.find((s) => s.kind === 'search');
     if (!source) {
       console.log('В базе нет источника «Поиск · Gemini» — примени миграцию 20261004000008_search.sql.');
-      return;
+      throw new Error('Нет источника Gemini в базе');
     }
     const { posts, understandFound } = await loadSearch(searchFile, source.id);
     const fresh = await db.savePosts(posts);
@@ -125,6 +127,8 @@ async function live() {
     const results = await processPosts(fresh, source, { understand: understandFound, geocode, venues, known });
     drafts += await store(db, results, source.id);
     print(results);
+    await robotUpdate({found:posts.length,verified:results.filter(r=>r.kind==='draft').length,queued:drafts});
+    await robotLog(`На согласование отправлено ${drafts} новых событий`);
     await db.touchSource(source.id, null);
     if (drafts) await db.notifyStaff();
     return;

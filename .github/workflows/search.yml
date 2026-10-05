@@ -5,22 +5,48 @@
 name: search
 on:
   workflow_dispatch:
+    inputs:
+      run_id:
+        type: string
+        default: ''
+      topics:
+        type: string
+        default: ''
+      days:
+        type: string
+        default: '7'
+      limit:
+        type: string
+        default: '40'
+      model:
+        type: string
+        default: 'gemini-2.5-flash'
 concurrency: worker
 jobs:
   search:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ROBOT_RUN_ID: ${{ inputs.run_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Статус запуска
+        run: node worker/src/robot.ts start
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
       - name: Поиск событий (Gemini API, 6 разделов параллельно + проверка страниц)
         timeout-minutes: 6
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          SEARCH_TOPICS: ${{ inputs.topics }}
+          SEARCH_DAYS: ${{ inputs.days }}
+          SEARCH_LIMIT: ${{ inputs.limit }}
         run: node worker/src/search.ts --run > search.json
       - name: Что нашёл ИИ (файл для проверки)
         uses: actions/upload-artifact@v4
@@ -31,5 +57,12 @@ jobs:
       - name: Черновики в «Согласование»
         run: node worker/src/index.ts --search search.json --no-images
         env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Результат запуска
+        if: always()
+        run: node worker/src/robot.ts finish
+        env:
+          ROBOT_JOB_STATUS: ${{ job.status }}
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

@@ -4,6 +4,7 @@
 // приложение покажет обложку раздела). Без лиц, текста и логотипов: это иллюстрация, а не «афиша» события.
 // Запуск: GEMINI_API_KEY=… SUPABASE_URL=… SUPABASE_SECRET_KEY=… node worker/src/covers.ts
 import type { Category } from './types.ts';
+import { cancelled, robotLog, robotUpdate } from './robot.ts';
 
 const CAT_RU: Record<Category, string> = {
   music: 'живая музыка', standup: 'стендап-вечер', art: 'выставка', hike: 'поход в горы', games: 'вечер настольных игр',
@@ -53,7 +54,7 @@ async function main() {
   const limit = Number(process.env.COVERS_PER_RUN || 10);
   if (!key || !url || !secret) {
     console.log('Нет GEMINI_API_KEY или ключей Supabase — обложки пропущены (docs/KEYS.md).');
-    return;
+    throw new Error('Не настроены ключи генерации обложек');
   }
   const headers: Record<string, string> = { apikey: secret, 'content-type': 'application/json' };
   if (secret.split('.').length === 3) headers.Authorization = `Bearer ${secret}`;
@@ -64,6 +65,7 @@ async function main() {
   console.log(`Одобренных событий без картинки: ${rows.length}`);
   let made = 0;
   for (const e of rows) {
+    if(await cancelled()){await robotLog('Остановка: новые обложки не запускаются');break;}
     try {
       const img = await draw(coverPrompt(e), key, model);
       const ext = img.mime.includes('jpeg') ? 'jpg' : img.mime.includes('webp') ? 'webp' : 'png';
@@ -78,12 +80,13 @@ async function main() {
       const patch = await fetch(`${url}/rest/v1/events?id=eq.${e.id}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ cover_url: cover, cover_ai: true }) });
       if (!patch.ok) throw new Error(`Supabase ${patch.status}: ${(await patch.text()).slice(0, 200)}`);
       made++;
+      await robotUpdate({found:rows.length,verified:made});
       console.log(`  ✚ ${e.title}`);
     } catch (err) {
       const status = (err as { status?: number }).status;
       if (status === 403 || status === 429 || /billing|free tier|quota|not available/i.test((err as Error).message)) {
         console.log(`Генерация картинок недоступна на этом ключе (${(err as Error).message.slice(0, 120)}). Нужна оплата в Google AI Studio — до этого в приложении обложка раздела.`);
-        break;
+        throw err;
       }
       console.log(`  ✕ ${e.title}: ${(err as Error).message}`);
     }
@@ -91,4 +94,4 @@ async function main() {
   console.log(`Нарисовано обложек: ${made}`);
 }
 
-if (process.argv[1]?.endsWith('covers.ts')) void main();
+if (process.argv[1]?.endsWith('covers.ts')) void main().catch(error=>{console.error(error);process.exitCode=1;});

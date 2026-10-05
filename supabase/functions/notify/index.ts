@@ -4,7 +4,8 @@
 //   { type: 'job', job: 'reminders' | 'dailyFeed' | 'weekend' | 'friendNear' } — pg_cron
 //   { type: 'cancelled', event_id }      — модератор или сборщик отменил событие
 //   { type: 'staff', count }             — после сбора: «7 событий ждут проверки»
-import { decide, DEFAULT_PREFS, type PushCandidate, type PushKind, type PushPrefs, type SentPush } from '../_shared/app.js';
+import { decide, DEFAULT_PREFS } from '../_shared/app.js';
+import type { PushCandidate, PushKind, PushPrefs, SentPush } from '../_shared/notify-types.ts';
 import { admin, isServiceCall, json } from '../_shared/supabase.ts';
 
 const db = admin();
@@ -34,7 +35,7 @@ async function sentOf(userId: string): Promise<SentPush[]> {
 async function deliver(p: Push): Promise<string> {
   const candidate: PushCandidate = { kind: p.kind, at: new Date(), about: p.about ?? null };
   const verdict = decide(candidate, await sentOf(p.userId), await prefsOf(p.userId));
-  if (!verdict.send) return verdict.reason;
+  if (!verdict.send) return verdict.reason ?? 'skipped';
   const { data: tokens } = await db.from('push_tokens').select('token').eq('user_id', p.userId);
   if (!tokens?.length) return 'no-token';
   const messages = tokens.map((t: any) => ({
@@ -76,7 +77,10 @@ async function reminders() {
   const to = new Date(now + 130 * 60e3).toISOString();
   const { data } = await db.from('attendance').select('user_id,event_id,events!inner(title,starts_at,venue_id)').eq('status', 'going')
     .gte('events.starts_at', from).lt('events.starts_at', to);
-  return Promise.all((data ?? []).map((r: any) => deliver({
+  const users=[...new Set((data??[]).map((r:any)=>r.user_id))];
+  const {data:settings}=users.length?await db.from('profile_settings').select('user_id,value').eq('key','muted_events').in('user_id',users):{data:[]};
+  const muted=new Map<string,string[]>((settings??[]).map((r:any):[string,string[]]=>[r.user_id,Array.isArray(r.value)?r.value:[]]));
+  return Promise.all((data ?? []).filter((r:any)=>!muted.get(r.user_id)?.includes(r.event_id)).map((r: any) => deliver({
     userId: r.user_id, kind: 'reminder', about: r.event_id, title: 'Через 2 часа', body: r.events.title, data: { url: `/event/${r.event_id}` },
   })));
 }
