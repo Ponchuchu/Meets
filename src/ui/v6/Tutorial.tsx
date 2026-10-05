@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { tabGap } from '../../components/TabBar';
+import { tabCenter } from '../../components/TabBar';
 import { config } from '../../lib/config';
 import { getSettings, setSetting } from '../../live/api';
 import { useSession } from '../../state/session';
@@ -30,14 +30,6 @@ export const TUTORIAL: Step[] = [
   { id: 'me', title: 'Профиль', text: 'Твои места, кто тебя видит, невидимка и настройки.' },
   { id: 'done', title: 'Вот и всё', text: 'Дальше разберёшься сам — подсказки больше не появятся.', btn: 'Начать' },
 ];
-
-/** Геометрия нижней панели (TabBar): центр вкладки i из 5. */
-function tabCenter(i: number, W: number, H: number, bottom: number) {
-  const bar = Math.min(366, W * 0.94);
-  const left = (W - bar) / 2 + 5;
-  const cell = (bar - 10 - 8) / 5;
-  return { x: left + i * (cell + 2) + cell / 2, y: H - tabGap(bottom) - 33 };
-}
 
 function holeFor(id: string, W: number, H: number, top: number, bottom: number): Hole {
   const tab = (i: number) => { const c = tabCenter(i, W, H, bottom); return { x: c.x - 30, y: c.y - 30, w: 60, h: 60, r: 30 }; };

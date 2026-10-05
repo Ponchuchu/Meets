@@ -10,7 +10,8 @@ export function rememberDbIds(rows: { id: string; external_id: string | null }[]
 }
 
 async function target(eventId: string): Promise<{ me: string; ev: string } | null> {
-  const ev = dbIds.get(eventId);
+  // События из events_live (альфа) уже приходят с uuid — их пишем как есть.
+  const ev = dbIds.get(eventId) ?? (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId) ? eventId : undefined);
   if (!ev) return null;
   const me = await requireUser().catch(() => null);
   return me ? { me, ev } : null;

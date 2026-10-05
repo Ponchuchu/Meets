@@ -7,6 +7,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { supabase } from '../data/client';
@@ -131,4 +132,22 @@ export async function watchForeground(): Promise<(() => void) | null> {
     (l) => { void sendPoint(l.coords, l.timestamp).catch(() => undefined); },
   );
   return () => sub.remove();
+}
+
+/** Где я сейчас: последняя отправленная точка, иначе — последняя известная или свежая от системы. */
+export function useMyPos(): { lat: number; lon: number } | null {
+  const fix = useMyFix((s) => s.fix);
+  const [pos, setPos] = useState<{ lat: number; lon: number } | null>(null);
+  useEffect(() => {
+    if (fix) return;
+    let live = true;
+    (async () => {
+      const perm = await Location.getForegroundPermissionsAsync().catch(() => null);
+      if (!perm?.granted) return;
+      const p = await Location.getLastKnownPositionAsync().catch(() => null) ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
+      if (p && live) setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+    })();
+    return () => { live = false; };
+  }, [fix]);
+  return fix ? { lat: fix.lat, lon: fix.lon } : pos;
 }

@@ -31,6 +31,7 @@ export interface MessageRow {
   body: string | null;
   media_path: string | null;
   duration_s: number | null;
+  event_id?: string | null;
   created_at: string;
 }
 
@@ -73,6 +74,8 @@ export function mapMessage(r: MessageRow, me: string): Message {
     time: hhmm(r.created_at),
     media: r.media_path,
     duration: r.duration_s != null ? secs(r.duration_s) : undefined,
+    eventId: r.event_id ?? undefined,
+    sub: r.kind === 'invite' ? 'Позвал(а) тебя · нажми, чтобы открыть' : undefined,
   };
 }
 
@@ -186,7 +189,7 @@ export async function getChats(): Promise<Chat[]> {
 export async function getMessages(chatId: string): Promise<Message[]> {
   const me = await requireUser();
   const { data, error } = await withTimeout(
-    supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,created_at').eq('chat_id', chatId).order('created_at').limit(300),
+    supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at').eq('chat_id', chatId).order('created_at').limit(300),
   );
   if (error) throw error;
   const rows = data as MessageRow[];

@@ -1,11 +1,13 @@
 // Бамп (V6 §7.2): два телефона стукнулись — удар в пределах ±1,5 с и 100 м → дружба сразу.
 // POST { lat, lon, at } (at — время удара на телефоне, мс). Ждём пару до 3 с.
 // → { matched: true, friend: { id, name, handle, photo_url } } | { matched: false }
-import { admin, json, userFrom } from '../_shared/supabase.ts';
+import { admin, json, preflight, userFrom } from '../_shared/supabase.ts';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 Deno.serve(async (req) => {
+  const pre = preflight(req);
+  if (pre) return pre;
   const db = admin();
   const me = await userFrom(req, db);
   if (!me) return json({ error: 'auth' }, 401);

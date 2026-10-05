@@ -32,6 +32,12 @@ export const tabGap = (bottomInset: number) => Math.max(12, bottomInset);
 /** Сколько места снизу занимает панель — на это поднимаем карточки и отступ списков. */
 export const tabInset = (bottomInset: number) => BAR_H + tabGap(bottomInset) + 10;
 export const TAB_BAR_HEIGHT = BAR_H + 22;
+/** Центр вкладки i (0 — Карта … 4 — Профиль) на экране шириной W и высотой H: сюда летят карточки и смотрит обучение. */
+export function tabCenter(i: number, W: number, H: number, bottomInset: number) {
+  const bar = Math.min(366, W * 0.94);
+  const cell = (bar - 10 - 8) / 5;
+  return { x: (W - bar) / 2 + 5 + i * (cell + 2) + cell / 2, y: H - tabGap(bottomInset) - BAR_H / 2 };
+}
 export function useTabInset() {
   return tabInset(useSafeAreaInsets().bottom);
 }
@@ -95,18 +101,52 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   );
 }
 
-function Tab({ name, on, badge, onPress, onLong }: { name: string; on: boolean; badge: number; onPress: () => void; onLong: () => void }) {
+const SPARKS = [0, 60, 120, 180, 240, 300];
+
+/** Прилёт карточки в «Планы»: 6 искр разлетаются от иконки. */
+function Sparks({ n }: { n: number }) {
+  const p = useSharedValue(0);
+  useEffect(() => { if (n) { p.set(0); p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) })); } }, [n, p]);
+  return (
+    <>
+      {SPARKS.map((deg) => <Spark key={deg} deg={deg} p={p} />)}
+    </>
+  );
+}
+function Spark({ deg, p }: { deg: number; p: SharedValue<number> }) {
+  const rad = (deg * Math.PI) / 180;
+  const st = useAnimatedStyle(() => ({
+    opacity: p.get() > 0 && p.get() < 1 ? 1 - p.get() : 0,
+    transform: [{ translateX: Math.cos(rad) * 26 * p.get() }, { translateY: Math.sin(rad) * 26 * p.get() }, { scale: 1 - 0.5 * p.get() }],
+  }));
+  return <Animated.View pointerEvents="none" style={[styles.spark, st]} />;
+}
+
+function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boolean; badge: number; land: number; onPress: () => void; onLong: () => void }) {
   const pop = useSharedValue(1);
+  const wob = useSharedValue(0);
+  const flash = useSharedValue(0);
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     if (on) pop.set(withSequence(withTiming(0.84, { duration: 0 }), withTiming(1.12, { duration: 286, easing: POP }), withTiming(1, { duration: 234, easing: POP })));
   }, [on, pop]);
+  // Прилёт карточки: scale 1,42 с покачиванием ±10°, затухание 0,5 с, оранжевая вспышка.
+  useEffect(() => {
+    if (!land) return;
+    pop.set(withSequence(withTiming(1.42, { duration: 140, easing: Easing.out(Easing.quad) }), withTiming(1, { duration: 500, easing: POP })));
+    wob.set(withSequence(withTiming(10, { duration: 90 }), withTiming(-10, { duration: 120 }), withTiming(6, { duration: 110 }), withTiming(-3, { duration: 100 }), withTiming(0, { duration: 100 })));
+    flash.set(withSequence(withTiming(1, { duration: 120 }), withTiming(1, { duration: 380 }), withTiming(0, { duration: 260 })));
+  }, [land, pop, wob, flash]);
+  const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${wob.get()}deg` }] }));
+  const flashSt = useAnimatedStyle(() => ({ opacity: flash.get(), transform: [{ scale: 0.6 + 0.4 * flash.get() }] }));
   const label = TABS[name].label;
   return (
     <Pressable onPress={onPress} onLongPress={onLong} delayLongPress={350} style={styles.tab}
       accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={badge ? `${label}, ${badge}` : label}>
-      {name === 'me' ? <MeIcon on={on} pop={pop} /> : <TabIcon name={name} on={on} pop={pop} />}
+      {name === 'plans' && <Animated.View pointerEvents="none" style={[styles.flash, flashSt]}><Svg width={18} height={18} viewBox="0 0 24 24" fill="none"><Path d="M5 12l5 5 9-10" stroke={colors.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" /></Svg></Animated.View>}
+      <Animated.View style={wobble}>{name === 'me' ? <MeIcon on={on} pop={pop} /> : <TabIcon name={name} on={on} pop={pop} />}</Animated.View>
+      {name === 'plans' && <Sparks n={land} />}
       {badge > 0 && <Badge n={badge} label={name === 'plans' ? `Новых планов: ${badge}` : `Непрочитанных: ${badge}`} />}
     </Pressable>
   );
@@ -117,6 +157,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const covers = useApp((s) => s.covers);
   const plans = useTabBadges((s) => s.plans);
   const chats = useTabBadges((s) => s.chats);
+  const land = useTabBadges((s) => s.land);
   const [kb, setKb] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   useEffect(() => {
@@ -143,7 +184,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         {routes.map((route) => {
           const on = route.name === activeKey;
           return (
-            <Tab key={route.key} name={route.name} on={on} badge={route.name === 'plans' ? plans : route.name === 'chats' ? chats : 0}
+            <Tab key={route.key} name={route.name} on={on} land={route.name === 'plans' ? land : 0} badge={route.name === 'plans' ? plans : route.name === 'chats' ? chats : 0}
               onLong={() => setHint(TABS[route.name].label)}
               onPress={() => {
                 const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -169,6 +210,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FBFAF6',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
+  flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   meRing: { width: 30, height: 30, borderRadius: 15, padding: 2, borderWidth: 2 },
   meFace: { flex: 1, borderRadius: 13, overflow: 'hidden' },
   meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

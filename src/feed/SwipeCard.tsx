@@ -1,77 +1,79 @@
-// Карточка в стопке с жестами: перетаскивание (Y ×0.4, поворот dx/18), порог 90 px, тап < 6 px,
-// «мимо» — улёт влево за 320 мс, «пойду» — дугой в иконку «Профиль» за 640 мс, «вернуть» — обратно с той стороны.
+// Карточка в стопке v6 (V6.md §4.1): вправо — «Пойду», влево — «Мимо», вверх (60 px) или тап — раскрыть.
+// «Пойду» — одна дуга (квадратичная кривая Безье) от точки отпускания к иконке «Планы»: ease-in, масштаб до 0,06,
+// поворот до −18°, углы скругляются до круга. Считается в worklet по параметру t — без остановок.
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { EventItem, Person } from '../data/types';
 import { colors } from '../theme';
 import { FeedCard } from './FeedCard';
 
 export const THRESHOLD = 90;
+const UP = 60;
 const TAP = 6;
+const FLY_MS = 800;
 
 export interface SwipeHandle {
   fly: (kind: 'go' | 'skip') => void;
 }
 
 export const SwipeCard = forwardRef<SwipeHandle, {
-  e: EventItem; people: Person[]; now: Date; saved: boolean; onSave: () => void;
+  e: EventItem; people: Person[]; now: Date;
   k: number; top: boolean; width: number; height: number;
-  /** Куда лететь «пойду»: смещение центра карточки до иконки «Профиль». */
+  /** Куда лететь «Пойду»: смещение от центра карточки до иконки «Планы». */
   target: { x: number; y: number };
   enterFrom: 'go' | 'skip' | null;
   onDecide: (kind: 'go' | 'skip') => void;
   onTap: () => void;
-}>(function SwipeCard({ e, people, now, saved, onSave, k, top, width, height, target, enterFrom, onDecide, onTap }, ref) {
+  /** Карточка коснулась иконки «Планы» — панель подпрыгивает. */
+  onLand?: () => void;
+}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand }, ref) {
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
   const rot = useSharedValue(0);
-  const ox = useSharedValue(0); // внешний слой: X полёта
-  const oy = useSharedValue(0); // внутренний: Y полёта
-  const os = useSharedValue(1);
+  const t = useSharedValue(0); // 0…1 — полёт по дуге
+  const sx = useSharedValue(0); // точка отпускания
+  const sy = useSharedValue(0);
+  const sr = useSharedValue(0);
   const op = useSharedValue(1);
   const busy = useSharedValue(false);
-  const stamp = useSharedValue(0); // во время полёта штамп остаётся: 1 — «ПОЙДУ», −1 — «МИМО»
+  const stamp = useSharedValue(0);
 
-  // «Вернуть»: карточка появляется с той стороны, куда ушла, и становится первой.
+  // «Вернуть»: карточка появляется с той стороны, куда ушла.
   useEffect(() => {
     if (enterFrom === 'skip') {
-      dx.value = -560; dy.value = 60; rot.value = -22;
-      dx.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
-      dy.value = withTiming(0, { duration: 320 });
-      rot.value = withTiming(0, { duration: 320 });
+      dx.set(-560); dy.set(60); rot.set(-22);
+      dx.set(withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }));
+      dy.set(withTiming(0, { duration: 320 }));
+      rot.set(withTiming(0, { duration: 320 }));
     } else if (enterFrom === 'go') {
-      ox.value = target.x; oy.value = target.y; os.value = 0.06; op.value = 0;
-      ox.value = withTiming(0, { duration: 420, easing: Easing.out(Easing.cubic) });
-      oy.value = withTiming(0, { duration: 420, easing: Easing.out(Easing.cubic) });
-      os.value = withTiming(1, { duration: 420 });
-      op.value = withTiming(1, { duration: 200 });
+      sx.set(0); sy.set(0); sr.set(0); t.set(1); op.set(0);
+      t.set(withTiming(0, { duration: 420, easing: Easing.out(Easing.cubic) }));
+      op.set(withTiming(1, { duration: 200 }));
     }
-    // Только при появлении.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fly = (kind: 'go' | 'skip') => {
     'worklet';
-    if (busy.value) return;
-    busy.value = true;
-    stamp.value = kind === 'go' ? 1 : -1;
+    if (busy.get()) return;
+    busy.set(true);
+    stamp.set(kind === 'go' ? 1 : -1);
     if (kind === 'skip') {
-      dx.value = withTiming(-560, { duration: 320, easing: Easing.in(Easing.quad) });
-      dy.value = withTiming(60, { duration: 320, easing: Easing.in(Easing.quad) });
-      rot.value = withTiming(-22, { duration: 320 }, () => scheduleOnRN(onDecide, 'skip'));
-    } else {
-      // Две вложенные анимации: X — ease-out, Y и масштаб — ease-in: получается дуга.
-      dx.value = withTiming(0, { duration: 360, easing: Easing.out(Easing.quad) });
-      dy.value = withTiming(0, { duration: 360, easing: Easing.out(Easing.quad) });
-      rot.value = withTiming(0, { duration: 360 });
-      ox.value = withTiming(target.x, { duration: 620, easing: Easing.bezier(0.25, 0.7, 0.4, 1) });
-      oy.value = withTiming(target.y, { duration: 620, easing: Easing.bezier(0.6, 0, 0.85, 0.45) });
-      os.value = withTiming(0.06, { duration: 620, easing: Easing.bezier(0.6, 0, 0.85, 0.45) });
-      op.value = withDelay(460, withTiming(0, { duration: 160 }, () => scheduleOnRN(onDecide, 'go')));
+      dx.set(withTiming(-560, { duration: 320, easing: Easing.in(Easing.quad) }));
+      dy.set(withTiming(60, { duration: 320, easing: Easing.in(Easing.quad) }));
+      rot.set(withTiming(-22, { duration: 320 }, () => scheduleOnRN(onDecide, 'skip')));
+      return;
     }
+    sx.set(dx.get()); sy.set(dy.get()); sr.set(rot.get());
+    dx.set(0); dy.set(0); rot.set(0);
+    t.set(withTiming(1, { duration: FLY_MS, easing: Easing.in(Easing.cubic) }, (done) => {
+      if (!done) return;
+      if (onLand) scheduleOnRN(onLand);
+      scheduleOnRN(onDecide, 'go');
+    }));
   };
 
   useImperativeHandle(ref, () => ({ fly: (kind) => fly(kind) }));
@@ -80,58 +82,66 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     .enabled(top)
     .minDistance(0)
     .onChange((ev) => {
-      if (busy.value) return;
-      dx.value = ev.translationX;
-      dy.value = ev.translationY * 0.4;
-      rot.value = ev.translationX / 18;
+      if (busy.get()) return;
+      dx.set(ev.translationX);
+      dy.set(ev.translationY < 0 ? ev.translationY * 0.6 : ev.translationY * 0.3);
+      rot.set(Math.max(-9, Math.min(9, ev.translationX / 18)));
     })
     .onEnd((ev) => {
-      if (busy.value) return;
+      if (busy.get()) return;
+      const fast = Math.abs(ev.velocityX) > 800;
       if (Math.abs(ev.translationX) < TAP && Math.abs(ev.translationY) < TAP) {
-        dx.value = 0; dy.value = 0; rot.value = 0;
-        // Тап по закладке (правый верхний угол) — только «в избранное», карточку не открываем.
-        if (ev.x > width - 72 && ev.y < 76) return;
+        dx.set(0); dy.set(0); rot.set(0);
         scheduleOnRN(onTap);
-      } else if (ev.translationX > THRESHOLD) fly('go');
-      else if (ev.translationX < -THRESHOLD) fly('skip');
+      } else if (ev.translationX > THRESHOLD || (fast && ev.velocityX > 0)) fly('go');
+      else if (ev.translationX < -THRESHOLD || (fast && ev.velocityX < 0)) fly('skip');
       else {
-        dx.value = withSpring(0, { damping: 16, stiffness: 180 });
-        dy.value = withSpring(0, { damping: 16, stiffness: 180 });
-        rot.value = withSpring(0, { damping: 16, stiffness: 180 });
+        if (ev.translationY < -UP && Math.abs(ev.translationX) < THRESHOLD) scheduleOnRN(onTap);
+        dx.set(withSpring(0, { damping: 16, stiffness: 180 }));
+        dy.set(withSpring(0, { damping: 16, stiffness: 180 }));
+        rot.set(withSpring(0, { damping: 16, stiffness: 180 }));
       }
     });
 
-  // Карточки под верхней: 8 px × n вниз и масштаб 1 − 0.05 × n; поднимаются плавно.
+  // Под верхней: сдвиг 14 px и масштаб 0,95 на каждую; поднимаются плавно.
   const stack = useAnimatedStyle(() => ({
-    transform: [{ translateY: withTiming(k * 8, { duration: 300 }) }, { scale: withTiming(1 - k * 0.05, { duration: 300 }) }],
+    transform: [{ translateY: withTiming(k * 14, { duration: 400 }) }, { scale: withTiming(1 - k * 0.05, { duration: 400 }) }],
   }));
-  const outer = useAnimatedStyle(() => ({ transform: [{ translateX: ox.value }] }));
-  const inner = useAnimatedStyle(() => ({ opacity: op.value, transform: [{ translateY: oy.value }, { scale: os.value }] }));
-  const drag = useAnimatedStyle(() => ({
-    transform: [{ translateX: dx.value }, { translateY: dy.value }, { rotate: `${rot.value}deg` }],
-  }));
+  const card = useAnimatedStyle(() => {
+    const p = t.get();
+    // Квадратичная Безье: старт → контрольная (выше и правее, но в пределах экрана) → иконка «Планы».
+    const cx = sx.get() + (target.x - sx.get()) * 0.55 + 40;
+    const cy = Math.min(sy.get(), target.y) - 160;
+    const q = 1 - p;
+    const x = q * q * sx.get() + 2 * q * p * cx + p * p * target.x;
+    const y = q * q * sy.get() + 2 * q * p * cy + p * p * target.y;
+    return {
+      opacity: op.get(),
+      borderRadius: 30 + (Math.min(width, height) / 2 - 30) * p,
+      transform: [
+        { translateX: dx.get() + x }, { translateY: dy.get() + y },
+        { rotate: `${rot.get() + sr.get() * q + -18 * p}deg` }, { scale: 1 - 0.94 * p },
+      ],
+    };
+  });
 
   return (
     <Animated.View style={[styles.abs, { width, height, zIndex: 10 - k, transformOrigin: '50% 100%' }, stack]} pointerEvents={top ? 'auto' : 'none'}>
-      <Animated.View style={[styles.fill, outer]}>
-        <Animated.View style={[styles.fill, inner]}>
-          <GestureDetector gesture={pan}>
-            <Animated.View style={[styles.fill, styles.shadow, !top && styles.shadowLow, drag, { transformOrigin: '50% 100%' }, top && LAYER]}>
-              <FeedCard e={e} people={people} now={now} saved={saved} onSave={onSave} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} top={top} />
-            </Animated.View>
-          </GestureDetector>
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[styles.fill, styles.shadow, !top && styles.shadowLow, card, { overflow: 'hidden' }, top && LAYER]}>
+          <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} />
         </Animated.View>
-      </Animated.View>
+      </GestureDetector>
     </Animated.View>
   );
 });
 
-// Web: верхняя карточка — отдельный слой, поворот не перерисовывает фото на каждом кадре (npm run perf: 10 → 37+ к/с).
+// Web: верхняя карточка — отдельный слой, поворот не перерисовывает фото на каждом кадре.
 const LAYER = Platform.OS === 'web' ? ({ willChange: 'transform' } as object) : null;
 
 const styles = StyleSheet.create({
   abs: { position: 'absolute', left: 0, top: 0 },
   fill: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
-  shadow: { borderRadius: 26, shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 17, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
+  shadow: { borderRadius: 30, shadowColor: colors.ink, shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
   shadowLow: { shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
 });

@@ -2,8 +2,10 @@
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
 import { track } from '../analytics';
 import { useQuery } from '@tanstack/react-query';
+import { config } from '../lib/config';
+import { sendInvite } from '../live/api';
 import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -14,7 +16,7 @@ import { photo } from '../data/photos';
 import type { EventItem, Person } from '../data/types';
 import { dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
-import { CAT_ICON, CAT_LABEL } from '../map/icons';
+import { CAT_COLOR, CAT_ICON, catFg } from '../map/icons';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
@@ -26,14 +28,20 @@ import { Avatar } from '../ui/Avatar';
 import { Ic, IC } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
-import { CompanySheet, InviteSheet, RouteSheet } from './sheets';
+import { CompanySheet, InviteSheet } from './sheets';
+import { CardPeople } from './v6/CardPeople';
+import { WhereSheet } from './v6/WhereSheet';
+import { ArrowUpRight, ChevronDown, ChevronRight, Clock, Globe, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useMyPos } from '../live/location';
+import { distM } from '../live/geo';
+import { kmText, stampOf } from '../map/ui/EventSheet';
 import { eventLink, shareText, shareUrl, type ShareTarget } from './share';
-import { coverDate, coverLinesFor, coverTime, plural, priceTitle, whenTitle } from './text';
+import { plural, whenTitle } from './text';
 
-const COVER: Partial<Record<EventItem['category'], string>> = {
-  music: colors.accent, standup: colors.ink, art: colors.sand, hike: colors.ink, games: colors.softGreen, concert: colors.ink,
-  food: colors.softYellow, sport: colors.softBlue, bike: colors.softBlue, theatre: colors.softPink, lecture: colors.softGreen, talks: colors.softGreen, party: colors.ink, meetup: colors.softYellow,
-};
+const LIVE = config.dataMode !== 'demo';
+
 
 type Sheet = null | 'company' | 'invite' | 'route' | 'share' | 'going';
 
@@ -48,8 +56,10 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Назад к карте', onGo, initialSheet = null }: {
+export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
   initialSheet?: Sheet;
+  /** «✕» на открытой карточке: в Рекомендациях — «Мимо», на карте — просто закрыть. */
+  onSkip?: () => void;
   e: EventItem; now: Date; onClose: () => void; closeLabel?: string;
   /** Из ленты «Я иду» работает как свайп вправо. */
   onGo?: () => void;
@@ -61,13 +71,14 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
   const [toast, setToast] = useState<ToastData | null>(null);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const going = usePlans((s) => !!s.going[e.id]);
-  const saved = usePlans((s) => !!s.saved[e.id]);
   const company = usePlans((s) => s.company[e.id]);
-  const { go, ungo, toggleSave, invite, startChat } = usePlans.getState();
+  const { go, ungo, invite, startChat } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
   const arrived = useProfile((s) => s.arrivals.some((a) => a.eventId === e.id));
   const arrive = useProfile((s) => s.arrive);
   const addSignal = useFeed((s) => s.addSignal);
+  const me = useMyPos();
+  const { data: sameVenue = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), enabled: false });
   // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
@@ -87,23 +98,15 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
     addPlan();
-    show({ text: 'Добавил в «Мои планы». Напомню за 2 часа', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
+    show({ text: 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
-  const cover = e.coverColor ?? COVER[e.category] ?? colors.sand;
   const hasPhoto = !!e.cover;
-  const dark = hasPhoto || cover === colors.ink;
-  const fg = dark ? colors.paper : colors.ink;
-  const lineColor = (c: 'ink' | 'paper' | 'accent') => (c === 'accent' ? colors.accent : c === 'paper' ? colors.paper : colors.ink);
-  const big = e.coverLines ?? coverLinesFor(e.title).map((t) => [t, dark ? 'paper' : 'ink'] as [string, 'ink' | 'paper']);
-  const bigSize = big.length > 2 ? 46 : 56;
-  const strip = [coverTime(e), (e.whereShort ?? e.address.split(',').slice(0, 2).join(' ')).toUpperCase(), formatPrice(e.priceMin, e.priceMax, e.isFree)];
   const goingInfo = goingLine(e, people, going);
   const lookers = e.lookers ?? [];
   const lookCount = Math.max(e.lookingCount, lookers.length) + (activeCompany(company, e, now) ? 1 : 0);
   const friends = people.filter((p) => p.isFriend);
   const todayKey = String(dayIndex(now));
-  const chat = e.chat;
 
   const write = (personId: string) => {
     if (!startChat(personId, todayKey)) {
@@ -132,182 +135,133 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
     .failOffsetY([-14, 14])
     .onEnd((ev) => { if (ev.translationX > 90 && ev.absoluteX - ev.translationX < 48) scheduleOnRN(onClose); });
 
+  const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
+  const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
+  const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
+  const moreHere = e.venueName ? sameVenue.filter((x) => x.id !== e.id && x.venueName === e.venueName).length : 0;
+  const friendsGoing = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is Person => !!p && p.isFriend);
+  const goingText = friendsGoing.length === 1 ? `${friendsGoing[0].name} идёт` : friendsGoing.length === 2 ? `${friendsGoing[0].name} и ${friendsGoing[1].name} идут`
+    : friendsGoing.length > 2 ? `${friendsGoing[0].name}, ${friendsGoing[1].name} и ещё ${friendsGoing.length - 2} идут` : e.goingCount >= 3 ? `Идут ${e.goingCount}` : 'Пока никто из друзей';
+
   return (
     <GestureDetector gesture={back}>
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: 120 + insets.bottom }}>
-        <View style={styles.topRow}>
-          <Pressable onPress={onClose} style={styles.round} accessibilityRole="button" accessibilityLabel={closeLabel}>
-            <Ic d={IC.back} size={20} color={colors.ink} w={2} />
-          </Pressable>
-          <View style={{ flex: 1 }} />
-          <Pressable onPress={() => setSheet('share')} style={styles.round} accessibilityRole="button" accessibilityLabel="Поделиться">
-            <Ic d={IC.share} size={20} color={colors.ink} />
-          </Pressable>
-          <Pressable onPress={() => toggleSave(e.id)} style={[styles.round, saved && { backgroundColor: '#F2B632', borderColor: '#F2B632' }]}
-            accessibilityRole="button" accessibilityState={{ selected: saved }} accessibilityLabel={saved ? 'Убрать из сохранённых' : 'Сохранить на потом'}>
-            <Ic d={IC.bookmark} size={20} color={colors.ink} fill={saved ? colors.ink : 'none'} />
-          </Pressable>
-        </View>
-
-        <View style={[styles.cover, { backgroundColor: cover }]}>
-          {hasPhoto && (
-            <>
-              <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={e.title} />
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(23,22,26,0.42)' }]} />
-            </>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+        {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
+        <View style={[styles.cover, { backgroundColor: hasPhoto ? colors.ink : CAT_COLOR[e.category] }]}>
+          {hasPhoto ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={e.title} /> : (
+            <View style={styles.coverIcon} pointerEvents="none"><Ic d={CAT_ICON[e.category]} size={220} color={catFg(e.category)} w={0.7} /></View>
           )}
-          {!hasPhoto && (
-            <View style={styles.coverIcon} pointerEvents="none">
-              <Ic d={CAT_ICON[e.category]} size={230} color={fg} w={0.6} />
-            </View>
-          )}
-          <View style={styles.coverTop}>
-            <Text style={[styles.coverMeta, { color: fg }]}>{e.catLabel ?? CAT_LABEL[e.category]}</Text>
-            <Text style={[styles.coverMeta, { color: fg }]}>{coverDate(e.startsAt)}</Text>
+          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
+            <Defs>
+              <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#17161A" stopOpacity="0.25" />
+                <Stop offset="0.45" stopColor="#17161A" stopOpacity="0" />
+                <Stop offset="1" stopColor="#17161A" stopOpacity="0.8" />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#openShade)" />
+          </Svg>
+          <View style={[styles.topRow, { top: Math.max(14, insets.top + 6) }]}>
+            <Pressable onPress={onClose} style={styles.round} accessibilityRole="button" accessibilityLabel={closeLabel}>
+              <ChevronDown size={24} color="#FFFFFF" strokeWidth={2} />
+            </Pressable>
+            <Pressable onPress={() => setSheet('share')} style={styles.round} accessibilityRole="button" accessibilityLabel="Поделиться">
+              <Share2 size={20} color="#FFFFFF" strokeWidth={1.9} />
+            </Pressable>
           </View>
-          <View style={styles.coverBig}>
-            {big.map(([t, c]) => (
-              <Text key={t} style={[styles.bigText, { fontSize: bigSize, lineHeight: bigSize * 0.92, color: lineColor(c) }]} numberOfLines={1} adjustsFontSizeToFit>{t}</Text>
-            ))}
-          </View>
-          <View style={[styles.strip, { borderTopColor: fg }]}>
-            {strip.map((t, i) => <Text key={i} style={[styles.stripText, { color: fg }]} numberOfLines={1}>{t}</Text>)}
+          <View style={styles.coverText}>
+            <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
+            <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </View>
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
-          <View style={{ gap: 14 }}>
-            <Row icon={<Ic d={IC.clock} c={[[12, 12, 9]]} size={18} color={colors.ink} />} title={whenTitle(e, now)} />
-            <Row icon={<Ic d={IC.pin} c={[[12, 9, 2.5]]} size={18} color={colors.ink} />} title={e.address} sub={e.addressNote}
-              action={<Pressable onPress={() => setSheet('route')} hitSlop={10} accessibilityRole="button"><Text style={styles.link}>Маршрут</Text></Pressable>} />
-            <Row icon={<Ic d={IC.tag} c={[[7.5, 8.5, 1.2]]} size={18} color={colors.ink} />} title={priceShort(e) || priceTitle(e)} />
+          <View style={styles.chips}>
+            <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
+            {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
+            {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
 
-          {!!e.about && (
-            <View style={{ gap: 8 }}>
-              <Text style={styles.h2}>Описание</Text>
-              <Text style={styles.about}>{e.about}</Text>
-            </View>
-          )}
+          <Pressable onPress={() => setSheet('going')} style={styles.line} accessibilityRole="button" accessibilityLabel={`${goingText}. Кто идёт`}>
+            {friendsGoing.length > 0 && (
+              <View style={{ flexDirection: 'row' }}>
+                {friendsGoing.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={34} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: colors.paper }} />)}
+              </View>
+            )}
+            <Text style={styles.lineText} numberOfLines={1}>{goingText}</Text>
+            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+          </Pressable>
+          <Pressable onPress={() => setSheet('going')} style={styles.line} accessibilityRole="button">
+            <View style={styles.hand}><Hand size={17} color={colors.ink} strokeWidth={2} /></View>
+            <Text style={styles.lineText} numberOfLines={1}>{lookCount > 0 ? `${lookCount} ${plural(lookCount, 'человек ищет', 'человека ищут', 'человек ищут')} компанию` : 'Ищешь компанию? Нажми'}</Text>
+            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+          </Pressable>
 
-          {(e.organizer || e.source || e.sourceUrl) && (
-            <Pressable disabled={!e.sourceUrl} onPress={() => e.sourceUrl && Linking.openURL(e.sourceUrl).catch(() => {})} style={styles.org} accessibilityRole="link"
-              accessibilityLabel={`${e.organizer ?? e.venueName ?? 'Организатор'}. ${e.isFree ? 'Подробнее' : 'Билеты'}`}>
-              <View style={[styles.orgMark, { backgroundColor: cover === colors.accent ? colors.softYellow : cover }]}>
-                <Text style={[styles.orgLetter, { color: dark ? colors.paper : colors.ink }]}>{(e.organizer ?? e.source ?? '?').replace(/[«»"]/g, '')[0]}</Text>
+          {!!e.about && <Text style={styles.about}>{e.about}</Text>}
+
+          <View style={styles.list}>
+            {site && (
+              <Pressable onPress={() => e.sourceUrl && WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined))}
+                onLongPress={() => { void Clipboard.setStringAsync(e.sourceUrl!); show({ text: 'Ссылка скопирована' }, 2000); }}
+                style={styles.item} accessibilityRole="link">
+                <View style={[styles.itemIcon, { backgroundColor: colors.ink }]}><Globe size={20} color="#FFFFFF" strokeWidth={1.8} /></View>
+                <View style={{ flex: 1 }}><Text style={styles.itemTitle}>Сайт события</Text><Text style={styles.itemSub} numberOfLines={1}>{site} · билеты и подробности</Text></View>
+                <ArrowUpRight size={18} color={colors.muted} strokeWidth={2} />
+              </Pressable>
+            )}
+            <Pressable onPress={() => setSheet('route')} style={[styles.item, site ? styles.itemSep : null]} accessibilityRole="button" accessibilityLabel={`Адрес: ${e.address}. Маршрут или 2ГИС`}>
+              <View style={[styles.itemIcon, { backgroundColor: colors.accent }]}><MapPin size={20} color={colors.ink} strokeWidth={1.9} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemTitle} numberOfLines={1}>{[e.venueName, e.address.split(',').slice(0, 2).join(',')].filter(Boolean).join(' · ')}</Text>
+                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут или 2ГИС</Text>
               </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.name} numberOfLines={1}>{e.organizer ?? e.venueName ?? 'Организатор'}</Text>
-                {!!e.source && <Text style={styles.small}>{e.source}</Text>}
-              </View>
-              {!!e.sourceUrl && (
-                <View style={styles.ticket}>
-                  <Text style={styles.ticketText}>{e.isFree ? 'Подробнее' : 'Билеты'}</Text>
-                  <Ic d={IC.chevron} size={14} color={colors.paper} w={2.4} />
-                </View>
-              )}
+              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
             </Pressable>
-          )}
-
-          <View style={styles.hr} />
-
-          {goingInfo && (
-            <View style={{ gap: 12 }}>
-              <Text style={styles.h2}>Кто идёт</Text>
-              <View style={styles.goingRow}>
-                {goingInfo.faces.length > 0 && (
-                  <View style={{ flexDirection: 'row', paddingRight: 10 }}>
-                    {goingInfo.faces.slice(0, 3).map((p) => (
-                      <Pressable key={p.id} onPress={() => router.push({ pathname: '/person/[id]', params: { id: p.id } })} accessibilityRole="link" accessibilityLabel={`Профиль: ${p.name}`} style={{ marginRight: -10 }}>
-                        <Avatar p={p} size={40} ring={colors.friend} />
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-                <View style={{ gap: 1, flex: 1 }}>
-                  <Text style={styles.name}>{goingInfo.title}</Text>
-                  <Text style={styles.small}>{goingInfo.sub}</Text>
-                </View>
-                <Pressable onPress={() => setSheet('going')} style={styles.allBtn} accessibilityRole="button">
-                  <Text style={styles.allText}>Все</Text>
-                </Pressable>
+            {moreHere > 0 && (
+              <View style={[styles.item, styles.itemSep]}>
+                <View style={[styles.itemIcon, { backgroundColor: '#E7E2D6' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
+                <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
               </View>
-            </View>
-          )}
-
-          {lookCount >= 3 && lookers.length > 0 && (
-            <View style={{ gap: 10 }}>
-              <View style={styles.lookHead}>
-                <Text style={styles.h2}>Ищут компанию</Text>
-                <View style={styles.count}><Text style={styles.countText}>{lookCount}</Text></View>
-              </View>
-              {lookers.map((l) => {
-                const p = people.find((x) => x.id === l.personId);
-                if (!p) return null;
-                return (
-                  <Pressable key={l.personId} onPress={() => router.push({ pathname: '/person/[id]', params: { id: p.id } })} style={styles.looker} accessibilityRole="button">
-                    <Avatar p={p} size={46} radius={16} />
-                    <View style={{ flex: 1, gap: 3 }}>
-                      <Text style={styles.name}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-                      <Text style={styles.small}>{l.note}</Text>
-                      <Text style={styles.common}>{l.common}</Text>
-                    </View>
-                    <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+            )}
+          </View>
 
           {canArrive && (
             <Pressable disabled={arrived} onPress={() => {
               arrive(e.id, cellOf(e.lat, e.lon));
               addSignal(makeSignal(e, 'arrived', now));
               track('arrived', e.id);
-              show({ text: 'Отметил! +1 место на карте города. Статус «На событии» — пока ты здесь' });
+              show({ text: 'Отметил! +1 место на карте города' });
             }} style={[styles.arrive, arrived && { backgroundColor: colors.sand }]} accessibilityRole="button">
               <Ic d={arrived ? IC.check : IC.pin} c={arrived ? [] : [[12, 9, 2.5]]} size={20} color={colors.ink} w={2} />
               <Text style={styles.arriveText}>{arrived ? 'Ты на месте' : 'Я на месте'}</Text>
             </Pressable>
           )}
-
-          <Pressable onPress={() => router.push({ pathname: '/chat/[id]', params: { id: `ev-${e.id}` } })} style={styles.chat} accessibilityRole="button">
-            <View style={styles.chatHead}>
-              <Text style={styles.chatTitle}>{chat?.title ?? 'Чат события'}</Text>
-              <Text style={styles.chatCount}>{chat ? `${chat.members.toLocaleString('ru-RU')} ${plural(chat.members, 'УЧАСТНИК', 'УЧАСТНИКА', 'УЧАСТНИКОВ')}` : 'ОТКРОЕТСЯ, КОГДА ПОЙДЁШЬ'}</Text>
-            </View>
-            <Text style={styles.chatText}>
-              {chat ? (<><Text style={{ fontFamily: fonts.body600, color: colors.paper }}>{chat.who}:</Text> {chat.text}</>) : 'Здесь договариваются о встрече у входа и делятся фото после.'}
-            </Text>
-          </Pressable>
         </View>
       </ScrollView>
 
-      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 108 + insets.bottom }} />}
+      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 100 + insets.bottom }} />}
 
       {past ? (
-        <View style={[styles.bar, { paddingBottom: 28 + Math.max(0, insets.bottom - 20) }]}>
+        <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
           {was.length > 0 && <View style={{ flexDirection: 'row' }}>{was.slice(0, 4).map((p, i) => <Avatar key={p.id} p={p} size={36} ring={colors.friend} style={{ marginLeft: i ? -10 : 0 }} />)}</View>}
           <View style={{ flex: 1 }}>
-            <Text style={styles.actionText}>{e.meetup ? `${e.meetup.kind} · было` : 'Ты был здесь'}</Text>
+            <Text style={styles.pastTitle}>{e.meetup ? `${e.meetup.kind} · было` : 'Ты был здесь'}</Text>
             <Text style={styles.pastSub} numberOfLines={1}>{was.length ? `с ${was.map((p) => p.withName ?? p.name).join(', ')}` : 'один — и это тоже было круто'}</Text>
           </View>
         </View>
       ) : (
-      <View style={[styles.bar, { paddingBottom: 28 + Math.max(0, insets.bottom - 20) }]}>
-        <Pressable onPress={() => setSheet('invite')} style={styles.inviteBtn} accessibilityRole="button" accessibilityLabel="Позвать друга">
-          <Ic d={IC.userPlus} c={[[9, 8, 3.5]]} size={22} color={colors.ink} />
-        </Pressable>
-        <Pressable onPress={() => setSheet('company')} style={[styles.action, { borderWidth: 1.5, borderColor: colors.ink }, activeCompany(company, e, now) && { backgroundColor: colors.sand }]} accessibilityRole="button">
-          <Text style={styles.actionText}>Ищу компанию</Text>
-        </Pressable>
-        <Pressable onPress={toggleGo} style={[styles.action, { backgroundColor: going ? colors.accent : colors.ink }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
-          <Ic d={IC.check} size={20} color={going ? colors.ink : colors.paper} w={2.2} />
-          <Text style={[styles.actionText, { color: going ? colors.ink : colors.paper }]}>{going ? 'Ты идёшь' : 'Я иду'}</Text>
-        </Pressable>
-      </View>
+        <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
+          <Pressable onPress={onSkip ?? onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
+            <X size={22} color={colors.ink} strokeWidth={2.2} />
+          </Pressable>
+          <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
+            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'Иду ✓' : 'Пойду'}</Text>
+          </Pressable>
+          <Pressable onPress={() => setSheet('invite')} style={({ pressed }) => [styles.inviteBtn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
+            <Text style={styles.inviteText}>Позвать</Text>
+          </Pressable>
+        </View>
       )}
 
       {sheet && (
@@ -318,30 +272,25 @@ export function EventPage({ e, now, onClose, closeLabel = 'Назад к кар�
             {sheet === 'invite' && (
               <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} onSend={(ids) => {
                 invite(e.id, ids);
+                if (LIVE) void sendInvite(e.id, e.title, ids).catch(() => show({ text: 'Не получилось позвать. Проверь связь' }));
                 setSheet(null);
                 show({ text: ids.length > 1 ? 'Позвал. Ответы придут в чат' : 'Позвал. Ответ придёт в чат', cta: 'Чаты', onCta: () => router.push('/chats') });
               }} />
             )}
-            {sheet === 'route' && <RouteSheet e={e} />}
+            {sheet === 'route' && <WhereSheet e={e} me={me} onCopied={() => { setSheet(null); show({ text: 'Адрес скопирован' }, 2000); }} />}
             {sheet === 'share' && <ShareSheet onPick={shareTo} />}
-            {sheet === 'going' && goingInfo && (
+            {sheet === 'going' && (LIVE ? (
+              <CardPeople e={e} going={going} onGo={() => { if (!going) toggleGo(); }} onInvite={() => setSheet('invite')} onError={(t) => show({ text: t })} />
+            ) : goingInfo && (
               <GoingSheet friends={goingInfo.faces} others={Math.max(0, e.goingCount - goingInfo.faces.length) + (going ? 1 : 0)}
                 onPerson={(id) => { setSheet(null); router.push({ pathname: '/person/[id]', params: { id } }); }} />
-            )}
+            ))}
           </BottomSheet>
         </>
       )}
     </View>
     </GestureDetector>
   );
-}
-
-/** Цена одной строкой: «2 500 ₸», «от 3 000 ₸» (если есть диапазон), «Бесплатно». */
-function priceShort(e: EventItem): string {
-  if (e.isFree || e.priceMin === 0) return 'Бесплатно';
-  if (e.priceMin == null) return '';
-  const n = (v: number) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return e.priceMax && e.priceMax !== e.priceMin ? `от ${n(e.priceMin)} ₸` : `${n(e.priceMin)} ₸`;
 }
 
 const SHARE_TARGETS: [ShareTarget | 'copy' | 'more', string, string, string][] = [
@@ -352,6 +301,7 @@ const SHARE_TARGETS: [ShareTarget | 'copy' | 'more', string, string, string][] =
   ['copy', 'Ссылка', '#6B675F', 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1'],
   ['more', 'Ещё', '#E7E2D6', 'M5 12h.01M12 12h.01M19 12h.01'],
 ];
+
 
 function ShareSheet({ onPick }: { onPick: (t: ShareTarget | 'copy' | 'more') => void }) {
   return (
@@ -388,25 +338,33 @@ function GoingSheet({ friends, others, onPerson }: { friends: Person[]; others: 
   );
 }
 
-function Row({ icon, title, sub, action }: { icon: ReactNode; title: string; sub?: string; action?: ReactNode }) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowIcon}>{icon}</View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.name}>{title}</Text>
-        {!!sub && <Text style={styles.small}>{sub}</Text>}
-      </View>
-      {action}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   pastSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   root: { flex: 1, backgroundColor: colors.paper },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 },
-  round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  cover: { marginTop: 14, marginHorizontal: 16, height: 300, borderRadius: 24, overflow: 'hidden' },
+  topRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  round: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(23,22,26,0.35)', alignItems: 'center', justifyContent: 'center' },
+  cover: { height: 470, overflow: 'hidden', justifyContent: 'flex-end' },
+  coverText: { padding: 18, gap: 10 },
+  stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
+  stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#FBFAF6' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#ECE7DC' },
+  chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  lineText: { flex: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  hand: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  list: { borderRadius: 20, backgroundColor: '#ECE7DC', overflow: 'hidden' },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: 64 },
+  itemSep: { borderTopWidth: 1, borderTopColor: '#DDD8CC' },
+  itemIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  itemLetter: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
+  itemTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
+  itemSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
+  skip: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  goBtn: { flex: 1, height: 56, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  goText: { fontFamily: fonts.body700, fontSize: 17, color: colors.ink },
+  inviteText: { fontFamily: fonts.body700, fontSize: 17, color: colors.paper },
+  pastTitle: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   coverIcon: { position: 'absolute', right: -40, top: 26, opacity: 0.22 },
   coverTop: { position: 'absolute', left: 20, right: 20, top: 20, flexDirection: 'row', justifyContent: 'space-between' },
   coverMeta: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.88 },
@@ -414,8 +372,8 @@ const styles = StyleSheet.create({
   bigText: { fontFamily: fonts.display800, letterSpacing: -1.9 },
   strip: { position: 'absolute', left: 20, right: 20, bottom: 14, borderTopWidth: 1.5, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   stripText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.44, flexShrink: 1 },
-  body: { paddingTop: 20, paddingHorizontal: 16, gap: 18 },
-  h1: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.6, lineHeight: 32, color: colors.ink },
+  body: { paddingTop: 16, paddingHorizontal: 18, gap: 14 },
+  h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 33, color: '#FFFFFF' },
   h2: { fontFamily: fonts.display600, fontSize: 19, color: colors.ink },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   rowIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
@@ -450,8 +408,8 @@ const styles = StyleSheet.create({
   shareIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   shareLabel: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.ink },
   goingItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, backgroundColor: colors.paper, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', gap: 8 },
-  inviteBtn: { width: 54, height: 54, borderRadius: 16, borderWidth: 1.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(243,240,232,0.96)' },
+  inviteBtn: { height: 56, paddingHorizontal: 22, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   action: { flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   actionText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
 });

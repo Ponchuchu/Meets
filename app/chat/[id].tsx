@@ -6,6 +6,7 @@ import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { router, useLocalSearchParams } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { CircleRecorder, type CircleRecorderHandle } from '../../src/chat/ui/CircleRecorder';
+import { answerInvite, type Invite } from '../../src/live/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
@@ -266,7 +267,13 @@ export default function ChatScreen() {
               voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
               onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
               onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
-              onInvite={!mine ? (a) => { chat.answer(m.id, a); if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); } } : undefined} />
+              onInvite={!mine ? (a) => {
+                chat.answer(m.id, a);
+                if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); }
+                // Альфа: ответ уходит в приглашение (видно обоим в «Планах») и сообщением в чат.
+                const inv = qc.getQueryData<Invite[]>(['invites'])?.find((i) => i.event_id === m.eventId && i.from_id === m.authorId && !i.answer);
+                if (inv) void answerInvite(inv, a === 'yes').then(() => qc.invalidateQueries({ queryKey: ['invites'] })).catch(() => undefined);
+              } : undefined} />
           );
         })}
         {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}

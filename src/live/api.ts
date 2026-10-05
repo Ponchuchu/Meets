@@ -241,3 +241,81 @@ export async function getSessions(venueId: string): Promise<Session[]> {
     { id: string; starts_at: string; hall: string | null; format: string | null; price_from: number | null; cinema_films: { title: string } | null }[];
   return rows.map((r) => ({ id: r.id, title: r.cinema_films?.title ?? 'Сеанс', starts_at: r.starts_at, hall: r.hall, format: r.format, price_from: r.price_from }));
 }
+
+// ——— Позвать (V3.md invite): приглашение в «Планы» друга + карточка в личный чат, ответ виден обоим ———
+
+export interface Invite { id: string; from_id: string; to_id: string; event_id: string | null; own_place: string | null; answer: 'yes' | 'no' | null; created_at: string }
+
+export async function getInvites(): Promise<Invite[]> {
+  const id = me();
+  return must(sb().from('invites').select('id,from_id,to_id,event_id,own_place,answer,created_at').or(`from_id.eq.${id},to_id.eq.${id}`)
+    .gte('created_at', new Date(Date.now() - 30 * 86400e3).toISOString()).order('created_at', { ascending: false }).limit(200));
+}
+
+export async function sendInvite(eventId: string, title: string, friendIds: string[]): Promise<void> {
+  const from = me();
+  await must(sb().from('invites').insert(friendIds.map((to) => ({ from_id: from, to_id: to, event_id: eventId }))));
+  // Карточка в личный чат: сервер открывает (или находит) чат с другом.
+  for (const to of friendIds) {
+    const chat = await must(sb().rpc('open_direct_chat', { other: to })) as string;
+    await must(sb().from('messages').insert({ chat_id: chat, author_id: from, kind: 'invite', body: title, event_id: eventId }));
+  }
+}
+
+export async function answerInvite(inv: Invite, yes: boolean): Promise<void> {
+  await must(sb().from('invites').update({ answer: yes ? 'yes' : 'no' }).eq('id', inv.id));
+  if (yes && inv.event_id) await setAttendance(inv.event_id, 'going');
+  const chat = await must(sb().rpc('open_direct_chat', { other: inv.from_id })) as string;
+  await must(sb().from('messages').insert({ chat_id: chat, author_id: me(), kind: 'text', body: yes ? 'Иду ✓' : 'Не смогу' }));
+}
+
+/** События по id (для «Были» в Планах и приглашений на дальние даты). */
+export async function getEventsByIds(ids: string[]): Promise<EventItem[]> {
+  if (!ids.length) return [];
+  const rows = await must(sb().from('events_live').select('*').in('id', ids.slice(0, 200))) as LiveRow[];
+  return rows.map(mapLive);
+}
+
+// ——— Маршрут (функция route: TomTom с пробками) ———
+
+export interface Leg { min: number; km: number; delayMin?: number; line?: [number, number][] }
+export async function getRoute(from: { lat: number; lon: number }, to: { lat: number; lon: number }): Promise<{ car: Leg | null; walk: Leg | null }> {
+  const { data, error } = await withTimeout(sb().functions.invoke('route', { body: { from, to } }), 12000);
+  if (error) throw new Error(error.message);
+  return data as { car: Leg | null; walk: Leg | null };
+}
+
+// ——— Кто идёт и «ищу компанию» (V6CardPeople) ———
+
+export interface Looker { id: string; name: string; photo_url: string | null; note: string | null; friend: boolean }
+
+/** Друзья, которые идут (RLS attendance — только друзья), и кто ищет компанию на это событие. */
+export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[]; lookers: Looker[]; iLook: boolean }> {
+  const id = me();
+  const [att, look] = await Promise.all([
+    must(sb().from('attendance').select('user_id').eq('event_id', eventId).in('status', ['going', 'arrived']).neq('user_id', id)) as Promise<{ user_id: string }[]>,
+    must(sb().from('company_requests').select('user_id,note').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null }[]>,
+  ]);
+  const ids = [...new Set([...att.map((a) => a.user_id), ...look.map((l) => l.user_id)])].filter((x) => x !== id);
+  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about').in('id', ids)) as Profile[] : [];
+  const friendIds = new Set(att.map((a) => a.user_id));
+  return {
+    friends: profs.filter((p) => friendIds.has(p.id)),
+    lookers: look.filter((l) => l.user_id !== id).map((l) => {
+      const p = profs.find((x) => x.id === l.user_id);
+      return { id: l.user_id, name: p?.name ?? 'Кто-то', photo_url: p?.photo_url ?? null, note: l.note, friend: friendIds.has(l.user_id) };
+    }),
+    iLook: look.some((l) => l.user_id === id),
+  };
+}
+
+export async function setLooking(eventId: string, on: boolean): Promise<void> {
+  if (on) await must(sb().from('company_requests').upsert({ user_id: me(), event_id: eventId }));
+  else await must(sb().from('company_requests').delete().eq('user_id', me()).eq('event_id', eventId));
+}
+
+/** «Пойдём?»: одно сообщение без медиа (правила для незнакомых проверяет сервер в open_direct_chat). */
+export async function askCompany(personId: string, title: string): Promise<void> {
+  const chat = await must(sb().rpc('open_direct_chat', { other: personId })) as string;
+  await must(sb().from('messages').insert({ chat_id: chat, author_id: me(), kind: 'text', body: `Привет! Тоже ищу компанию на «${title}». Пойдём вместе?` }));
+}

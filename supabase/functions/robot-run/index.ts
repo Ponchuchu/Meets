@@ -4,9 +4,11 @@
 // POST { action: 'check' }          → { ok, error? } — токен GitHub на месте и видит воркфлоу (ничего не запускает)
 // Из robot-tick (CRON_SECRET): { action: 'start', task: 'search' | 'covers', scheduled: true }
 import { checkToken, dispatch } from '../_shared/github.ts';
-import { admin, isServiceCall, json, userFrom } from '../_shared/supabase.ts';
+import { admin, isServiceCall, json, preflight, userFrom } from '../_shared/supabase.ts';
 
 Deno.serve(async (req) => {
+  const pre = preflight(req);
+  if (pre) return pre;
   const db = admin();
   const service = isServiceCall(req);
   const me = service ? null : await userFrom(req, db);
