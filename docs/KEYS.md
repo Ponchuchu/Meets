@@ -225,3 +225,7 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 2. GitHub → репозиторий → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**: имя `SUPABASE_ACCESS_TOKEN`, значение — токен → **Add secret**.
 
 Токен никому не пересылать.
+
+## Обновление после проверки с телефона (6 октября)
+
+Workflow **Supabase backend** (`functions.yml`) теперь есть: запускается вручную из Actions на ветке с исправлениями. Он применяет миграцию 18 и обновляет функции; нужен `SUPABASE_ACCESS_TOKEN`, добавление описано выше. После зелёного результата запустить **Android APK** на той же ветке. Полная инструкция и проверки на телефоне: [phone-feedback](progress/phone-feedback/README.md#обновление-приложения).
