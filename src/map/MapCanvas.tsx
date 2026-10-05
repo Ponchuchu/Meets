@@ -16,15 +16,17 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Mapbox = (require('@rnmapbox/maps') as RNMapbox).default;
   if (config.mapboxToken) Mapbox.setAccessToken(config.mapboxToken);
+  Mapbox.setTelemetryEnabled(false); // включается в «О карте и данных»
 } catch {
   Mapbox = null;
 }
 
 const LOAD_TIMEOUT_MS = 8000;
+
 const PIN_BOX = 72;
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, topInset = 120, showUser = false, traffic, fog, lines = [] } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd } = props;
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -61,6 +63,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (cam.current) cam.current.setCamera({ zoomLevel: z.current, animationDuration: 300 });
       else staticRef.current?.zoomBy(d);
     },
+    north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
 
   if (failed || !Mapbox) return <StaticMap ref={staticRef} {...props} />;
@@ -72,13 +75,24 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         style={StyleSheet.absoluteFill}
         styleJSON={JSON.stringify(mapStyle(theme))}
         surfaceView={false}
-        rotateEnabled={false}
+        rotateEnabled
         pitchEnabled={false}
         scaleBarEnabled={false}
+        compassEnabled={false}
+        // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
+        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: false, simultaneousRotateAndPinchZoomEnabled: true }}
+        // Логотип Mapbox и «i» — маленькие, слева внизу над панелью, не под пальцами (убрать совсем нельзя — условия Mapbox).
         logoEnabled
-        logoPosition={{ bottom: bottomInset + 8, left: 8 }}
-        attributionPosition={{ top: topInset, right: 12 }}
-        onCameraChanged={(st: { properties: { zoom: number; center: number[] }; gestures?: { isGestureActive: boolean } }) => { if (st.gestures?.isGestureActive) moved.current = true; z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }}
+        logoPosition={{ bottom: bottomInset + 6, left: 10 }}
+        attributionEnabled
+        attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
+        onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
+          if (st.gestures?.isGestureActive) moved.current = true;
+          z.current = st.properties.zoom;
+          onZoom?.(st.properties.zoom);
+          if (st.properties.heading != null) onBearing?.(st.properties.heading);
+        }}
+        onPress={() => onPress?.()}
         onMapIdle={(st: { properties: { center: number[] } }) => onCenter?.(st.properties.center[1], st.properties.center[0])}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => { loaded.current = true; toStart(); onMode?.('mapbox'); }}
@@ -88,7 +102,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} animationMode="none" />
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} animationMode="none"
+          followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, z.current)}
+          onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
           <M.RasterSource id="traffic" tileUrlTemplates={[traffic]} tileSize={256}>
             <M.RasterLayer id="traffic-layer" style={{ rasterOpacity: 0.9 }} />
@@ -96,7 +112,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         )}
         {fog && (
           <M.ShapeSource id="fog" shape={fog as never}>
-            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', fillOpacity: 0.8, fillAntialias: false }} />
+            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', fillOpacity: 0.76, fillAntialias: false }} />
+            {/* Мягкий край открытых мест: размытая линия того же цвета, что туман (FIX1 И2 п.14). */}
+            <M.LineLayer id="fog-edge" style={{ lineColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', lineOpacity: 0.76, lineWidth: 18, lineBlur: 12, lineJoin: 'round' }} />
           </M.ShapeSource>
         )}
         {lines.map((l) => (
@@ -104,7 +122,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
           </M.ShapeSource>
         ))}
-        {showUser && <M.LocationPuck puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true }} />}
+        {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
+        {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
         {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>
             <View collapsable={false} pointerEvents="box-none" style={styles.pin}>{mk.node}</View>

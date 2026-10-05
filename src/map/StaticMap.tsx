@@ -12,6 +12,7 @@ export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function St
   useImperativeHandle(ref, () => ({
     flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })),
     zoomBy: (d) => setCamera((c) => ({ ...c, zoom: Math.max(10, Math.min(18, c.zoom + d)) })),
+    north: () => undefined,
   }));
   useEffect(() => { onZoom?.(camera.zoom); }, [camera.zoom, onZoom]);
   useEffect(() => { onCenter?.(camera.lat, camera.lon); }, [camera.lat, camera.lon, onCenter]);

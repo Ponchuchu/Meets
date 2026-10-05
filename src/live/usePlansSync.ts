@@ -5,26 +5,23 @@ import { useEffect } from 'react';
 import { config } from '../lib/config';
 import { usePlans } from '../state/plans';
 import { data, eventsSnapshot } from '../data';
+import { mergeServerPlans } from '../state/plansMerge';
 import { getMyAttendance } from './api';
+import { useAuth } from './auth';
 import { useReminders } from './reminders';
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function usePlansSync() {
   const live = config.dataMode !== 'demo';
-  const q = useQuery({ queryKey: ['me', 'attendance'], queryFn: getMyAttendance, enabled: live, staleTime: 60e3 });
+  const uid = useAuth((s) => s.session?.user.id ?? null);
+  // Ключ кэша — с id человека: другой аккаунт на этом же телефоне не увидит чужие «Иду».
+  const q = useQuery({ queryKey: ['me', 'attendance', uid], queryFn: getMyAttendance, enabled: live && !!uid, staleTime: 60e3 });
   useEffect(() => {
-    if (!q.data) return;
+    if (!q.data || !uid) return;
     usePlans.setState((s) => {
-      const going: Record<string, string> = {};
-      for (const [id, at] of Object.entries(s.going)) if (!UUID.test(id)) going[id] = at;
-      for (const r of q.data) if (r.status === 'going' || r.status === 'arrived') going[r.event_id] = r.at;
-      const saved: Record<string, true> = {};
-      for (const id of Object.keys(s.saved)) if (!UUID.test(id)) saved[id] = true;
-      for (const r of q.data) if (r.status === 'saved') saved[r.event_id] = true;
-      return { going, saved };
+      const next = mergeServerPlans({ owner: s.owner, going: s.going, saved: s.saved, meetupIds: s.meetups.map((m) => m.id) }, q.data, uid);
+      return s.owner === uid ? next : { ...next, company: {}, invites: [], meetups: [], declined: {} };
     });
-  }, [q.data]);
+  }, [q.data, uid]);
 
   // Напоминания за час: только мои «Иду» из известных событий.
   const going = usePlans((s) => s.going);

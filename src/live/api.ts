@@ -4,6 +4,7 @@ import { isLongEvent } from '../data/seed';
 import type { Category, EventItem } from '../data/types';
 import { myId } from './auth';
 import { setOutboxSender } from './outbox';
+import { reportDb } from './net';
 
 const sb = () => supabase();
 
@@ -372,4 +373,20 @@ export async function getMeStats(): Promise<MeStats> {
     places: [...new Set(((places as { kind: string }[] | null) ?? []).map((p) => PLACE_RU[p.kind] ?? p.kind))],
     staff: isStaff, drafts,
   };
+}
+
+/** «Повторить» на плашке «Нет связи с сервером»: лёгкий запрос к базе (select 1). */
+export async function pingDb(): Promise<boolean> {
+  const { error } = await sb().from('events_live').select('id').limit(1);
+  reportDb(!error);
+  return !error;
+}
+
+// ——— Балл пробок (функция traffic-score раз в 10 минут) ———
+
+export interface TrafficScore { score: number; at: string; points: { name: string; lat: number; lon: number }[] }
+
+export async function getTrafficScore(): Promise<TrafficScore | null> {
+  const { data } = await sb().from('traffic_score').select('score,at,points').eq('id', 1).maybeSingle();
+  return (data as TrafficScore | null) ?? null;
 }

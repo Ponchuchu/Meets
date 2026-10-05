@@ -7,7 +7,7 @@ import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Switch } from '../../ui/controls';
+import { Toggle as Switch } from '../../ui/v6/Settings';
 import { Toast, type ToastData } from '../../ui/Toast';
 import { loadQueue, loadStats, moderate, saveDraft, setAutoPublish as saveAutoPublish } from '../api';
 import { demoQueue, DEMO_STATS, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';

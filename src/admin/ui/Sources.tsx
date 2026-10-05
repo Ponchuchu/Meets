@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { colors, fonts } from '../../theme';
-import { Switch } from '../../ui/controls';
+import { Toggle as Switch } from '../../ui/v6/Settings';
 import { addSource, loadSources, parseSourceLink, updateSource } from '../api';
 import type { SourceItem } from '../model';
 import { useAdminDemo } from '../store';

@@ -1,4 +1,6 @@
-// «Стекло» для кнопок поверх карты и таб-бара: полупрозрачная светлая подложка, на вебе — с размытием.
+// Фон кнопок поверх карты и таб-бара (V6MapTop): светлый rgba(251,250,246,0.96), тень, без внутренней рамки.
+// Android: тень (elevation) просвечивает сквозь полупрозрачный фон «восьмиугольником» (FIX1 И2 п.4) — там фон плотный.
+// Web: лёгкое размытие под стеклом.
 import { Platform, type ViewStyle } from 'react-native';
 
 const WEB = Platform.OS === 'web'
@@ -6,9 +8,7 @@ const WEB = Platform.OS === 'web'
   : {};
 
 export const glass: ViewStyle = {
-  backgroundColor: Platform.OS === 'web' ? 'rgba(251,249,244,0.6)' : 'rgba(251,249,244,0.82)',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.75)',
-  shadowColor: '#17161A', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+  backgroundColor: Platform.OS === 'android' ? '#FBFAF6' : 'rgba(251,250,246,0.96)',
+  shadowColor: '#17161A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   ...WEB,
 };

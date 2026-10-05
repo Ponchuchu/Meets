@@ -27,3 +27,9 @@ verify_jwt = false
 
 [functions.robot-tick]
 verify_jwt = false
+
+[functions.geocode]
+verify_jwt = false
+
+[functions.traffic-score]
+verify_jwt = false

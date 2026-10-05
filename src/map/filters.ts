@@ -57,8 +57,9 @@ export function matchesCats(e: Pick<EventItem, 'category'>, cats: FilterCat[]): 
 }
 
 /** События, которые показываем на карте с этими фильтрами. going — id событий, куда я иду. */
-export function visibleEvents(events: EventItem[], f: MapFilters, now: Date, going: Set<string> = new Set()): EventItem[] {
+export function visibleEvents(all: EventItem[], f: MapFilters, now: Date, going: Set<string> = new Set()): EventItem[] {
   const today = dayIndex(now);
+  const events = all.filter((e) => !e.noPoint); // без точки — только в Рекомендациях
   if (f.soon) {
     const until = now.getTime() + SOON_HOURS * 3600e3;
     return events.filter((e) => new Date(e.startsAt).getTime() <= until && phaseOf(e, now, going.has(e.id)) !== 'hidden'

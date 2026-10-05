@@ -20,7 +20,7 @@ function webglOk(): boolean {
 }
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -29,6 +29,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const [, setTick] = useState(0);
   const [ready, setReady] = useState(false);
   const gl = useRef<typeof mapboxgl | null>(null);
+  const onPressRef = useRef(onPress);
+  useEffect(() => { onPressRef.current = onPress; }, [onPress]);
 
   useImperativeHandle(ref, () => ({
     flyTo: (lat, lon, zoom) => {
@@ -39,6 +41,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (map.current) map.current.easeTo({ zoom: map.current.getZoom() + d, duration: 300 });
       else staticRef.current?.zoomBy(d);
     },
+    north: () => { map.current?.easeTo({ bearing: 0, duration: 350 }); },
   }));
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           zoom: camera.zoom,
           attributionControl: false,
           pitchWithRotate: false,
-          dragRotate: false,
+          dragRotate: true,
         });
       } catch {
         setFailed(true);
@@ -73,7 +76,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
       });
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
-      m.touchZoomRotate.disableRotation();
+      m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.(); });
+      m.on('rotate', () => onBearing?.(m.getBearing()));
       map.current = m;
       setReady(true);
       const els = elements.current;
@@ -101,7 +105,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       const style = m.getStyle();
       for (const l of style?.layers ?? []) if (l.id.startsWith('line-')) m.removeLayer(l.id);
       for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
-      for (const id of ['traffic-layer', 'fog-layer']) if (m.getLayer(id)) m.removeLayer(id);
+      for (const id of ['traffic-layer', 'fog-edge', 'fog-layer']) if (m.getLayer(id)) m.removeLayer(id);
       for (const id of ['traffic', 'fog']) if (m.getSource(id)) m.removeSource(id);
       for (const l of lines ?? []) {
         m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
@@ -114,7 +118,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       }
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
-        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': theme === 'night' ? '#0E0E10' : '#F7F5EF', 'fill-opacity': 0.8, 'fill-antialias': false } });
+        const fogC = theme === 'night' ? '#0E0E10' : '#F7F5EF';
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.76, 'fill-antialias': false } });
+        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.76, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
       }
     };
     // Стиль ещё грузится — применим, как только загрузится (и после каждой смены стиля).

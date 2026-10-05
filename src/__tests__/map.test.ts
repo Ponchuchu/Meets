@@ -114,3 +114,15 @@ describe('ближайшее время (v6)', () => {
     expect(visibleEvents(list, BASE, now).map((e) => e.id).sort()).toEqual(['tomorrow-am', 'tonight']);
   });
 });
+
+describe('FIX1 И2 п.8: на карте все одобренные события с точкой', () => {
+  const base = at('12:00');
+  const mk = (id: string, h: number, extra: Partial<EventItem> = {}): EventItem => ({
+    ...demoEvents()[0], id, startsAt: new Date(base.getTime() + h * 3600e3).toISOString(), endsAt: null, isLong: false, isFree: false, priceMin: 15000, ...extra,
+  });
+  it('«Ближайшее время» по умолчанию: всё в следующие 24 часа, платное тоже', () => {
+    const list = [mk('a', 1), mk('b', 6, { priceMin: 30000 }), mk('c', 23), mk('d', 30), mk('e', 5, { noPoint: true })];
+    expect(BASE.free).toBe(false);
+    expect(visibleEvents(list, BASE, base).map((e) => e.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+});

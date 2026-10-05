@@ -140,6 +140,8 @@ for (const [route, name, preset, clicks = [], height = 844, width = 390] of rout
     await target.click({ force: true });
     await page.waitForTimeout(Number(process.env.SHOTS_CLICK_WAIT || 700));
   }
+  // SHOTS_EVAL=выражение — напечатать результат в странице (отладка).
+  if (process.env.SHOTS_EVAL) console.log('  eval:', JSON.stringify(await page.evaluate(process.env.SHOTS_EVAL)));
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);
 }

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { EventPage } from '../../event/EventPage';
@@ -36,7 +36,6 @@ import { Toast, type ToastData } from '../../ui/Toast';
 import { autoTheme } from '../../map/style';
 import { ALMATY_CAMERA, type Camera, type MapCanvasHandle, type MapMarker } from '../../map/types';
 import { EventSheet } from '../../map/ui/EventSheet';
-import { Compass } from 'lucide-react-native';
 import { FiltersSheet } from '../../map/ui/FiltersSheet';
 import { SearchOverlay } from '../../map/ui/SearchOverlay';
 import { TopBar } from '../../map/ui/TopBar';
@@ -45,14 +44,16 @@ import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
 import { useTabInset } from '../../components/TabBar';
-import { glass } from '../../ui/glass';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
-import { getMalls, getTrail, setSetting, getSettings, type Mall } from '../../live/api';
+import { getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { MallPin, VenueSheet } from '../../map/ui/VenueSheet';
-import { exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
+import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
 import { startCamera } from '../../live/startPoint';
+import { MeDot, useHeading } from '../../map/MeDot';
+import { MapControls } from '../../map/ui/MapControls';
+import { setMapTelemetry } from '../../map/telemetry';
 import { useIntro } from '../auth/Splash';
 import { useNet } from '../../live/net';
 import { myId } from '../../live/auth';
@@ -100,6 +101,10 @@ export default function MapScreen() {
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
   // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
   const [startCam, setStartCam] = useState<Camera | null>(null);
+  // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
+  const bearing = useSharedValue(0);
+  const heading = useHeading();
+  const [follow, setFollow] = useState(false);
   useEffect(() => { void startCamera().then(setStartCam); }, []);
   // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
   const settled = useIntro((s) => s.settled);
@@ -144,6 +149,11 @@ export default function MapScreen() {
       if (!st.bg_asked) setAskBg(true);
     })().catch(() => undefined);
   }, [geo]);
+  // Телеметрия Mapbox — как выбрал человек в «О карте и данных» (по умолчанию выключена).
+  useEffect(() => {
+    if (!LIVE) return;
+    void getSettings().then((st) => { if (st.mapbox_telemetry === true) setMapTelemetry(true); }).catch(() => undefined);
+  }, []);
   const allowBg = async () => {
     setAskBg(false);
     void setSetting('bg_asked', true).catch(() => undefined);
@@ -228,10 +238,23 @@ export default function MapScreen() {
   const upcoming = useMemo(() => events.filter((e) => phaseOf(e, clock, going.has(e.id)) !== 'hidden'), [events, clock, going]);
 
   // В линзах «Пробки» и «Где я был» карточки события нет — видно саму карту (V6MapLens*).
-  const selected = cardHidden || lens !== 'normal' ? undefined : visible.find((e) => e.id === selectedId)
-    ?? visible.find((e) => pinKind(e, today, going.has(e.id)) === 'hot')
-    ?? visible.find((e) => e.friendsGoing.length > 0)
-    ?? visible[0];
+  // Линза «Пробки»: балл города (traffic-score, раз в 10 мин) и время на машине до ближайшего проспекта.
+  const trafficOn = LIVE && lens === 'traffic';
+  const tscore = useQuery({ queryKey: ['traffic', 'score'], queryFn: getTrafficScore, enabled: trafficOn, staleTime: 5 * 60e3, refetchInterval: trafficOn ? 10 * 60e3 : false });
+  const meAt = fix ?? myPos;
+  const nearAve = useMemo(() => {
+    if (!meAt || !tscore.data?.points.length) return null;
+    return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
+  }, [meAt, tscore.data]);
+  const toAve = useQuery({
+    queryKey: ['traffic', 'to', nearAve?.name, meAt && Math.round(meAt.lat * 500), meAt && Math.round(meAt.lon * 500)],
+    queryFn: async () => (meAt && nearAve ? (await getRoute(meAt, nearAve)).car?.min ?? null : null),
+    enabled: trafficOn && !!nearAve && !!meAt, staleTime: 10 * 60e3,
+  });
+
+  // Шторка события — только по тапу на точку (FIX1 И2 п.9): сама не открывается, при входе на карту ничего не выбрано.
+  const selected = cardHidden || lens !== 'normal' || !selectedId ? undefined : visible.find((e) => e.id === selectedId);
+  useEffect(() => { select(null); }, [select]);
 
   const detail = detailOf(zoom);
   const scale = pinScale(zoom);
@@ -281,15 +304,17 @@ export default function MapScreen() {
         }
       }
     }
-    // Моя точка: на телефоне — LocationPuck; GPS неточный (> 60 м) — круг точности (V6OfflineGps).
+    // Моя точка: оранжевая с конусом (MeDot); GPS неточный (> 60 м) — ещё и круг точности (V6OfflineGps).
     if (LIVE) {
+      const at = fix ?? myPos;
+      if (at) list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
       if (fix && fix.accuracy && fix.accuracy > 60) {
         const mpp = (156543 * Math.cos((fix.lat * Math.PI) / 180)) / 2 ** zoom;
         list.push({ id: 'acc', lat: fix.lat, lon: fix.lon, z: 34, node: <AccuracyRing size={Math.min(320, Math.max(40, (2 * fix.accuracy) / mpp))} /> });
       }
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, zoom, malls]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -353,7 +378,8 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog} />}
+      {startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog}
+        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       <View style={[styles.top, { top: topY }]}>
@@ -370,18 +396,21 @@ export default function MapScreen() {
         />
         {LIVE && (!net.online || net.serverDown) && (
           <View style={{ marginTop: 6 }}>
-            <NetPill kind={net.online ? 'server' : 'offline'} onRetry={() => void queryClient.invalidateQueries()} />
+            <NetPill kind={net.online ? 'server' : 'offline'} onRetry={() => { void pingDb().then((ok) => { if (ok) void queryClient.invalidateQueries(); }); }} />
           </View>
         )}
       </View>
 
 
-      {/* Компас справа под верхом (V6MapMove): тап — ко мне, север вверх. Масштаб — пальцами. */}
       {!focusId && sheet === null && (
-        <Pressable onPress={goToMe} style={({ pressed }) => [styles.compass, glass, { top: topY + 62 }, pressed && { transform: [{ scale: 0.92 }] }]}
-          accessibilityRole="button" accessibilityLabel="Ко мне, север вверх">
-          <Compass size={22} color={colors.accent} strokeWidth={1.9} />
-        </Pressable>
+        <MapControls top={topY + 62} bearing={bearing} follow={follow}
+          onCompass={() => {
+            if (follow) { setFollow(false); return; }
+            if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
+            else if (myPos || fix) setFollow(true);
+          }}
+          onZoom={(d) => mapRef.current?.zoomBy(d)}
+          onMe={() => { setFollow(false); void goToMe(); }} />
       )}
 
       {focusId && focusPerson && focusSpot && !inviteOpen && sheet === null && filters.friends && (
@@ -405,7 +434,7 @@ export default function MapScreen() {
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
-            me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => setCardHidden(true)}
+            me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();
               if (going.has(selected.id)) { p.ungo(selected.id); useApp.getState().removePlan(); }
@@ -452,7 +481,7 @@ export default function MapScreen() {
 
       {sheet === null && lens !== 'normal' && !focusId && (
         <View style={[styles.lensInfo, { bottom: tabPad + 12 }]} pointerEvents="none">
-          {lens === 'explore' ? <ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /> : <TrafficChip hasKey={!!config.tomtomKey} />}
+          {lens === 'explore' ? <ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
 
@@ -507,7 +536,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
   top: { position: 'absolute', left: 16, right: 16 },
   calendar: { position: 'absolute', left: 12, right: 12 },
-  compass: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   lensInfo: { position: 'absolute', left: 16 },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },

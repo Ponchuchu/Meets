@@ -20,6 +20,8 @@ export interface EventItem {
   lat: number;
   lon: number;
   needsPin: boolean;
+  /** Координат нет совсем (адрес не нашёлся) — на карте не показываем, в Рекомендациях — да. */
+  noPoint?: boolean;
   priceMin: number | null;
   priceMax: number | null;
   isFree: boolean;

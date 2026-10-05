@@ -42,6 +42,7 @@ export function mapFeedRow(r: FeedRow): EventItem {
     lat: r.lat ?? 43.2389,
     lon: r.lon ?? 76.8897,
     needsPin: r.needs_pin || r.lat == null,
+    ...(r.lat == null ? { noPoint: true } : {}),
     priceMin: r.price_min,
     priceMax: r.price_max,
     isFree: r.is_free,

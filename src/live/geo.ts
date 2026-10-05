@@ -77,13 +77,75 @@ export function sendInterval(foreground: boolean, battery: number | null): numbe
   return low ? 300000 : 150000;
 }
 
-/** Туман «Где я был»: весь город под вуалью, открытые клетки — дырками. GeoJSON Polygon. */
+/** Контуры открытых мест: клетки склеены в общие пятна (общие стороны соседей убраны), без внутренних швов.
+ *  Кольца в целых координатах сетки [col, row], обход против часовой. */
+export function cellOutlines(cells: string[]): [number, number][][] {
+  const set = new Set(cells);
+  const edges = new Map<string, [number, number, number, number][]>(); // начало → рёбра
+  const key = (x: number, y: number) => `${x},${y}`;
+  const has = (i: number, j: number) => set.has(`${i}:${j}`);
+  for (const id of set) {
+    const [i, j] = id.split(':').map(Number);
+    // Ребро рисуем, только если с той стороны нет открытой клетки.
+    const add = (x1: number, y1: number, x2: number, y2: number) => {
+      const k = key(x1, y1);
+      const list = edges.get(k) ?? [];
+      list.push([x1, y1, x2, y2]);
+      edges.set(k, list);
+    };
+    if (!has(i - 1, j)) add(j, i, j + 1, i);
+    if (!has(i, j + 1)) add(j + 1, i, j + 1, i + 1);
+    if (!has(i + 1, j)) add(j + 1, i + 1, j, i + 1);
+    if (!has(i, j - 1)) add(j, i + 1, j, i);
+  }
+  const rings: [number, number][][] = [];
+  for (const [start, list] of edges) {
+    while (list.length) {
+      const first = list.pop()!;
+      const ring: [number, number][] = [[first[0], first[1]]];
+      let [, , x, y] = first;
+      let guard = 0;
+      while (key(x, y) !== start && guard++ < 100000) {
+        ring.push([x, y]);
+        const next = edges.get(key(x, y))?.pop();
+        if (!next) break;
+        [, , x, y] = next;
+      }
+      rings.push(dropCollinear(ring));
+    }
+  }
+  return rings;
+}
+
+function dropCollinear(ring: [number, number][]): [number, number][] {
+  const n = ring.length;
+  return ring.filter((p, k) => {
+    const a = ring[(k - 1 + n) % n], b = ring[(k + 1) % n];
+    return (p[0] - a[0]) * (b[1] - p[1]) - (p[1] - a[1]) * (b[0] - p[0]) !== 0;
+  });
+}
+
+/** Сглаживание Чайкина: углы срезаются, «ступеньки» клеток становятся плавными пятнами. */
+export function chaikin(ring: [number, number][], times = 3): [number, number][] {
+  let r = ring;
+  for (let t = 0; t < times; t++) {
+    const out: [number, number][] = [];
+    for (let k = 0; k < r.length; k++) {
+      const a = r[k], b = r[(k + 1) % r.length];
+      out.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]], [0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
+    }
+    r = out;
+  }
+  return r;
+}
+
+/** Туман «Где я был» (V6MapLensExplore): весь город под вуалью, открытые места — плавными дырками. GeoJSON Polygon. */
 export function fogPolygon(cells: string[]): { type: 'Feature'; properties: Record<string, never>; geometry: { type: 'Polygon'; coordinates: number[][][] } } {
   const pad = 0.3;
   const outer = [[ALMATY_BOX.w - pad, ALMATY_BOX.s - pad], [ALMATY_BOX.e + pad, ALMATY_BOX.s - pad], [ALMATY_BOX.e + pad, ALMATY_BOX.n + pad], [ALMATY_BOX.w - pad, ALMATY_BOX.n + pad], [ALMATY_BOX.w - pad, ALMATY_BOX.s - pad]];
-  const holes = [...new Set(cells)].map((id) => {
-    const [s, w, n, e] = cellBounds(id);
-    return [[w, s], [w, n], [e, n], [e, s], [w, s]];
+  const holes = cellOutlines([...new Set(cells)]).map((ring) => {
+    const pts = chaikin(ring).map(([x, y]) => [Math.round(x * CELL.lon * 1e6) / 1e6, Math.round(y * CELL.lat * 1e6) / 1e6]);
+    return [...pts, pts[0]];
   });
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [outer, ...holes] } };
 }
