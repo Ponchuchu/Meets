@@ -1,7 +1,7 @@
 // Реализация на Supabase: события — всем, люди и чаты — после входа (remote.ts). Профиль-хроника пока демо.
 import { supabase } from './client';
 import { config } from '../lib/config';
-import { getEvents as liveEvents, getProfile as liveProfile } from '../live/api';
+import { getEvents as liveEvents, getFriends as liveFriends, getMyAttendance as liveAttendance, getProfile as liveProfile } from '../live/api';
 import { createDemoSource, demoEvents, mergeEvents } from './demo';
 import * as remote from './remote';
 import { mapFeedRow, type FeedRow } from './feedRow';
@@ -25,10 +25,10 @@ export async function fetchRealEvents(timeoutMs = 6000): Promise<EventItem[]> {
 
 /** Альфа (live): профиль без демо-хроники — пусто, пока не накопится своя история (А6). */
 async function liveMyProfile(): Promise<MyProfile> {
-  const p = await liveProfile();
+  const [p, friends, att] = await Promise.all([liveProfile(), liveFriends().catch(() => []), liveAttendance().catch(() => [])]);
   return {
     handle: p?.handle ?? '', instagram: null, about: p?.about ?? '', phoneMasked: '',
-    stats: { events: 0, friends: 0 }, visitedCells: [], eventCells: [], districts: [], districtsTotal: 0,
+    stats: { events: att.filter((a) => a.status === 'going' || a.status === 'arrived').length, friends: friends.length }, visitedCells: [], eventCells: [], districts: [], districtsTotal: 0,
     cities: [], countries: [], timeline: [], nights: [], badgeProgress: {}, invitesToMe: [],
   };
 }

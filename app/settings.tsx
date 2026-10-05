@@ -17,7 +17,12 @@ import { Backdrop, BottomSheet } from '../src/ui/sheet';
 import { useChat } from '../src/state/chat';
 import { deleteAccount, signOut as authSignOut } from '../src/auth/service';
 import { queryClient } from '../src/live/query';
+import { useAuth } from '../src/live/auth';
+import { config } from '../src/lib/config';
 import { savePushPrefs } from '../src/notify/register';
+
+/** «+7 7•• ••• •• 49»: номер видно только тебе и только последние цифры. */
+const maskPhone = (p?: string | null) => { const d = (p ?? '').replace(/\D/g, '').slice(-10); return d.length === 10 ? `+7 ${d[0]}•• ••• •• ${d.slice(8)}` : ''; };
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -63,17 +68,20 @@ export default function SettingsScreen() {
         </View>
 
         <Group>
-          <Row title={draft.name || 'Данил'} sub="+7 7•• ••• •• 34"
+          <Row title={draft.name || 'Без имени'} sub={maskPhone(useAuth.getState().session?.user.phone ?? draft.phone)}
             right={<Pressable onPress={() => router.push('/me')} hitSlop={8} accessibilityRole="link"><Text style={styles.link}>Профиль</Text></Pressable>} last>
           </Row>
         </Group>
 
+        {/* Instagram в альфе не подключается — раздел появится вместе с входом через Instagram. */}
+        {config.dataMode === 'demo' && (<>
         <Cap>INSTAGRAM</Cap>
         <Group>
           <Row title="@fromvtk" sub="подключён" right={<View style={styles.outline}><Text style={styles.outlineText}>Отключить</Text></View>} />
           <SwitchRow title="Аватарка из Instagram" sub="Обновляется сама. Нажми на фото в профиле, чтобы поставить своё" on={s.instaAvatar} onChange={(instaAvatar) => set({ instaAvatar })} />
           <SwitchRow title="Ссылка на Instagram в профиле" sub="Люди смогут перейти к тебе в профиль" on={s.instaLink} onChange={(instaLink) => set({ instaLink })} last />
         </Group>
+        </>)}
 
         <Cap>ПРИВАТНОСТЬ</Cap>
         <Group>

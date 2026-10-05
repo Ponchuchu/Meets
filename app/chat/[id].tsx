@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { CircleRecorder, type CircleRecorderHandle } from '../../src/chat/ui/CircleRecorder';
 import { answerInvite, type Invite } from '../../src/live/api';
+import { config } from '../../src/lib/config';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
@@ -16,7 +17,7 @@ import { Bubble } from '../../src/chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../src/data';
 import { photo } from '../../src/data/photos';
 import { isRemoteId, useLiveChat } from '../../src/data/realtime';
-import { sendMessage, uploadMedia } from '../../src/data/remote';
+import { openDirectChat, sendMessage, uploadMedia } from '../../src/data/remote';
 import { dayIndex, now as clockNow } from '../../src/lib/clock';
 import { accusative } from '../../src/lib/names';
 import { canSee } from '../../src/people/visibility';
@@ -59,12 +60,22 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
   const now = clockNow();
-  const isEvent = id.startsWith('ev-');
-  const personId = isEvent ? null : id.replace(/^dm-/, '');
+  const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const meta0 = chats.find((c) => c.id === id);
+  // Чат из базы (uuid): кто собеседник и событийный ли он — из списка чатов. «dm-<id>» — личный по человеку.
+  const isEvent = id.startsWith('ev-') || meta0?.kind === 'event';
+  const personId = isEvent ? null : meta0?.personId ?? (id.startsWith('dm-') ? id.slice(3) : null);
   const qc = useQueryClient();
+  // Альфа: «dm-<uuid друга>» → настоящий личный чат в базе (сервер находит или создаёт), сообщения уходят туда.
+  useEffect(() => {
+    if (config.dataMode === 'demo' || !id.startsWith('dm-') || !isRemoteId(id.slice(3))) return;
+    openDirectChat(id.slice(3)).then((cid) => {
+      void qc.invalidateQueries({ queryKey: ['chats'] });
+      router.replace({ pathname: '/chat/[id]', params: { id: cid } });
+    }).catch(() => undefined);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useLiveChat(id);
   const { data: base = [] } = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
-  const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId });
