@@ -102,12 +102,14 @@ export async function getFriends(): Promise<Friend[]> {
   return profs.map((p) => ({ ...p, since: rows.find((r) => r.a === p.id || r.b === p.id)!.created_at }));
 }
 
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function removeFriend(friendId: string): Promise<void> {
   const id = me();
   const [a, b] = id < friendId ? [id, friendId] : [friendId, id];
   await must(sb().from('friendships').delete().eq('a', a).eq('b', b));
 }
 
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function findByHandle(q: string): Promise<Profile[]> {
   const h = q.replace(/^@/, '').trim().toLowerCase();
   if (h.length < 2) return [];
@@ -115,14 +117,17 @@ export async function findByHandle(q: string): Promise<Profile[]> {
 }
 
 /** Заявка в друзья. Встречная заявка уже есть — дружба сразу (триггер в базе). */
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function requestFriend(to: string, note?: string): Promise<void> {
   await must(sb().from('friend_requests').upsert({ from_id: me(), to_id: to, note: note ?? null, status: 'pending' }));
 }
 
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function answerFriend(from: string, accept: boolean): Promise<void> {
   await must(sb().from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('from_id', from).eq('to_id', me()));
 }
 
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function getFriendRequests(): Promise<(Profile & { note: string | null })[]> {
   const rows = await must(sb().from('friend_requests').select('from_id,note').eq('to_id', me()).eq('status', 'pending')) as { from_id: string; note: string | null }[];
   if (!rows.length) return [];
@@ -143,6 +148,7 @@ export interface FriendPoint {
   status: string | null;
 }
 
+/** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function getFriendPoints(): Promise<FriendPoint[]> {
   return must(sb().rpc('friend_locations'));
 }
@@ -318,4 +324,52 @@ export async function setLooking(eventId: string, on: boolean): Promise<void> {
 export async function askCompany(personId: string, title: string): Promise<void> {
   const chat = await must(sb().rpc('open_direct_chat', { other: personId })) as string;
   await must(sb().from('messages').insert({ chat_id: chat, author_id: me(), kind: 'text', body: `Привет! Тоже ищу компанию на «${title}». Пойдём вместе?` }));
+}
+
+// ——— Мой профиль v6 (V6Profile): цифры, «Где я был», уровень, значки, места, панель разработчика ———
+
+export interface MeStats {
+  friends: number; events: number; meetings: number;
+  points: number; level: number; cells: string[];
+  badges: { id: string; name: string; goal: number; progress: number; got: boolean }[];
+  places: string[]; staff: boolean; drafts: number;
+}
+
+const PLACE_RU: Record<string, string> = { home: 'дом', work: 'работа', study: 'учёба', gym: 'зал', dacha: 'дача', other: 'другое' };
+
+export async function getMeStats(): Promise<MeStats> {
+  const id = me();
+  const q = <T,>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>) => withTimeout(p, 8000).then((r) => r.data).catch(() => null);
+  const [fr, att, bumps, lvl, cells, badges, mine, places, staff] = await Promise.all([
+    q(sb().from('friendships').select('a', { count: 'exact', head: false }).or(`a.eq.${id},b.eq.${id}`)),
+    q(sb().from('attendance').select('event_id,status').eq('user_id', id)),
+    q(sb().from('bumps').select('id').or(`a.eq.${id},b.eq.${id}`)),
+    q(sb().from('user_level').select('points,level').eq('user_id', id).maybeSingle()),
+    q(sb().from('explore_cells').select('h3').eq('user_id', id)),
+    q(sb().from('badges').select('id,name,goal')),
+    q(sb().from('user_badges').select('badge_id,progress,got_at').eq('user_id', id)),
+    q(sb().from('user_places').select('kind').eq('user_id', id)),
+    q(sb().rpc('is_staff')),
+  ]);
+  const isStaff = staff === true;
+  let drafts = 0;
+  if (isStaff) {
+    const r = await withTimeout(sb().from('events').select('id', { count: 'exact', head: true }).eq('status', 'draft'), 8000).catch(() => null);
+    drafts = r?.count ?? 0;
+  }
+  const my = (mine as { badge_id: string; progress: number; got_at: string | null }[] | null) ?? [];
+  const lv = lvl as { points: number; level: number } | null;
+  return {
+    friends: (fr as unknown[] | null)?.length ?? 0,
+    events: ((att as { status: string }[] | null) ?? []).filter((a) => a.status === 'arrived').length,
+    meetings: (bumps as unknown[] | null)?.length ?? 0,
+    points: lv?.points ?? 0, level: lv?.level ?? 1,
+    cells: ((cells as { h3: string }[] | null) ?? []).map((c) => c.h3),
+    badges: ((badges as { id: string; name: string; goal: number }[] | null) ?? []).map((b) => {
+      const m = my.find((x) => x.badge_id === b.id);
+      return { ...b, progress: m?.progress ?? 0, got: !!m?.got_at };
+    }),
+    places: [...new Set(((places as { kind: string }[] | null) ?? []).map((p) => PLACE_RU[p.kind] ?? p.kind))],
+    staff: isStaff, drafts,
+  };
 }

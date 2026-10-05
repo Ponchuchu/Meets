@@ -41,7 +41,7 @@ export function Moderation({ live }: { live: boolean }) {
   const queueQ = useQuery({ queryKey: ['admin', 'queue'], queryFn: loadQueue, enabled: live });
   const statsQ = useQuery({ queryKey: ['admin', 'stats'], queryFn: loadStats, enabled: live });
 
-  // Демо: очередь макета + мои предложения из «Предложить событие».
+  // Демо: очередь макета.
   const demoItems = useMemo(() => {
     const mine: QueueItem[] = suggestions.map((s) => {
       const startsAt = (s.date && parseRuDate(s.date, s.time ?? '', now)) || s.at;

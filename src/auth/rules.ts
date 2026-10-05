@@ -1,8 +1,5 @@
 // Правила регистрации: телефон, код, дата рождения, 18+, интересы. Чистые функции — покрыты тестами.
 
-export const DEMO_CODE = '4821';
-export const RESEND_SECONDS = 42;
-export const MIN_INTERESTS = 3;
 export const MIN_AGE = 18;
 
 /** «7071234567» → «707 123 45 67». Лишние символы выбрасываются, максимум 10 цифр. */
@@ -60,9 +57,3 @@ export function checkBirthDate(value: string, now = new Date()): BirthCheck {
   return { ok: true, age };
 }
 
-export const BIRTH_ERRORS: Record<Exclude<BirthCheck, { ok: true }>['reason'], string> = {
-  empty: 'Нужно 18+. Другим покажем только возраст.',
-  invalid: 'Проверь дату: ДД.ММ.ГГГГ',
-  future: 'Проверь дату: ДД.ММ.ГГГГ',
-  young: 'Пока рано: «рядом.» только для тех, кому 18+',
-};

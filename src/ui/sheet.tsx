@@ -16,11 +16,6 @@ const sheetOut = new Keyframe({
   0: { opacity: 1, transform: [{ translateY: 0 }] },
   100: { opacity: 0, transform: [{ translateY: 60 }] },
 }).duration(200);
-const dropIn = new Keyframe({
-  0: { opacity: 0, transform: [{ translateY: -14 }] },
-  100: { opacity: 1, transform: [{ translateY: 0 }] },
-}).duration(220);
-
 export function Backdrop({ onPress, opacity = 0.4, label }: { onPress: () => void; opacity?: number; label: string }) {
   return (
     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)} style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(23,22,26,${opacity})` }]}>
@@ -60,14 +55,6 @@ export function BottomSheet({ children, style, label, onClose }: { children: Rea
         <View style={styles.handle} />
         {children}
       </SwipeDown>
-    </Animated.View>
-  );
-}
-
-export function DropCard({ children, style, label }: { children: ReactNode; style?: StyleProp<ViewStyle>; label: string }) {
-  return (
-    <Animated.View entering={dropIn} exiting={FadeOut.duration(150)} accessibilityViewIsModal accessibilityLabel={label} style={style}>
-      {children}
     </Animated.View>
   );
 }

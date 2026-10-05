@@ -114,20 +114,6 @@ export async function addSource(link: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Предложение из приложения → общая очередь. Без входа в Supabase — остаётся на устройстве (демо). */
-export async function submitSuggestion(s: { title: string; category: string; startsAt: string; place: string; price: string; about?: string; sourceUrl?: string }): Promise<boolean> {
-  try {
-    await requireUser();
-    const { error } = await withTimeout(supabase().rpc('suggest_event', {
-      p_title: s.title, p_category: s.category, p_starts_at: s.startsAt, p_ends_at: null, p_place: s.place,
-      p_price: s.price || null, p_about: s.about ?? '', p_source_url: s.sourceUrl ?? null,
-    }));
-    return !error;
-  } catch {
-    return false;
-  }
-}
-
 export interface UserTaste {
   id: string;
   name: string;

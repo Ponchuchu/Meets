@@ -1,6 +1,6 @@
-// Шторки поверх события: «Ищу компанию» (Company), «Позвать друга», «Маршрут».
+// Шторки поверх события: «Ищу компанию» (Company), «Позвать друга».
 import { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { EventItem, Person } from '../data/types';
 import { activeCompany, usePlans, type CompanyVisibility, type Mood } from '../state/plans';
 import { colors, fonts } from '../theme';
@@ -8,10 +8,8 @@ import { Avatar } from '../ui/Avatar';
 import { Ic, IC } from '../ui/Ic';
 import { Chip, Segments } from '../ui/kit';
 import { CAT_ICON } from '../map/icons';
-import { routeLinks } from './route';
 
 const MOODS: [Mood, string][] = [['music', 'Послушать музыку'], ['meet', 'Познакомиться'], ['walk', 'Потом погулять'], ['notalone', 'Просто не идти одному']];
-const MOOD_SHORT: Record<Mood, string> = { music: 'послушать музыку', meet: 'познакомиться', walk: 'потом погулять', notalone: 'не идти одному' };
 
 function SheetHead({ e, title, sub, onClose }: { e: EventItem; title: string; sub: string; onClose: () => void }) {
   return (
@@ -113,8 +111,6 @@ export function CompanySheet({ e, when, now, people, onClose, onWrite }: {
   );
 }
 
-export { MOOD_SHORT };
-
 export function InviteSheet({ friends, goingIds, onSend }: {
   e?: EventItem; friends: Person[]; goingIds: string[]; onSend: (ids: string[]) => void;
 }) {
@@ -146,33 +142,6 @@ export function InviteSheet({ friends, goingIds, onSend }: {
       <Pressable disabled={!names.length} onPress={() => onSend(sel)} style={[styles.primary, { height: 54 }, !names.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
         <Text style={[styles.primaryText, !names.length && { color: colors.muted3 }]}>{names.length ? 'Позвать' : 'Выбери, кого позвать'}</Text>
       </Pressable>
-    </>
-  );
-}
-
-export function RouteSheet({ e }: { e: EventItem }) {
-  const links = routeLinks(e.lat, e.lon, e.venueName ?? e.address, Platform.OS === 'ios');
-  const open = async (native: string | null, web: string) => {
-    try {
-      if (native && Platform.OS !== 'web' && (await Linking.canOpenURL(native))) { await Linking.openURL(native); return; }
-    } catch { /* нет приложения — откроем сайт */ }
-    await Linking.openURL(web);
-  };
-  return (
-    <>
-      <View style={{ gap: 3 }}>
-        <Text style={styles.title} accessibilityRole="header">Маршрут</Text>
-        <Text style={styles.sub}>{e.address}{e.addressNote ? ` · ${e.addressNote}` : ''}</Text>
-      </View>
-      <View style={styles.list}>
-        {links.map((l, i) => (
-          <Pressable key={l.app} onPress={() => open(l.native, l.web)} accessibilityRole="link" style={[styles.row, { paddingHorizontal: 14, minHeight: 56 }, i < links.length - 1 && styles.rowLine]}>
-            <Text style={[styles.name, { flex: 1 }]}>{l.label}</Text>
-            <Ic d={IC.chevron} size={16} color={colors.muted} w={2} />
-          </Pressable>
-        ))}
-      </View>
-      <Text style={styles.foot}>ОТКРОЕТСЯ ПРИЛОЖЕНИЕ, А ЕСЛИ ЕГО НЕТ — САЙТ</Text>
     </>
   );
 }

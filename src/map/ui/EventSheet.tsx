@@ -14,7 +14,7 @@ import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
 import { CAT_COLOR, CAT_ICON, catFg } from '../icons';
-import { socialLine } from './EventCard';
+import { socialLine } from '../social';
 
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
 const WD = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];

@@ -39,13 +39,3 @@ export function Glyph({ name, size = 24, color, strokeWidth = 1.8 }: { name: Gly
     </Svg>
   );
 }
-
-export function InstagramGlyph({ size = 15, color }: { size?: number; color: string }) {
-  const p = { stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Rect x={3.5} y={3.5} width={17} height={17} rx={5} {...p} />
-      <Circle cx={12} cy={12} r={4} {...p} />
-    </Svg>
-  );
-}
