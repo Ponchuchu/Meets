@@ -2,7 +2,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../src/analytics';
 import * as ImagePicker from 'expo-image-picker';
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { CircleRecorder, type CircleRecorderHandle } from '../../src/chat/ui/CircleRecorder';
+import { answerInvite, type Invite } from '../../src/live/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
@@ -108,17 +112,18 @@ export default function ChatScreen() {
       blocked: !!(personId && chat.blocked[personId]), now,
     });
 
-  const push = (m: Partial<Message> & Pick<Message, 'kind'>) => {
+  const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    const msg: Message = { id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...m };
+    const { durationS, ...rest } = m;
+    const msg: Message = { id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...rest };
     chat.send(msg);
     track('chat_sent');
     // Чат из базы: пишем на сервер, Realtime принесёт сообщение обратно — тогда убираем локальную копию.
     if (isRemoteId(id)) {
       const media = msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? uploadMedia(id, msg.media) : Promise.resolve(msg.media ?? undefined);
       media
-        .then((path) => sendMessage(id, msg.text, msg.kind, path))
+        .then((path) => sendMessage(id, msg.text, msg.kind, path, durationS))
         .then(() => qc.invalidateQueries({ queryKey: ['messages', id] }))
         .then(() => chat.unsend(msg.id))
         .catch(() => undefined);
@@ -127,15 +132,52 @@ export default function ChatScreen() {
   const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); setInputH(44); } };
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
-  const startRec = () => { setRecording(recMode); setRecStart(nowMs()); };
-  const stopRec = () => {
+  // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const circleRef = useRef<CircleRecorderHandle>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  const startRec = async () => {
+    if (recMode === 'circle') {
+      if (Platform.OS === 'web') { show({ text: 'Кружки записываются в приложении на телефоне' }); return; }
+      setRecording('circle');
+      setRecStart(nowMs());
+      return;
+    }
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) { show({ text: 'Разреши микрофон в настройках телефона' }); return; }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecording('voice');
+      setRecStart(nowMs());
+    } catch { show({ text: 'Не получилось включить микрофон' }); }
+  };
+  const stopRec = async (send: boolean) => {
     if (!recording) return;
     const sec = Math.max(1, Math.round((nowMs() - recStart) / 1000));
-    const dur = `0:${String(Math.min(59, sec)).padStart(2, '0')}`;
-    if (recording === 'voice') push({ kind: 'voice', duration: dur });
-    else push({ kind: 'circle', media: 'krug', duration: dur });
+    setCancelling(false);
+    if (recording === 'circle') { circleRef.current?.stop(send); return; }
     setRecording(null);
+    try {
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
+      if (send && recorder.uri && sec >= 1) push({ kind: 'voice', media: recorder.uri, duration: dur(sec), durationS: sec });
+    } catch { /* запись не удалась — ничего не отправляем */ }
   };
+  // Обработчики жеста вызываются только при касании, не во время рендера.
+  /* eslint-disable react-hooks/refs */
+  // Одна кнопка, как в Telegram: тап — голос ↔ кружок; держишь — запись; увёл влево на 90 — отмена; отпустил — отправилось.
+  const recGesture = Gesture.Exclusive(
+    Gesture.Pan().activateAfterLongPress(220).runOnJS(true)
+      .onStart(() => void startRec())
+      .onUpdate((e) => setCancelling(e.translationX < -90))
+      .onEnd((e) => void stopRec(e.translationX >= -90))
+      .onFinalize((_e, ok) => { if (!ok) void stopRec(false); }),
+    Gesture.Tap().runOnJS(true).onEnd(() => setRecMode(recMode === 'voice' ? 'circle' : 'voice')),
+  );
+  /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
     const options = poll.options.map((o) => o.trim()).filter(Boolean);
@@ -225,7 +267,13 @@ export default function ChatScreen() {
               voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
               onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
               onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
-              onInvite={!mine ? (a) => { chat.answer(m.id, a); if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); } } : undefined} />
+              onInvite={!mine ? (a) => {
+                chat.answer(m.id, a);
+                if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); }
+                // Альфа: ответ уходит в приглашение (видно обоим в «Планах») и сообщением в чат.
+                const inv = qc.getQueryData<Invite[]>(['invites'])?.find((i) => i.event_id === m.eventId && i.from_id === m.authorId && !i.answer);
+                if (inv) void answerInvite(inv, a === 'yes').then(() => qc.invalidateQueries({ queryKey: ['invites'] })).catch(() => undefined);
+              } : undefined} />
           );
         })}
         {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}
@@ -239,7 +287,7 @@ export default function ChatScreen() {
           {recording ? (
             <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
               <View style={styles.recDot} />
-              <Text style={styles.recText}>{recording === 'voice' ? 'Голосовое' : 'Кружок'} · отпусти, чтобы отправить</Text>
+              <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${recording === 'voice' ? 'Голосовое' : 'Кружок'} · ‹ влево — отмена`}</Text>
             </View>
           ) : (
             <TextInput value={text} onChangeText={setText} multiline
@@ -252,11 +300,12 @@ export default function ChatScreen() {
               <Ic d={SEND_IC} size={19} color={colors.ink} w={2} />
             </Pressable>
           ) : (
-            <Pressable onPress={() => setRecMode(recMode === 'voice' ? 'circle' : 'voice')} onLongPress={startRec} onPressOut={stopRec} delayLongPress={220}
-              style={[styles.iconBtn, { backgroundColor: recording ? colors.accent : colors.ink, borderColor: recording ? colors.accent : colors.ink }, recording && { transform: [{ scale: 1.25 }] }]}
-              accessibilityRole="button" accessibilityLabel={recMode === 'voice' ? 'Голосовое: удерживай, чтобы записать. Нажми — переключить на кружок' : 'Кружок: удерживай, чтобы записать. Нажми — переключить на голосовое'}>
-              <Ic d={recMode === 'voice' ? MIC_IC : CIRCLE_IC} size={20} color={recording ? colors.ink : colors.paper} w={1.9} />
-            </Pressable>
+            <GestureDetector gesture={recGesture}>
+              <View collapsable={false} style={[styles.iconBtn, { backgroundColor: recording ? colors.accent : colors.ink, borderColor: recording ? colors.accent : colors.ink }, recording && { transform: [{ scale: 1.25 }] }]}
+                accessible accessibilityRole="button" accessibilityLabel={recMode === 'voice' ? 'Голосовое: удерживай, чтобы записать. Нажми — переключить на кружок' : 'Кружок: удерживай, чтобы записать. Нажми — переключить на голосовое'}>
+                <Ic d={recMode === 'voice' ? MIC_IC : CIRCLE_IC} size={20} color={recording ? colors.ink : colors.paper} w={1.9} />
+              </View>
+            </GestureDetector>
           )}
         </View>
       )}
@@ -357,6 +406,12 @@ export default function ChatScreen() {
             )}
           </BottomSheet>
         </>
+      )}
+      {recording === 'circle' && (
+        <CircleRecorder ref={circleRef} cancelling={cancelling}
+          onDone={(uri, sec) => { setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
+          onCancel={() => setRecording(null)}
+          onDenied={() => { setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
       )}
     </KeyboardAvoidingView>
   );

@@ -1,11 +1,14 @@
 // «Искать сейчас» и «Стоп» в панели разработчика (V6 §10.2). Только staff.
 // POST { action: 'start', topics?: string[], days?: number, limit?: number, model?: string } → { run_id }
 // POST { action: 'stop', run_id }  → { ok }
+// POST { action: 'check' }          → { ok, error? } — токен GitHub на месте и видит воркфлоу (ничего не запускает)
 // Из robot-tick (CRON_SECRET): { action: 'start', task: 'search' | 'covers', scheduled: true }
-import { dispatch } from '../_shared/github.ts';
-import { admin, isServiceCall, json, userFrom } from '../_shared/supabase.ts';
+import { checkToken, dispatch } from '../_shared/github.ts';
+import { admin, isServiceCall, json, preflight, userFrom } from '../_shared/supabase.ts';
 
 Deno.serve(async (req) => {
+  const pre = preflight(req);
+  if (pre) return pre;
   const db = admin();
   const service = isServiceCall(req);
   const me = service ? null : await userFrom(req, db);
@@ -15,6 +18,11 @@ Deno.serve(async (req) => {
     if (!staff) return json({ error: 'forbidden' }, 403);
   }
   const body = await req.json().catch(() => ({})) as { action?: string; run_id?: string; task?: string; topics?: string[]; days?: number; limit?: number; model?: string; scheduled?: boolean };
+
+  if (body.action === 'check') {
+    const err = await checkToken();
+    return json(err ? { ok: false, error: err } : { ok: true });
+  }
 
   if (body.action === 'stop' && body.run_id) {
     await db.from('robot_runs').update({ cancel: true }).eq('id', body.run_id);

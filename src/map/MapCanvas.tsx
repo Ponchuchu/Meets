@@ -23,7 +23,7 @@ const LOAD_TIMEOUT_MS = 8000;
 const PIN_BOX = 72;
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, topInset = 120, showUser = false } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, topInset = 120, showUser = false, traffic, fog, lines = [] } = props;
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -79,6 +79,21 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         }}
       >
         <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} />
+        {traffic && (
+          <M.RasterSource id="traffic" tileUrlTemplates={[traffic]} tileSize={256}>
+            <M.RasterLayer id="traffic-layer" style={{ rasterOpacity: 0.9 }} />
+          </M.RasterSource>
+        )}
+        {fog && (
+          <M.ShapeSource id="fog" shape={fog as never}>
+            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', fillOpacity: 0.8, fillAntialias: false }} />
+          </M.ShapeSource>
+        )}
+        {lines.map((l) => (
+          <M.ShapeSource key={l.id} id={`line-${l.id}`} shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } as never}>
+            <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
+          </M.ShapeSource>
+        ))}
         {showUser && <M.LocationPuck puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true }} />}
         {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>

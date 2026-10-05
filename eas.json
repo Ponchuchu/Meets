@@ -22,6 +22,10 @@
       "channel": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_DATA_MODE": "live"
       }
     },
     "production": {

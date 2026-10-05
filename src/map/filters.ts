@@ -1,23 +1,29 @@
-// Фильтры карты: даты, цена, категории, слои (PRODUCT.md, раздел 3). Времени и расстояния в фильтре нет.
+// Фильтры карты v6 (V6Filters): «Ближайшее время» (сейчас + 24 часа, по умолчанию) или даты из календаря,
+// разделы, цена ступенями (5 / 20 / 50 тыс / любая), «Только бесплатное».
 import { dayIndex } from '../lib/clock';
 import type { Category, EventItem } from '../data/types';
 import { endOf, phaseOf } from './lifecycle';
 
-export type FilterCat = 'music' | 'standup' | 'hike' | 'art' | 'games' | 'food' | 'sport' | 'talks';
+export type FilterCat = 'music' | 'standup' | 'theatre' | 'art' | 'hike' | 'party' | 'sport' | 'games' | 'food' | 'talks';
 
 export const FILTER_CATS: [FilterCat, string][] = [
-  ['music', 'Музыка'], ['standup', 'Стендап'], ['hike', 'Горы'], ['art', 'Выставки'],
-  ['games', 'Настолки'], ['food', 'Еда'], ['sport', 'Спорт'], ['talks', 'Лекции'],
+  ['music', 'Концерты'], ['standup', 'Стендап'], ['theatre', 'Театр'], ['art', 'Выставки'], ['hike', 'Горы'],
+  ['party', 'Вечеринки'], ['sport', 'Спорт'], ['games', 'Настолки'], ['food', 'Еда'], ['talks', 'Лекции'],
 ];
 
 const CAT_GROUP: Record<Category, FilterCat | null> = {
-  music: 'music', concert: 'music', party: 'music', standup: 'standup', hike: 'hike', art: 'art', theatre: 'art',
+  music: 'music', concert: 'music', party: 'party', standup: 'standup', hike: 'hike', art: 'art', theatre: 'theatre',
   games: 'games', food: 'food', sport: 'sport', bike: 'sport', talks: 'talks', lecture: 'talks', meetup: 'talks',
 };
 
-export const MAX_PRICE = 20000;
+/** «Любая цена». Ступени ползунка — PRICE_STOPS. */
+export const MAX_PRICE = 1_000_000;
+export const PRICE_STOPS = [5000, 20000, 50000, MAX_PRICE];
+export const SOON_HOURS = 24;
 
 export interface MapFilters {
+  /** «Ближайшее время»: сейчас и следующие 24 часа. Выключено — работают from/to. */
+  soon: boolean;
   /** Смещения дней от сегодня, включительно. */
   from: number;
   to: number;
@@ -28,10 +34,10 @@ export interface MapFilters {
   company: boolean;
 }
 
-export const DEFAULT_FILTERS: MapFilters = { from: 0, to: 0, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
+export const DEFAULT_FILTERS: MapFilters = { soon: true, from: 0, to: 0, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
 
 export function activeCount(f: MapFilters): number {
-  return (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
+  return (f.soon === false ? 1 : 0) + (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
 }
 
 export function occursOnDay(e: Pick<EventItem, 'startsAt' | 'endsAt'>, day: number): boolean {
@@ -53,6 +59,11 @@ export function matchesCats(e: Pick<EventItem, 'category'>, cats: FilterCat[]): 
 /** События, которые показываем на карте с этими фильтрами. going — id событий, куда я иду. */
 export function visibleEvents(events: EventItem[], f: MapFilters, now: Date, going: Set<string> = new Set()): EventItem[] {
   const today = dayIndex(now);
+  if (f.soon) {
+    const until = now.getTime() + SOON_HOURS * 3600e3;
+    return events.filter((e) => new Date(e.startsAt).getTime() <= until && phaseOf(e, now, going.has(e.id)) !== 'hidden'
+      && matchesPrice(e, f) && matchesCats(e, f.cats));
+  }
   return events.filter((e) => {
     // Сегодня действует жизнь точки (прошедшее и закрытое прячем), будущие дни — просто по датам.
     let inDays = false;

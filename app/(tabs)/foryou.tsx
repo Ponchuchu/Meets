@@ -1,12 +1,14 @@
-// «Рекомендации» (бывш. «Для тебя») — design/png/Feed.png. Бесконечная колода: после каждого свайпа пересчитывается (модуль reco).
+// «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
+// «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
-import { tabGap, tabInset } from '../../src/components/TabBar';
+import { tabCenter, tabInset } from '../../src/components/TabBar';
+import { useTabBadges } from '../../src/state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../src/data';
 import { EventPage } from '../../src/event/EventPage';
 import { SwipeCard, type SwipeHandle } from '../../src/feed/SwipeCard';
@@ -18,7 +20,6 @@ import { useFeed } from '../../src/state/feed';
 import { usePlans } from '../../src/state/plans';
 import { INITIAL_DRAFT, useSession } from '../../src/state/session';
 import { colors, fonts } from '../../src/theme';
-import { Ic, IC } from '../../src/ui/Ic';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 
 const STACK = 3;
@@ -34,9 +35,8 @@ export default function ForYouScreen() {
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, decided, history, undosLeft, decide, addSignal, removeSignal, undo } = useFeed();
-  const saved = usePlans((s) => s.saved);
-  const { go, ungo, toggleSave } = usePlans.getState();
+  const { signals, decided, history, undosLeft, decide, addSignal, undo } = useFeed();
+  const { go, ungo } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
   const removePlan = useApp((s) => s.removePlan);
   const pulsePlan = useApp((s) => s.pulsePlan);
@@ -66,14 +66,16 @@ export default function ForYouScreen() {
     return d;
   }, [taste, events, decided, history.length, now, enter]);
 
-  const cardTop = Math.max(50, insets.top + 6) + 52;
+  const cardTop = Math.max(50, insets.top + 6) + 62;
   // Таб-бар плавает поверх: карточки и кнопки — над ним, раскрытое событие — на весь экран.
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
-  const cardW = W - 32;
-  const cardH = Math.max(380, Math.min(500, screenH - cardTop - 138));
-  // Центр иконки «Профиль» на таб-баре относительно центра карточки.
-  const target = { x: W - 16 - 28 - (16 + cardW / 2), y: fullH - tabGap(insets.bottom) - 31 - (cardTop + cardH / 2) };
+  const cardW = Math.min(350, W - 40);
+  const cardH = Math.max(420, Math.min(560, screenH - cardTop - 30));
+  const cardX = (W - cardW) / 2;
+  // Центр иконки «Планы» на панели относительно центра карточки.
+  const plansIcon = tabCenter(2, W, fullH, insets.bottom);
+  const target = { x: plansIcon.x - (cardX + cardW / 2), y: plansIcon.y - (cardTop + cardH / 2) };
 
   const showToast = (t: ToastData | null, ms = 4000) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -90,8 +92,9 @@ export default function ForYouScreen() {
       go(e.id);
       addPlan();
       pulsePlan();
+    } else if (undosLeft > 0) {
+      showToast({ text: `Мимо: ${e.title}`, cta: 'Вернуть', onCta: () => doUndo() }, 5000);
     }
-    // Без всплывашек после свайпа: вернуть карточку можно средней кнопкой.
   };
 
   // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.
@@ -107,14 +110,6 @@ export default function ForYouScreen() {
   const top = deck[0];
   useEffect(() => track('feed_open'), []);
   useEffect(() => { if (top) track('card_shown', top.id); }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onSave = () => {
-    if (!top) return;
-    const was = !!saved[top.id];
-    toggleSave(top.id);
-    const id = `${top.id}-save`;
-    if (was) removeSignal(id);
-    else addSignal(makeSignal(top, 'save', clockNow(), id));
-  };
 
   // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
   const p = useSharedValue(0);
@@ -132,27 +127,14 @@ export default function ForYouScreen() {
     });
   };
   const clip = useAnimatedStyle(() => ({
-    left: 16 * (1 - p.value),
+    left: cardX * (1 - p.value),
     top: cardTop * (1 - p.value),
-    width: cardW + 32 * p.value,
+    width: cardW + (W - cardW) * p.value,
     height: cardH + (fullH - cardH) * p.value,
-    borderRadius: 26 * (1 - p.value),
+    borderRadius: 30 * (1 - p.value),
     opacity: 0.6 + 0.4 * p.value,
   }));
-  const clipInner = useAnimatedStyle(() => ({ left: -16 * (1 - p.value), top: -cardTop * (1 - p.value) }));
-
-  // Кнопки = такой же полёт, как свайп.
-  function press(key: string) {
-    if (key === 'undo') doUndo();
-    else topRef.current?.fly(key as 'go' | 'skip');
-  }
-
-  const canUndo = history.length > 0 && undosLeft > 0;
-  const controls = [
-    { key: 'skip', label: 'МИМО', aria: 'Мимо — дальше', size: 64, bg: colors.cardAlt, icon: IC.close, is: 24, sw: 2.4, fg: colors.ink, disabled: !top },
-    { key: 'undo', label: 'ВЕРНУТЬ', aria: 'Вернуть последнюю карточку', size: 44, bg: colors.sand, icon: 'M4 9h11a5 5 0 010 10H9M8 5L4 9l4 4', is: 19, sw: 2, fg: colors.ink, disabled: !canUndo },
-    { key: 'go', label: 'ПОЙДУ', aria: 'Пойду — добавить в планы', size: 64, bg: colors.accent, icon: IC.check, is: 26, sw: 2.6, fg: colors.ink, disabled: !top },
-  ];
+  const clipInner = useAnimatedStyle(() => ({ left: -cardX * (1 - p.value), top: -cardTop * (1 - p.value) }));
 
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
@@ -160,40 +142,41 @@ export default function ForYouScreen() {
         <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
 
-      <View style={{ position: 'absolute', left: 16, top: cardTop, width: cardW, height: cardH }}>
+      <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
             key={e.id}
             ref={k === 0 ? topRef : undefined}
-            e={e} people={people} now={now} saved={!!saved[e.id]} onSave={onSave}
+            e={e} people={people} now={now}
             k={k} top={k === 0} width={cardW} height={cardH} target={target}
             enterFrom={enter?.id === e.id ? enter.from : null}
             onDecide={(kind) => onDecide(e, kind)}
+            onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
           />
         )).reverse()}
-        {!top && <Text style={styles.empty}>Загружаю ещё…</Text>}
       </View>
 
-      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, top: cardTop + cardH - 68 }} />}
+      {!top && (
+        <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
+          {events.length === 0 ? <Text style={styles.emptySub}>Загружаю события…</Text> : (
+            <>
+              <Text style={styles.emptyTitle}>Ты всё посмотрел</Text>
+              <Text style={styles.emptySub}>Новые события появятся вечером. А пока — что на карте прямо сейчас.</Text>
+              <Pressable onPress={() => router.navigate('/')} style={({ pressed }) => [styles.emptyBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
+                <Text style={styles.emptyBtnText}>Открыть карту</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      )}
 
-      <View style={[styles.controls, { top: cardTop + cardH + 24 }]}>
-        {controls.map((b) => (
-          <View key={b.key} style={styles.ctl}>
-            <Pressable onPress={() => press(b.key)} disabled={b.disabled} accessibilityRole="button" accessibilityLabel={b.aria} accessibilityState={{ disabled: b.disabled }}
-              style={({ pressed }) => [styles.btn, { width: b.size, height: b.size, borderRadius: b.size / 2, marginTop: b.key === 'undo' ? 10 : 0, backgroundColor: b.bg, opacity: b.disabled ? 0.4 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] },
-                b.key === 'go' ? styles.goShadow : b.key === 'skip' ? styles.skipShadow : null]}>
-              <Ic d={b.icon} size={b.is} color={b.fg} w={b.sw} />
-            </Pressable>
-            <Text style={styles.ctlLabel}>{b.label}</Text>
-          </View>
-        ))}
-      </View>
+      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, top: cardTop + cardH - 70 }} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
-            <EventPage e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()}
+            <EventPage e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} />
           </Animated.View>
         </Animated.View>
@@ -203,15 +186,13 @@ export default function ForYouScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EFEBE2', overflow: 'hidden' },
+  root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
   head: { position: 'absolute', left: 16, right: 16, gap: 2 },
-  h1: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, lineHeight: 33, color: colors.ink },
-  empty: { textAlign: 'center', marginTop: 200, fontFamily: fonts.body400, fontSize: 15, color: colors.muted },
-  controls: { position: 'absolute', left: 16, right: 16, flexDirection: 'row' },
-  ctl: { flex: 1, alignItems: 'center', gap: 6 },
-  btn: { alignItems: 'center', justifyContent: 'center' },
-  goShadow: { shadowColor: colors.accent, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
-  skipShadow: { shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  ctlLabel: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.57, color: colors.muted },
+  h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
+  emptyBox: { position: 'absolute', left: 32, right: 32, alignItems: 'center', gap: 10, paddingTop: 220 },
+  emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
+  emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
+  emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  emptyBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 50 },
 });

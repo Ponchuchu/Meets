@@ -1,5 +1,7 @@
 // Сообщения чата по DirectChat / EventChat: текст, фото, видео, кружок, голосовое, стикер, приглашение, опрос, системное.
 import { useEffect, useState, type ReactNode } from 'react';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -17,6 +19,63 @@ const PLAY = 'M8 5v14l11-7z';
 function secs(d?: string): number {
   const m = /^(\d+):(\d+)$/.exec(d ?? '');
   return m ? Number(m[1]) * 60 + Number(m[2]) : 5;
+}
+
+const isFile = (u?: string | null) => !!u && /^(https?:|file:|blob:|content:)/.test(u);
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+/** Настоящее голосовое: файл из Storage (подписанная ссылка) или только что записанный. */
+function VoiceFile({ m, mine }: { m: Message; mine: boolean }) {
+  const player = useAudioPlayer(m.media!);
+  const st = useAudioPlayerStatus(player);
+  const total = st.duration || secs(m.duration);
+  const part = total ? Math.min(1, st.currentTime / total) : 0;
+  const fg = mine ? colors.paper : colors.ink;
+  const toggle = () => {
+    if (st.playing) { player.pause(); return; }
+    if (st.didJustFinish || part >= 0.99) void player.seekTo(0);
+    player.play();
+  };
+  return (
+    <View style={[styles.voice, mine ? styles.meBox : styles.themBox]}>
+      <Pressable onPress={toggle} style={[styles.play, { backgroundColor: mine ? colors.paper : colors.ink }]} accessibilityRole="button" accessibilityLabel={st.playing ? 'Пауза' : `Голосовое, ${m.duration ?? mmss(total)}`}>
+        <Ic d={st.playing ? 'M8 5h3v14H8zM13 5h3v14h-3z' : PLAY} size={16} color={mine ? colors.ink : colors.paper} fill={mine ? colors.ink : colors.paper} w={1} />
+      </Pressable>
+      <View style={{ flex: 1, gap: 6 }}>
+        <View style={styles.wave}>
+          {WAVE.map((h, i) => <View key={i} style={{ width: 3, height: h, borderRadius: 2, backgroundColor: fg, opacity: i / WAVE.length < part ? 1 : 0.35 }} />)}
+        </View>
+        <View style={styles.row}><Text style={[styles.meta, { color: mine ? '#BDB8AD' : colors.muted }]}>{st.playing ? mmss(st.currentTime) : m.duration ?? mmss(total)}</Text><Text style={[styles.meta, { color: mine ? '#BDB8AD' : colors.muted }]}>{m.time}</Text></View>
+      </View>
+    </View>
+  );
+}
+
+/** Настоящий кружок: видео в круге, само крутится без звука; тап — со звуком с начала, ещё тап — пауза. */
+function CircleVideo({ m, blurred, onReveal }: { m: Message; blurred: boolean; onReveal: () => void }) {
+  const player = useVideoPlayer(m.media!, (p) => { p.loop = true; p.muted = true; p.play(); });
+  const [sound, setSound] = useState(false);
+  // У плеера expo-video звук и позиция меняются присваиванием — так устроен его API.
+  /* eslint-disable react-hooks/immutability */
+  const tap = () => {
+    if (blurred) { onReveal(); return; }
+    if (!sound) { player.muted = false; player.currentTime = 0; player.play(); setSound(true); }
+    else { player.muted = true; setSound(false); }
+  };
+  /* eslint-enable react-hooks/immutability */
+  return (
+    <Pressable onPress={tap} style={styles.circleWrap} accessibilityRole="button" accessibilityLabel={`Кружок, ${m.duration ?? ''}. ${sound ? 'Выключить звук' : 'Включить звук'}`}>
+      <Svg width={176} height={176} style={StyleSheet.absoluteFill}>
+        <Circle cx={88} cy={88} r={86} stroke={sound ? colors.accent : colors.ink} strokeWidth={3} fill="none" />
+      </Svg>
+      <View style={[styles.circle, { overflow: 'hidden' }]}>
+        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+        {blurred && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(23,22,26,0.85)' }]} />}
+      </View>
+      <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
+      <View style={[styles.pill, { right: 10 }]}><Text style={styles.durText}>{m.time}</Text></View>
+    </Pressable>
+  );
 }
 
 function Voice({ m, mine }: { m: Message; mine: boolean }) {
@@ -74,7 +133,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
         </View>,
       );
     case 'voice':
-      return wrap(<Voice m={m} mine={mine} />);
+      return wrap(isFile(m.media) ? <VoiceFile m={m} mine={mine} /> : <Voice m={m} mine={mine} />);
     case 'sticker': {
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
@@ -109,6 +168,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
         </Pressable>,
       );
     case 'circle':
+      if (isFile(m.media)) return <View style={{ alignItems: align }}><CircleVideo m={m} blurred={blurred} onReveal={onReveal} /></View>;
       return (
         <View style={{ alignItems: align }}>
           <Pressable onPress={blurred ? onReveal : undefined} style={styles.circleWrap} accessibilityLabel="Кружок, 7 секунд">

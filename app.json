@@ -16,7 +16,11 @@
         "NSPhotoLibraryUsageDescription": "Чтобы отправить фото в чат или загрузить афишу в «Предложить событие».",
         "NSCameraUsageDescription": "Чтобы снять фото или кружок для чата.",
         "NSMicrophoneUsageDescription": "Чтобы записать голосовое или кружок для чата.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Друзья видят тебя на карте, даже когда приложение закрыто — только если ты сам включил «делиться». Невидимка — в профиле."
       },
       "icon": {
         "light": "./assets/icon/icon.png",
@@ -35,12 +39,12 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
         "CAMERA",
         "RECORD_AUDIO",
         "POST_NOTIFICATIONS"
-      ],
-      "blockedPermissions": [
-        "ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -71,7 +75,9 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Показываем события рядом с тобой и твою точку друзьям — только если ты сам включил «делиться».",
-          "isAndroidBackgroundLocationEnabled": false
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "locationAlwaysAndWhenInUsePermission": "Друзья видят тебя на карте, даже когда приложение закрыто — только если ты сам включил «делиться». Невидимка — в профиле."
         }
       ],
       [
@@ -83,8 +89,21 @@
       ],
       "expo-apple-authentication",
       "./plugins/with-gradle-name.js",
-      "expo-audio",
-      "expo-video"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Чтобы записать голосовое или кружок для чата."
+        }
+      ],
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Чтобы снять кружок или фото для чата.",
+          "microphonePermission": "Чтобы записать голосовое или кружок для чата.",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

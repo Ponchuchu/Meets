@@ -21,5 +21,8 @@ export function isServiceCall(req: Request): boolean {
   return !!secret && req.headers.get('x-cron-secret') === secret;
 }
 
+/** CORS: web-версия приложения зовёт функции из браузера. */
+export const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
+export const preflight = (req: Request) => (req.method === 'OPTIONS' ? new Response('ok', { headers: CORS }) : null);
 export const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...CORS } });

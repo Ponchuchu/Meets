@@ -20,7 +20,7 @@ function webglOk(): boolean {
 }
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0 } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines } = props;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -92,6 +92,36 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   }, [failed]);
 
   useEffect(() => { map.current?.setStyle(mapStyle(theme) as unknown as mapboxgl.Style); }, [theme]);
+
+  // Линзы: пробки (растровые плитки) и туман «Где я был». После смены стиля слои добавляем заново.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    const apply = () => {
+      const style = m.getStyle();
+      for (const l of style?.layers ?? []) if (l.id.startsWith('line-')) m.removeLayer(l.id);
+      for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
+      for (const id of ['traffic-layer', 'fog-layer']) if (m.getLayer(id)) m.removeLayer(id);
+      for (const id of ['traffic', 'fog']) if (m.getSource(id)) m.removeSource(id);
+      for (const l of lines ?? []) {
+        m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
+        m.addLayer({ id: `line-${l.id}-layer`, type: 'line', source: `line-${l.id}`, layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': l.color, 'line-width': l.width ?? 5, ...(l.dash ? { 'line-dasharray': [0.6, 1.8] } : {}) } });
+      }
+      if (traffic) {
+        m.addSource('traffic', { type: 'raster', tiles: [traffic], tileSize: 256 });
+        m.addLayer({ id: 'traffic-layer', type: 'raster', source: 'traffic', paint: { 'raster-opacity': 0.9 } });
+      }
+      if (fog) {
+        m.addSource('fog', { type: 'geojson', data: fog as never });
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': theme === 'night' ? '#0E0E10' : '#F7F5EF', 'fill-opacity': 0.8, 'fill-antialias': false } });
+      }
+    };
+    // Стиль ещё грузится — применим, как только загрузится (и после каждой смены стиля).
+    if (m.isStyleLoaded()) apply(); else m.once('load', apply);
+    m.on('style.load', apply);
+    return () => { m.off('style.load', apply); m.off('load', apply); };
+  }, [traffic, fog, lines, theme, ready]);
 
   useEffect(() => {
     host.current?.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right')

@@ -89,6 +89,8 @@ const browser = await chromium.launch({ args, ...(existsSync(preinstalled) && (a
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', timezoneId: 'Asia/Almaty',
   isMobile: true, hasTouch: true,
+  // SHOTS_GEO=lat,lon — «телефон» стоит в этой точке (экраны маршрута, моя точка).
+  ...(process.env.SHOTS_GEO ? { geolocation: { latitude: Number(process.env.SHOTS_GEO.split(',')[0]), longitude: Number(process.env.SHOTS_GEO.split(',')[1]) }, permissions: ['geolocation'] } : {}),
 });
 // Внешние запросы (Supabase, Mapbox) идут через fetch Node: в облачной среде он знает прокси и его сертификат,
 // а встроенный Chromium — нет. Проверка TLS при этом остаётся включённой.
@@ -108,6 +110,9 @@ if (process.env.HTTPS_PROXY) {
 }
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.log('  pageerror:', e.message));
+// SHOTS_NET=часть-адреса — печатать ответы на такие запросы (отладка).
+if (process.env.SHOTS_NET) page.on('response', (r) => { if (r.url().includes(process.env.SHOTS_NET)) console.log('  net:', r.request().method(), r.status(), r.url().slice(0, 90)); });
+if (process.env.SHOTS_NET) page.on('requestfailed', (r) => { if (r.url().includes(process.env.SHOTS_NET)) console.log('  failed:', r.method(), r.failure()?.errorText, r.url().slice(0, 90)); });
 for (const [route, name, preset, clicks = [], height = 844, width = 390] of routes) {
   await page.setViewportSize({ width, height });
   const state = PRESETS[preset];
@@ -133,7 +138,7 @@ for (const [route, name, preset, clicks = [], height = 844, width = 390] of rout
     const byLabel = page.getByLabel(label, { exact: false });
     const target = (await byLabel.count()) ? byLabel.first() : page.getByText(label, { exact: true }).last();
     await target.click({ force: true });
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(Number(process.env.SHOTS_CLICK_WAIT || 700));
   }
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);

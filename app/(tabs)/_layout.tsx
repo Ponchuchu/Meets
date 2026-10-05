@@ -1,11 +1,15 @@
 // Вкладки v6: Карта, Рекомендации, Планы, Чаты, Профиль (docs/ALPHA.md А1). Без входа — на «привет».
 import { useQuery } from '@tanstack/react-query';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
 import { useAuth } from '../../src/live/auth';
+import { useLiveLocation } from '../../src/live/useLiveLocation';
+import { usePlansSync } from '../../src/live/usePlansSync';
+import { useInvites } from '../../src/live/useInvites';
+import { useNotificationTaps } from '../../src/live/reminders';
 import { useSession } from '../../src/state/session';
 import { useTabBadges } from '../../src/state/tabBadges';
 import { colors } from '../../src/theme';
@@ -38,6 +42,10 @@ function ServerOnboarded() {
 
 function Shell() {
   const demo = config.dataMode === 'demo';
+  useLiveLocation();
+  usePlansSync();
+  useInvites();
+  useNotificationTaps((url) => router.push(url as never));
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: !demo });
   const draft = useSession((s) => s.draft);
   useEffect(() => {
