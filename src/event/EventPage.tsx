@@ -48,13 +48,14 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Назад к карте', onGo }: {
+export function EventPage({ e, now, onClose, closeLabel = 'Назад к карте', onGo, initialSheet = null }: {
+  initialSheet?: Sheet;
   e: EventItem; now: Date; onClose: () => void; closeLabel?: string;
   /** Из ленты «Я иду» работает как свайп вправо. */
   onGo?: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [sheet, setSheet] = useState<Sheet>(null);
+  const [sheet, setSheet] = useState<Sheet>(initialSheet);
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);

@@ -89,8 +89,21 @@
       ],
       "expo-apple-authentication",
       "./plugins/with-gradle-name.js",
-      "expo-audio",
-      "expo-video"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Чтобы записать голосовое или кружок для чата."
+        }
+      ],
+      "expo-video",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Чтобы снять кружок или фото для чата.",
+          "microphonePermission": "Чтобы записать голосовое или кружок для чата.",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -229,9 +229,9 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
 
 // ——— Запись ———
 
-export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string): Promise<void> {
+export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number): Promise<void> {
   const me = await requireUser();
-  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null }));
+  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null }));
   if (error) throw error;
 }
 

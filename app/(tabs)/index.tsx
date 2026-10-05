@@ -7,9 +7,8 @@ import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { EventPage } from '../../src/event/EventPage';
-import { useCoverTabBar } from '../../src/state/app';
+import { useApp, useCoverTabBar } from '../../src/state/app';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { data, eventsSnapshot, type EventItem } from '../../src/data';
 import { useLiveFriends } from '../../src/data/realtime';
 import { DEMO_FORECAST } from '../../src/data/weather';
@@ -36,7 +35,8 @@ import { useSocial } from '../../src/state/social';
 import { Toast, type ToastData } from '../../src/ui/Toast';
 import { autoTheme } from '../../src/map/style';
 import { ALMATY_CAMERA, type MapCanvasHandle, type MapMarker } from '../../src/map/types';
-import { EventCard } from '../../src/map/ui/EventCard';
+import { EventSheet } from '../../src/map/ui/EventSheet';
+import { Compass } from 'lucide-react-native';
 import { FiltersSheet } from '../../src/map/ui/FiltersSheet';
 import { SearchOverlay } from '../../src/map/ui/SearchOverlay';
 import { TopBar } from '../../src/map/ui/TopBar';
@@ -45,7 +45,6 @@ import { usePlans } from '../../src/state/plans';
 import { useProfile } from '../../src/state/profile';
 import { colors, fonts } from '../../src/theme';
 import { useTabInset } from '../../src/components/TabBar';
-import { Ic } from '../../src/ui/Ic';
 import { glass } from '../../src/ui/glass';
 import { Backdrop, BottomSheet } from '../../src/ui/sheet';
 import { config } from '../../src/lib/config';
@@ -85,6 +84,7 @@ export default function MapScreen() {
   const [H, setH] = useState(0);
   // Раскрытие события из мини-карточки: прямоугольник карточки растёт до всего экрана (~360 мс).
   const [open, setOpen] = useState<EventItem | null>(null);
+  const [openSheet, setOpenSheet] = useState<'invite' | null>(null);
   const [cardRect, setCardRect] = useState({ x: 12, y: 600, w: 366, h: 150 });
   const ex = useSharedValue(0);
   useCoverTabBar(!!open);
@@ -225,7 +225,7 @@ export default function MapScreen() {
   // Тап по точке: приближаемся к ней, карточка снизу — точка остаётся видна над ней.
   const openPin = useCallback((e: EventItem, group: EventItem[]) => {
     const z = focusZoom(zoom);
-    mapRef.current?.flyTo(e.lat - pxToLat(110, z, e.lat), e.lon, z);
+    mapRef.current?.flyTo(e.lat - pxToLat(190, z, e.lat), e.lon, z);
     setCardHidden(false);
     if (group.length > 1) { setStack(group); setSheet('stack'); return; }
     select(e.id);
@@ -287,7 +287,8 @@ export default function MapScreen() {
   const weatherNow = filters.soon || filters.from === 0;
   const weather = (weatherNow ? nowWx ?? forecast[0] : forecast[filters.from]) ?? null;
 
-  const openEvent = (e: EventItem) => {
+  const openEvent = (e: EventItem, sheetFirst: 'invite' | null = null) => {
+    setOpenSheet(sheetFirst);
     setOpen(e);
     ex.set(0);
     ex.set(withTiming(1, { duration: 360, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
@@ -316,7 +317,7 @@ export default function MapScreen() {
     setCardHidden(false);
     setSheet(null);
     const z = focusZoom(zoom);
-    mapRef.current?.flyTo(e.lat - pxToLat(110, z, e.lat), e.lon, z);
+    mapRef.current?.flyTo(e.lat - pxToLat(190, z, e.lat), e.lon, z);
   };
 
   // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
@@ -339,7 +340,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 170 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog} />
+      <MapCanvas ref={mapRef} theme={theme} camera={ALMATY_CAMERA} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog} />
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       <View style={[styles.top, { top: topY }]}>
@@ -362,21 +363,12 @@ export default function MapScreen() {
       </View>
 
 
-      {!focusId && (
-        <View style={[styles.side, { bottom: tabPad + (selected ? 200 : 12) }]}>
-          <View style={[styles.zoom, glass]}>
-            <Pressable onPress={() => mapRef.current?.zoomBy(1)} style={({ pressed }) => [styles.zoomBtn, pressed && { backgroundColor: colors.sand2 }]} accessibilityRole="button" accessibilityLabel="Приблизить карту">
-              <Ic d="M12 5v14M5 12h14" size={20} color={colors.ink} w={2} />
-            </Pressable>
-            <View style={styles.zoomLine} />
-            <Pressable onPress={() => mapRef.current?.zoomBy(-1)} style={({ pressed }) => [styles.zoomBtn, pressed && { backgroundColor: colors.sand2 }]} accessibilityRole="button" accessibilityLabel="Отдалить карту">
-              <Ic d="M5 12h14" size={20} color={colors.ink} w={2} />
-            </Pressable>
-          </View>
-          <Pressable onPress={goToMe} style={[styles.sideBtn, glass]} accessibilityRole="button" accessibilityLabel="Показать, где я">
-            <Svg width={19} height={19} viewBox="0 0 24 24"><Path d="M20 4L4 11l7 2 2 7z" stroke={colors.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
-          </Pressable>
-        </View>
+      {/* Компас справа под верхом (V6MapMove): тап — ко мне, север вверх. Масштаб — пальцами. */}
+      {!focusId && sheet === null && (
+        <Pressable onPress={goToMe} style={({ pressed }) => [styles.compass, glass, { top: topY + 62 }, pressed && { transform: [{ scale: 0.92 }] }]}
+          accessibilityRole="button" accessibilityLabel="Ко мне, север вверх">
+          <Compass size={22} color={colors.accent} strokeWidth={1.9} />
+        </Pressable>
       )}
 
       {focusId && focusPerson && focusSpot && !inviteOpen && sheet === null && filters.friends && (
@@ -399,9 +391,13 @@ export default function MapScreen() {
 
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
-          <Dismissible key={selected.id} label={selected.title} horizontal closeButton={false} onDismiss={() => setCardHidden(true)} onExpand={() => openEvent(selected)}>
-            <EventCard e={selected} when={whenLabel(selected, clock, going.has(selected.id))} people={people} onOpen={() => openEvent(selected)} />
-          </Dismissible>
+          <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
+            me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => setCardHidden(true)}
+            onGo={() => {
+              const p = usePlans.getState();
+              if (going.has(selected.id)) { p.ungo(selected.id); useApp.getState().removePlan(); }
+              else { p.go(selected.id); useApp.getState().addPlan(); showToast({ text: 'Добавил в «Планы». Напомню за час', cta: 'Планы', onCta: () => router.navigate('/plans') }); }
+            }} />
         </View>
       )}
 
@@ -482,7 +478,7 @@ export default function MapScreen() {
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
-            <EventPage e={open} now={clock} onClose={closeEvent} />
+            <EventPage e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
           </Animated.View>
         </Animated.View>
       )}
@@ -498,11 +494,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
   top: { position: 'absolute', left: 16, right: 16 },
   calendar: { position: 'absolute', left: 12, right: 12 },
-  side: { position: 'absolute', right: 14, gap: 10, alignItems: 'center' },
-  zoom: { width: 44, borderRadius: 22, overflow: 'hidden' },
-  zoomBtn: { width: 44, height: 46, alignItems: 'center', justifyContent: 'center' },
-  zoomLine: { height: 1, marginHorizontal: 10, backgroundColor: colors.line },
-  sideBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  compass: { position: 'absolute', right: 16, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   lensInfo: { position: 'absolute', left: 16 },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },
