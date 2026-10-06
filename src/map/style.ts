@@ -63,6 +63,3 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
 }
 
 /** «Ночь» включается сама после 20:00 (и до 6 утра). */
-export function autoTheme(hourInAlmaty: number): MapTheme {
-  return hourInAlmaty >= 20 || hourInAlmaty < 6 ? 'night' : 'paper';
-}

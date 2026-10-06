@@ -13,11 +13,9 @@ import { setShareRules, startBackground, stopBackground, watchForeground } from 
 async function getPlaces(): Promise<Place[]> {
   const me = myId();
   if (!me) return [];
-  const { data } = await supabase().from('user_places').select('kind,point').eq('user_id', me);
-  // PostgREST отдаёт geography как GeoJSON: { type: 'Point', coordinates: [lon, lat] }.
-  return ((data ?? []) as { kind: Place['kind']; point: { coordinates?: [number, number] } | string }[])
-    .map((r) => (typeof r.point === 'object' && r.point.coordinates ? { kind: r.kind, lon: r.point.coordinates[0], lat: r.point.coordinates[1] } : null))
-    .filter((x): x is Place => !!x);
+  const {data,error}=await supabase().from('user_places_points').select('kind,lat,lon').eq('user_id',me);
+  if(error)throw error;
+  return (data??[]) as Place[];
 }
 
 export function useLiveLocation() {

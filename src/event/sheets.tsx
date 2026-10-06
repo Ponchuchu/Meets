@@ -111,8 +111,8 @@ export function CompanySheet({ e, when, now, people, onClose, onWrite }: {
   );
 }
 
-export function InviteSheet({ friends, goingIds, onSend }: {
-  e?: EventItem; friends: Person[]; goingIds: string[]; onSend: (ids: string[]) => void;
+export function InviteSheet({ friends, goingIds, onSend, busy=false }: {
+  e?: EventItem; friends: Person[]; goingIds: string[]; onSend: (ids: string[]) => void; busy?:boolean;
 }) {
   const [sel, setSel] = useState<string[]>(friends.filter((f) => !goingIds.includes(f.id)).slice(0, 1).map((f) => f.id));
   const names = friends.filter((f) => sel.includes(f.id)).map((f) => f.name);
@@ -139,8 +139,8 @@ export function InviteSheet({ friends, goingIds, onSend }: {
           );
         })}
       </View>
-      <Pressable disabled={!names.length} onPress={() => onSend(sel)} style={[styles.primary, { height: 54 }, !names.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
-        <Text style={[styles.primaryText, !names.length && { color: colors.muted3 }]}>{names.length ? 'Позвать' : 'Выбери, кого позвать'}</Text>
+      <Pressable disabled={busy||!names.length} onPress={() => onSend(sel)} style={[styles.primary, { height: 54 }, !names.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
+        <Text style={[styles.primaryText, !names.length && { color: colors.muted3 }]}>{busy?'Отправляю…':names.length ? 'Позвать' : 'Выбери, кого позвать'}</Text>
       </Pressable>
     </>
   );

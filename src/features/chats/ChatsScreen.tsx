@@ -2,6 +2,13 @@
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { config } from '../../lib/config';
+import { createFriendGroup } from '../../live/api';
+import { queryClient } from '../../live/query';
+import { uid } from '../../lib/uid';
+import { isFriendNow, useSocial } from '../../state/social';
+import { SwipeActions } from '../../ui/SwipeActions';
+import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +23,7 @@ import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 
-type Filter = 'all' | 'events' | 'direct' | 'requests';
+type Filter = 'all' | 'events' | 'direct' | 'requests' | 'archive';
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
@@ -28,6 +35,25 @@ export default function ChatsScreen() {
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const chat = useChat();
+  const social = useSocial();
+  const [action, setAction] = useState<Chat|null>(null);
+  const [group, setGroup] = useState(false);
+  const [groupTitle, setGroupTitle] = useState('');
+  const [members, setMembers] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const friends = people.filter(p => isFriendNow(p, social));
+  const create = async () => {
+    if (busy || !groupTitle.trim() || members.length < 2) return;
+    setBusy(true); setError('');
+    try {
+      const id = config.dataMode === 'demo' ? uid('group') : await createFriendGroup(groupTitle.trim(), members);
+      if(config.dataMode === 'demo') chat.addGroup({id,kind:'group',title:groupTitle.trim(),members:members.length+1,memberIds:members,lastText:'Группа создана',lastTime:'',unread:0});
+      await queryClient.invalidateQueries({queryKey:['chats']});
+      setGroup(false); router.push({pathname:'/chat/[id]',params:{id}});
+    } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
+    finally { setBusy(false); }
+  };
   const plans = usePlans();
   const addPlan = useApp((s) => s.addPlan);
   const pending = requests.filter((r) => !chat.requests[r.id]);
@@ -39,18 +65,19 @@ export default function ChatsScreen() {
   };
   const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
   const list = sortChats(
-    chats
-      .filter((c) => match(c) && !(c.personId && chat.blocked[c.personId]))
-      .filter((c) => filter === 'all' || (filter === 'events' ? c.kind === 'event' : filter === 'direct' ? c.kind === 'direct' : false))
+    [...chats, ...chat.groups.filter(g => !chats.some(c => c.id === g.id))]
+      .filter((c) => match(c) && !chat.hidden[c.id] && !(c.personId && chat.blocked[c.personId]) && (filter === 'archive' ? !!chat.archived[c.id] : !chat.archived[c.id]))
+      .filter((c) => filter === 'all' || filter === 'archive' || (filter === 'events' ? c.kind === 'event' : filter === 'direct' ? c.kind === 'direct' || c.kind === 'group' : false))
       .map((c) => ({ ...c, l: last(c), time: last(c).time })),
     chat.pinned,
   );
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
+    <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
-        <Text style={styles.h1} accessibilityRole="header">Чаты</Text>
+        <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
+        <Pressable onPress={() => {setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
@@ -63,7 +90,7 @@ export default function ChatsScreen() {
         </Pressable>
       ) : (
         <View style={styles.filters}>
-          {([['all', 'Все'], ['events', 'События'], ['direct', 'Личные']] as [Filter, string][]).map(([k, label]) => {
+          {([['all', 'Все'], ['events', 'События'], ['direct', 'Личные'], ['archive','Архив']] as [Filter, string][]).map(([k, label]) => {
             const on = filter === k;
             return (
               <Pressable key={k} onPress={() => setFilter(k)} style={[styles.chip, on && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
@@ -132,10 +159,10 @@ export default function ChatsScreen() {
             const n = unread(c);
             const pin = !!chat.pinned[c.id];
             return (
-              <Pressable key={c.id} onPress={() => open(c.id)} onLongPress={() => chat.togglePin(c.id)} delayLongPress={350}
+              <SwipeActions key={c.id} onActions={() => setAction(c)}><Pressable onLongPress={() => setAction(c)} onPress={() => open(c.id)}
                 style={({ pressed }) => [styles.row, i < list.length - 1 && styles.line, pressed && { opacity: 0.7 }]}
                 accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.text}${pin ? '. Закреплён' : ''}`}
-                accessibilityActions={[{ name: 'longpress', label: pin ? 'Открепить' : 'Закрепить' }]} onAccessibilityAction={() => chat.togglePin(c.id)}>
+                accessibilityActions={[{ name: 'longpress', label: pin ? 'Открепить' : 'Закрепить' }]} onAccessibilityAction={() => setAction(c)}>
                 {p ? <Avatar p={p} size={48} ring={p.isFriend ? colors.friend : undefined} /> : (
                   <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
                     <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={21} color={e ? catFg(e.category) : colors.paper} w={2} />
@@ -150,17 +177,36 @@ export default function ChatsScreen() {
                   {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
                     : pin ? <Ic d="M9 4h6l-1 5 3 3v2H7v-2l3-3zM12 14v6" size={14} color={colors.muted} w={2} /> : null}
                 </View>
-              </Pressable>
+              </Pressable></SwipeActions>
             );
           })}
         </View>
       )}
       {list.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
     </ScrollView>
+    {action && <><Backdrop label="Закрыть" onPress={() => setAction(null)}/><BottomSheet onClose={() => setAction(null)} label="Действия с чатом">
+      <Text style={styles.name}>{action.title}</Text>
+      <Pressable style={styles.menuAction} onPress={() => {chat.togglePin(action.id);setAction(null);}}><Text style={styles.name}>{chat.pinned[action.id]?'Открепить':'Закрепить'}</Text></Pressable>
+      <Pressable style={styles.menuAction} onPress={() => {chat.archive(action.id,!chat.archived[action.id]);setAction(null);}}><Text style={styles.name}>{chat.archived[action.id]?'Вернуть из архива':'В архив'}</Text></Pressable>
+      <Pressable style={styles.menuAction} onPress={() => {chat.hide(action.id);setAction(null);}}><Text style={[styles.name,{color:colors.accentText}]}>Скрыть диалог у меня</Text></Pressable>
+    </BottomSheet></>}
+    {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
+      <Text style={styles.h1}>Новая группа</Text>
+      <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
+      <Text style={styles.sub}>Выбери минимум двух друзей</Text>
+      <ScrollView style={{maxHeight:300}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
+        <Avatar p={p}/><Text style={[styles.name,{flex:1}]}>{p.name}</Text>{members.includes(p.id)&&<Ic d={IC.check} size={20} color={colors.accent}/>}
+      </Pressable>)}</ScrollView>
+      {!friends.length&&<Text style={styles.sub}>Добавь друзей, чтобы собрать группу</Text>}
+      {!!error&&<Text style={[styles.sub,{color:colors.accentText}]}>{error}</Text>}
+      <Pressable onPress={create} disabled={busy||members.length<2||!groupTitle.trim()} style={[styles.btn,{flex:0,height:48,backgroundColor:colors.ink,opacity:members.length<2?0.45:1}]}><Text style={[styles.btnText,{color:colors.paper}]}>{busy?'Создаю…':'Создать группу'}</Text></Pressable>
+    </BottomSheet></>}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  menuAction: {paddingVertical:16,borderBottomWidth:1,borderBottomColor:colors.line},
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   h1: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, color: colors.ink },

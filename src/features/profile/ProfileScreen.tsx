@@ -3,15 +3,17 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronRight, Code2, Footprints, Home, Lock, Moon, Plus, QrCode, Settings, UserPlus, Users, Zap, type LucideIcon } from 'lucide-react-native';
-import { useCallback } from 'react';
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, Code2, Footprints, Home, Lock, Moon, QrCode, Settings, UserPlus, Zap, type LucideIcon } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
-import { APP_URL } from '../../lib/config';
+import { config } from '../../lib/config';
 import { getMeStats, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
+import { useSession } from '../../state/session';
+import { useMapState } from '../../state/map';
 import { colors, fonts } from '../../theme';
 import { OrangeBg } from '../../ui/v6/OrangeBg';
 
@@ -38,35 +40,49 @@ function Ring({ value, size, stroke, color, track }: { value: number; size: numb
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const pad = useTabInset();
-  const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile() });
-  const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, staleTime: 30e3 });
-  useFocusEffect(useCallback(() => { void stats.refetch(); }, [])); // eslint-disable-line react-hooks/exhaustive-deps
+  const draft = useSession((s) => s.draft);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const live = config.dataMode !== 'demo';
+  const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: live });
+  const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, enabled: live, staleTime: 30e3 });
+  useFocusEffect(useCallback(() => { if(live) {void stats.refetch();void prof.refetch();} }, [])); // eslint-disable-line react-hooks/exhaustive-deps
   const p = prof.data;
   const s = stats.data;
-  const name = p?.name ?? '';
+  const name = p?.name?.trim() || draft.name?.trim() || 'Твой профиль';
   const pct = s ? s.cells.length / ALMATY_CELLS : 0;
-  const nextAt = s ? (s.level < 10 ? s.level * 1000 : 10000 + (s.level - 9) * 1500) : 1000;
+  const nextAt = s ? (s.level <= 10 ? s.level * 1000 : 10000 + (s.level - 10) * 1500) : 1000;
   const got = s?.badges.filter((b) => b.got).length ?? 0;
 
   const pickPhoto = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-    if (!res.canceled && res.assets[0]) { await uploadAvatar(res.assets[0].uri).catch(() => undefined); void prof.refetch(); }
+    if (uploading) return;
+    setPhotoError(null);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { setPhotoError('Разреши доступ к фотографиям в настройках телефона'); return; }
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85 });
+      if (res.canceled || !res.assets[0]) return;
+      setUploading(true);
+      const url = live ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
+      useSession.getState().update({ photo: url });
+      if (live) await prof.refetch();
+    } catch { setPhotoError('Не удалось сохранить фото. Проверь связь и попробуй ещё раз'); }
+    finally { setUploading(false); }
   };
-  const invite = () => Share.share({ message: `Я в «рядом.» — карта событий Алматы и друзья рядом. Добавь меня: ${APP_URL}/u/${p?.handle ?? ''}` }).catch(() => undefined);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
       <View style={[styles.hero, { height: 150 + insets.top }]}>
         <OrangeBg />
         <View style={[styles.topBtns, { top: insets.top + 18 }]}>
-          <Pressable onPress={() => router.push('/friends')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Мой QR-код"><QrCode size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
+          <Pressable onPress={() => router.push('/profile/qr')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Мой QR-код"><QrCode size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
           <Pressable onPress={() => router.push('/settings')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Настройки"><Settings size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         </View>
       </View>
       <View style={styles.sheet}>
         <View style={styles.head}>
           <Pressable onPress={() => void pickPhoto()} style={styles.avatarWrap} accessibilityRole="button" accessibilityLabel="Сменить фото">
-            {p?.photo_url ? <Image source={{ uri: p.photo_url }} style={styles.avatar} /> : (
+            {p?.photo_url || draft.photo?.includes(':') ? <Image source={{ uri: p?.photo_url ?? draft.photo! }} style={styles.avatar} /> : (
               <View style={[styles.avatar, styles.avatarEmpty]}><Text style={styles.letter}>{(name[0] ?? '·').toUpperCase()}</Text></View>
             )}
             <View style={styles.homeBadge}><Home size={15} color={colors.ink} strokeWidth={2} /></View>
@@ -77,6 +93,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {photoError && <Text style={{ color: colors.accentText }}>{photoError}</Text>}
+        {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
         {s?.staff && (
           <Pressable onPress={() => router.push('/dev')} style={({ pressed }) => [styles.dev, pressed && styles.pressed]} accessibilityRole="button">
             <Code2 size={18} color={colors.accent} strokeWidth={2} />
@@ -99,7 +117,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.tiles}>
-          <Pressable onPress={() => router.navigate('/')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Где я был: ${exploredPct(s?.cells ?? [])} Алматы`}>
+          <Pressable onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Где я был: ${exploredPct(s?.cells ?? [])} Алматы`}>
             <View style={styles.ringBox}>
               <Ring value={pct} size={46} stroke={5} color={colors.accent} track="#E6E0D4" />
               <Text style={styles.ringText}>{exploredPct(s?.cells ?? []).replace(' ', '').replace(',0', '')}</Text>
@@ -109,7 +127,7 @@ export default function ProfileScreen() {
               <Text style={styles.tileSub} numberOfLines={1}>Алматы</Text>
             </View>
           </Pressable>
-          <View style={[styles.tile, styles.tileDark]} accessibilityLabel={`Уровень ${s?.level ?? 1}, ${s?.points ?? 0} из ${nextAt} очков`}>
+          <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" style={[styles.tile, styles.tileDark]} accessibilityLabel={`Уровень ${s?.level ?? 1}, ${s?.points ?? 0} из ${nextAt} очков`}>
             <View style={styles.ringBox}>
               <Ring value={s ? s.points / nextAt : 0} size={46} stroke={5} color="#F7A47E" track="#3A393F" />
               <Text style={[styles.ringText, { color: '#FBFAF6', fontSize: 16 }]}>{s?.level ?? 1}</Text>
@@ -118,7 +136,7 @@ export default function ProfileScreen() {
               <Text style={[styles.tileTitle, { color: '#FBFAF6' }]}>Уровень {s?.level ?? 1}</Text>
               <Text style={[styles.tileSub, { color: '#BDB8AD' }]} numberOfLines={1} adjustsFontSizeToFit>{s?.points ?? 0} / {nextAt} очков</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
 
         <View style={styles.card}>
@@ -130,19 +148,18 @@ export default function ProfileScreen() {
             {(s?.badges ?? []).slice(0, 4).map((b) => {
               const B = BADGE[b.id] ?? { Icon: Zap, bg: '#E7E2D6', fg: colors.ink };
               return (
-                <View key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#ECE7DC' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
+                <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#ECE7DC' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
                   <B.Icon size={24} color={b.got ? B.fg : '#A8A296'} strokeWidth={1.9} />
-                </View>
+                </Pressable>
               );
             })}
-            <View style={[styles.badge, { backgroundColor: '#ECE7DC' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></View>
+            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, { backgroundColor: '#ECE7DC' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></Pressable>
           </View>
         </View>
 
         <View style={styles.list}>
-          <Row Icon={Users} title="Друзья" value={String(s?.friends ?? 0)} onPress={() => router.push('/friends')} />
-          <Row Icon={Home} title="Мои места" value={s?.places.length ? s.places.join(', ') : 'добавить'} onPress={() => router.push('/settings')} />
-          <Row Icon={Plus} title="Позвать друзей" value="ссылка" onPress={() => void invite()} last />
+          <Row Icon={Footprints} title="Хроника" value="где ты был" onPress={() => router.push('/profile/chronicle')} />
+          <Row Icon={Home} title="Мои места" value={s?.places.length ? s.places.join(', ') : 'добавить'} onPress={() => router.push('/settings/places')} last />
         </View>
       </View>
     </ScrollView>
@@ -170,7 +187,7 @@ const styles = StyleSheet.create({
   avatarWrap: { width: 108, height: 108, borderRadius: 54, borderWidth: 4, borderColor: colors.paper, backgroundColor: colors.paper },
   avatar: { flex: 1, borderRadius: 50 },
   avatarEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  letter: { fontFamily: fonts.display800, fontSize: 46, color: colors.accent },
+  letter: { fontFamily: fonts.body700, fontSize: 42, lineHeight: 58, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
   homeBadge: { position: 'absolute', right: -2, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#FBFAF6', borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.7, color: colors.ink },
   handle: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },

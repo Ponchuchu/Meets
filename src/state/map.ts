@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { DEFAULT_FILTERS, type MapFilters } from '../map/filters';
 
 interface MapState {
+  lens: 'normal' | 'traffic' | 'explore';
+  setLens: (lens: 'normal' | 'traffic' | 'explore') => void;
   filters: MapFilters;
   selectedId: string | null;
   /** Фокус на друге (MapFocus): карта сдвигается к нему, остальное бледнеет. */
@@ -17,6 +19,8 @@ interface MapState {
 }
 
 export const useMapState = create<MapState>((set) => ({
+  lens: 'normal',
+  setLens: (lens) => set({ lens }),
   filters: DEFAULT_FILTERS,
   selectedId: null,
   focusId: null,

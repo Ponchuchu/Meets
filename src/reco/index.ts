@@ -140,7 +140,7 @@ export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHi
   const pool = candidates
     .filter((e) => !history.decided.has(e.id) && phaseOf(e, ctx.now) !== 'hidden' && !e.meetup)
     .map((e) => ({ e, s: scoreEvent(taste, e, ctx) }))
-    .sort((a, b) => b.s.total - a.s.total || a.e.startsAt.localeCompare(b.e.startsAt));
+    .sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt)-Date.parse(b.e.startsAt));
   const deck: EventItem[] = [];
   const used = new Set<string>();
   const calibrating = history.swipes < CALIBRATION;

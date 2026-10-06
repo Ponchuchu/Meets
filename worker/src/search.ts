@@ -66,7 +66,7 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
   return { text, links, usage: { prompt: u.promptTokenCount ?? 0, output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0), searches: c?.groundingMetadata?.webSearchQueries?.length ?? 0, sources: links.length } };
 }
 
-export const DEFAULT_MODEL = 'gemini-3.8-flash';
+export const DEFAULT_MODEL = 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-flash-latest';
 
 export async function askGemini(prompt: string, key: string, model: string, timeoutMs = 120_000): Promise<{ found: Found[]; usage: Usage }> {
@@ -204,15 +204,16 @@ export function finalize(list: Found[], from: string, to: string): Found[] {
   });
 }
 
-export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Date(), days = 7): Promise<Found[]> {
+export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
-  const answers = await Promise.all(TOPICS.map(async (topic) => {
+  const answers = await Promise.all(topics.map(async (topic) => {
     try { return await askGemini(topicPrompt(topic, from, to), key, model); } catch (err) {
       console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
       return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
     }
   }));
+  if (answers.every(a=>a.usage.prompt===0)) throw new Error('Gemini не ответил. Проверь модель, ключ и квоту API');
   const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
   const raw = finalize(answers.flatMap((a) => a.found), from, to);
   const t1 = Date.now();
@@ -220,7 +221,7 @@ export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Da
   const out = finalize(checked, from, to);
   console.error(`Поиск ${from}…${to}: ИИ нашёл ${raw.length} (${((t1 - t0) / 1000).toFixed(0)} с), после проверки страниц ${out.length} (${((Date.now() - t1) / 1000).toFixed(0)} с).`);
   console.error(`Расход: токенов на вход ${usage.prompt}, на выход ${usage.output}, поисков Google ${usage.searches}, страниц-источников ${usage.sources}. Модель ${model}.`);
-  return out;
+  return out.slice(0,limit);
 }
 
 // ——— В конвейер ———
@@ -279,12 +280,16 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
 }
 
 // Шаг 1 воркфлоу: поиск → JSON в stdout, отчёт — в stderr.
-if (process.argv[1]?.endsWith('search.ts') && process.argv.includes('--run')) {
+async function main() {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    console.error('Нет GEMINI_API_KEY — поиск пропущен (docs/KEYS.md).');
-    console.log('[]');
-  } else {
-    void runSearch(key, process.env.GEMINI_MODEL || undefined).then((out) => console.log(JSON.stringify(out, null, 1)));
-  }
+  if(!key)throw new Error('Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
+  const names=['music','standup','cinema','art','food','sport'];
+  const selected=(process.env.SEARCH_TOPICS||'').split(',').filter(Boolean);
+  const topics=selected.length?TOPICS.filter((_t,i)=>selected.includes(names[i])):TOPICS;
+  const days=Number(process.env.SEARCH_DAYS||7), limit=Number(process.env.SEARCH_LIMIT||40);
+  if(!topics.length||!Number.isInteger(days)||days<1||days>30||!Number.isInteger(limit)||limit<1||limit>100)throw new Error('Invalid search parameters');
+  const out=await runSearch(key,process.env.GEMINI_MODEL||undefined,new Date(),days,topics,limit);
+  console.log(JSON.stringify(out,null,1));
 }
+
+if(process.argv[1]?.endsWith('search.ts')&&process.argv.includes('--run'))void main().catch(e=>{console.error(e instanceof Error?e.message:'Search failed');process.exitCode=1;});

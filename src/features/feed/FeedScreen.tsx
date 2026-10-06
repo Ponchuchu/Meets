@@ -71,7 +71,7 @@ export default function ForYouScreen() {
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
   const cardW = Math.min(350, W - 40);
-  const cardH = Math.max(420, Math.min(560, screenH - cardTop - 30));
+  const cardH = Math.max(350, Math.min(510, screenH - cardTop - 30));
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
   const plansIcon = tabCenter(2, W, fullH, insets.bottom);
@@ -113,10 +113,11 @@ export default function ForYouScreen() {
 
   // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
   const p = useSharedValue(0);
-  const openCard = (e: EventItem) => {
+  const openCard = (e: EventItem, interactive = false) => {
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
     showToast(null);
     setOpen(e);
+    if (interactive) return;
     p.value = 0;
     p.value = withTiming(1, { duration: 350, easing: Easing.bezier(0.2, 0.8, 0.3, 1) });
   };
@@ -132,7 +133,7 @@ export default function ForYouScreen() {
     width: cardW + (W - cardW) * p.value,
     height: cardH + (fullH - cardH) * p.value,
     borderRadius: 30 * (1 - p.value),
-    opacity: 0.6 + 0.4 * p.value,
+    opacity: 1,
   }));
   const clipInner = useAnimatedStyle(() => ({ left: -cardX * (1 - p.value), top: -cardTop * (1 - p.value) }));
 
@@ -153,6 +154,9 @@ export default function ForYouScreen() {
             onDecide={(kind) => onDecide(e, kind)}
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
+            expand={p} onReveal={() => openCard(e, true)}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeCard(); }}
+            onUndo={doUndo}
           />
         )).reverse()}
       </View>

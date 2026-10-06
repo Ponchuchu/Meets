@@ -33,7 +33,7 @@ export function MeDot({ heading, bearing, dim }: { heading?: SharedValue<number>
     <View style={[styles.anchor, dim && { opacity: 0.35 }]} pointerEvents="none" accessibilityLabel="Это ты">
       {heading && (
         <Animated.View style={[styles.cone, cone]}>
-          <Svg width={120} height={120} viewBox="0 0 120 120">
+          <Svg width={72} height={72} viewBox="0 0 120 120">
             <Defs>
               <RadialGradient id="meCone" cx="60" cy="60" r="56" gradientUnits="userSpaceOnUse">
                 <Stop offset="0" stopColor="#F0521F" stopOpacity={0.55} />
@@ -51,8 +51,8 @@ export function MeDot({ heading, bearing, dim }: { heading?: SharedValue<number>
 }
 
 const styles = StyleSheet.create({
-  anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  cone: { position: 'absolute', width: 120, height: 120 },
+  anchor: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  cone: { position: 'absolute', width: 72, height: 72 },
   pulse: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0521F' },
   dot: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0521F', borderWidth: 4, borderColor: '#FBFAF6', shadowColor: '#17161A', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
 });

@@ -10,6 +10,7 @@ export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function St
   // Подложка тоже умеет «лететь»: сдвигаем камеру (пины пересчитываются, картинка остаётся фоном).
   const [camera, setCamera] = useState(initial);
   useImperativeHandle(ref, () => ({
+    navigateTo: (lat, lon) => { setCamera((c) => ({ ...c, lat, lon, zoom: 16.5 })); },
     flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })),
     zoomBy: (d) => setCamera((c) => ({ ...c, zoom: Math.max(10, Math.min(18, c.zoom + d)) })),
     north: () => undefined,
@@ -22,7 +23,7 @@ export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function St
       {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((m) => {
         const p = project(m.lat, m.lon, camera, size.w, size.h);
         if (p.x < -60 || p.y < -60 || p.x > size.w + 60 || p.y > size.h + 60) return null;
-        return <View key={m.id} style={{ position: 'absolute', left: p.x, top: p.y }}>{m.node}</View>;
+        return <View key={m.id} style={{ position: 'absolute', left: p.x - (m.id==='me'?36:0), top: p.y - (m.id==='me'?36:0) }}>{m.node}</View>;
       })}
     </View>
   );

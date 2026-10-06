@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { photo } from '../../data/photos';
@@ -10,7 +10,8 @@ import type { Message, Person } from '../../data/types';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
-import { STICKERS } from '../../map/ui/FriendCard';
+import { STICKERS } from '../../stickers/catalog';
+import { StickerView } from '../../stickers/StickerView';
 import { vote } from '../rules';
 
 const WAVE = [6, 10, 14, 9, 16, 12, 18, 8, 13, 17, 10, 6, 12, 15, 9, 11, 7, 13, 10, 6, 9, 5];
@@ -69,7 +70,7 @@ function CircleVideo({ m, blurred, onReveal }: { m: Message; blurred: boolean; o
         <Circle cx={88} cy={88} r={86} stroke={sound ? colors.accent : colors.ink} strokeWidth={3} fill="none" />
       </Svg>
       <View style={[styles.circle, { overflow: 'hidden' }]}>
-        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} />
         {blurred && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(23,22,26,0.85)' }]} />}
       </View>
       <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
@@ -106,6 +107,31 @@ function Voice({ m, mine }: { m: Message; mine: boolean }) {
   );
 }
 
+function VideoFile({uri}:{uri:string}) {
+  const player=useVideoPlayer(uri);
+  return <VideoView player={player} style={{width:'100%',height:250}} contentFit="contain" nativeControls fullscreenOptions={{enable:true}}/>;
+}
+function MediaBubble({m,mine,blurred,onReveal}:{m:Message;mine:boolean;blurred:boolean;onReveal:()=>void}) {
+  const [ratio,setRatio]=useState(1);
+  const [open,setOpen]=useState(false);
+  return <>
+    <Pressable onPress={()=>blurred?onReveal():setOpen(true)} style={[styles.media,mine?styles.meBox:styles.themBox]} accessibilityRole="button" accessibilityLabel={blurred?'Показать медиа':'Открыть медиа'}>
+      {m.kind==='video' && isFile(m.media) && !blurred ? <VideoFile uri={m.media!}/> : <View style={{aspectRatio:Math.max(0.55,Math.min(2,ratio)),width:'100%'}}>
+        <Image source={photo(m.media)} style={{width:'100%',height:'100%'}} resizeMode="contain" blurRadius={blurred?30:0} onLoad={e=>{const {width,height}=e.nativeEvent.source;if(width&&height)setRatio(width/height);}}/>
+        {blurred&&<View style={styles.blur}><Text style={styles.blurText}>Нажми, чтобы показать</Text></View>}
+        {!m.text&&<View style={[styles.pill,{bottom:8,right:8}]}><Text style={styles.durText}>{m.time}</Text></View>}
+      </View>}
+      {!!m.text&&<View style={styles.caption}><Text style={[styles.text,{flex:1},mine&&{color:colors.paper}]}>{m.text}</Text><Text style={[styles.time,mine&&{color:'#BDB8AD'}]}>{m.time}</Text></View>}
+    </Pressable>
+    <Modal visible={open} transparent animationType="fade" onRequestClose={()=>setOpen(false)}>
+      <View style={{flex:1,backgroundColor:'rgba(23,22,26,0.96)',padding:16,justifyContent:'center'}}>
+        <Pressable style={{position:'absolute',right:20,top:55,zIndex:1,padding:12}} onPress={()=>setOpen(false)} accessibilityLabel="Закрыть медиа"><Text style={{color:colors.paper,fontSize:28}}>×</Text></Pressable>
+        {m.kind==='video' && isFile(m.media)?<VideoFile uri={m.media!}/>:<Image source={photo(m.media)} style={{width:'100%',height:'80%'}} resizeMode="contain"/>}
+      </View>
+    </Modal>
+  </>;
+}
+
 export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onReveal, onInvite, voteState, onVote, onOpenEvent, onAvatar }: {
   m: Message; author?: Person; mine: boolean; friendChat: boolean; showAuthor?: boolean;
   revealed: boolean; onReveal: () => void;
@@ -138,35 +164,14 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
         <View style={{ alignItems: align, gap: 6 }}>
-          {st.look === 'big'
-            ? <Text style={{ fontSize: 64, lineHeight: 76, transform: [{ rotate: `${st.rot}deg` }] }}>{m.text}</Text>
-            : <View style={[styles.sticker, { backgroundColor: st.bg, transform: [{ rotate: `${st.rot}deg` }] }, st.look === 'outline' && { borderColor: st.fg }]}><Text style={[styles.stickerText, { color: st.fg }]}>{m.text}</Text></View>}
+          <StickerView st={st} size="lg"/>
           <Text style={styles.cap}>СТИКЕР С КАРТЫ · {m.time}</Text>
         </View>
       );
     }
     case 'photo':
     case 'video':
-      return wrap(
-        <Pressable onPress={blurred ? onReveal : undefined} style={[styles.media, mine ? styles.meBox : styles.themBox]} accessibilityRole={blurred ? 'button' : undefined} accessibilityLabel={blurred ? 'Показать фото' : undefined}>
-          <View style={{ height: m.kind === 'video' ? 150 : 170, backgroundColor: colors.ink }}>
-            {m.media && <Image source={photo(m.media)} style={styles.fill} blurRadius={blurred ? 30 : 0} resizeMode="cover" />}
-            {m.kind === 'video' && !blurred && (
-              <>
-                <View style={styles.videoDark} />
-                <Text style={styles.videoBig}>ОТКРЫТЫЙ{'\n'}МИКРОФОН</Text>
-                <View style={styles.dur}><Ic d="M3 7h12v10H3zM15 10l6-3v10l-6-3z" size={11} color="#FFFFFF" w={2} /><Text style={styles.durText}>{m.duration}</Text></View>
-                <View style={styles.bigPlay}><Ic d={PLAY} size={20} color={colors.ink} fill={colors.ink} w={1} /></View>
-              </>
-            )}
-            {blurred && <View style={styles.blur}><Text style={styles.blurText}>Нажми, чтобы показать</Text></View>}
-          </View>
-          <View style={styles.caption}>
-            <Text style={[styles.text, { flex: 1 }, mine && { color: colors.paper }]}>{m.text}</Text>
-            <Text style={[styles.time, mine && { color: '#BDB8AD' }]}>{m.time}</Text>
-          </View>
-        </Pressable>,
-      );
+      return wrap(<MediaBubble m={m} mine={mine} blurred={blurred} onReveal={onReveal}/>);
     case 'circle':
       if (isFile(m.media)) return <View style={{ alignItems: align }}><CircleVideo m={m} blurred={blurred} onReveal={onReveal} /></View>;
       return (
@@ -245,7 +250,7 @@ const styles = StyleSheet.create({
   sticker: { height: 48, paddingHorizontal: 18, borderRadius: 14, borderWidth: 3, borderColor: '#FFFFFF', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   stickerText: { fontFamily: fonts.display800, fontSize: 18 },
   cap: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.5, color: colors.muted },
-  media: { width: 238, borderRadius: 18, overflow: 'hidden' },
+  media: { width: 276, maxWidth: '86%', borderRadius: 18, overflow: 'hidden' },
   fill: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' },
   videoDark: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: colors.ink, opacity: 0.92 },
   videoBig: { position: 'absolute', left: 14, bottom: 12, fontFamily: fonts.display800, fontSize: 24, lineHeight: 22, color: '#55524C' },

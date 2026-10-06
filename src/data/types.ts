@@ -105,7 +105,7 @@ export interface Message {
 
 export interface Chat {
   id: string;
-  kind: 'direct' | 'event';
+  kind: 'direct' | 'event' | 'group';
   title: string;
   personId?: string;
   eventId?: string;

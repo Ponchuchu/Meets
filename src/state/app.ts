@@ -1,5 +1,6 @@
 // Локальное состояние интерфейса (Zustand): счётчики на таб-баре.
-import { useEffect } from 'react';
+import { useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { BackHandler } from 'react-native';
 import { create } from 'zustand';
 
@@ -35,20 +36,20 @@ export const useApp = create<AppState>((set) => ({
   uncover: () => set((s) => ({ covers: Math.max(0, s.covers - 1) })),
 }));
 
-/** Пока компонент смонтирован и on=true — таб-бар спрятан (шторка, раскрытая карточка). */
+/** Пока экран в фокусе и on=true — таб-бар спрятан (шторка, раскрытая карточка). */
 export function useCoverTabBar(on = true) {
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!on) return;
     useApp.getState().cover();
     return () => useApp.getState().uncover();
-  }, [on]);
+  }, [on]));
 }
 
 /** Кнопка «Назад» на Android закрывает открытое (шторку, событие, поиск), а не всё приложение. */
 export function useBackClose(onClose?: () => void, on = true) {
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!on || !onClose) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true; });
     return () => sub.remove();
-  }, [onClose, on]);
+  }, [onClose, on]));
 }

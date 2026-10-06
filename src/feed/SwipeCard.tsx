@@ -4,7 +4,7 @@
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { EventItem, Person } from '../data/types';
 import { colors } from '../theme';
@@ -27,9 +27,13 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   enterFrom: 'go' | 'skip' | null;
   onDecide: (kind: 'go' | 'skip') => void;
   onTap: () => void;
+  expand: SharedValue<number>;
+  onReveal: () => void;
+  onRevealEnd: (commit: boolean) => void;
+  onUndo: () => void;
   /** Карточка коснулась иконки «Планы» — панель подпрыгивает. */
   onLand?: () => void;
-}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand }, ref) {
+}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand, expand, onReveal, onRevealEnd, onUndo }, ref) {
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
   const rot = useSharedValue(0);
@@ -40,6 +44,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   const op = useSharedValue(1);
   const busy = useSharedValue(false);
   const stamp = useSharedValue(0);
+  const revealing = useSharedValue(false);
 
   // «Вернуть»: карточка появляется с той стороны, куда ушла.
   useEffect(() => {
@@ -83,13 +88,24 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     .minDistance(0)
     .onChange((ev) => {
       if (busy.get()) return;
+      if (!revealing.get() && ev.translationY < -18 && Math.abs(ev.translationX) < 32) {
+        revealing.set(true); scheduleOnRN(onReveal);
+      }
+      if (revealing.get()) { expand.set(Math.max(0, Math.min(0.85, -ev.translationY / 320))); return; }
       dx.set(ev.translationX);
       dy.set(ev.translationY < 0 ? ev.translationY * 0.6 : ev.translationY * 0.3);
       rot.set(Math.max(-9, Math.min(9, ev.translationX / 18)));
     })
     .onEnd((ev) => {
       if (busy.get()) return;
-      const fast = Math.abs(ev.velocityX) > 800;
+      if (revealing.get()) {
+        revealing.set(false); dx.set(0); dy.set(0); rot.set(0);
+        scheduleOnRN(onRevealEnd, ev.translationY < -UP || ev.velocityY < -500); return;
+      }
+      if (ev.translationY > 70 && Math.abs(ev.translationX) < 50) {
+        dx.set(0); dy.set(0); rot.set(0); scheduleOnRN(onUndo); return;
+      }
+      const fast = Math.abs(ev.velocityX) > 800 && Math.abs(ev.translationX) > Math.abs(ev.translationY);
       if (Math.abs(ev.translationX) < TAP && Math.abs(ev.translationY) < TAP) {
         dx.set(0); dy.set(0); rot.set(0);
         scheduleOnRN(onTap);
@@ -97,11 +113,11 @@ export const SwipeCard = forwardRef<SwipeHandle, {
       else if (ev.translationX < -THRESHOLD || (fast && ev.velocityX < 0)) fly('skip');
       else {
         if (ev.translationY < -UP && Math.abs(ev.translationX) < THRESHOLD) scheduleOnRN(onTap);
-        dx.set(withSpring(0, { damping: 16, stiffness: 180 }));
-        dy.set(withSpring(0, { damping: 16, stiffness: 180 }));
-        rot.set(withSpring(0, { damping: 16, stiffness: 180 }));
+        dx.set(withSpring(0, { damping: 26, stiffness: 220, overshootClamping: true }));
+        dy.set(withSpring(0, { damping: 26, stiffness: 220, overshootClamping: true }));
+        rot.set(withSpring(0, { damping: 26, stiffness: 220, overshootClamping: true }));
       }
-    });
+    }).onFinalize((_e,success)=>{if(!success&&revealing.get()){revealing.set(false);scheduleOnRN(onRevealEnd,false);}});
 
   // Под верхней: сдвиг 14 px и масштаб 0,95 на каждую; поднимаются плавно.
   const stack = useAnimatedStyle(() => ({

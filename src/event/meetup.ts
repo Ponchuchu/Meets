@@ -52,7 +52,11 @@ export function meetupStart(dayOffset: number, time: string, now: Date): string 
   return new Date(dayStart(dayIndex(now) + dayOffset).getTime() + (h * 60 + m) * 60000).toISOString();
 }
 
-export function validateMeetup(f: MeetupForm): string | null {
+export function validateMeetup(f: MeetupForm, now?: Date): string | null {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time) || !Number.isInteger(f.dayOffset) || f.dayOffset < 0) return 'Проверь дату и время';
+  if (!f.address.trim()) return 'Выбери адрес встречи';
+  if (f.point && (!Number.isFinite(f.point.lat) || !Number.isFinite(f.point.lon) || Math.abs(f.point.lat)>90 || Math.abs(f.point.lon)>180)) return 'Выбери точку на карте';
+  if (now && new Date(meetupStart(f.dayOffset, f.time, now)).getTime() <= now.getTime()) return 'Выбери время в будущем';
   if (!f.title.trim()) return 'Назови встречу';
   if (f.mode === 'friends' && f.invited.length === 0) return 'Выбери, кого позвать';
   return null;

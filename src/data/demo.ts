@@ -352,7 +352,7 @@ export function mergeEvents(demo: EventItem[], real: EventItem[]): EventItem[] {
   const seen = new Set<string>();
   return [...demo, ...real]
     .filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)))
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    .sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt));
 }
 
 export function createDemoSource(): DataSource {

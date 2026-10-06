@@ -16,6 +16,12 @@ interface ChatState {
   requests: Record<string, 'accepted' | 'later'>;
   /** Закреплённые чаты — наверху списка. */
   pinned: Record<string, true>;
+  archived: Record<string, true>;
+  hidden: Record<string, true>;
+  groups: import('../data/types').Chat[];
+  archive: (id: string, on: boolean) => void;
+  hide: (id: string) => void;
+  addGroup: (c: import('../data/types').Chat) => void;
   togglePin: (chatId: string) => void;
   send: (m: Message) => void;
   unsend: (id: string) => void;
@@ -31,8 +37,11 @@ interface ChatState {
 export const useChat = create<ChatState>()(
   persist(
     (set) => ({
-      sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {}, pinned: {},
-      togglePin: (id) => set((s) => {
+      sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {}, pinned: {}, archived: {}, hidden: {}, groups: [],
+      archive: (id, on) => set(s => { const archived = {...s.archived}; if(on) archived[id] = true; else delete archived[id]; return {archived}; }),
+      hide: id => set(s => ({hidden:{...s.hidden,[id]:true}})),
+      addGroup: c => set(s => ({groups:[...s.groups.filter(g => g.id !== c.id),c]})),
+        togglePin: (id) => set((s) => {
         const pinned = { ...s.pinned };
         if (pinned[id]) delete pinned[id];
         else pinned[id] = true;

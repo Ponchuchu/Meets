@@ -4,20 +4,39 @@
 name: covers
 on:
   workflow_dispatch:
+    inputs:
+      run_id:
+        type: string
+        default: ''
 concurrency: covers
 jobs:
   covers:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      ROBOT_RUN_ID: ${{ inputs.run_id }}
+      ROBOT_TASK: covers
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Статус запуска
+        run: node worker/src/robot.ts start
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       - name: Нарисовать обложки
         run: node worker/src/covers.ts
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_IMAGE_MODEL: ${{ vars.GEMINI_IMAGE_MODEL }}
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Результат запуска
+        if: always()
+        run: node worker/src/robot.ts finish
+        env:
+          ROBOT_JOB_STATUS: ${{ job.status }}
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

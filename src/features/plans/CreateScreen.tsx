@@ -1,7 +1,7 @@
 // «Новая встреча» — только для друзей (design/png/CreateEvent.png, правки этапа 11). Открывается кнопкой «+» на карте.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapBase } from '../../components/MapBase';
@@ -9,6 +9,10 @@ import { data, eventsSnapshot } from '../../data';
 import { buildMeetup, ctaLabel, DISTRICTS, fullAddress, validateMeetup, type MeetupForm, type MeetupKind } from '../../event/meetup';
 import { MonthCalendar, PlacePicker, TimeWheel } from '../../event/ui/pickers';
 import { almaty, dayIndex, dayStart, now as clockNow } from '../../lib/clock';
+import { uid } from '../../lib/uid';
+import { config } from '../../lib/config';
+import { createMeetup } from '../../live/api';
+import { queryClient } from '../../live/query';
 import { useApp } from '../../state/app';
 import { useMapState } from '../../state/map';
 import { displayName, isFriendNow, useSocial } from '../../state/social';
@@ -40,7 +44,10 @@ function dayLabel(offset: number, now: Date): string {
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();
-  const now = clockNow();
+  const now = useMemo(() => clockNow(), []);
+  const submitting = useRef(false);
+  const requestId = useRef(uid('meet'));
+  const [busy, setBusy] = useState(false);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const addMeetup = usePlans((s) => s.addMeetup);
@@ -55,7 +62,7 @@ export default function CreateScreen() {
   const [f, setF] = useState<MeetupForm>({
     mode: 'friends', kind: 'dinner', title: 'Ужин у меня', note: 'Готовлю плов. С вас хорошее настроение и что-нибудь к чаю',
     dayOffset: fri, time: '19:30', place: '', district: 'Бостандык', address: '',
-    invited: ['igor', 'denis'], plusOne: false, items: [],
+    invited: [], plusOne: false, items: [],
     point: DISTRICTS['Бостандык'], entrance: '', floor: '', apt: '',
   });
   const set = (patch: Partial<MeetupForm>) => { setF((s) => ({ ...s, ...patch })); setError(null); };
@@ -75,16 +82,23 @@ export default function CreateScreen() {
     setSheet(null);
   };
 
-  const submit = () => {
-    const err = validateMeetup(f);
+  const submit = async () => {
+    if (submitting.current) return;
+    const err = validateMeetup(f, now);
     if (err) { setError(err); return; }
-    const e = buildMeetup(f, now);
-    addMeetup(e);
-    addPlan();
-    // Карта переключается на день встречи, чтобы её сразу было видно.
-    setFilters({ from: f.dayOffset, to: f.dayOffset });
-    select(e.id);
-    router.replace('/');
+    if(Date.parse(buildMeetup(f,now).startsAt)<=clockNow().getTime()){setError('Выбери время в будущем');return;}
+    submitting.current = true; setBusy(true);
+    try {
+      let e = { ...buildMeetup(f, now), id: requestId.current };
+      if (config.dataMode !== 'demo') e = { ...e, id: await createMeetup(e), origin: 'real' };
+      addMeetup(e); addPlan();
+      setFilters({ soon: false, from: f.dayOffset, to: f.dayOffset, free: false, cats: [] });
+      select(e.id);
+      void queryClient.invalidateQueries({ queryKey: ['events'] });
+      router.replace('/plans');
+    } catch {
+      setError('Не удалось создать встречу. Проверь связь и попробуй ещё раз');
+    } finally { submitting.current = false; setBusy(false); }
   };
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -181,8 +195,8 @@ export default function CreateScreen() {
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: 18 + insets.bottom }]}>
-        <Pressable onPress={submit} style={[styles.cta, !f.invited.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
-          <Text style={[styles.ctaText, !f.invited.length && { color: colors.muted3 }]}>{ctaLabel(f)}</Text>
+        <Pressable onPress={() => void submit()} disabled={busy} style={[styles.cta, !f.invited.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
+          <Text style={[styles.ctaText, !f.invited.length && { color: colors.muted3 }]}>{busy ? 'Создаю встречу…' : ctaLabel(f)}</Text>
         </Pressable>
         {error && <Text style={[styles.ctaHint, { color: colors.accentText }]}>{error}</Text>}
       </View>

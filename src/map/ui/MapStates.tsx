@@ -31,16 +31,6 @@ export function NoGeoCard({ onEnable }: { onEnable: () => void }) {
   );
 }
 
-/** Круг точности вокруг моей точки, когда GPS неточный. size — диаметр в пикселях. */
-export function AccuracyRing({ size }: { size: number }) {
-  return (
-    <View pointerEvents="none" style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, backgroundColor: 'rgba(240,82,31,0.16)', borderWidth: 1, borderColor: 'rgba(240,82,31,0.35)' }} />
-      <View style={styles.meDot} />
-    </View>
-  );
-}
-
 export function ExploreBadge({ pct, value }: { pct: string; value: number }) {
   const r = 20;
   const c = 2 * Math.PI * r;

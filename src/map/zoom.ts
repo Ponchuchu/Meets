@@ -30,7 +30,7 @@ export function groupByPoint<T extends Pick<EventItem, 'lat' | 'lon' | 'startsAt
     const key = `${e.lat.toFixed(4)}:${e.lon.toFixed(4)}`;
     groups.set(key, [...(groups.get(key) ?? []), e]);
   }
-  return [...groups.values()].map((g) => [...g].sort((a, b) => a.startsAt.localeCompare(b.startsAt)));
+  return [...groups.values()].map((g) => [...g].sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt)));
 }
 
 /** Сколько градусов широты в `px` пикселях при масштабе `zoom` (тайлы 512 px, как у Mapbox GL). */

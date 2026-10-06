@@ -71,7 +71,7 @@ function Run({ onFinish }: { onFinish: () => void }) {
   const path = usePathname();
   const [i, setI] = useState(0);
   const step = TUTORIAL[i];
-  const top = insets.top + 8;
+  const top = Math.max(50, insets.top + 6);
   const hole = holeFor(step.id, W, H, top, insets.bottom);
   const next = () => (i + 1 < TUTORIAL.length ? setI(i + 1) : onFinish());
 
@@ -81,7 +81,11 @@ function Run({ onFinish }: { onFinish: () => void }) {
     if (step.id === 'done' && path !== '/') router.navigate('/');
   }, [step.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Нажал нужную вкладку — следующий шаг (обновление состояния во время рендера, без лишнего эффекта).
-  if (step.tapTab && path === `/${step.tapTab}`) setI(i + 1);
+  useEffect(() => {
+    // Синхронизируем шаг с фактическим переходом вкладки, включая её собственную кнопку.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (step.tapTab && path === `/${step.tapTab}`) setI((n) => n + 1);
+  }, [step.tapTab, path]);
 
   // Плавный переезд выреза между шагами.
   const fade = useSharedValue(0);
@@ -89,7 +93,7 @@ function Run({ onFinish }: { onFinish: () => void }) {
   const holeSt = useAnimatedStyle(() => ({ opacity: fade.get() }));
 
   const cardBelow = hole ? hole.y + hole.h / 2 < H / 2 : false;
-  const cardPos = !hole ? { top: H / 2 - 120 } : cardBelow ? { top: hole.y + hole.h + 18 } : { bottom: H - hole.y + 18 };
+  const cardPos = {top:Math.max(insets.top+16,Math.min(H-insets.bottom-300,!hole?H/2-140:cardBelow?hole.y+hole.h+18:hole.y-290))};
   const blockers = hole ? [
     { left: 0, top: 0, width: W, height: hole.y },
     { left: 0, top: hole.y + hole.h, width: W, height: H - hole.y - hole.h },
@@ -98,7 +102,7 @@ function Run({ onFinish }: { onFinish: () => void }) {
   ] : [{ left: 0, top: 0, width: W, height: H }];
 
   return (
-    <Animated.View style={StyleSheet.absoluteFill} entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)} pointerEvents="box-none">
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: 30 }]} entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, holeSt]} pointerEvents="none">
         <Svg width={W} height={H}>
           <Path d={`M0 0H${W}V${H}H0Z${hole ? rr(hole) : ''}`} fill="rgba(23,22,26,0.55)" fillRule="evenodd" />
@@ -122,7 +126,7 @@ function Run({ onFinish }: { onFinish: () => void }) {
         <Text style={styles.title} accessibilityRole="header">{step.title}</Text>
         <Text style={styles.text}>{step.text}</Text>
         {step.tapTab ? (
-          <Text style={styles.tapHint}>Нажми на вкладку внизу</Text>
+          <Pressable onPress={() => { router.navigate('/foryou'); }} style={styles.btn} accessibilityRole="button"><Text style={styles.btnText}>Открыть рекомендации</Text></Pressable>
         ) : (
           <Pressable onPress={next} style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
             <Text style={styles.btnText}>{step.btn ?? 'Дальше'}</Text>

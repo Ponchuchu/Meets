@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { config } from '../lib/config';
 import { sendInvite } from '../live/api';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -66,6 +66,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
 }) {
   const insets = useSafeAreaInsets();
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
+  const sendingInvite=useRef(false);
+  const [inviting,setInviting]=useState(false);
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -131,7 +133,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   };
   // Жест «назад»: ведёшь пальцем от левого края вправо — возвращаешься (iOS и Android, на web — мышью).
   const back = Gesture.Pan()
-    .activeOffsetX(20)
+    .activeOffsetX(30)
+    .hitSlop({ left: 0, width: 24 })
     .failOffsetY([-14, 14])
     .onEnd((ev) => { if (ev.translationX > 90 && ev.absoluteX - ev.translationX < 48) scheduleOnRN(onClose); });
 
@@ -146,7 +149,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   return (
     <GestureDetector gesture={back}>
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <View style={[styles.cover, { backgroundColor: hasPhoto ? colors.ink : CAT_COLOR[e.category] }]}>
           {hasPhoto ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={e.title} /> : (
@@ -210,11 +213,11 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
                 <ArrowUpRight size={18} color={colors.muted} strokeWidth={2} />
               </Pressable>
             )}
-            <Pressable onPress={() => setSheet('route')} style={[styles.item, site ? styles.itemSep : null]} accessibilityRole="button" accessibilityLabel={`Адрес: ${e.address}. Маршрут или 2ГИС`}>
+            <Pressable onPress={() => setSheet('route')} style={[styles.item, site ? styles.itemSep : null]} accessibilityRole="button" accessibilityLabel={`Адрес: ${e.address}. Маршрут`}>
               <View style={[styles.itemIcon, { backgroundColor: colors.accent }]}><MapPin size={20} color={colors.ink} strokeWidth={1.9} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle} numberOfLines={1}>{[e.venueName, e.address.split(',').slice(0, 2).join(',')].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут или 2ГИС</Text>
+                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в «рядом.»</Text>
               </View>
               <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
             </Pressable>
@@ -256,7 +259,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             <X size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
           <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
-            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'Иду ✓' : 'Пойду'}</Text>
+            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text>
           </Pressable>
           <Pressable onPress={() => setSheet('invite')} style={({ pressed }) => [styles.inviteBtn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
             <Text style={styles.inviteText}>Позвать</Text>
@@ -270,11 +273,15 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'company' && <CompanySheet e={e} when={whenTitle(e, now).toLowerCase()} now={now} people={people} onClose={() => setSheet(null)} onWrite={write} />}
             {sheet === 'invite' && (
-              <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} onSend={(ids) => {
-                invite(e.id, ids);
-                if (LIVE) void sendInvite(e.id, e.title, ids).catch(() => show({ text: 'Не получилось позвать. Проверь связь' }));
-                setSheet(null);
-                show({ text: ids.length > 1 ? 'Позвал. Ответы придут в чат' : 'Позвал. Ответ придёт в чат', cta: 'Чаты', onCta: () => router.push('/chats') });
+              <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} busy={inviting} onSend={async(ids) => {
+                if(sendingInvite.current)return;
+                sendingInvite.current=true;setInviting(true);
+                try{
+                  if (LIVE) await sendInvite(e.id, e.title, ids);
+                  invite(e.id, ids);setSheet(null);
+                  show({ text: ids.length > 1 ? 'Позвал. Ответы придут в чат' : 'Позвал. Ответ придёт в чат', cta: 'Чаты', onCta: () => router.push('/chats') });
+                }catch{setSheet(null);show({text:'Не получилось позвать. Проверь связь'});}
+                finally{sendingInvite.current=false;setInviting(false);}
               }} />
             )}
             {sheet === 'route' && <WhereSheet e={e} me={me} onCopied={() => { setSheet(null); show({ text: 'Адрес скопирован' }, 2000); }} />}

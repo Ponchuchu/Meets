@@ -1,7 +1,7 @@
 // Метрики рекомендаций (RECOMMENDATIONS.md, раздел 6): доля «пойду», дошли, возвраты, отмены.
 // Команде — все люди за 30 дней, в демо — это устройство.
 import { useQuery } from '@tanstack/react-query';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable,StyleSheet, Text, View } from 'react-native';
 import { loadAnalytics, useAnalytics } from '../../analytics';
 import { computeMetrics, pct } from '../../analytics/metrics';
 import { now as clockNow } from '../../lib/clock';
@@ -20,6 +20,8 @@ export function Metrics({ live }: { live: boolean }) {
   return (
     <View style={styles.root}>
       <Text style={styles.cap}>{live ? 'ВСЕ ЛЮДИ · 30 ДНЕЙ' : 'ЭТО УСТРОЙСТВО · ДЕМО'} · ПОКАЗАНО КАРТОЧЕК {m.shown}</Text>
+      <View style={{flexDirection:'row',gap:12}}><Pressable onPress={()=>void q.refetch()}><Text style={styles.title}>Обновить</Text></Pressable><Pressable onPress={()=>useAnalytics.setState({events:[]})}><Text style={styles.title}>Очистить на этом устройстве</Text></Pressable></View>
+      {q.isError&&<Text style={styles.note}>Не удалось загрузить аналитику. Повтори запрос.</Text>}
       <Text style={styles.h1} accessibilityRole="header">Как понять, что работает</Text>
       <View style={styles.grid}>
         {rows.map(([title, value, norm, ok]) => (

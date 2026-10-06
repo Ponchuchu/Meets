@@ -23,7 +23,9 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
   const [micPerm, askMic] = useMicrophonePermissions();
   const [ready, setReady] = useState(false);
   const [sec, setSec] = useState(0);
+  const alive=useRef(true);
   const started = useRef(0);
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   const sendOnStop = useRef(true);
   const stopped = useRef(false);
   const p = useSharedValue(0);
@@ -39,16 +41,18 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
 
   // Камера готова — начинаем запись. Промис завершится, когда вызовем stopRecording или выйдет 60 с.
   useEffect(() => {
-    if (!ready || !cam.current) return;
+    if (!ready || !cam.current || stopped.current) return;
+    const camera=cam.current;
     started.current = Date.now();
     p.set(withTiming(1, { duration: CIRCLE_MAX_S * 1000, easing: Easing.linear }));
     const t = setInterval(() => setSec(Math.floor((Date.now() - started.current) / 1000)), 250);
-    cam.current.recordAsync({ maxDuration: CIRCLE_MAX_S }).then((res) => {
+    camera.recordAsync({ maxDuration: CIRCLE_MAX_S }).then((res) => {
+      if(!alive.current)return;
       const s = Math.max(1, Math.round((Date.now() - started.current) / 1000));
       if (res?.uri && sendOnStop.current && s >= 1) onDone(res.uri, s);
       else onCancel();
-    }).catch(onCancel);
-    return () => clearInterval(t);
+    }).catch(()=>{if(alive.current)onCancel();});
+    return () => { clearInterval(t); camera.stopRecording(); };
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useImperativeHandle(ref, () => ({
@@ -65,7 +69,7 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.veil} pointerEvents="none">
       <View style={styles.circle}>
         {camPerm?.granted && micPerm?.granted && (
-          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" onCameraReady={() => setReady(true)} />
+          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" onCameraReady={() => setReady(true)} />
         )}
       </View>
       <Svg width={SIZE + 8} height={SIZE + 8} style={styles.ring}>

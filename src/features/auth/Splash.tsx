@@ -6,12 +6,11 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
-  Easing, FadeOut, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming,
+  Easing, FadeOut, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import Svg, { Defs, Mask, Path } from 'react-native-svg';
 import { create } from 'zustand';
-import { almaty } from '../../lib/clock';
 import { WORD_GLYPH, WORD_STROKES, WORD_VIEWBOX } from './splashStrokes';
 
 let played = false;
@@ -56,9 +55,11 @@ export function Splash() {
     if (w > 0 && (w !== size?.width || h !== size?.height)) setSize({ width: w, height: h });
   };
   const [on, setOn] = useState(!played);
-  const [night] = useState(() => { const h = almaty(new Date()).getUTCHours(); return h >= 20 || h < 6; });
+  const night = false;
   const t = useSharedValue(reduce ? 1450 : 0);
-  const drop = useSharedValue(win.height ? -win.height / 2 - 40 : -500);
+  const drop = useSharedValue(-40-WORD_H*0.24);
+  const dotX = useSharedValue(WORD_W/2+8);
+  const dotOpacity = useSharedValue(reduce?1:0);
   const squash = useSharedValue(1);
   const ring = useSharedValue(0);
   const hole = useSharedValue(0);
@@ -71,8 +72,10 @@ export function Splash() {
     if (reduce) { const r = setTimeout(end, 700); return () => clearTimeout(r); }
     const ease = Easing.bezier(0.6, 0, 0.2, 1);
     t.set(withTiming(1450, { duration: 1450, easing: Easing.linear }));
-    drop.set(withDelay(1450, withTiming(0, { duration: 200, easing: Easing.in(Easing.quad) })));
-    squash.set(withDelay(1650, withSequence(withTiming(0.72, { duration: 90 }), withTiming(1.1, { duration: 120 }), withTiming(1, { duration: 110 }))));
+    dotOpacity.set(withDelay(1250,withTiming(1,{duration:200})));
+    drop.set(withDelay(1700, withTiming(0, { duration: 650, easing: Easing.bezier(0.22,1,0.36,1) })));
+    dotX.set(withDelay(1700,withTiming(0,{duration:650,easing:Easing.bezier(0.22,1,0.36,1)})));
+    squash.set(withTiming(1,{duration:300}));
     ring.set(withDelay(1650, withTiming(1, { duration: 550, easing: Easing.out(Easing.quad) })));
     word.set(withDelay(1900, withTiming(0, { duration: 300 })));
     hole.set(withDelay(2200, withTiming(1, { duration: 600, easing: ease })));
@@ -93,15 +96,15 @@ export function Splash() {
   });
   const fill = useAnimatedStyle(() => ({ opacity: hole.get() > 0 ? 0 : 1 }));
   const dot = useAnimatedStyle(() => ({
-    opacity: drop.get() < -height / 2 + 20 ? 0 : 1 - hole.get(),
-    transform: [{ translateY: drop.get() }, { scaleY: squash.get() }, { scaleX: 2 - squash.get() }],
+    opacity: dotOpacity.get() * (1-hole.get()),
+    transform: [{ translateX: dotX.get() }, { translateY: drop.get() }, { scaleY: squash.get() }, { scaleX: 2 - squash.get() }],
   }));
   const ringSt = useAnimatedStyle(() => ({ opacity: ring.get() > 0 ? (1 - ring.get()) * 0.8 : 0, transform: [{ scale: 0.3 + ring.get() * 3.1 }] }));
   const wordSt = useAnimatedStyle(() => ({ opacity: word.get() }));
 
   if (!on) return null;
   return (
-    <Animated.View style={StyleSheet.absoluteFill} exiting={FadeOut.duration(300)} onLayout={onLayout}>
+    <Animated.View style={[StyleSheet.absoluteFill,{zIndex:90,elevation:25}]} exiting={FadeOut.duration(300)} onLayout={onLayout}>
       <Pressable style={StyleSheet.absoluteFill} onPress={end} accessibilityRole="button" accessibilityLabel="Пропустить заставку">
         {/* До раскрытия — сплошной фон; потом его заменяет рамка с растущей дыркой. */}
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: bg }, fill]} />

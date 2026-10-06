@@ -33,6 +33,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   useEffect(() => { onPressRef.current = onPress; }, [onPress]);
 
   useImperativeHandle(ref, () => ({
+    navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 16.5, bearing: heading, pitch: 35, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom) => {
       if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 });
       else staticRef.current?.flyTo(lat, lon, zoom);
@@ -56,10 +57,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       try {
         m = new lib.Map({
           container: host.current,
-          style: mapStyle(theme) as unknown as mapboxgl.Style,
+          style: mapStyle('paper') as unknown as mapboxgl.Style,
           center: [camera.lon, camera.lat],
           zoom: camera.zoom,
           attributionControl: false,
+          logoPosition: config.mapAttribution ? 'bottom-left' : undefined,
           pitchWithRotate: false,
           dragRotate: true,
         });
@@ -67,7 +69,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         setFailed(true);
         return;
       }
-      m.addControl(new lib.AttributionControl({ compact: true }), 'bottom-left');
+      if (config.mapAttribution) m.addControl(new lib.AttributionControl({ compact: true }), 'bottom-left');
+      if (!config.mapAttribution) (host.current.querySelector('.mapboxgl-ctrl-logo') as HTMLElement | null)?.style.setProperty('display', 'none');
       // Масштаб — наружу, не чаще кадра: пины меняют размер и подписи.
       let raf = 0;
       m.on('moveend', () => { const c = m.getCenter(); onCenter?.(c.lat, c.lng); });
@@ -95,7 +98,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failed]);
 
-  useEffect(() => { map.current?.setStyle(mapStyle(theme) as unknown as mapboxgl.Style); }, [theme]);
+  useEffect(() => { map.current?.setStyle(mapStyle('paper') as unknown as mapboxgl.Style); }, [theme]);
 
   // Линзы: пробки (растровые плитки) и туман «Где я был». После смены стиля слои добавляем заново.
   useEffect(() => {
@@ -107,7 +110,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
       for (const id of ['traffic-layer', 'fog-edge', 'fog-layer']) if (m.getLayer(id)) m.removeLayer(id);
       for (const id of ['traffic', 'fog']) if (m.getSource(id)) m.removeSource(id);
-      for (const l of lines ?? []) {
+      for (const l of (lines ?? []).filter(l=>l.coords.length>=2)) {
         m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
         m.addLayer({ id: `line-${l.id}-layer`, type: 'line', source: `line-${l.id}`, layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: { 'line-color': l.color, 'line-width': l.width ?? 5, ...(l.dash ? { 'line-dasharray': [0.6, 1.8] } : {}) } });
@@ -145,8 +148,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       let entry = elements.current.get(mk.id);
       if (!entry) {
         const el = document.createElement('div');
-        el.style.width = '0';
-        el.style.height = '0';
+        el.style.width = mk.id==='me'?'72px':'0';
+        el.style.height = mk.id==='me'?'72px':'0';
         const marker = new lib.Marker({ element: el, anchor: 'center' }).setLngLat([mk.lon, mk.lat]).addTo(m);
         entry = { el, marker };
         elements.current.set(mk.id, entry);
@@ -166,7 +169,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   return (
     <View style={StyleSheet.absoluteFill}>
       {/* Логотип Mapbox спрятан по просьбе владельца; атрибуция остаётся в кнопке «i». */}
-      <style>{'.mapboxgl-ctrl-logo{display:none!important}'}</style>
+      {!config.mapAttribution&&<style>{'.mapboxgl-ctrl-logo{display:none!important}'}</style>}
       <div ref={host} style={{ position: 'absolute', inset: 0 }} />
       {markers.map((mk) => {
         const entry = elements.current.get(mk.id);

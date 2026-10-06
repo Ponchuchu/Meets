@@ -35,11 +35,11 @@ export async function getProfile(id = me()): Promise<Profile | null> {
 }
 
 export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void> {
-  await must(sb().from('profiles').upsert({ id: me(), name: patch.name ?? 'Без имени', ...patch }));
+  await must(sb().from('profiles').update(patch).eq('id', me()));
 }
 
 export async function uploadAvatar(uri: string): Promise<string> {
-  const blob = await (await fetch(uri)).blob();
+  const blob = await (await fetch(uri)).arrayBuffer();
   const path = `${me()}/avatar-${Date.now()}.jpg`;
   const { error } = await sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
   if (error) throw new Error(error.message);
@@ -174,11 +174,19 @@ export function mapLive(r: LiveRow): EventItem {
     id: r.id, title: r.title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
     venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
-    lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null,
+    lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null, noPoint: r.lat == null || r.lon == null,
     priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free, about: r.about ?? '', organizer: r.organizer,
     sourceUrl: r.source_url, cover: r.cover_url, visibility: r.visibility, origin: 'real',
     friendsGoing: [], lookingCount: 0, goingCount: 0,
   };
+}
+
+async function withMeetupLocations(events: EventItem[]): Promise<EventItem[]> {
+  const ids = events.filter(e => e.visibility === 'friends').map(e => e.id);
+  if (!ids.length) return events;
+  // Точный адрес возвращает RLS только создателю и принявшим приглашение.
+  const rows = await must(sb().from('meetup_locations').select('event_id,address,lat,lon,details').in('event_id', ids)) as {event_id:string;address:string;lat:number;lon:number;details:EventItem['meetup']}[];
+  return events.map(e => { const p = rows.find(p => p.event_id === e.id); return p ? {...e, address:p.address,lat:p.lat,lon:p.lon,noPoint:false,needsPin:false,meetup:p.details} : e; });
 }
 
 /** Одобренные события, которые ещё не закончились (до `days` дней вперёд), + кто из друзей идёт и сколько всего. */
@@ -188,7 +196,7 @@ export async function getEvents(days = 14): Promise<EventItem[]> {
     .or(`ends_at.gte.${new Date(now).toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now - 3 * 3600e3).toISOString()})`)
     .lte('starts_at', new Date(now + days * 86400e3).toISOString())
     .order('starts_at').limit(500)) as LiveRow[];
-  const list = rows.map(mapLive);
+  const list = await withMeetupLocations(rows.map(mapLive));
   if (!list.length) return list;
   const ids = list.map((e) => e.id);
   const [counts, going] = await Promise.all([
@@ -280,12 +288,12 @@ export async function answerInvite(inv: Invite, yes: boolean): Promise<void> {
 export async function getEventsByIds(ids: string[]): Promise<EventItem[]> {
   if (!ids.length) return [];
   const rows = await must(sb().from('events_live').select('*').in('id', ids.slice(0, 200))) as LiveRow[];
-  return rows.map(mapLive);
+  return withMeetupLocations(rows.map(mapLive));
 }
 
 // ——— Маршрут (функция route: TomTom с пробками) ———
 
-export interface Leg { min: number; km: number; delayMin?: number; line?: [number, number][] }
+export interface Leg { min: number; km: number; delayMin?: number; line?: [number, number][]; instructions?: { message: string; lat: number; lon: number; distance: number }[] }
 export async function getRoute(from: { lat: number; lon: number }, to: { lat: number; lon: number }): Promise<{ car: Leg | null; walk: Leg | null }> {
   const { data, error } = await withTimeout(sb().functions.invoke('route', { body: { from, to } }), 12000);
   if (error) throw new Error(error.message);
@@ -332,7 +340,7 @@ export async function askCompany(personId: string, title: string): Promise<void>
 export interface MeStats {
   friends: number; events: number; meetings: number;
   points: number; level: number; cells: string[];
-  badges: { id: string; name: string; goal: number; progress: number; got: boolean }[];
+  badges: { id: string; name: string; goal: number; how?: string; progress: number; got: boolean }[];
   places: string[]; staff: boolean; drafts: number;
 }
 
@@ -347,7 +355,7 @@ export async function getMeStats(): Promise<MeStats> {
     q(sb().from('bumps').select('id').or(`a.eq.${id},b.eq.${id}`)),
     q(sb().from('user_level').select('points,level').eq('user_id', id).maybeSingle()),
     q(sb().from('explore_cells').select('h3').eq('user_id', id)),
-    q(sb().from('badges').select('id,name,goal')),
+    q(sb().from('badges').select('id,name,goal,how')),
     q(sb().from('user_badges').select('badge_id,progress,got_at').eq('user_id', id)),
     q(sb().from('user_places').select('kind').eq('user_id', id)),
     q(sb().rpc('is_staff')),
@@ -366,7 +374,7 @@ export async function getMeStats(): Promise<MeStats> {
     meetings: (bumps as unknown[] | null)?.length ?? 0,
     points: lv?.points ?? 0, level: lv?.level ?? 1,
     cells: ((cells as { h3: string }[] | null) ?? []).map((c) => c.h3),
-    badges: ((badges as { id: string; name: string; goal: number }[] | null) ?? []).map((b) => {
+    badges: ((badges as { id: string; name: string; goal: number; how: string }[] | null) ?? []).map((b) => {
       const m = my.find((x) => x.badge_id === b.id);
       return { ...b, progress: m?.progress ?? 0, got: !!m?.got_at };
     }),
@@ -389,4 +397,22 @@ export interface TrafficScore { score: number; at: string; points: { name: strin
 export async function getTrafficScore(): Promise<TrafficScore | null> {
   const { data } = await sb().from('traffic_score').select('score,at,points').eq('id', 1).maybeSingle();
   return (data as TrafficScore | null) ?? null;
+}
+
+export async function createMeetup(e: EventItem): Promise<string> {
+  return must(sb().rpc('create_friend_meetup', { payload: { request_key: e.id, title: e.title, category: e.category, starts_at: e.startsAt, address: e.address, about: e.about, lat: e.lat, lon: e.lon, invited: e.meetup?.invited ?? [], details:e.meetup } }));
+}
+
+export async function createFriendGroup(title: string, friends: string[]): Promise<string> {
+  return must(sb().rpc('create_friend_group', { group_title: title, friends }));
+}
+
+export async function resetUserTaste(userId: string): Promise<void> {
+  await must(sb().rpc('reset_user_taste', { target_user: userId }));
+}
+
+export async function toggleEventReminder(eventId:string):Promise<void>{
+ const plans=(await import('../state/plans')).usePlans;
+ const old=!!plans.getState().muted[eventId];plans.getState().toggleReminder(eventId);
+ try{await setSetting('muted_events',Object.keys(plans.getState().muted));}catch(e){if(!!plans.getState().muted[eventId]!==old)plans.getState().toggleReminder(eventId);throw e;}
 }

@@ -1,7 +1,7 @@
 // Модерация — design/png/Admin.png. Очередь черновиков: «Опубликовать / Править / Нет», неточный адрес — «Поставить точку».
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image,Modal,Pressable,ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
@@ -9,7 +9,7 @@ import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Toggle as Switch } from '../../ui/v6/Settings';
 import { Toast, type ToastData } from '../../ui/Toast';
-import { loadQueue, loadStats, moderate, saveDraft, setAutoPublish as saveAutoPublish } from '../api';
+import { loadQueue, loadSources, loadStats, moderate, saveDraft, setAutoPublish as saveAutoPublish } from '../api';
 import { demoQueue, DEMO_STATS, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';
 import { useAdminDemo } from '../store';
 
@@ -30,6 +30,7 @@ export function Moderation({ live }: { live: boolean }) {
   const demo = useAdminDemo();
   const suggestions = useProfile((s) => s.suggestions);
   const myName = useSession((s) => s.draft.name) || 'Данил';
+  const [preview,setPreview]=useState<QueueItem|null>(null);
   const [editing, setEditing] = useState<QueueItem | null>(null);
   const [pinning, setPinning] = useState<QueueItem | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -39,6 +40,7 @@ export function Moderation({ live }: { live: boolean }) {
   };
 
   const queueQ = useQuery({ queryKey: ['admin', 'queue'], queryFn: loadQueue, enabled: live });
+  const sourcesQ=useQuery({queryKey:['admin','sources'],queryFn:loadSources,enabled:live});
   const statsQ = useQuery({ queryKey: ['admin', 'stats'], queryFn: loadStats, enabled: live });
 
   // Демо: очередь макета.
@@ -60,7 +62,7 @@ export function Moderation({ live }: { live: boolean }) {
   const stats = live
     ? (statsQ.data ?? { waiting: 0, onMap: 0, filtered: 0, lastRun: null })
     : { ...DEMO_STATS, waiting: demoItems.length, onMap: demo.published };
-  const lastRun = stats.lastRun ? hm(stats.lastRun) : '14:00';
+  const lastRun = stats.lastRun ? hm(stats.lastRun) : '—';
 
   const act = useMutation({
     mutationFn: async ({ item, action, point }: { item: QueueItem; action: 'publish' | 'reject' | 'pin'; point?: { lat: number; lon: number } }) => {
@@ -70,7 +72,7 @@ export function Moderation({ live }: { live: boolean }) {
         await moderate(item.id, 'publish');
       } else await moderate(item.id, action);
     },
-    onMutate: ({ item, action }) => {
+    onSuccess: (_data,{ item, action }) => {
       if (!live) demo.decide(item.id, action === 'reject' ? 'reject' : 'publish');
       say(action === 'reject' ? 'Убрали из очереди' : `«${item.title}» — на карте`);
     },
@@ -81,9 +83,9 @@ export function Moderation({ live }: { live: boolean }) {
     onError: () => say('Не получилось — проверь связь и попробуй ещё раз'),
   });
 
-  const autoPublish = live ? true : demo.autoPublish;
+  const autoPublish = live ? !!sourcesQ.data?.some(s=>s.trusted&&s.autoPublish) : demo.autoPublish;
   const toggleAuto = (v: boolean) => {
-    if (live) void saveAutoPublish(v).then(() => say(v ? 'Источники с доверием публикуются сразу' : 'Всё идёт через очередь'));
+    if (live) void saveAutoPublish(v).then(() => {void qc.invalidateQueries({queryKey:['admin','sources']});say(v ? 'Источники с доверием публикуются сразу' : 'Всё идёт через очередь');}).catch(()=>say('Не удалось сохранить настройку'));
     else demo.setAutoPublish(v);
   };
 
@@ -115,7 +117,7 @@ export function Moderation({ live }: { live: boolean }) {
               <Text style={styles.source} numberOfLines={1}>{item.source}</Text>
               {item.confidence != null && <Text style={[styles.conf, low && { color: colors.accentText }]}>{item.confidence}%</Text>}
             </View>
-            <Text style={styles.title}>{item.title}</Text>
+<Pressable onPress={()=>setPreview(item)} accessibilityRole="button" accessibilityLabel={`Посмотреть карточку: ${item.title}`}><Text style={styles.title}>{item.title}</Text></Pressable>
             <Text style={styles.meta}>{item.meta}</Text>
             {item.flags.map((f) => (
               <View key={f} style={styles.flag}><Text style={styles.flagText}>{FLAG_TEXT[f]}</Text></View>
@@ -141,6 +143,16 @@ export function Moderation({ live }: { live: boolean }) {
         <Switch on={autoPublish} onChange={toggleAuto} label="Публиковать сразу, если 95%+" />
       </View>
 
+      {preview&&<Overlay label="Карточка события" onClose={()=>setPreview(null)}>
+        {preview.coverUrl&&<Image source={{uri:preview.coverUrl}} style={{width:'100%',height:180,borderRadius:18}} resizeMode="cover"/>}
+        <Text style={styles.source}>{preview.source}</Text><Text style={styles.sheetTitle}>{preview.title}</Text><Text style={styles.meta}>{preview.meta}</Text>
+        <Label text="Описание"/><Text style={styles.meta}>{preview.about||'Описание пока отсутствует'}</Text>
+        <Label text="Адрес"/><Text style={styles.meta}>{preview.address||'Нужно уточнить место'}</Text>
+        {preview.flags.map(f=><Text key={f} style={styles.flagText}>{FLAG_TEXT[f]}</Text>)}
+        <Pressable style={[styles.btn,{flex:0}]} onPress={()=>{setEditing(preview);setPreview(null);}}><Text style={styles.btnText}>Редактировать</Text></Pressable>
+        <Pressable style={[styles.btn,styles.primary,{flex:0}]} disabled={act.isPending} onPress={()=>{if(preview.flags.includes('needs_pin'))setPinning(preview);else act.mutate({item:preview,action:'publish'});setPreview(null);}}><Text style={[styles.btnText,{color:colors.paper}]}>Одобрить</Text></Pressable>
+      </Overlay>}
+      {queueQ.isError&&<Text style={styles.flagText}>Не удалось загрузить очередь. Проверь связь.</Text>}
       {editing && (
         <EditCard item={editing} onClose={() => setEditing(null)} onSave={async (patch) => {
           if (live) {
@@ -169,7 +181,8 @@ export function Moderation({ live }: { live: boolean }) {
 
 type Patch = { title: string; about: string; address: string | null; priceMin: number | null; isFree: boolean };
 
-function EditCard({ item, onClose, onSave }: { item: QueueItem; onClose: () => void; onSave: (p: Patch) => void }) {
+function EditCard({ item, onClose, onSave }: { item: QueueItem; onClose: () => void; onSave: (p: Patch) => Promise<void> }) {
+  const [error,setError]=useState('');const [busy,setBusy]=useState(false);
   const [title, setTitle] = useState(item.title);
   const [about, setAbout] = useState(item.about);
   const [address, setAddress] = useState(item.address ?? '');
@@ -182,10 +195,11 @@ function EditCard({ item, onClose, onSave }: { item: QueueItem; onClose: () => v
       <Label text="Адрес" /><TextInput value={address} onChangeText={setAddress} style={styles.input} accessibilityLabel="Адрес" placeholder="Улица и дом" placeholderTextColor={colors.muted3} />
       <Label text="Цена, ₸ (0 — бесплатно)" /><TextInput value={price} onChangeText={setPrice} keyboardType="number-pad" style={styles.input} accessibilityLabel="Цена" />
       <Label text="Описание" /><TextInput value={about} onChangeText={setAbout} multiline style={[styles.input, { height: 96, paddingTop: 10, textAlignVertical: 'top' }]} accessibilityLabel="Описание" />
-      <Pressable disabled={!title.trim()} onPress={() => onSave({ title: title.trim(), about: about.trim(), address: address.trim() || null, priceMin: price && n > 0 ? n : null, isFree: price !== '' && n === 0 })}
+      <Pressable disabled={busy||!title.trim()} onPress={async () => {setBusy(true);setError('');try{await onSave({ title: title.trim(), about: about.trim(), address: address.trim() || null, priceMin: price && n > 0 ? n : null, isFree: price !== '' && n === 0 });}catch{setError('Не удалось сохранить. Попробуй ещё раз');}finally{setBusy(false);}}}
         style={[styles.btn, styles.primary, { flex: 0, marginTop: 14 }]} accessibilityRole="button">
-        <Text style={[styles.btnText, { color: colors.paper }]}>Сохранить</Text>
+        <Text style={[styles.btnText, { color: colors.paper }]}>{busy?'Сохраняю…':'Сохранить'}</Text>
       </Pressable>
+      {!!error&&<Text style={styles.flagText}>{error}</Text>}
     </Overlay>
   );
 }
@@ -218,7 +232,7 @@ function PinCard({ item, onClose, onPin }: { item: QueueItem; onClose: () => voi
         <Pressable onPress={find} disabled={!q.trim() || state === 'busy'} style={[styles.btn, { flex: 0, paddingHorizontal: 16 }]} accessibilityRole="button"><Text style={styles.btnText}>Найти</Text></Pressable>
       </View>
       {state === 'none' && <Text style={[styles.meta, { color: colors.accentText }]}>Не нашли — уточни адрес</Text>}
-      {hit && <Text style={styles.meta}>📍 {hit.name} · {hit.lat.toFixed(5)}, {hit.lon.toFixed(5)}</Text>}
+      {hit && <Text style={styles.meta}>{hit.name} · {hit.lat.toFixed(5)}, {hit.lon.toFixed(5)}</Text>}
       <Pressable disabled={!hit} onPress={() => hit && onPin(hit)} style={[styles.btn, styles.primary, { flex: 0, marginTop: 14 }, !hit && { opacity: 0.4 }]} accessibilityRole="button">
         <Text style={[styles.btnText, { color: colors.paper }]}>Опубликовать с этой точкой</Text>
       </Pressable>
@@ -232,10 +246,10 @@ function Label({ text }: { text: string }) {
 
 function Overlay({ children, onClose, label }: { children: React.ReactNode; onClose: () => void; label: string }) {
   return (
-    <View style={styles.overlay}>
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}><View style={styles.overlay}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрыть" />
-      <Animated.View entering={FadeInDown.duration(200)} style={styles.sheet} accessibilityViewIsModal accessibilityLabel={label}>{children}</Animated.View>
-    </View>
+      <Animated.View entering={FadeInDown.duration(200)} style={styles.sheet} accessibilityViewIsModal accessibilityLabel={label}><ScrollView contentContainerStyle={{gap:8}} keyboardShouldPersistTaps="handled">{children}</ScrollView></Animated.View>
+    </View></Modal>
   );
 }
 
@@ -267,10 +281,10 @@ const styles = StyleSheet.create({
   autoSub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
   empty: { borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 24, alignItems: 'center' },
   emptyText: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
-  overlay: { position: 'fixed' as 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(23,22,26,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 20 },
-  sheet: { width: '100%', maxWidth: 420, backgroundColor: colors.paper, borderRadius: 22, padding: 18, gap: 6 },
+  overlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(23,22,26,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 20 },
+  sheet: {maxHeight:'90%', width: '100%', maxWidth: 420, backgroundColor: colors.paper, borderRadius: 22, padding: 18, gap: 6 },
   sheetTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink, marginBottom: 4 },
   label: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4, marginTop: 6, textTransform: 'uppercase' },
   input: { height: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, paddingHorizontal: 12, fontFamily: fonts.body500, fontSize: 15, color: colors.ink },
-  toastWrap: { position: 'fixed' as 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center', zIndex: 30 },
+  toastWrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center', zIndex: 30 },
 });

@@ -149,10 +149,10 @@ export async function getFriendSpots(): Promise<FriendSpot[]> {
 export async function getChats(): Promise<Chat[]> {
   const me = await requireUser();
   const { data: mine, error } = await withTimeout(
-    supabase().from('chat_members').select('chat_id,last_read_at,chats(id,kind,event_id,meet_point,events(title))').eq('user_id', me),
+    supabase().from('chat_members').select('chat_id,last_read_at,chats(id,kind,title,event_id,meet_point,events(title))').eq('user_id', me),
   );
   if (error) throw error;
-  type Row = { chat_id: string; last_read_at: string | null; chats: { id: string; kind: 'direct' | 'event'; event_id: string | null; meet_point: string | null; events: { title: string } | null } };
+  type Row = { chat_id: string; last_read_at: string | null; chats: { id: string; kind: 'direct' | 'event' | 'group'; title: string | null; event_id: string | null; meet_point: string | null; events: { title: string } | null } };
   const rows = mine as unknown as Row[];
   const ids = rows.map((r) => r.chat_id);
   if (!ids.length) return [];
@@ -173,7 +173,7 @@ export async function getChats(): Promise<Chat[]> {
     return {
       id: r.chat_id,
       kind: r.chats.kind,
-      title: direct ? (people.get(others[0])?.name ?? 'Чат') : (r.chats.events?.title ?? 'Чат события'),
+      title: direct ? (people.get(others[0])?.name ?? 'Чат') : (r.chats.title ?? r.chats.events?.title ?? 'Чат события'),
       personId: direct ? others[0] : undefined,
       eventId: r.chats.event_id ?? undefined,
       lastText: top ? (top.body ?? '') : '',
@@ -232,9 +232,9 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
 
 // ——— Запись ———
 
-export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number): Promise<void> {
+export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string): Promise<void> {
   const me = await requireUser();
-  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null }));
+  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
   if (error) throw error;
 }
 
@@ -250,10 +250,12 @@ export async function openDirectChat(personId: string): Promise<string> {
 
 export async function uploadMedia(chatId: string, uri: string): Promise<string> {
   const me = await requireUser();
-  const blob = await (await fetch(uri)).blob();
-  const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('quicktime', 'mov');
+  const response = await fetch(uri);
+  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  const blob = await response.arrayBuffer();
+  const ext = (contentType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('quicktime', 'mov');
   const path = `${chatId}/${me}-${Date.now()}.${ext}`;
-  const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType: blob.type || 'image/jpeg' }), 60000);
+  const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType }), 60000);
   if (error) throw error;
   return path;
 }

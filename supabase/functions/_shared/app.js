@@ -195,7 +195,7 @@ function scoreEvent(taste, e, ctx) {
 function buildDeck(taste, candidates, history, ctx, opts = {}) {
   const size = opts.size ?? 10;
   const every = opts.noveltyEvery ?? 8;
-  const pool = candidates.filter((e) => !history.decided.has(e.id) && phaseOf(e, ctx.now) !== "hidden" && !e.meetup).map((e) => ({ e, s: scoreEvent(taste, e, ctx) })).sort((a, b) => b.s.total - a.s.total || a.e.startsAt.localeCompare(b.e.startsAt));
+  const pool = candidates.filter((e) => !history.decided.has(e.id) && phaseOf(e, ctx.now) !== "hidden" && !e.meetup).map((e) => ({ e, s: scoreEvent(taste, e, ctx) })).sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt) - Date.parse(b.e.startsAt));
   const deck = [];
   const used = /* @__PURE__ */ new Set();
   const calibrating = history.swipes < CALIBRATION;
@@ -355,6 +355,7 @@ function mapFeedRow(r) {
     lat: r.lat ?? 43.2389,
     lon: r.lon ?? 76.8897,
     needsPin: r.needs_pin || r.lat == null,
+    ...r.lat == null ? { noPoint: true } : {},
     priceMin: r.price_min,
     priceMax: r.price_max,
     isFree: r.is_free,

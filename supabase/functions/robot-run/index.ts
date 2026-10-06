@@ -25,18 +25,22 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'stop' && body.run_id) {
-    await db.from('robot_runs').update({ cancel: true }).eq('id', body.run_id);
-    await db.from('robot_log').insert({ run_id: body.run_id, level: 'warn', text: 'стоп — закончу текущую тему и остановлюсь' });
+    if(!/^[0-9a-f-]{36}$/i.test(body.run_id))return json({error:'invalid run id'},400);
+    const {error}=await db.from('robot_runs').update({ cancel: true }).eq('id', body.run_id);
+    if(error)return json({error:error.message},500);
+    await db.from('robot_log').insert({ run_id: body.run_id, level: 'warn', text: 'Стоп принят. Текущий запрос завершится; новые карточки не сохраняются' });
     return json({ ok: true });
   }
 
+  if(body.action !== 'start') return json({error:'unknown action'},400);
+  if(body.days != null && (!Number.isInteger(body.days)||body.days<1||body.days>30) || body.limit != null && (!Number.isInteger(body.limit)||body.limit<1||body.limit>100) || body.model != null && !/^gemini-[a-zA-Z0-9.-]+$/.test(body.model) || body.topics != null && (!Array.isArray(body.topics)||body.topics.some(t=>!['music','standup','cinema','art','food','sport'].includes(t))))return json({error:'invalid search parameters'},400);
   const task = body.task === 'covers' ? 'covers' : 'search';
-  const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'flash', scheduled: !!body.scheduled };
+  const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'gemini-2.5-flash', scheduled: !!body.scheduled };
   const { data: run, error } = await db.from('robot_runs').insert({ params, status: 'queued', started_by: me }).select('id').single();
   if (error || !run) return json({ error: error?.message ?? 'insert' }, 500);
   await db.from('robot_log').insert({ run_id: run.id, text: `${body.scheduled ? 'по расписанию' : 'вручную'} · ${task === 'search' ? 'поиск событий' : 'обложки ИИ'} · жду GitHub Actions` });
   const err = await dispatch(task === 'search' ? 'search.yml' : 'covers.yml', {
-    run_id: run.id, topics: params.topics.join(','), days: String(params.days), limit: String(params.limit), model: params.model,
+    run_id: run.id, ...(task === 'search' ? { topics: params.topics.join(','), days: String(params.days), limit: String(params.limit), model: params.model } : {}),
   });
   if (err) {
     await db.from('robot_runs').update({ status: 'failed', finished_at: new Date().toISOString() }).eq('id', run.id);
