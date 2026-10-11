@@ -193,6 +193,18 @@ export function ldStart(html: string): string | null {
 
 const words = (s: string) => s.toLowerCase().replace(/ё/g, 'е').match(/[a-zа-я0-9]{4,}/g) ?? [];
 
+/** Похоже на логотип, иконку или заглушку сайта, а не на афишу события. */
+export const looksLikeLogo = (u: string) => /(logo|favicon|sprite|placeholder|no[-_]?image|default[-_]?(image|og|share)|avatar|icon[-_.]|blank|pixel)/i.test(u);
+
+/** Адрес отвечает и отдаёт настоящую картинку (не страницу и не пустышку). */
+export async function imageAlive(u: string): Promise<boolean> {
+  try {
+    const res = await fetch(u, { headers: { ...UA, Range: 'bytes=0-0' }, redirect: 'follow', signal: AbortSignal.timeout(8_000) });
+    if (!res.ok && res.status !== 206) return false;
+    return /^image\//i.test(res.headers.get('content-type') ?? '');
+  } catch { return false; }
+}
+
 /** Решение по странице: оставить (и уточнить дату, картинку, ссылку) или выбросить как выдуманное. */
 export function judgePage(f: Found, html: string, finalUrl: string): Found | null {
   const page = html.toLowerCase().replace(/ё/g, 'е');
@@ -200,7 +212,8 @@ export function judgePage(f: Found, html: string, finalUrl: string): Found | nul
   const hits = ws.filter((w) => page.includes(w)).length;
   if (ws.length && hits === 0) return null; // на странице нет ни одного слова из названия — ссылка не про это событие
   const out: Found = { ...f, url: finalUrl };
-  if (!out.image_url) out.image_url = pageImage(html, finalUrl);
+  if (!out.image_url || looksLikeLogo(out.image_url)) out.image_url = pageImage(html, finalUrl);
+  if (out.image_url && looksLikeLogo(out.image_url)) out.image_url = null;
   const start = ldStart(html);
   if (start && start.slice(0, 10) !== f.starts_at.slice(0, 10)) {
     out.starts_at = start; // разметка страницы точнее модели
@@ -215,7 +228,10 @@ async function checkOne(f: Found): Promise<Found | null> {
     // Сайт закрыт для роботов (403/429) — не выкидываем, но понижаем уверенность: модератор проверит сам.
     if (res.status === 403 || res.status === 429) return { ...f, url: res.url || f.url, confidence: Math.min(Number(f.confidence ?? 0.6), 0.6) };
     if (!res.ok) return null;
-    return judgePage(f, (await res.text()).slice(0, 1_500_000), res.url || f.url);
+    const judged = judgePage(f, (await res.text()).slice(0, 1_500_000), res.url || f.url);
+    // Картинка не открывается — лучше без неё: приложение покажет обложку раздела, а не пустой квадрат.
+    if (judged?.image_url && !(await imageAlive(judged.image_url))) judged.image_url = null;
+    return judged;
   } catch {
     return { ...f, confidence: Math.min(Number(f.confidence ?? 0.6), 0.5) };
   }
