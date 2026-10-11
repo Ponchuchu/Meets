@@ -1,0 +1,46 @@
+// Одна строка списка событий в панели: обложка или иконка раздела, название, строка под ним и кнопки справа.
+// Строки выкатываются снизу по очереди (delay), как в макете.
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import type { Category } from '../../data/types';
+import { colors, fonts } from '../../theme';
+import { EventCover } from '../../ui/EventCover';
+
+export function EventRow({ title, sub, warn, cover, category, right, onPress, index = 0 }: {
+  title: string; sub: string; warn?: string; cover?: string | null; category?: Category; right?: ReactNode; onPress: () => void; index?: number;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.duration(260).delay(Math.min(index, 8) * 55)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(200)} style={styles.row}>
+      <Pressable onPress={onPress} style={styles.main} accessibilityRole="button" accessibilityLabel={`Открыть: ${title}`}>
+        <EventCover cover={cover} category={category ?? 'meetup'} style={styles.thumb} iconSize={30} />
+        <View style={styles.text}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.sub} numberOfLines={1}>{sub}</Text>
+          {!!warn && <Text style={styles.warn} numberOfLines={1}>{warn}</Text>}
+        </View>
+      </Pressable>
+      {right}
+    </Animated.View>
+  );
+}
+
+export function RoundBtn({ label, onPress, solid, children, disabled }: { label: string; onPress: () => void; solid?: boolean; children: ReactNode; disabled?: boolean }) {
+  return (
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} hitSlop={2}
+      style={[styles.round, solid && { backgroundColor: colors.ink, borderColor: colors.ink }, disabled && { opacity: 0.4 }]}>
+      {children}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingVertical: 8, paddingLeft: 8, paddingRight: 8 },
+  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
+  thumb: { width: 52, height: 52, borderRadius: 14 },
+  text: { flex: 1, gap: 2 },
+  title: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
+  sub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
+  warn: { fontFamily: fonts.body600, fontSize: 12, color: colors.accentText },
+  round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+});

@@ -1,14 +1,18 @@
 // Модерация — design/png/Admin.png. Очередь черновиков: «Опубликовать / Править / Нет», неточный адрес — «Поставить точку».
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { Check, X } from 'lucide-react-native';
 import { Image,Modal,Pressable,ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Toast, type ToastData } from '../../ui/Toast';
+import type { ToastData } from '../../ui/Toast';
 import { loadQueue, moderate, saveDraft } from '../api';
+import { isReliable } from '../rules';
+import { EventRow, RoundBtn } from './EventRow';
+import { Banner } from './kit';
 import { demoQueue, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';
 import { useAdminDemo } from '../store';
 
@@ -50,9 +54,28 @@ export function Moderation({ live }: { live: boolean }) {
       .map((x) => ({ ...x, ...demo.edits[x.id] }));
   }, [suggestions, demo.done, demo.edits, myName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const allItems = live ? (queueQ.data ?? []) : demoItems;
+  const allItems = useMemo(() => (live ? (queueQ.data ?? []) : demoItems), [live, queueQ.data, demoItems]);
   const [qf, setQf] = useState<'all' | 'pin' | 'price'>('all');
   const items = allItems.filter((x) => qf === 'all' || (qf === 'pin' ? x.flags.includes('needs_pin') : !x.isFree && x.priceMin == null));
+
+  const reliable = useMemo(() => allItems.filter((x) => isReliable(x)), [allItems]);
+  const [bulk, setBulk] = useState<'idle' | 'confirm' | 'busy'>('idle');
+  const publishReliable = async () => {
+    setBulk('busy');
+    let n = 0;
+    try {
+      for (const x of reliable) {
+        if (live) await moderate(x.id, 'publish'); else demo.decide(x.id, 'publish');
+        n += 1;
+      }
+      say(`На карте: ${n}`);
+    } catch {
+      say(n ? `Опубликовали ${n}, дальше не вышло — проверь связь` : 'Не получилось — проверь связь и попробуй ещё раз');
+    }
+    setBulk('idle');
+    void qc.invalidateQueries({ queryKey: ['admin'] });
+    void qc.invalidateQueries({ queryKey: ['events'] });
+  };
 
   const act = useMutation({
     mutationFn: async ({ item, action, point }: { item: QueueItem; action: 'publish' | 'reject' | 'pin'; point?: { lat: number; lon: number } }) => {
@@ -75,8 +98,9 @@ export function Moderation({ live }: { live: boolean }) {
 
   return (
     <View style={styles.root}>
+      {toast && <Banner tone="ok" text={toast.text} />}
       <View style={styles.filters}>
-        {([['all', 'Все'], ['pin', 'Нужна точка'], ['price', 'Без цены']] as const).map(([k, label]) => (
+        {([['all', 'Любые'], ['pin', 'Нужна точка'], ['price', 'Без цены']] as const).map(([k, label]) => (
           <Pressable key={k} onPress={() => setQf(k)} accessibilityRole="button" accessibilityState={{ selected: qf === k }} style={[styles.fchip, qf === k && styles.fchipOn]}>
             <Text style={[styles.fchipText, qf === k && { color: colors.paper }]}>{label}{k === 'all' ? `  ${allItems.length}` : ''}</Text>
           </Pressable>
@@ -86,30 +110,35 @@ export function Moderation({ live }: { live: boolean }) {
       {items.length === 0 && (
         <View style={styles.empty}><Text style={styles.emptyText}>{live && queueQ.isLoading ? 'Загружаю очередь…' : queueQ.isError ? 'Не удалось загрузить очередь. Проверь связь.' : allItems.length ? 'Под этот фильтр ничего нет' : 'Очередь пуста. Нажми «Найти события» наверху'}</Text></View>
       )}
-      {items.map((item) => {
+      {allItems.length > 0 && (
+        <View style={styles.listHead}>
+          <Text style={styles.found} accessibilityRole="header">Найдено: {allItems.length}</Text>
+          {reliable.length > 0 && bulk === 'idle' && (
+            <Pressable onPress={() => setBulk('confirm')} accessibilityRole="button" hitSlop={8} style={styles.bulkLink}><Text style={styles.bulkText}>Опубликовать надёжные ({reliable.length})</Text></Pressable>
+          )}
+        </View>
+      )}
+      {bulk !== 'idle' && (
+        <View style={styles.confirm}>
+          <Text style={styles.confirmT}>Опубликовать {reliable.length} без пометок и с уверенностью 90%+? Остальные останутся в списке.</Text>
+          <View style={styles.actions}>
+            <Pressable disabled={bulk === 'busy'} onPress={() => void publishReliable()} style={[styles.btn, styles.primary, bulk === 'busy' && { opacity: 0.5 }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>{bulk === 'busy' ? 'Публикую…' : 'Опубликовать'}</Text></Pressable>
+            <Pressable disabled={bulk === 'busy'} onPress={() => setBulk('idle')} style={styles.btn} accessibilityRole="button"><Text style={styles.btnText}>Отмена</Text></Pressable>
+          </View>
+        </View>
+      )}
+      {items.map((item, i) => {
         const pin = item.flags.includes('needs_pin');
-        const low = item.confidence != null && item.confidence < 90;
         return (
-          <Animated.View key={item.id} entering={FadeInDown.duration(220)} exiting={FadeOut.duration(180)} layout={LinearTransition.duration(220)} style={styles.card}>
-            <View style={styles.cardTop}>
-              <Text style={styles.source} numberOfLines={1}>{item.source}</Text>
-              {item.confidence != null && <Text style={[styles.conf, low && { color: colors.accentText }]}>{item.confidence}%</Text>}
-            </View>
-<Pressable onPress={()=>setPreview(item)} accessibilityRole="button" accessibilityLabel={`Посмотреть карточку: ${item.title}`}><Text style={styles.title}>{item.title}</Text></Pressable>
-            <Text style={styles.meta}>{item.meta}</Text>
-            {item.flags.map((f) => (
-              <View key={f} style={styles.flag}><Text style={styles.flagText}>{FLAG_TEXT[f]}</Text></View>
-            ))}
-            <View style={styles.actions}>
-              <Pressable onPress={() => (pin ? setPinning(item) : act.mutate({ item, action: 'publish' }))} style={[styles.btn, styles.primary]} accessibilityRole="button">
-                <Text style={[styles.btnText, { color: colors.paper }]}>{pin ? 'Поставить точку' : 'Опубликовать'}</Text>
-              </Pressable>
-              <Pressable onPress={() => setEditing(item)} style={styles.btn} accessibilityRole="button"><Text style={styles.btnText}>Править</Text></Pressable>
-              <Pressable onPress={() => act.mutate({ item, action: 'reject' })} style={styles.btn} accessibilityRole="button" accessibilityLabel={`Не публиковать «${item.title}»`}>
-                <Text style={styles.btnText}>Нет</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
+          <EventRow key={item.id} index={i} title={item.title} sub={item.meta} cover={item.coverUrl} category={item.category}
+            warn={item.flags[0] ? FLAG_TEXT[item.flags[0]] : undefined} onPress={() => setPreview(item)}
+            right={(
+              <View style={styles.rowActions}>
+                <RoundBtn label={`Не публиковать «${item.title}»`} onPress={() => act.mutate({ item, action: 'reject' })} disabled={act.isPending}><X size={18} color={colors.ink} strokeWidth={2.2} /></RoundBtn>
+                <RoundBtn solid label={pin ? `Поставить точку: «${item.title}»` : `Опубликовать «${item.title}»`} disabled={act.isPending}
+                  onPress={() => (pin ? setPinning(item) : act.mutate({ item, action: 'publish' }))}><Check size={18} color={colors.paper} strokeWidth={2.4} /></RoundBtn>
+              </View>
+            )} />
         );
       })}
 
@@ -144,7 +173,6 @@ export function Moderation({ live }: { live: boolean }) {
           setPinning(null);
         }} />
       )}
-      {toast && <View style={styles.toastWrap} pointerEvents="box-none"><Toast t={toast} /></View>}
     </View>
   );
 }
@@ -246,6 +274,13 @@ const styles = StyleSheet.create({
   flag: { alignSelf: 'flex-start', backgroundColor: '#EDC6B2', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5 },
   flagText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.accentText },
   actions: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  found: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
+  bulkLink: { minHeight: 44, justifyContent: 'center' },
+  bulkText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, textDecorationLine: 'underline' },
+  confirm: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.line2, padding: 14, gap: 10 },
+  confirmT: { fontFamily: fonts.body500, fontSize: 14, lineHeight: 20, color: colors.ink },
+  rowActions: { flexDirection: 'row', gap: 6 },
   btn: { flex: 1, height: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   primary: { flex: 2, backgroundColor: colors.ink, borderColor: colors.ink },
   btnText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
@@ -259,5 +294,4 @@ const styles = StyleSheet.create({
   sheetTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink, marginBottom: 4 },
   label: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4, marginTop: 6, textTransform: 'uppercase' },
   input: { height: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, paddingHorizontal: 12, fontFamily: fonts.body500, fontSize: 15, color: colors.ink },
-  toastWrap: { position: 'absolute', left: 16, right: 16, bottom: 24, alignItems: 'center', zIndex: 30 },
 });

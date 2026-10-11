@@ -35,10 +35,19 @@ export function createDb(url: string, key: string): Db {
     venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,lat,lon'),
     known: async () => {
       const since = new Date(Date.now() - 2 * 86400e3).toISOString();
-      const rows = await rest<{ id: string; title: string; starts_at: string; venues: { name: string } | null }[]>(
-        `events?select=id,title,starts_at,venues(name)&starts_at=gte.${since}&status=in.(draft,published)&rejected=eq.false&limit=2000`,
+      // Берём все события окна, и скрытые тоже: удалённое или отклонённое в панели поиск не должен вернуть.
+      // У скрытых и переименованных id с «new:», чтобы отмена и ссылки на базу их не трогали.
+      const rows = await rest<{ id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; venues: { name: string } | null }[]>(
+        `events?select=id,title,orig_title,status,rejected,starts_at,venues(name)&starts_at=gte.${since}&visibility=eq.public&limit=3000`,
       );
-      return rows.map((r) => ({ id: r.id, title: r.title, starts_at: r.starts_at, venue_name: r.venues?.name ?? null }));
+      const out: { id: string; title: string; starts_at: string; venue_name: string | null }[] = [];
+      for (const r of rows) {
+        const live = !r.rejected && (r.status === 'draft' || r.status === 'published');
+        const venue_name = r.venues?.name ?? null;
+        out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name });
+        if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name });
+      }
+      return out;
     },
     savePosts: async (posts) => {
       if (!posts.length) return [];

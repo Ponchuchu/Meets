@@ -28,6 +28,19 @@ export function explainFailure(log:string):string{
   if(/время вышло|timeout/i.test(log))return 'ИИ не успел ответить. Запусти ещё раз';
   return 'Запуск завершился с ошибкой. Журнал: GitHub → Actions → search';
 }
+/** Строки «по источникам» из журнала поиска: сколько дал каждый сайт и ИИ. Панель показывает их под результатом. */
+export function sourceLines(log:string):string[]{
+  const out:string[]=[];
+  for(const l of log.split('\n')){
+    const ok=/^\s*(Яндекс Афиша|Sxodim): (\d+) событ/.exec(l);
+    if(ok){out.push(`Источник · ${ok[1]} · ${ok[2]}`);continue;}
+    const bad=/^\s*✕ (Яндекс Афиша|Sxodim): /.exec(l);
+    if(bad){out.push(`Источник · ${bad[1]} · не открылся`);continue;}
+    const ai=/^ИИ нашёл (\d+).*после проверки страниц (\d+)/.exec(l);
+    if(ai)out.push(`Источник · ИИ-поиск · ${ai[2]} из ${ai[1]}`);
+  }
+  return out;
+}
 async function main(){
   if(!runId)return;
   const action=process.argv[2];
@@ -36,6 +49,8 @@ async function main(){
   else if(action==='finish'){
     const stopped=await cancelled();const status=stopped?'cancelled':process.env.ROBOT_JOB_STATUS==='success'?'done':'failed';
     let reason='';try{reason=explainFailure(await readFile('search.log','utf8'));}catch{reason=explainFailure('');}
+    let lines:string[]=[];try{lines=sourceLines(await readFile('search.log','utf8'));}catch{/* лога нет */}
+    for(const t of lines)await robotLog(t,t.endsWith('не открылся')?'warn':'info');
     let found=0;try{found=(JSON.parse(await readFile('search.json','utf8')) as unknown[]).length;}catch{/* шаг поиска завершился с ошибкой */}
     await robotUpdate({status,...(!covers?{found}:{}),finished_at:new Date().toISOString()});await robotLog(status==='done'?(covers?'Генерация обложек завершена':`Готово · проверено ${found} событий · новые карточки в согласовании`):stopped?'Остановлено':reason,status==='failed'?'error':'ok');
   }

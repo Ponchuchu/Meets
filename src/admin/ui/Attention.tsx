@@ -32,7 +32,7 @@ export function Attention({ live, go }: { live: boolean; go: Goto }) {
   if (d) {
     if (d.events_draft > 0) items.push(<Banner key="q" tone="warn" title={`${d.events_draft} ${word(d.events_draft, 'событие ждёт', 'события ждут', 'событий ждут')} согласования`} action={{ label: 'Открыть очередь', onPress: () => go('events', 'queue') }} />);
     if (d.drafts_stale > 0) items.push(<Banner key="stale" tone="warn" title={`${d.drafts_stale} ${word(d.drafts_stale, 'черновик', 'черновика', 'черновиков')} с прошедшей датой`} hint="В очереди они не нужны: событие уже было." action={{ label: clean.isPending ? 'Убираю…' : 'Убрать старые', onPress: () => clean.mutate() }} />);
-    if (d.events_no_place > 0) items.push(<Banner key="pl" tone="warn" title={`${d.events_no_place} на карте без точной точки`} hint="Откроются без маршрута. Поставь точку в «Ждут» или поправь адрес." action={{ label: 'Показать', onPress: () => go('events', 'gaps') }} />);
+    if (d.events_no_place > 0) items.push(<Banner key="pl" tone="warn" title={`${d.events_no_place} на карте без точной точки`} hint="Откроются без маршрута. Поставь точку в «Новые» или поправь адрес." action={{ label: 'Показать', onPress: () => go('events', 'gaps') }} />);
     if (d.events_no_price > 0) items.push(<Banner key="pr" tone="warn" title={`${d.events_no_price} без цены`} action={{ label: 'Показать', onPress: () => go('events', 'gaps') }} />);
     if (d.events_no_cover > 0) items.push(<Banner key="cv" tone="info" title={`${d.events_no_cover} без фото`} hint="В карточке будет постер раздела. Фото подтянется, если оно есть на странице афиши." />);
   }

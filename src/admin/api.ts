@@ -174,3 +174,40 @@ export async function setFlag(key: string, value: boolean): Promise<void> {
   const { error } = await withTimeout(supabase().from('app_flags').upsert({ key, value, updated_at: new Date().toISOString() }));
   if (error) throw error;
 }
+
+// ——— «Все события»: переименовать, фото, снять с карты, удалить ———
+
+export const TITLE_MIN = 2;
+export const TITLE_MAX = 120;
+/** Название после правки: без лишних пробелов; null — если не подходит. */
+export function cleanTitle(s: string): string | null {
+  const t = s.replace(/\s+/g, ' ').trim();
+  return t.length >= TITLE_MIN && t.length <= TITLE_MAX ? t : null;
+}
+
+export async function renameEvent(id: string, title: string): Promise<string> {
+  const t = cleanTitle(title);
+  if (!t) throw new Error(`Название — от ${TITLE_MIN} до ${TITLE_MAX} знаков`);
+  const { error } = await withTimeout(supabase().rpc('staff_rename_event', { ev: id, new_title: t }));
+  if (error) throw error;
+  return t;
+}
+
+/** «Снять с карты» — событие возвращается в очередь «Новые»; «Удалить» — уходит в архив и больше не находится поиском. */
+export async function eventAction(id: string, action: 'unpublish' | 'delete'): Promise<void> {
+  const { error } = await withTimeout(supabase().rpc('staff_event_action', { ev: id, action }));
+  if (error) throw error;
+}
+
+/** Своё фото события: в бакет covers, ссылка — в cover_url. Возвращает ссылку. */
+export async function setEventCover(id: string, uri: string): Promise<string> {
+  const bytes = await (await fetch(uri)).arrayBuffer();
+  if (bytes.byteLength > 8 * 1024 * 1024) throw new Error('Фото больше 8 МБ — выбери другое');
+  const path = `manual/${id}-${Date.now()}.jpg`;
+  const up = await withTimeout(supabase().storage.from('covers').upload(path, bytes, { contentType: 'image/jpeg' }), 30000);
+  if (up.error) throw new Error(up.error.message);
+  const url = supabase().storage.from('covers').getPublicUrl(path).data.publicUrl;
+  const { error } = await withTimeout(supabase().from('events').update({ cover_url: url, cover_ai: false, updated_at: new Date().toISOString() }).eq('id', id));
+  if (error) throw error;
+  return url;
+}

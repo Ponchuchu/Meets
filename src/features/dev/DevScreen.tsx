@@ -6,7 +6,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isStaff, loadStats } from '../../admin/api';
@@ -38,6 +38,7 @@ export default function Admin() {
   const stats = useQuery({ queryKey: ['admin', 'stats'], queryFn: loadStats, enabled: staff });
   const overview = useOverview(staff);
 
+  const showFound = useCallback(() => setSub('queue'), []);
   const go: Goto = (to, s) => {
     router.setParams({ tab: to });
     if (s === 'queue') setSub('queue');
@@ -72,10 +73,10 @@ export default function Admin() {
         <View style={styles.page}>
           {tab === 'events' && (
             <>
-              <SearchCard live={staff} onSettings={() => go('settings')} />
+              <SearchCard live={staff} onSettings={() => go('settings')} onDone={showFound} />
               <View style={styles.subs}>
-                <Chip label="Ждут" count={waiting} on={sub === 'queue'} onPress={() => setSub('queue')} />
-                <Chip label="На карте" count={staff ? overview.data?.events_upcoming : undefined} on={sub === 'map'} onPress={() => setSub('map')} />
+                <Chip label="Новые" a11y="Новые: найденное, ждёт проверки" count={waiting} on={sub === 'queue'} onPress={() => setSub('queue')} />
+                <Chip label="Все" a11y="Все события на карте" count={staff ? overview.data?.events_upcoming : undefined} on={sub === 'map'} onPress={() => setSub('map')} />
               </View>
               {sub === 'queue' ? <Moderation live={staff} /> : <EventsList live={staff} filter={filter} onFilter={setFilter} />}
             </>

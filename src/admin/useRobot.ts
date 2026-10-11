@@ -3,7 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, withTimeout } from '../data/client';
 import { explainError, type Explained } from './errors';
-import { modelOk, useRobotConfig } from './robotConfig';
+import { useRobotConfig } from './robotConfig';
+import { searchProblem } from './rules';
 
 export interface Run { id: string; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'; found: number; queued: number; started_at: string; finished_at: string | null; params: { sources?: string; model?: string } | null }
 export interface LogLine { id: number; text: string; level: 'info' | 'ok' | 'warn' | 'error' }
@@ -34,7 +35,7 @@ export function useRobotView(live: boolean): RobotView {
   const logs = useQuery({
     queryKey: ['admin', 'robot-log', run?.id], enabled: live && !!run, refetchInterval: run && (run.status === 'queued' || run.status === 'running') ? 4000 : false,
     queryFn: async () => {
-      const r = await withTimeout(supabase().from('robot_log').select('id,text,level').eq('run_id', run!.id).order('at', { ascending: false }).limit(12));
+      const r = await withTimeout(supabase().from('robot_log').select('id,text,level').eq('run_id', run!.id).order('at', { ascending: false }).limit(20));
       if (r.error) throw r.error;
       return r.data as LogLine[];
     },
@@ -58,10 +59,8 @@ export function useRobotCommand(live: boolean, runId?: string) {
     mutationFn: async (action: Action): Promise<string> => {
       if (!live) throw new Error('Запуск откроется после входа сотрудника');
       if (action === 'start') {
-        if (cfg.sources !== 'sites') {
-          if (!modelOk(cfg.model)) throw new Error('Выбери модель ИИ в «Настройки → ИИ-поиск»');
-          if (!cfg.topics.length) throw new Error('Выбери хотя бы одну тему в «Настройки → ИИ-поиск»');
-        }
+        const problem = searchProblem(cfg);
+        if (problem) throw new Error(problem);
       }
       const body = { action, run_id: runId, model: cfg.model, days: cfg.days, limit: cfg.limit, topics: cfg.topics, sources: cfg.sources };
       const r = await withTimeout(supabase().functions.invoke('robot-run', { body }), 20000);

@@ -2,7 +2,10 @@
 import { create } from 'zustand';
 import { DEMO_SOURCES, DEMO_STATS, type QueueItem, type SourceItem } from './model';
 
+export interface EvEdit { title?: string; cover?: string; gone?: boolean }
 interface AdminDemo {
+  evEdits: Record<string, EvEdit>;
+  editEvent: (id: string, patch: EvEdit) => void;
   done: Record<string, 'publish' | 'reject'>;
   edits: Record<string, Partial<QueueItem>>;
   sources: SourceItem[];
@@ -19,6 +22,8 @@ interface AdminDemo {
 
 export const useAdminDemo = create<AdminDemo>()((set) => ({
   done: {},
+  evEdits: {},
+  editEvent: (id, patch) => set((s) => ({ evEdits: { ...s.evEdits, [id]: { ...s.evEdits[id], ...patch } } })),
   edits: {},
   sources: DEMO_SOURCES,
   autoPublish: true,

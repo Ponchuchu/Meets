@@ -18,9 +18,9 @@ export function Section({ title, hint, children, right }: { title: string; hint?
 
 export const Card = ({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) => <View style={[styles.card, style]}>{children}</View>;
 
-export function Chip({ label, on, onPress, count }: { label: string; on?: boolean; onPress: () => void; count?: number }) {
+export function Chip({ label, on, onPress, count, a11y }: { label: string; on?: boolean; onPress: () => void; count?: number; a11y?: string }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!on }} style={[styles.chip, on && styles.chipOn]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ selected: !!on }} style={[styles.chip, on && styles.chipOn]}>
       <Text style={[styles.chipText, on && { color: colors.paper }]}>{label}{count != null ? `  ${count}` : ''}</Text>
     </Pressable>
   );

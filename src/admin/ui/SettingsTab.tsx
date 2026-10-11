@@ -20,7 +20,7 @@ function AiSettings() {
   const preset = MODELS.some((m) => m.id === cfg.model);
   const [custom, setCustom] = useState(!preset);
   return (
-    <Section title="ИИ-поиск" hint="Работает, когда в поиске выбраны «ИИ» или «Оба». Афиши сайтов этих настроек не используют.">
+    <Section title="ИИ-поиск" hint="Работает, когда в поиске выбраны «ИИ» или «Оба». «Скрипт» (афиши сайтов) этих настроек не использует.">
       <Card>
         <Text style={styles.label}>Модель</Text>
         <View style={styles.chips}>
