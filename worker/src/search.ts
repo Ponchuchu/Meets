@@ -117,7 +117,7 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
     const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
     const send = (ms: number) => fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) });
     let res = await send(left);
-    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await send(Math.max(1000, deadline - Date.now())); }
+    for (let retry = 1; retry <= 3 && (res.status === 429 || res.status >= 500) && deadline - Date.now() > 5000; retry++) { await new Promise((r) => setTimeout(r, 2000 * retry)); res = await send(Math.max(1000, deadline - Date.now())); }
     if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     usage.prompt += body.usage?.prompt_tokens ?? 0;
@@ -310,12 +310,19 @@ export function finalize(list: Found[], from: string, to: string): Found[] {
 export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
-  const answers = await Promise.all(topics.map(async (topic) => {
+  // Kimi на этом ключе пускает один запрос за раз (лимит аккаунта) — идём по разделам по очереди, Gemini — параллельно.
+  const mapTopics = async <R>(fn: (t: string) => Promise<R>): Promise<R[]> => {
+    if (!isKimi(model)) return Promise.all(topics.map(fn));
+    const out: R[] = [];
+    for (const t of topics) out.push(await fn(t));
+    return out;
+  };
+  const answers = await mapTopics(async (topic) => {
     try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
       console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
       return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
     }
-  }));
+  });
   if (answers.every(a=>a.usage.prompt===0)) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
   const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
   const raw = finalize(answers.flatMap((a) => a.found), from, to);
