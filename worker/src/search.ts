@@ -132,7 +132,10 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
       }
       continue;
     }
-    return { found: parseGeminiOutput(choice.message.content ?? ''), usage };
+    const text = choice.message.content ?? '';
+    const found = parseGeminiOutput(text);
+    if (!found.length) console.error(`  Kimi: 0 событий. finish=${choice.finish_reason}, ответ: ${(text || '(пусто)').replace(/\s+/g, ' ').slice(0, 500)}`);
+    return { found, usage };
   }
   throw new Error('Kimi: слишком много шагов поиска');
 }
