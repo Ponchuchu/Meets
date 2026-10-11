@@ -50,6 +50,9 @@ export interface Extraction {
   confidence: number;
   /** Для отмены: название события, которое отменили. */
   cancel_of: string | null;
+  /** Точка площадки, если источник её отдаёт (Яндекс Афиша): геокодер тогда не нужен. */
+  lat?: number | null;
+  lon?: number | null;
 }
 
 export type Flag = 'needs_pin' | 'check_price' | 'cancel_reported';

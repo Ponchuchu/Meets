@@ -21,11 +21,15 @@ on:
       model:
         type: string
         default: 'gemini-2.5-flash'
+      sources:
+        type: string
+        description: 'sites — только афиши сайтов без ИИ (бесплатно), ai — только ИИ, all — оба'
+        default: 'sites'
 concurrency: worker
 jobs:
   search:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       ROBOT_RUN_ID: ${{ inputs.run_id }}
     steps:
@@ -40,13 +44,14 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
       - name: Поиск событий (Gemini или Kimi, 6 разделов параллельно + проверка страниц)
-        timeout-minutes: 6
+        timeout-minutes: 15
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
           KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
           GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
+          SEARCH_SOURCES: ${{ inputs.sources || 'sites' }}
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
         run: node worker/src/search.ts --run > search.json

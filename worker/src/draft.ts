@@ -20,6 +20,7 @@ export async function buildDraft(
   const flags: Flag[] = [];
   const venue = matchVenue(x.venue_name, x.address, venues);
   let point: Point | null = venue?.lat != null && venue.lon != null ? { lat: venue.lat, lon: venue.lon } : null;
+  if (!point && x.lat != null && x.lon != null && Math.hypot((x.lat - 43.2389) * 111, (x.lon - 76.8897) * 81) < 18) point = { lat: x.lat, lon: x.lon };
   if (!point && !isVague(x.address)) point = await geocode([x.venue_name, x.address].filter(Boolean).join(', '));
   if (!point) flags.push('needs_pin');
   if (x.price_unsure) flags.push('check_price');

@@ -6,6 +6,8 @@
 // Запуск шага 1: GEMINI_API_KEY=… node worker/src/search.ts --run > search.json  (ключи базы этому шагу не нужны)
 import { createHash } from 'node:crypto';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
+import { fetchSxodimFound } from './sites.ts';
+import { fetchYandexFound } from './yandex.ts';
 
 export interface Found {
   title: string;
@@ -22,6 +24,8 @@ export interface Found {
   image_url?: string | null;
   source_name?: string | null;
   confidence?: number;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 const ALMATY = '+05:00';
@@ -42,11 +46,14 @@ export const TOPICS = [
   'спорт для зрителей и участников, забеги, велопрогулки, походы в горы, события для детей',
 ];
 
+/** Сайты, на которых ИИ ищет афишу (дешевле и точнее, чем весь интернет). Меняется переменной SEARCH_SITES (через запятую). */
+export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'kassir.kz', 'kino.kz'];
+
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
-  return `Найди через поиск в интернете до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
-Бери только события с конкретной датой, у которых есть страница (организатор, площадка, афиша, городской обзор). Ничего не выдумывай, год проверяй.
-Ответь только JSON-массивом, без текста вокруг:
-[{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
+  const sites = (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
+  return `Найди через поиск до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
+Ищи на: ${sites}. Нужны дата и время, площадка, адрес, цена (нет — null). url — страница события или афиша площадки, не главная сайта. Не выдумывай, год проверяй. Не больше двух поисков, затем сразу ответ: только JSON-массив без вызовов функций ([] если пусто):
+[{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов","url":"","source_name":"","confidence":0.8}]`;
 }
 
 // ——— Gemini API ———
@@ -67,27 +74,68 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
 }
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
-export const KIMI_MODEL = 'kimi-k2-turbo-preview';
+export const KIMI_MODEL = 'kimi-k2.6';
 export const isKimi = (model: string) => /^(kimi|moonshot)-/i.test(model);
 
 // ——— Kimi (Moonshot) со встроенным веб-поиском $web_search ———
 // Ключ — секрет KIMI_API_KEY. Адрес можно сменить переменной KIMI_BASE_URL (по умолчанию международный api.moonshot.ai; для ключа из Китая — https://api.moonshot.cn/v1).
-export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 150_000): Promise<{ found: Found[]; usage: Usage }> {
+/** Модели, которые доступны этому ключу; для поиска берём не-«thinking» k2 или moonshot-v1. */
+export async function kimiModels(key: string): Promise<string[]> {
+  const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
+  const res = await fetch(`${base}/models`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`Kimi /models ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return ((await res.json()) as { data?: { id: string }[] }).data?.map((m) => m.id) ?? [];
+}
+export function pickKimiModel(ids: string[]): string | null {
+  const ok = ids.filter((m) => !/thinking|vision|image|audio|code/i.test(m));
+  for (const re of [/^kimi-k2\.6$/i, /^kimi-k3$/i, /^kimi-k2/i, /^kimi-latest$/i, /^moonshot-v1-32k$/i, /^moonshot-v1/i]) { const m = ok.find((x) => re.test(x)); if (m) return m; }
+  return null;
+}
+const triedModels = new Map<string, string>();
+
+export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 300_000): Promise<{ found: Found[]; usage: Usage }> {
+  model = triedModels.get(model) ?? model;
+  try { return await askKimiOnce(prompt, key, model, timeoutMs); } catch (e) {
+    if (!/Kimi 404/.test((e as Error).message)) throw e;
+    // Такой модели у ключа нет — смотрим список доступных и берём подходящую (один раз на запуск).
+    const ids = await kimiModels(key);
+    console.error(`  Kimi: модели ${model} нет. Доступно: ${ids.join(', ') || '—'}`);
+    const alt = pickKimiModel(ids);
+    if (!alt || alt === model) throw e;
+    console.error(`  Kimi: беру ${alt}`);
+    triedModels.set(model, alt);
+    return askKimiOnce(prompt, key, alt, timeoutMs);
+  }
+}
+
+// Лимит аккаунта Kimi (бесплатный уровень): 3 запроса в минуту, один одновременно — выдерживаем паузу между запросами.
+let lastKimi = 0;
+async function paceKimi() {
+  const gap = Number(process.env.KIMI_MIN_GAP_MS ?? 21_000);
+  const wait = lastKimi + gap - Date.now();
+  lastKimi = Date.now() + Math.max(0, wait);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+}
+
+const NUDGE = 'Поиск закончен, больше ничего не вызывай. Выдай результат: только JSON-массив событий из найденного (формат из первого сообщения). Если подходящих событий нет — [].';
+
+async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs: number): Promise<{ found: Found[]; usage: Usage }> {
   const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
   type Msg = { role: string; content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string; name?: string };
   const messages: Msg[] = [{ role: 'user', content: prompt }];
   const usage: Usage = { prompt: 0, output: 0, searches: 0, sources: 0 };
   const deadline = Date.now() + timeoutMs;
+  let final = false;
+  let noThinking = process.env.KIMI_THINKING !== 'on';
   for (let step = 0; step < 6; step++) {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error('Kimi: время вышло');
-    let res = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }),
-      signal: AbortSignal.timeout(left),
-    });
-    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }), signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) }); }
+    // После двух поисков или после «вызова функции» текстом — инструмент отключаем: пусть пишет итог.
+    const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(noThinking ? { thinking: { type: 'disabled' } } : {}), ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
+    const send = async (ms: number) => { await paceKimi(); return fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) }); };
+    let res = await send(left);
+    for (let retry = 1; retry <= 3 && (res.status === 429 || res.status >= 500) && deadline - Date.now() > 5000; retry++) { await new Promise((r) => setTimeout(r, 2000 * retry)); res = await send(Math.max(1000, deadline - Date.now())); }
+    if (res.status === 400 && noThinking && /thinking/i.test(await res.clone().text())) { noThinking = false; res = await send(Math.max(1000, deadline - Date.now())); }
     if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     usage.prompt += body.usage?.prompt_tokens ?? 0;
@@ -101,9 +149,19 @@ export async function askKimi(prompt: string, key: string, model: string, timeou
         // Поиск выполняет сам Kimi: по правилам API аргументы возвращаются как есть.
         messages.push({ role: 'tool', tool_call_id: tc.id, name: tc.function.name, content: tc.function.arguments });
       }
+      if (usage.searches >= 2) { final = true; messages.push({ role: 'user', content: NUDGE }); }
       continue;
     }
-    return { found: parseGeminiOutput(choice.message.content ?? ''), usage };
+    const text = choice.message.content ?? '';
+    const found = parseGeminiOutput(text);
+    // Модель написала «вызов функции» текстом или просто план, а JSON не дала — один раз просим итог без поиска.
+    if (!found.length && !final && !text.includes('[]')) {
+      final = true;
+      messages.push({ role: 'assistant', content: text || '…' }, { role: 'user', content: NUDGE });
+      continue;
+    }
+    if (!found.length) console.error(`  Kimi: 0 событий. finish=${choice.finish_reason}, ответ: ${(text || '(пусто)').replace(/\s+/g, ' ').slice(0, 500)}`);
+    return { found, usage };
   }
   throw new Error('Kimi: слишком много шагов поиска');
 }
@@ -146,6 +204,9 @@ export function parseGeminiOutput(raw: string): Found[] {
   if (start < 0 || end <= start) return [];
   try { return clean(JSON.parse(text.slice(start, end + 1))); } catch { return []; }
 }
+
+/** Ссылка ведёт на главную страницу сайта, а не на само событие. */
+export const isHomepage = (u: string) => { try { const x = new URL(u); return x.pathname.replace(/\/+$/, '') === '' && !x.search; } catch { return false; } };
 
 const isUrl = (u: unknown): u is string => typeof u === 'string' && /^https?:\/\/\S+$/.test(u);
 
@@ -193,6 +254,18 @@ export function ldStart(html: string): string | null {
 
 const words = (s: string) => s.toLowerCase().replace(/ё/g, 'е').match(/[a-zа-я0-9]{4,}/g) ?? [];
 
+/** Похоже на логотип, иконку или заглушку сайта, а не на афишу события. */
+export const looksLikeLogo = (u: string) => /(logo|favicon|sprite|placeholder|no[-_]?image|default[-_]?(image|og|share)|avatar|icon[-_.]|blank|pixel)/i.test(u);
+
+/** Адрес отвечает и отдаёт настоящую картинку (не страницу и не пустышку). */
+export async function imageAlive(u: string): Promise<boolean> {
+  try {
+    const res = await fetch(u, { headers: { ...UA, Range: 'bytes=0-0' }, redirect: 'follow', signal: AbortSignal.timeout(8_000) });
+    if (!res.ok && res.status !== 206) return false;
+    return /^image\//i.test(res.headers.get('content-type') ?? '');
+  } catch { return false; }
+}
+
 /** Решение по странице: оставить (и уточнить дату, картинку, ссылку) или выбросить как выдуманное. */
 export function judgePage(f: Found, html: string, finalUrl: string): Found | null {
   const page = html.toLowerCase().replace(/ё/g, 'е');
@@ -200,7 +273,8 @@ export function judgePage(f: Found, html: string, finalUrl: string): Found | nul
   const hits = ws.filter((w) => page.includes(w)).length;
   if (ws.length && hits === 0) return null; // на странице нет ни одного слова из названия — ссылка не про это событие
   const out: Found = { ...f, url: finalUrl };
-  if (!out.image_url) out.image_url = pageImage(html, finalUrl);
+  if (!out.image_url || looksLikeLogo(out.image_url)) out.image_url = pageImage(html, finalUrl);
+  if (out.image_url && looksLikeLogo(out.image_url)) out.image_url = null;
   const start = ldStart(html);
   if (start && start.slice(0, 10) !== f.starts_at.slice(0, 10)) {
     out.starts_at = start; // разметка страницы точнее модели
@@ -215,7 +289,12 @@ async function checkOne(f: Found): Promise<Found | null> {
     // Сайт закрыт для роботов (403/429) — не выкидываем, но понижаем уверенность: модератор проверит сам.
     if (res.status === 403 || res.status === 429) return { ...f, url: res.url || f.url, confidence: Math.min(Number(f.confidence ?? 0.6), 0.6) };
     if (!res.ok) return null;
-    return judgePage(f, (await res.text()).slice(0, 1_500_000), res.url || f.url);
+    const judged = judgePage(f, (await res.text()).slice(0, 1_500_000), res.url || f.url);
+    // Главная страница сайта — не страница события: оставляем на проверку модератору, без картинки сайта.
+    if (judged && isHomepage(judged.url)) { judged.confidence = Math.min(Number(judged.confidence ?? 0.6), 0.5); judged.image_url = null; }
+    // Картинка не открывается — лучше без неё: приложение покажет обложку раздела, а не пустой квадрат.
+    if (judged?.image_url && !(await imageAlive(judged.image_url))) judged.image_url = null;
+    return judged;
   } catch {
     return { ...f, confidence: Math.min(Number(f.confidence ?? 0.6), 0.5) };
   }
@@ -229,6 +308,15 @@ async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Prom
     while (i < items.length) { const k = i++; out[k] = await fn(items[k]); }
   }));
   return out;
+}
+
+/** Начинается в окне или это короткое (до 14 дней) событие, которое уже идёт; туры «на весь год» отсекаем. */
+export function startsInWindow(f: Found, from: string): boolean {
+  const day = almatyDate(new Date(f.starts_at));
+  if (day >= from) return true;
+  // Уже идущее показываем только если это выставка и закончится в ближайшие недели.
+  if (f.category !== 'art' || !f.ends_at || Number.isNaN(Date.parse(f.ends_at))) return false;
+  return Date.parse(f.ends_at) - Date.parse(f.starts_at) <= 60 * 86400e3;
 }
 
 /** Дубли внутри запуска и даты вне окна — прочь. */
@@ -246,24 +334,72 @@ export function finalize(list: Found[], from: string, to: string): Found[] {
   });
 }
 
-export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40): Promise<Found[]> {
+/** До limit штук: по кругу берём ближайшее событие каждой категории, чтобы стендап не вытеснил концерты, театр и лекции. */
+export function balanced(list: Found[], limit: number): Found[] {
+  if (list.length <= limit) return list;
+  const groups = new Map<string, Found[]>();
+  for (const f of list) groups.set(f.category, [...(groups.get(f.category) ?? []), f]);
+  const queues = [...groups.values()];
+  const out: Found[] = [];
+  for (let i = 0; out.length < limit; i++) {
+    let took = false;
+    for (const q of queues) if (q[i] && out.length < limit) { out.push(q[i]); took = true; }
+    if (!took) break;
+  }
+  return out.sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+}
+
+export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all'): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
-  const answers = await Promise.all(topics.map(async (topic) => {
-    try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
-      console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
-      return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
-    }
-  }));
-  if (answers.every(a=>a.usage.prompt===0)) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
-  const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
-  const raw = finalize(answers.flatMap((a) => a.found), from, to);
-  const t1 = Date.now();
-  const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
-  const out = finalize(checked, from, to);
-  console.error(`Поиск ${from}…${to}: ИИ нашёл ${raw.length} (${((t1 - t0) / 1000).toFixed(0)} с), после проверки страниц ${out.length} (${((Date.now() - t1) / 1000).toFixed(0)} с).`);
-  console.error(`Расход: токенов на вход ${usage.prompt}, на выход ${usage.output}, поисков Google ${usage.searches}, страниц-источников ${usage.sources}. Модель ${model}.`);
-  return out.slice(0,limit);
+  // 1. Афиши читает код: дата, площадка, цена, фото берутся прямо со страницы события, ИИ не нужен (0 токенов).
+  //    Яндекс Афиша — первой: у неё есть координаты площадки; дубли между сайтами отсекает finalize и общий конвейер.
+  let fromSites: Found[] = [];
+  if (sources !== 'ai') {
+    const grab = async (name: string, run: () => Promise<Found[]>): Promise<Found[]> => {
+      const t = Date.now();
+      try {
+        const list = (await run()).filter((f) => startsInWindow(f, from));
+        console.error(`  ${name}: ${list.length} событий с ${from} (${((Date.now() - t) / 1000).toFixed(0)} с)`);
+        return list;
+      } catch (err) { console.error(`  ✕ ${name}: ${(err as Error).message}`); return []; }
+    };
+    const [ya, sx] = await Promise.all([grab('Яндекс Афиша', () => fetchYandexFound(from)), grab('Sxodim', () => fetchSxodimFound())]);
+    fromSites = finalize([...ya, ...sx], from, to);
+    console.error(`Сайты: после отсева дублей и дат ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
+  }
+  // 2. ИИ ищет дополнительно, только по заданным сайтам.
+  let fromAi: Found[] = [];
+  if (sources !== 'sites') {
+    if (!key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY' : 'Нет GEMINI_API_KEY');
+    const t1 = Date.now();
+    // Kimi на этом ключе пускает один запрос за раз (лимит аккаунта) — идём по разделам по очереди, Gemini — параллельно.
+    const mapTopics = async <R>(fn: (t: string) => Promise<R>): Promise<R[]> => {
+      if (!isKimi(model)) return Promise.all(topics.map(fn));
+      const out: R[] = [];
+      for (const t of topics) out.push(await fn(t));
+      return out;
+    };
+    const answers = await mapTopics(async (topic) => {
+      try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
+        console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
+        return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
+      }
+    });
+    // Если ИИ недоступен, а сайты уже дали события — не падаем, отдаём то, что есть.
+    if (answers.every((a) => a.usage.prompt === 0) && !fromSites.length) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
+    const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
+    const raw = finalize(answers.flatMap((a) => a.found), from, to);
+    const t2 = Date.now();
+    const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
+    fromAi = finalize(checked, from, to);
+    console.error(`ИИ нашёл ${raw.length} (${((t2 - t1) / 1000).toFixed(0)} с), после проверки страниц ${fromAi.length}. Расход: вход ${usage.prompt}, выход ${usage.output} токенов, поисков ${usage.searches}. Модель ${model}.`);
+  }
+  // Сначала то, что прочитано с сайта (точнее); дубли по названию и дню отсекает finalize.
+  const out = finalize([...fromSites, ...fromAi], from, to).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const withPhoto = out.filter((f) => f.image_url).length;
+  console.error(`Итого ${out.length} событий, с фото ${withPhoto}. Оставляем ${Math.min(limit, out.length)}.`);
+  return balanced(out, limit);
 }
 
 // ——— В конвейер ———
@@ -305,6 +441,8 @@ export function toPost(f: Found, sourceId: string, now = new Date()): { post: Ra
     // Поиск — не проверенный источник: сразу на карту не идёт никогда (см. autoPublish), только в «Согласование».
     confidence: Math.max(0, Math.min(1, Number(f.confidence ?? 0.6))),
     cancel_of: null,
+    lat: f.lat ?? null,
+    lon: f.lon ?? null,
   };
   return { post, x };
 }
@@ -323,15 +461,16 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
 
 // Шаг 1 воркфлоу: поиск → JSON в stdout, отчёт — в stderr.
 async function main() {
+  const sources = (['sites', 'ai', 'all'] as const).find((x) => x === process.env.SEARCH_SOURCES) ?? 'all';
   const model = process.env.GEMINI_MODEL || (process.env.KIMI_API_KEY && !process.env.GEMINI_API_KEY ? KIMI_MODEL : undefined) || DEFAULT_MODEL;
   const key = isKimi(model) ? process.env.KIMI_API_KEY : process.env.GEMINI_API_KEY;
-  if(!key)throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
+  if (sources !== 'sites' && !key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
   const names=['music','standup','cinema','art','food','sport'];
   const selected=(process.env.SEARCH_TOPICS||'').split(',').filter(Boolean);
   const topics=selected.length?TOPICS.filter((_t,i)=>selected.includes(names[i])):TOPICS;
   const days=Number(process.env.SEARCH_DAYS||7), limit=Number(process.env.SEARCH_LIMIT||40);
   if(!topics.length||!Number.isInteger(days)||days<1||days>30||!Number.isInteger(limit)||limit<1||limit>100)throw new Error('Invalid search parameters');
-  const out=await runSearch(key,model,new Date(),days,topics,limit);
+  const out=await runSearch(key,model,new Date(),days,topics,limit,sources);
   console.log(JSON.stringify(out,null,1));
 }
 
