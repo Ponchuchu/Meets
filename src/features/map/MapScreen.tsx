@@ -169,12 +169,15 @@ export default function MapScreen() {
     if (r?.granted) void startBackground();
   };
   // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
+  const permissionAsked = useRef(false);
   useEffect(() => {
     if (!focused) return;
     let cancelled = false;
     let stop: (() => void) | undefined;
     (async () => {
-      const ok = await ensureGeo(true);
+      const ask = !permissionAsked.current;
+      permissionAsked.current = true;
+      const ok = await ensureGeo(ask);
       if (!ok || cancelled) return;
       stop = watchMapPosition(setMyPos, () => setGeo('off'));
     })().catch(() => undefined);
