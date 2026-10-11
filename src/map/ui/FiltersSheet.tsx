@@ -59,7 +59,7 @@ function Calendar({ now, events, f, set }: { now: Date; events: EventItem[]; f: 
           <Pressable disabled={shift === 0} onPress={() => setShift(shift - 1)} style={[styles.arrow, shift === 0 && { opacity: 0.35 }]} accessibilityRole="button" accessibilityLabel="Предыдущий месяц">
             <Ic d="M15 6l-6 6 6 6" size={18} color={colors.ink} w={2.2} />
           </Pressable>
-          <Pressable disabled={shift >= 2} onPress={() => setShift(shift + 1)} style={[styles.arrow, shift >= 2 && { opacity: 0.35 }]} accessibilityRole="button" accessibilityLabel="Следующий месяц">
+          <Pressable disabled={shift >= 5} onPress={() => setShift(shift + 1)} style={[styles.arrow, shift >= 5 && { opacity: 0.35 }]} accessibilityRole="button" accessibilityLabel="Следующий месяц">
             <Ic d="M9 6l6 6-6 6" size={18} color={colors.ink} w={2.2} />
           </Pressable>
         </View>
@@ -107,10 +107,10 @@ export function FiltersSheet({ f, set, reset, onShow, showText, now, events }: {
       <View style={styles.soon}>
         <Clock size={22} color={colors.ink} strokeWidth={1.8} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.soonTitle}>Ближайшее время</Text>
-          <Text style={styles.soonSub}>{f.soon ? 'сейчас и следующие 24 часа' : 'выключено — показываю неделю, дни можно выбрать ниже'}</Text>
+          <Text style={styles.soonTitle}>Ближайшая неделя</Text>
+          <Text style={styles.soonSub}>{f.soon ? 'события на 7 дней вперёд' : 'выключено — выбери любые даты ниже, хоть на 2–3 месяца вперёд'}</Text>
         </View>
-        <Switch on={f.soon} onChange={(soon) => set(soon ? { soon } : { soon, from: 0, to: WEEK_TO })} label="Ближайшее время" />
+        <Switch on={f.soon} onChange={(soon) => set(soon ? { soon } : { soon, from: 0, to: WEEK_TO })} label="Ближайшая неделя" />
       </View>
 
       {!f.soon && <Calendar now={now} events={events} f={f} set={set} />}

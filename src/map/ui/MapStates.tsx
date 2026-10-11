@@ -17,14 +17,14 @@ export function NetPill({ kind, onRetry }: { kind: 'offline' | 'server'; onRetry
   );
 }
 
-export function NoGeoCard({ onEnable }: { onEnable: () => void }) {
+export function NoGeoCard({ onEnable, off }: { onEnable: () => void; off?: boolean }) {
   return (
     <View style={styles.veil}>
       <View style={styles.card}>
         <View style={styles.icon}><Navigation size={26} color={colors.ink} strokeWidth={1.9} /></View>
-        <Text style={styles.cardTitle}>Включи геолокацию</Text>
+        <Text style={styles.cardTitle}>{off ? 'Геолокация выключена в телефоне' : 'Включи геолокацию'}</Text>
         <Pressable onPress={onEnable} style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
-          <Text style={styles.btnText}>Включить</Text>
+          <Text style={styles.btnText}>{off ? 'Открыть настройки' : 'Включить'}</Text>
         </Pressable>
       </View>
     </View>

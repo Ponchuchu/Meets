@@ -1,4 +1,4 @@
-// Фильтры карты v6 (V6Filters): по умолчанию — неделя; «Ближайшее время» (сейчас + 24 часа) тумблером, или даты из календаря,
+// Фильтры карты v6 (V6Filters): по умолчанию — неделя; «Ближайшая неделя» тумблером (по умолчанию) или любые даты из календаря,
 // разделы, цена ступенями (5 / 20 / 50 тыс / любая), «Только бесплатное».
 import { dayIndex } from '../lib/clock';
 import type { Category, EventItem } from '../data/types';
@@ -19,10 +19,9 @@ const CAT_GROUP: Record<Category, FilterCat | null> = {
 /** «Любая цена». Ступени ползунка — PRICE_STOPS. */
 export const MAX_PRICE = 1_000_000;
 export const PRICE_STOPS = [5000, 20000, 50000, MAX_PRICE];
-export const SOON_HOURS = 24;
 
 export interface MapFilters {
-  /** «Ближайшее время»: сейчас и следующие 24 часа (по умолчанию выключено). Выключено — работают from/to (неделя). */
+  /** «Ближайшая неделя» (по умолчанию включена). Выключено — работают from/to из календаря. */
   soon: boolean;
   /** Смещения дней от сегодня, включительно. */
   from: number;
@@ -34,12 +33,12 @@ export interface MapFilters {
   company: boolean;
 }
 
-/** По умолчанию — вся неделя (сегодня + 6 дней). «Ближайшее время» (24 часа) включается тумблером в фильтрах. */
+/** По умолчанию включена «Ближайшая неделя» (сегодня + 6 дней). Выключил тумблер — выбираешь любые даты, хоть на 2–3 месяца вперёд. */
 export const WEEK_TO = 6;
-export const DEFAULT_FILTERS: MapFilters = { soon: false, from: 0, to: WEEK_TO, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
+export const DEFAULT_FILTERS: MapFilters = { soon: true, from: 0, to: WEEK_TO, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
 
 export function activeCount(f: MapFilters): number {
-  return (f.soon || f.from !== 0 || f.to !== WEEK_TO ? 1 : 0) + (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
+  return (f.soon ? 0 : 1) + (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
 }
 
 export function occursOnDay(e: Pick<EventItem, 'startsAt' | 'endsAt'>, day: number): boolean {
@@ -62,15 +61,12 @@ export function matchesCats(e: Pick<EventItem, 'category'>, cats: FilterCat[]): 
 export function visibleEvents(all: EventItem[], f: MapFilters, now: Date, going: Set<string> = new Set()): EventItem[] {
   const today = dayIndex(now);
   const events = all.filter((e) => !e.noPoint); // без точки — только в Рекомендациях
-  if (f.soon) {
-    const until = now.getTime() + SOON_HOURS * 3600e3;
-    return events.filter((e) => new Date(e.startsAt).getTime() <= until && phaseOf(e, now, going.has(e.id)) !== 'hidden'
-      && matchesPrice(e, f) && matchesCats(e, f.cats));
-  }
+  // «Ближайшая неделя» — это даты сегодня…+6; тумблер выключен — любые даты из календаря.
+  const [dFrom, dTo] = f.soon ? [0, WEEK_TO] : [f.from, f.to];
   return events.filter((e) => {
     // Сегодня действует жизнь точки (прошедшее и закрытое прячем), будущие дни — просто по датам.
     let inDays = false;
-    for (let d = today + f.from; d <= today + f.to; d++) {
+    for (let d = today + dFrom; d <= today + dTo; d++) {
       if (!occursOnDay(e, d)) continue;
       if (d === today && phaseOf(e, now, going.has(e.id)) === 'hidden') continue;
       inDays = true;

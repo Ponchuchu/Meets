@@ -25,11 +25,11 @@ describe('цена, время, место в карточке всегда', ()
   });
 });
 
-describe('фильтры: по умолчанию неделя', () => {
-  it('по умолчанию 0…6 дней и «ничего не включено»', () => {
-    expect(DEFAULT_FILTERS).toMatchObject({ soon: false, from: 0, to: 6 });
+describe('фильтры: ближайшая неделя по умолчанию', () => {
+  it('по умолчанию включена «Ближайшая неделя», фильтров «включено» нет', () => {
+    expect(DEFAULT_FILTERS).toMatchObject({ soon: true, from: 0, to: 6 });
     expect(activeCount(DEFAULT_FILTERS)).toBe(0);
-    expect(activeCount({ ...DEFAULT_FILTERS, soon: true })).toBe(1);
+    expect(activeCount({ ...DEFAULT_FILTERS, soon: false })).toBe(1);
     expect(visibleEvents([], DEFAULT_FILTERS, new Date())).toEqual([]);
   });
 });
