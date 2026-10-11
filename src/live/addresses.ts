@@ -2,12 +2,68 @@ import { config } from '../lib/config';
 
 export interface AddressHit { id: string; label: string; lat: number; lon: number }
 
-/** Поиск Mapbox с ограничением Алматы. Nominatim не используется для автодополнения. */
+/** Mapbox по-русски называет город «Алма-Ата» — у нас везде «Алматы». */
+export const cityFix = (s: string): string => s.replace(/Алма[-\s]?Ата/gi, 'Алматы').replace(/,\s*Казахстан\s*$/i, '');
+
+const BBOX = '76.70,43.05,77.20,43.40';
+const dist = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) =>
+  Math.hypot((a.lat - b.lat) * 111_000, (a.lon - b.lon) * 81_000);
+
+interface MapboxFeature { id: string; text?: string; address?: string; place_name: string; center: [number, number]; place_type?: string[]; properties?: { address?: string } }
+
+/** Подпись из ответа Mapbox: «Есенова 160» или «Название, адрес» — без города, индекса и страны. */
+export function mapboxLabel(f: MapboxFeature): string {
+  const isAddress = f.place_type?.includes('address');
+  if (f.text && isAddress) return cityFix(`${f.text}${f.address ? ` ${f.address}` : ''}`);
+  if (f.text) return cityFix(f.properties?.address ? `${f.text}, ${f.properties.address}` : f.text);
+  return cityFix(f.place_name).split(',').slice(0, 2).join(',').trim();
+}
+
+interface OsmItem { place_id: number; lat: string; lon: string; name?: string; display_name: string; address?: { road?: string; pedestrian?: string; house_number?: string; neighbourhood?: string; suburb?: string } }
+
+/** Подпись из ответа OpenStreetMap: «Название, улица дом». */
+export function osmLabel(i: OsmItem): string {
+  const a = i.address ?? {};
+  const street = [a.road ?? a.pedestrian, a.house_number].filter(Boolean).join(' ');
+  const name = i.name && i.name !== a.road && i.name !== a.house_number ? i.name : '';
+  const label = [name, street].filter(Boolean).join(', ');
+  return cityFix(label || i.display_name.split(',').slice(0, 2).join(','));
+}
+
+async function mapbox(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
+  const params = new URLSearchParams({ access_token: config.mapboxToken, country: 'kz', language: 'ru', limit: '5', proximity: '76.9458,43.2579', bbox: BBOX, types: 'address,poi', autocomplete: 'true' });
+  const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`, { signal });
+  if (!r.ok) throw new Error('mapbox');
+  const j = await r.json() as { features?: MapboxFeature[] };
+  return (j.features ?? []).filter((f) => Number.isFinite(f.center?.[0]) && Number.isFinite(f.center?.[1]))
+    .map((f) => ({ id: `mb-${f.id}`, label: mapboxLabel(f), lon: f.center[0], lat: f.center[1] }));
+}
+
+/** OpenStreetMap знает дома Алматы лучше Mapbox: берём его как второй источник. */
+async function osm(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
+  const params = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', limit: '6', 'accept-language': 'ru', countrycodes: 'kz', bounded: '1', viewbox: '76.70,43.40,77.20,43.05', q: /алматы|алма-ата/i.test(q) ? q : `${q}, Алматы` });
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { signal, headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error('osm');
+  const j = await r.json() as OsmItem[];
+  return j.map((i) => ({ id: `osm-${i.place_id}`, label: osmLabel(i), lat: Number(i.lat), lon: Number(i.lon) })).filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lon));
+}
+
+/** Склейка двух источников: Mapbox первым, дубли (одно место ближе 60 м или та же подпись) выбрасываем. */
+export function mergeHits(...lists: AddressHit[][]): AddressHit[] {
+  const out: AddressHit[] = [];
+  for (const h of lists.flat()) {
+    if (!h.label.trim()) continue;
+    if (out.some((o) => o.label.toLowerCase() === h.label.toLowerCase() || dist(o, h) < 60)) continue;
+    out.push(h);
+  }
+  return out.slice(0, 7);
+}
+
+/** Поиск адреса в Алматы: Mapbox + OpenStreetMap параллельно. Ошибка — только если не ответил ни один. */
 export async function searchAddresses(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
-  if (q.trim().length < 3) return [];
-  const params = new URLSearchParams({ access_token: config.mapboxToken, country: 'kz', language: 'ru', limit: '5', proximity: '76.9458,43.2579', bbox: '76.70,43.05,77.20,43.40', types: 'address,poi', autocomplete: 'true' });
-  const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json?${params}`, { signal });
-  if (!r.ok) throw new Error('Не удалось найти адрес. Выбери точку на карте');
-  const j = await r.json() as { features?: { id: string; place_name: string; center: [number, number] }[] };
-  return (j.features ?? []).filter((f) => Number.isFinite(f.center?.[0]) && Number.isFinite(f.center?.[1])).map((f) => ({ id: f.id, label: f.place_name, lon: f.center[0], lat: f.center[1] }));
+  const text = q.trim();
+  if (text.length < 3) return [];
+  const [a, b] = await Promise.allSettled([mapbox(text, signal), osm(text, signal)]);
+  if (a.status === 'rejected' && b.status === 'rejected') throw new Error('Не удалось найти адрес. Выбери точку на карте');
+  return mergeHits(a.status === 'fulfilled' ? a.value : [], b.status === 'fulfilled' ? b.value : []);
 }

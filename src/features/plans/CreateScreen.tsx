@@ -95,7 +95,8 @@ export default function CreateScreen() {
       setFilters({ soon: false, from: f.dayOffset, to: f.dayOffset, free: false, cats: [] });
       select(e.id);
       void queryClient.invalidateQueries({ queryKey: ['events'] });
-      router.replace('/plans');
+      // Закрываем форму и переходим к уже открытым вкладкам: replace поднимал вторую копию вкладок с лишней картой (вылет).
+      router.dismissTo('/plans');
     } catch {
       setError('Не удалось создать встречу. Проверь связь и попробуй ещё раз');
     } finally { submitting.current = false; setBusy(false); }
@@ -204,7 +205,7 @@ export default function CreateScreen() {
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet onClose={() => setSheet(null)} label="Выбор" style={{ paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet onClose={() => setSheet(null)} label="Выбор" scroll style={{ paddingBottom: 30 + insets.bottom }}>
             {sheet === 'date' && (
               <>
                 <Text style={styles.sheetTitle}>Когда</Text>

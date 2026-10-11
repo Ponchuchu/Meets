@@ -1,7 +1,7 @@
 // Шторка снизу и выпадающая карточка: подложка затемняется, контент выезжает ~280 мс с ease-out.
 // Шторку с onClose можно смахнуть вниз пальцем — как в iOS.
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Keyboard, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, Keyframe, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -46,10 +46,34 @@ export function SwipeDown({ children, onClose, style }: { children: ReactNode; o
   );
 }
 
-export function BottomSheet({ children, style, label, onClose }: { children: ReactNode; style?: StyleProp<ViewStyle>; label: string; onClose?: () => void }) {
+/**
+ * Насколько клавиатура перекрывает низ шторки: измеряем реально (в окне, которое Android не сжимает, клавиатура ложится
+ * поверх), поэтому поле ввода не прячется под ней, а в сжимаемом окне лишнего подъёма нет.
+ */
+function useKeyboardLift(host: React.RefObject<View | null>): number {
+  const [lift, setLift] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      const top = e.endCoordinates.screenY;
+      setTimeout(() => host.current?.measureInWindow((_x, y, _w, h) => setLift(Math.max(0, Math.round(y + h - top)))), 60);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => setLift(0));
+    return () => { show.remove(); hide.remove(); };
+  }, [host]);
+  return lift;
+}
+
+export function BottomSheet({ children, style, label, onClose, scroll = false }: {
+  children: ReactNode; style?: StyleProp<ViewStyle>; label: string; onClose?: () => void;
+  /** Содержимое прокручивается (длинные формы с полями ввода): с клавиатурой помещается и всё достижимо. */
+  scroll?: boolean;
+}) {
   useCoverTabBar();
   useBackClose(onClose);
   const y = useSharedValue(0);
+  const hostRef = useRef<View>(null);
+  const lift = useKeyboardLift(hostRef);
+  const { height: winH } = useWindowDimensions();
   const pan = Gesture.Pan().enabled(!!onClose).activeOffsetY(12)
     .onUpdate((e) => y.set(Math.max(0, e.translationY)))
     .onEnd((e) => {
@@ -58,13 +82,19 @@ export function BottomSheet({ children, style, label, onClose }: { children: Rea
     });
   const moving = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
   return (
-    <Animated.View entering={sheetIn} exiting={sheetOut} accessibilityViewIsModal accessibilityLabel={label} style={styles.host}>
-      <Animated.View style={[styles.sheet, style, moving]}>
-        <GestureDetector gesture={pan}>
-          <View style={{ height: 28, justifyContent: 'center' }} accessibilityLabel="Потяни вниз, чтобы закрыть"><View style={styles.handle} /></View>
-        </GestureDetector>
-        {children}
-      </Animated.View>
+    <Animated.View entering={sheetIn} exiting={sheetOut} accessibilityViewIsModal accessibilityLabel={label} style={[styles.host, { bottom: lift }]}>
+      <View ref={hostRef} collapsable={false}>
+        <Animated.View style={[styles.sheet, style, moving]}>
+          <GestureDetector gesture={pan}>
+            <View style={{ height: 28, justifyContent: 'center' }} accessibilityLabel="Потяни вниз, чтобы закрыть"><View style={styles.handle} /></View>
+          </GestureDetector>
+          {scroll ? (
+            <ScrollView style={{ maxHeight: Math.max(240, winH - lift - 120) }} contentContainerStyle={{ gap: 16, paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled>
+              {children}
+            </ScrollView>
+          ) : children}
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 }

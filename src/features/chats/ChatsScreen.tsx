@@ -7,8 +7,13 @@ import { createFriendGroup } from '../../live/api';
 import { queryClient } from '../../live/query';
 import { uid } from '../../lib/uid';
 import { isFriendNow, useSocial } from '../../state/social';
-import { SwipeActions } from '../../ui/SwipeActions';
+import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
+import { Archive, ArchiveRestore, CalendarCheck, EyeOff, Pin, PinOff } from 'lucide-react-native';
+import { friendActivity, previewText } from '../../chat/activity';
+import { getInvites, type Invite } from '../../live/api';
+import { myId } from '../../live/auth';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
+import { now as clockNow } from '../../lib/clock';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,9 +39,9 @@ export default function ChatsScreen() {
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo', staleTime: 30e3 });
   const chat = useChat();
   const social = useSocial();
-  const [action, setAction] = useState<Chat|null>(null);
   const [group, setGroup] = useState(false);
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
@@ -61,7 +66,7 @@ export default function ChatsScreen() {
   const match = (c: Chat) => !q || c.title.toLowerCase().includes(q) || c.lastText.toLowerCase().includes(q);
   const last = (c: Chat) => {
     const mine = chat.sent.filter((m) => m.chatId === c.id).at(-1);
-    return mine ? { text: mine.text || (mine.kind === 'voice' ? 'Голосовое' : mine.kind === 'circle' ? 'Кружок' : mine.kind === 'photo' ? 'Фото' : mine.kind === 'video' ? 'Видео' : ''), time: mine.time } : { text: c.lastText, time: c.lastTime };
+    return mine ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true } : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine };
   };
   const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
   const list = sortChats(
@@ -71,6 +76,16 @@ export default function ChatsScreen() {
       .map((c) => ({ ...c, l: last(c), time: last(c).time })),
     chat.pinned,
   );
+  const goingSet = new Set(Object.keys(plans.going));
+  // Друзья, с кем ещё нет диалога: показываем их внизу, чтобы список не был пустым.
+  const withChat = new Set(chats.filter((c) => c.kind === 'direct').map((c) => c.personId));
+  const lonely = friends.filter((p) => !withChat.has(p.id) && !chat.blocked[p.id]);
+  // Действия — значки под строкой при смахивании влево (как в Telegram), без окон.
+  const chatActions = (c: Chat): RowAction[] => [
+    { key: 'pin', label: chat.pinned[c.id] ? 'Открепить' : 'Закрепить', color: colors.friend, icon: chat.pinned[c.id] ? <PinOff size={22} color="#FFFFFF" strokeWidth={1.9} /> : <Pin size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => chat.togglePin(c.id) },
+    { key: 'arc', label: chat.archived[c.id] ? 'Вернуть' : 'Архив', color: '#8C8577', icon: chat.archived[c.id] ? <ArchiveRestore size={22} color="#FFFFFF" strokeWidth={1.9} /> : <Archive size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => chat.archive(c.id, !chat.archived[c.id]) },
+    { key: 'hide', label: 'Скрыть', color: '#D8362A', icon: <EyeOff size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => chat.hide(c.id) },
+  ];
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
   return (
@@ -152,44 +167,68 @@ export default function ChatsScreen() {
       {filter === 'requests' && pending.length === 0 && <Text style={styles.sub}>Новых заявок нет.</Text>}
 
       {list.length > 0 && filter !== 'requests' && (
-        <View>
-          {list.map((c, i) => {
+        <View style={{ gap: 8 }}>
+          {list.map((c) => {
             const e = c.kind === 'event' ? events.find((x) => x.id === c.eventId) : undefined;
             const p = c.kind === 'direct' ? people.find((x) => x.id === c.personId) : undefined;
             const n = unread(c);
             const pin = !!chat.pinned[c.id];
+            const act = p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
             return (
-              <SwipeActions key={c.id} onActions={() => setAction(c)}><Pressable onLongPress={() => setAction(c)} onPress={() => open(c.id)}
-                style={({ pressed }) => [styles.row, i < list.length - 1 && styles.line, pressed && { opacity: 0.7 }]}
-                accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.text}${pin ? '. Закреплён' : ''}`}
-                accessibilityActions={[{ name: 'longpress', label: pin ? 'Открепить' : 'Закрепить' }]} onAccessibilityAction={() => setAction(c)}>
-                {p ? <Avatar p={p} size={48} ring={p.isFriend ? colors.friend : undefined} /> : (
-                  <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
-                    <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={21} color={e ? catFg(e.category) : colors.paper} w={2} />
+              <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
+                <Pressable onPress={() => open(c.id)}
+                  style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+                  accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
+                  {p ? <Avatar p={p} size={54} ring={p.isFriend ? colors.friend : undefined} /> : (
+                    <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
+                      <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <View style={styles.titleRow}>
+                      <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{c.title}</Text>
+                      <Text style={styles.time}>{c.l.time}</Text>
+                    </View>
+                    <View style={styles.titleRow}>
+                      <Text style={[styles.sub, { flex: 1 }, n > 0 && { color: colors.ink, fontFamily: fonts.body600 }]} numberOfLines={1}>
+                        {c.l.text ? `${c.l.mine ? 'Ты: ' : ''}${c.l.text}` : 'Напиши первым'}
+                      </Text>
+                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
+                        : pin ? <Pin size={14} color={colors.muted} strokeWidth={2} /> : null}
+                    </View>
+                    {act && (
+                      <View style={styles.act}>
+                        <CalendarCheck size={13} color={colors.accentText} strokeWidth={2} />
+                        <Text style={styles.actText} numberOfLines={1}>{act}</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.name} numberOfLines={1}>{c.title}</Text>
-                  <Text style={styles.sub} numberOfLines={1}>{c.l.text}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                  <Text style={styles.time}>{c.l.time}</Text>
-                  {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
-                    : pin ? <Ic d="M9 4h6l-1 5 3 3v2H7v-2l3-3zM12 14v6" size={14} color={colors.muted} w={2} /> : null}
-                </View>
-              </Pressable></SwipeActions>
+                </Pressable>
+              </SwipeRow>
             );
           })}
         </View>
       )}
-      {list.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
+      {filter === 'all' && !q && lonely.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.cap}>ДРУЗЬЯ · НАПИШИ ПЕРВЫМ</Text>
+          {lonely.map((p) => {
+            const act = friendActivity(p.id, myId(), events, goingSet, invites, clockNow());
+            return (
+              <Pressable key={p.id} onPress={() => open(`dm-${p.id}`)} style={({ pressed }) => [styles.row, styles.card, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Написать: ${p.name}`}>
+                <Avatar p={p} size={54} ring={colors.friend} />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+                  <Text style={styles.sub} numberOfLines={1}>{act ?? 'Пока без переписки'}</Text>
+                </View>
+                <Text style={styles.write}>Написать</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+      {list.length === 0 && lonely.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
     </ScrollView>
-    {action && <><Backdrop label="Закрыть" onPress={() => setAction(null)}/><BottomSheet onClose={() => setAction(null)} label="Действия с чатом">
-      <Text style={styles.name}>{action.title}</Text>
-      <Pressable style={styles.menuAction} onPress={() => {chat.togglePin(action.id);setAction(null);}}><Text style={styles.name}>{chat.pinned[action.id]?'Открепить':'Закрепить'}</Text></Pressable>
-      <Pressable style={styles.menuAction} onPress={() => {chat.archive(action.id,!chat.archived[action.id]);setAction(null);}}><Text style={styles.name}>{chat.archived[action.id]?'Вернуть из архива':'В архив'}</Text></Pressable>
-      <Pressable style={styles.menuAction} onPress={() => {chat.hide(action.id);setAction(null);}}><Text style={[styles.name,{color:colors.accentText}]}>Скрыть диалог у меня</Text></Pressable>
-    </BottomSheet></>}
     {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
       <Text style={styles.h1}>Новая группа</Text>
       <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
@@ -228,8 +267,12 @@ const styles = StyleSheet.create({
   btn: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  line: { borderBottomWidth: 1, borderBottomColor: colors.line },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14 },
+  card: { borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#FBDCCB' },
+  actText: { flexShrink: 1, fontFamily: fonts.body600, fontSize: 11.5, color: colors.accentText },
+  write: { fontFamily: fonts.body700, fontSize: 13, color: colors.friend },
   evIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   time: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted },
   unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },

@@ -111,6 +111,9 @@ export interface Chat {
   eventId?: string;
   lastText: string;
   lastTime: string;
+  /** Вид последнего сообщения и моё ли оно — для подписи «Ты: …» и названия вложения. */
+  lastKind?: MessageKind;
+  lastMine?: boolean;
   unread: number;
   pinnedNote?: string;
   /** Чат события: точка сбора, участники. */

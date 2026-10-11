@@ -17,7 +17,7 @@ import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { usePlans } from '../../state/plans';
 import { MonthCalendar } from '../../event/ui/pickers';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
-import { SwipeActions } from '../../ui/SwipeActions';
+import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
@@ -67,7 +67,6 @@ export default function PlansTab() {
   const [pick, setPick] = useState<number[]>([]);
   const [calendar, setCalendar] = useState(false);
   const [actionError,setActionError]=useState('');
-  const [action, setAction] = useState<EventItem | null>(null);
   const muted = usePlans((s) => s.muted);
   const toggleDay = (d: number) => setPick((p) => p.includes(d) ? p.filter((x) => x !== d) : [...p, d]);
   const [now,setNow] = useState(clockNow);
@@ -107,6 +106,20 @@ export default function PlansTab() {
   }
   const week = Array.from({ length: 7 }, (_, i) => today + i);
   const has = (d: number) => soon.some((e) => dayIndex(e.startsAt) === d) || incoming.some((i) => dayIndex(byId(i.event_id!)!.startsAt) === d);
+  // Действия строки — значки под ней при смахивании влево (как в Telegram), без окон.
+  const rowActions = (e: EventItem): RowAction[] => [
+    {
+      key: 'bell', label: muted[e.id] ? 'Включить' : 'Тише', color: '#8C8577',
+      icon: muted[e.id] ? <Bell size={22} color="#FFFFFF" strokeWidth={1.9} /> : <BellOff size={22} color="#FFFFFF" strokeWidth={1.9} />,
+      onPress: async () => {
+        setActionError('');
+        if (LIVE) { try { await toggleEventReminder(e.id); } catch { setActionError('Не удалось сохранить напоминание. Проверь связь'); } }
+        else usePlans.getState().toggleReminder(e.id);
+      },
+    },
+    { key: 'invite', label: 'Позвать', color: colors.friend, icon: <UserPlus size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => router.push({ pathname: '/event/[id]', params: { id: e.id, invite: '1' } }) },
+    { key: 'del', label: 'Убрать', color: '#D8362A', icon: <Trash2 size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => usePlans.getState().ungo(e.id) },
+  ];
   const open = (e: EventItem) => router.push({ pathname: '/event/[id]', params: { id: e.id } });
 
   return (
@@ -134,6 +147,7 @@ export default function PlansTab() {
         </ScrollView>
       )}
       <Pressable onPress={() => setPick([])} accessibilityRole="button" accessibilityLabel="Показать все планы"><Text style={styles.sub}>{pick.length ? `Выбрано дат: ${pick.length} · показать все` : 'Все предстоящие планы'}</Text></Pressable>
+      {!!actionError && <Text style={{ color: colors.accentText, fontFamily: fonts.body500 }}>{actionError}</Text>}
 
       {tab === 'soon' && incoming.length > 0 && (
         <View style={{ gap: 8 }}>
@@ -173,7 +187,7 @@ export default function PlansTab() {
             const sent = sentFor(e.id);
             const looking = Math.max(e.lookingCount, e.lookers?.length ?? 0);
             return (
-              <SwipeActions key={e.id} onActions={() => setAction(e)}><Pressable onLongPress={() => setAction(e)} onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+              <SwipeRow key={e.id} actions={rowActions(e)} background="#FBFAF6" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <Tile e={e} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <View style={styles.titleRow}>
@@ -190,7 +204,7 @@ export default function PlansTab() {
                   </View>
                 </View>
                 <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
-              </Pressable></SwipeActions>
+              </Pressable></SwipeRow>
             );
           })}
         </View>
@@ -207,13 +221,6 @@ export default function PlansTab() {
       )}
     </ScrollView>
     {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => setCalendar(false)} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
-    {action && <><Backdrop label="Закрыть действия" onPress={() => setAction(null)} /><BottomSheet label={action.title} onClose={() => setAction(null)}>
-      <Text style={styles.title}>{action.title}</Text>
-      <Pressable style={styles.row} onPress={async () => {setActionError('');if(LIVE){try{await toggleEventReminder(action.id);setAction(null);}catch{setActionError('Не удалось сохранить напоминание. Проверь связь');}}else{usePlans.getState().toggleReminder(action.id);setAction(null);}}}><View>{muted[action.id] ? <Bell size={20} /> : <BellOff size={20} />}</View><Text style={styles.title}>{muted[action.id] ? 'Включить напоминание' : 'Не напоминать'}</Text></Pressable>
-      <Pressable style={styles.row} onPress={() => { const e = action; setAction(null); router.push({ pathname: '/event/[id]', params: { id: e.id, invite: '1' } }); }}><UserPlus size={20} /><Text style={styles.title}>Позвать друга</Text></Pressable>
-      <Pressable style={styles.row} onPress={() => { usePlans.getState().ungo(action.id); setAction(null); }}><Trash2 size={20} color={colors.accentText} /><Text style={styles.title}>Убрать из планов</Text></Pressable>
-      {!!actionError&&<Text style={{color:colors.accentText,fontFamily:fonts.body400}}>{actionError}</Text>}
-    </BottomSheet></>}
     </View>
   );
 }

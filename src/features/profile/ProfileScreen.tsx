@@ -66,7 +66,7 @@ export default function ProfileScreen() {
       const url = live ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
       useSession.getState().update({ photo: url });
       if (live) await prof.refetch();
-    } catch { setPhotoError('Не удалось сохранить фото. Проверь связь и попробуй ещё раз'); }
+    } catch (e) { setPhotoError(`Не удалось сохранить фото: ${e instanceof Error ? e.message : 'проверь связь'}`); }
     finally { setUploading(false); }
   };
 

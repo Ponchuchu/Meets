@@ -90,7 +90,7 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   const avatar = useTabBadges((s) => s.avatar);
   const ring = useSharedValue(on ? 1 : 0);
   useEffect(() => { ring.set(withTiming(on ? 1 : 0, { duration: 420 })); }, [on, ring]);
-  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(23,22,26,${ring.get()})` }));
+  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(23,22,26,${0.14 + 0.86 * ring.get()})` }));
   return (
     <Animated.View style={[styles.meRing, st]}>
       {avatar.url ? <Image source={{ uri: avatar.url }} style={styles.meFace} /> : (
@@ -189,10 +189,11 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  meRing: { width: 34, height: 34, borderRadius: 17, padding: 2, borderWidth: 2 },
-  meFace: { width:26,height:26, borderRadius: 13, overflow: 'hidden' },
+  // Аватар на панели не меньше соседних значков (28): кольцо 36, лицо 30.
+  meRing: { width: 36, height: 36, borderRadius: 18, padding: 1.5, borderWidth: 1.5 },
+  meFace: { width: 30, height: 30, borderRadius: 15, overflow: 'hidden' },
   meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  meLetter: { fontFamily: fonts.body700, fontSize: 13, lineHeight: 18, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
+  meLetter: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
   hint: { position: 'absolute', bottom: BAR_H + 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.ink },
   hintText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
 });
