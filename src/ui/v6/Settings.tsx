@@ -37,7 +37,7 @@ export function Row({ Icon, title, sub, value, onPress, last, danger, right, lef
 }) {
   const fg = danger ? '#C0392B' : colors.ink;
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, !last && styles.sep, pressed && { backgroundColor: '#F1EDE4' }]}
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, !last && styles.sep, pressed && { backgroundColor: '#E0DACD' }]}
       accessibilityRole={onPress ? 'button' : 'text'} accessibilityLabel={[title, sub, value].filter(Boolean).join('. ')}>
       {left}
       {Icon && <Icon size={20} color={fg} strokeWidth={1.8} />}
@@ -57,7 +57,7 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boo
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(on ? 22 : 0, { duration: 160 }) }] }));
   return (
     <Pressable onPress={() => onChange(!on)} hitSlop={8} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={label}
-      style={[styles.track, { backgroundColor: on ? '#2F8F5B' : '#DDD8CC' }]}>
+      style={[styles.track, { backgroundColor: on ? '#2F8F5B' : '#C8C2B2' }]}>
       <Animated.View style={[styles.knob, knob]} />
     </Pressable>
   );
@@ -78,9 +78,9 @@ const styles = StyleSheet.create({
   h1: { flex: 1, fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.7, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, color: colors.muted2, marginTop: -6, marginBottom: 4 },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.muted, marginTop: 8, marginLeft: 6 },
-  group: { borderRadius: 20, backgroundColor: '#FBFAF6', overflow: 'hidden' },
+  group: { borderRadius: 20, backgroundColor: '#EEE9DE', overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54, paddingHorizontal: 16, paddingVertical: 10 },
-  sep: { borderBottomWidth: 1, borderBottomColor: '#ECE7DC' },
+  sep: { borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },
   title: { fontFamily: fonts.body700, fontSize: 15.5 },
   rowSub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted2 },
   value: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted2, maxWidth: 170 },

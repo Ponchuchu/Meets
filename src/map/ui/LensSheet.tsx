@@ -19,7 +19,7 @@ function Thumb({ id }: { id: Lens }) {
   const cols = [30, 70, 100].map((v) => <Line key={`v${v}`} x1={v} y1={0} x2={v} y2={120} stroke="#FFFFFF" strokeWidth={5} />);
   return (
     <Svg width="100%" height="100%" viewBox="0 0 120 92" preserveAspectRatio="xMidYMid slice">
-      <Rect x={0} y={0} width={120} height={92} fill={id === 'explore' ? '#E4DFD3' : '#EFEBE2'} />
+      <Rect x={0} y={0} width={120} height={92} fill={id === 'explore' ? '#E4DFD3' : '#DDD8CB'} />
       {grid}{cols}
       {id === 'normal' && <><Rect x={52} y={44} width={8} height={8} fill={colors.accent} /><Rect x={20} y={70} width={8} height={8} fill={colors.accent} /></>}
       {id === 'traffic' && <><Line x1={0} y1={30} x2={120} y2={30} stroke="#C83A26" strokeWidth={5} /><Line x1={64} y1={0} x2={64} y2={92} stroke="#C83A26" strokeWidth={5} /><Line x1={0} y1={74} x2={120} y2={74} stroke="#C83A26" strokeWidth={5} /></>}
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.6, color: colors.ink },
   row: { flexDirection: 'row', gap: 8 },
   item: { flex: 1, alignItems: 'center', gap: 2 },
-  thumb: { width: '100%', aspectRatio: 1, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#DDD8CC', marginBottom: 8 },
+  thumb: { width: '100%', aspectRatio: 1, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#C8C2B2', marginBottom: 8 },
   thumbOn: { borderWidth: 3, borderColor: colors.accent },
   check: { position: 'absolute', right: 8, top: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
   name: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },

@@ -45,7 +45,7 @@ export function Stat({ n, label, warn }: { n: string | number; label: string; wa
 }
 
 export function Banner({ tone, text }: { tone: 'error' | 'ok' | 'info'; text: string }) {
-  const bg = tone === 'error' ? '#F8DCCD' : tone === 'ok' ? '#D9E4D2' : '#E7E2D6';
+  const bg = tone === 'error' ? '#EDC6B2' : tone === 'ok' ? '#C5D3BB' : '#D5CFC1';
   return <View style={[styles.banner, { backgroundColor: bg }]} accessibilityLiveRegion="polite"><Text style={[styles.bannerText, tone === 'error' && { color: colors.accentText }]}>{text}</Text></View>;
 }
 

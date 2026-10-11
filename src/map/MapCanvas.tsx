@@ -145,9 +145,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         )}
         {fog && (
           <M.ShapeSource id="fog" shape={fog as never}>
-            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', fillOpacity: 0.76, fillAntialias: false }} />
+            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#E8E3D7', fillOpacity: 0.76, fillAntialias: false }} />
             {/* Мягкий край открытых мест: размытая линия того же цвета, что туман (FIX1 И2 п.14). */}
-            <M.LineLayer id="fog-edge" style={{ lineColor: theme === 'night' ? '#0E0E10' : '#F7F5EF', lineOpacity: 0.76, lineWidth: 18, lineBlur: 12, lineJoin: 'round' }} />
+            <M.LineLayer id="fog-edge" style={{ lineColor: theme === 'night' ? '#0E0E10' : '#E8E3D7', lineOpacity: 0.76, lineWidth: 18, lineBlur: 12, lineJoin: 'round' }} />
           </M.ShapeSource>
         )}
         {lines.filter(l=>l.coords.length>=2).map((l) => (
@@ -160,7 +160,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         {meShape && (
           <M.ShapeSource id="me-src" shape={meShape.point as never}>
             <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16, circlePitchAlignment: 'map' }} />
-            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#FBFAF6', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
+            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
             <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
           </M.ShapeSource>
         )}

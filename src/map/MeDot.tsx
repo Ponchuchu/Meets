@@ -54,5 +54,5 @@ const styles = StyleSheet.create({
   anchor: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   cone: { position: 'absolute', width: 72, height: 72 },
   pulse: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0521F' },
-  dot: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0521F', borderWidth: 4, borderColor: '#FBFAF6', shadowColor: '#17161A', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  dot: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#F0521F', borderWidth: 4, borderColor: '#EEE9DE', shadowColor: '#17161A', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
 });

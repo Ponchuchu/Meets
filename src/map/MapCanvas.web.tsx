@@ -121,7 +121,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       }
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
-        const fogC = theme === 'night' ? '#0E0E10' : '#F7F5EF';
+        const fogC = theme === 'night' ? '#0E0E10' : '#E8E3D7';
         m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.76, 'fill-antialias': false } });
         m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.76, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
       }

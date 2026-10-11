@@ -18,7 +18,7 @@ export function MapControls({ top, bearing, follow, onCompass, onZoom, onMe }: {
         <Animated.View style={needle}>
           <Svg width={26} height={26} viewBox="0 0 26 26">
             <Path d="M13 2L17.5 13H8.5Z" fill={colors.accent} />
-            <Path d="M13 24L8.5 13H17.5Z" fill={follow ? '#FBFAF6' : '#D9D3C7'} />
+            <Path d="M13 24L8.5 13H17.5Z" fill={follow ? '#EEE9DE' : '#D9D3C7'} />
           </Svg>
         </Animated.View>
       </Pressable>

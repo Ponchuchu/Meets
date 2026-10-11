@@ -51,7 +51,7 @@ function Faces({ ids, people }: { ids: string[]; people: Person[] }) {
     <View style={{ flexDirection: 'row' }}>
       {ps.slice(0, 4).map((p, i) => (
         <View key={p.id} style={{ marginLeft: i ? -6 : 0 }}>
-          <Avatar p={p} size={28} style={{ borderWidth: 2, borderColor: '#FBFAF6' }} />
+          <Avatar p={p} size={28} style={{ borderWidth: 2, borderColor: '#EEE9DE' }} />
           <View style={styles.ok}><Check size={8} color="#FFFFFF" strokeWidth={3.5} /></View>
         </View>
       ))}
@@ -168,7 +168,7 @@ export default function PlansTab() {
                     <Text style={styles.sub} numberOfLines={1}>{from?.name ?? 'Друг'} · {d === today ? 'сегодня' : d === today + 1 ? 'завтра' : WD[almaty(e.startsAt).getUTCDay()]} {hm(e.startsAt)}</Text>
                   </View>
                 </Pressable>
-                <Pressable onPress={() => void answer(inv, false)} style={[styles.round, { backgroundColor: '#E7E2D6' }]} accessibilityRole="button" accessibilityLabel={`Не смогу: ${e.title}`}>
+                <Pressable onPress={() => void answer(inv, false)} style={[styles.round, { backgroundColor: '#D5CFC1' }]} accessibilityRole="button" accessibilityLabel={`Не смогу: ${e.title}`}>
                   <X size={20} color={colors.ink} strokeWidth={2.2} />
                 </Pressable>
                 <Pressable onPress={() => void answer(inv, true)} style={[styles.round, { backgroundColor: colors.accent }]} accessibilityRole="button" accessibilityLabel={`Иду: ${e.title}`}>
@@ -187,7 +187,7 @@ export default function PlansTab() {
             const sent = sentFor(e.id);
             const looking = Math.max(e.lookingCount, e.lookers?.length ?? 0);
             return (
-              <SwipeRow key={e.id} actions={rowActions(e)} background="#FBFAF6" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+              <SwipeRow key={e.id} actions={rowActions(e)} background="#EEE9DE" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <Tile e={e} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <View style={styles.titleRow}>
@@ -229,12 +229,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, color: colors.ink },
-  seg: { flexDirection: 'row', padding: 4, borderRadius: 22, backgroundColor: '#E7E2D6' },
+  seg: { flexDirection: 'row', padding: 4, borderRadius: 22, backgroundColor: '#D5CFC1' },
   segBtn: { height: 36, paddingHorizontal: 18, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.ink },
   segText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   week: { flexDirection: 'row', gap: 6 },
-  day: { width:48, height: 64, borderRadius: 14, backgroundColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center', gap: 1 },
+  day: { width:48, height: 64, borderRadius: 14, backgroundColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center', gap: 1 },
   dayOn: { backgroundColor: colors.ink },
   dayWd: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted },
   dayN: { fontFamily: fonts.body600, fontSize: 19, color: colors.ink },
@@ -244,18 +244,18 @@ const styles = StyleSheet.create({
   count: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   countText: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.ink },
   cap: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted, marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: '#FBFAF6', borderWidth: 1, borderColor: '#E5E0D4' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: '#EEE9DE', borderWidth: 1, borderColor: '#CFC9BB' },
   inviteRow: { borderColor: colors.accent, gap: 8 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   tile: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#FBFAF6' },
+  fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#EEE9DE' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
   time: { fontFamily: fonts.mono600, fontSize: 13.5, color: colors.ink },
   sub: { fontFamily: fonts.mono500, fontSize: 12.5, color: colors.muted2 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 24 },
-  ok: { position: 'absolute', right: -2, bottom: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.ok, borderWidth: 1.5, borderColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center' },
-  look: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#FBDCCB' },
+  ok: { position: 'absolute', right: -2, bottom: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.ok, borderWidth: 1.5, borderColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center' },
+  look: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#F0C5AE' },
   lookText: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },
   ans: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

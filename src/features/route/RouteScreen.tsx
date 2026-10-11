@@ -215,8 +215,8 @@ export default function RouteScreen() {
               {tiles.map(({ m, Icon, min, km, label }) => (
                 <Pressable key={m} onPress={() => setMode(m)} style={[styles.tile, mode === m && styles.tileOn]} accessibilityRole="tab" accessibilityState={{ selected: mode === m }} accessibilityLabel={`${label}, ${min != null ? `${min} минут` : 'считаю'}${best === m ? ', лучший вариант' : ''}`}>
                   {best === m && <View style={styles.best}><Text style={styles.bestText}>ЛУЧШЕ</Text></View>}
-                  <Icon size={19} color={mode === m ? '#FBFAF6' : colors.ink} strokeWidth={1.9} />
-                  <Text style={[styles.tileText, mode === m && { color: '#FBFAF6' }]}>{min != null ? `${min} мин` : '…'}</Text>
+                  <Icon size={19} color={mode === m ? '#EEE9DE' : colors.ink} strokeWidth={1.9} />
+                  <Text style={[styles.tileText, mode === m && { color: '#EEE9DE' }]}>{min != null ? `${min} мин` : '…'}</Text>
                   <Text style={[styles.tileSub, mode === m && { color: '#BDB8AD' }]} numberOfLines={1}>{km ? `${km} км` : label}</Text>
                 </Pressable>
               ))}
@@ -245,8 +245,8 @@ export default function RouteScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EFEBE2' },
-  top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingRight: 16, borderRadius: 24, backgroundColor: '#FBFAF6', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  root: { flex: 1, backgroundColor: '#DDD8CB' },
+  top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingRight: 16, borderRadius: 24, backgroundColor: '#EEE9DE', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   topSub: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   topTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
@@ -257,17 +257,17 @@ const styles = StyleSheet.create({
   navSub: { fontFamily: fonts.body400, fontSize: 13.5, color: '#BDB8AD' },
   navBar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   navStat: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  modeDot: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  modeDot: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   navMin: { fontFamily: fonts.display800, fontSize: 24, color: colors.ink },
   navSub2: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   finish: { height: 52, paddingHorizontal: 20, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   finishText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.ink },
-  speed: { position: 'absolute', left: 14, width: 64, height: 64, borderRadius: 32, backgroundColor: '#FBFAF6', borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  speed: { position: 'absolute', left: 14, width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEE9DE', borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   speedN: { fontFamily: fonts.display800, fontSize: 22, lineHeight: 24, color: colors.ink },
   speedU: { fontFamily: fonts.mono600, fontSize: 9, color: colors.muted2 },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: '#FBFAF6', padding: 16, gap: 12, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: -4 }, elevation: 10 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: '#EEE9DE', padding: 16, gap: 12, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: -4 }, elevation: 10 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, minHeight: 78, borderRadius: 16, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4 },
+  tile: { flex: 1, minHeight: 78, borderRadius: 16, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4 },
   tileOn: { backgroundColor: colors.ink },
   tileText: { fontFamily: fonts.body700, fontSize: 16, color: colors.ink },
   tileSub: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted2 },
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   bestText: { fontFamily: fonts.mono600, fontSize: 8.5, letterSpacing: 0.6, color: colors.ink },
   advice: { fontFamily: fonts.body500, fontSize: 13, lineHeight: 18, color: colors.muted2 },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  stepIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   busRef: { fontFamily: fonts.mono600, fontSize: 12, color: '#FFFFFF' },
   stepTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
   stepSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },

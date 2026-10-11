@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.body700, fontSize: 13, color: colors.muted },
   input: { height: 56, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 16, fontFamily: fonts.body700, fontSize: 18, color: colors.ink },
   chips: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  handle: { height: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: '#DDD8CC', backgroundColor: colors.card, justifyContent: 'center' },
+  handle: { height: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: '#C8C2B2', backgroundColor: colors.card, justifyContent: 'center' },
   handleText: { fontFamily: fonts.mono600, fontSize: 14, color: colors.ink },
   dev: { height: 40, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 8 },
   devText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.paper },

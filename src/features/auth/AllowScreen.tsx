@@ -61,7 +61,7 @@ export default function Allow() {
     <LoginFrame step={5} onBack={() => router.back()} title="Последнее"
       footer={<StepButton label="Готово" onPress={() => router.push('/done')} />}>
       <View style={{ paddingHorizontal: 20, gap: 12 }}>
-        <Card tint="#FBDCCB" title="Геолокация" text="Чтобы показать, что рядом. Друзья видят тебя, только если включишь." state={geo} onPress={() => void askGeo()}
+        <Card tint="#F0C5AE" title="Геолокация" text="Чтобы показать, что рядом. Друзья видят тебя, только если включишь." state={geo} onPress={() => void askGeo()}
           icon={<Svg width={22} height={22} viewBox="0 0 24 24" fill="none"><Path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z" stroke={colors.ink} strokeWidth={1.8} strokeLinejoin="round" /><Circle cx={12} cy={9} r={2.4} stroke={colors.ink} strokeWidth={1.8} /></Svg>} />
         <Card tint={colors.softBlue} title="Уведомления" text="Сообщения, стикеры, «тебя зовут». Ночью — тишина." state={push} onPress={() => void askPush()}
           icon={<Svg width={22} height={22} viewBox="0 0 24 24" fill="none"><Path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20.5a2 2 0 004 0" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /></Svg>} />
@@ -71,7 +71,7 @@ export default function Allow() {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 22, borderWidth: 1.5, borderColor: '#E5E0D4', backgroundColor: colors.card, padding: 16, gap: 14 },
+  card: { borderRadius: 22, borderWidth: 1.5, borderColor: '#CFC9BB', backgroundColor: colors.card, padding: 16, gap: 14 },
   cardTop: { flexDirection: 'row', gap: 12 },
   icon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },

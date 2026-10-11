@@ -8,7 +8,7 @@ const WEB = Platform.OS === 'web'
   : {};
 
 export const glass: ViewStyle = {
-  backgroundColor: Platform.OS === 'android' ? '#FBFAF6' : 'rgba(251,250,246,0.96)',
+  backgroundColor: Platform.OS === 'android' ? '#EEE9DE' : 'rgba(251,250,246,0.96)',
   shadowColor: '#17161A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   ...WEB,
 };

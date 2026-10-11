@@ -218,7 +218,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             </Pressable>
             {moreHere > 0 && (
               <View style={[styles.item, styles.itemSep]}>
-                <View style={[styles.itemIcon, { backgroundColor: '#E7E2D6' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
+                <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
                 <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
               </View>
             )}
@@ -301,7 +301,7 @@ const SHARE_TARGETS: [ShareTarget | 'copy' | 'more', string, string, string][] =
   ['instagram', 'Instagram', '#E1306C', 'M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zM12 8a4 4 0 100 8 4 4 0 000-8z'],
   ['threads', 'Threads', '#17161A', 'M15.5 11.5c-.5-2.5-2-3.5-3.8-3.5-2.3 0-3.7 1.6-3.7 4s1.5 4 4 4c2 0 3.5-1 3.5-3 0-2-1.8-2.8-4-2.3M12 21a9 9 0 119-9c0 3-1.5 5-4 5'],
   ['copy', 'Ссылка', '#6B675F', 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1'],
-  ['more', 'Ещё', '#E7E2D6', 'M5 12h.01M12 12h.01M19 12h.01'],
+  ['more', 'Ещё', '#D5CFC1', 'M5 12h.01M12 12h.01M19 12h.01'],
 ];
 
 
@@ -348,21 +348,21 @@ const styles = StyleSheet.create({
   cover: { height: 470, overflow: 'hidden', justifyContent: 'flex-end' },
   coverText: { padding: 18, gap: 10 },
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
-  stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#FBFAF6' },
+  stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#ECE7DC' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#D9D3C5' },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   lineText: { flex: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   hand: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  list: { borderRadius: 20, backgroundColor: '#ECE7DC', overflow: 'hidden' },
+  list: { borderRadius: 20, backgroundColor: '#D9D3C5', overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: 64 },
-  itemSep: { borderTopWidth: 1, borderTopColor: '#DDD8CC' },
+  itemSep: { borderTopWidth: 1, borderTopColor: '#C8C2B2' },
   itemIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   itemLetter: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   itemTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
   itemSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  skip: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  skip: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   goBtn: { flex: 1, height: 56, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   goText: { fontFamily: fonts.body700, fontSize: 17, color: colors.ink },
   inviteText: { fontFamily: fonts.body700, fontSize: 17, color: colors.paper },

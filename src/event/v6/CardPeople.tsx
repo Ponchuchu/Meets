@@ -74,7 +74,7 @@ export function CardPeople({ e, going, onGo, onInvite, onError }: {
                 <Text style={styles.sub} numberOfLines={2}>{asked[l.id] ? 'запрос отправлен' : l.note || (l.friend ? 'твой друг' : 'тоже идёт сюда')}</Text>
               </View>
               {asked[l.id] ? (
-                <View style={[styles.btn, { backgroundColor: '#E7E2D6' }]}><Text style={[styles.btnText, { color: colors.muted2 }]}>Ждём</Text></View>
+                <View style={[styles.btn, { backgroundColor: '#D5CFC1' }]}><Text style={[styles.btnText, { color: colors.muted2 }]}>Ждём</Text></View>
               ) : (
                 <Pressable onPress={() => void ask(l.id)} style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityLabel={`Пойдём? ${l.name}`}>
                   <Text style={styles.btnText}>Пойдём?</Text>
@@ -103,15 +103,15 @@ const styles = StyleSheet.create({
   friends: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   friend: { alignItems: 'center', gap: 6, width: 66 },
   friendName: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
-  ok: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ok, borderWidth: 2.5, borderColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center' },
-  plus: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#E7E2D6', alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 18, backgroundColor: '#EFEBE1' },
+  ok: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ok, borderWidth: 2.5, borderColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center' },
+  plus: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#D5CFC1', alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 18, backgroundColor: '#DDD7CA' },
   name: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   btn: { height: 38, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', minWidth: 86 },
   btnText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   look: { height: 58, borderRadius: 18, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 14 },
-  lookOn: { backgroundColor: '#FBDCCB' },
+  lookOn: { backgroundColor: '#F0C5AE' },
   lookText: { fontFamily: fonts.body700, fontSize: 16, color: colors.paper, flexShrink: 1 },
   note: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, textAlign: 'center', marginTop: -6 },
 });

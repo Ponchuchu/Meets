@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: 'rgba(251,250,246,0.92)' },
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
   when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: 'rgba(23,22,26,0.66)' },
-  whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#FBFAF6' },
+  whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 3, borderRadius: 12, backgroundColor: 'rgba(251,250,246,0.92)' },
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: 20, borderColor: colors.ink, transform: [{ rotate: '12deg' }] },

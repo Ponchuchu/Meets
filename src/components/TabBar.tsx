@@ -17,7 +17,7 @@ import { colors, fonts } from '../theme';
 const BAR_H = 66;
 const POP = Easing.bezier(0.3, 1.4, 0.5, 1);
 const OFF = '#5F5B55';
-const ON_DETAIL = '#FBFAF6';
+const ON_DETAIL = '#EEE9DE';
 
 const TABS: Record<string, { label: string; shape?: string; details?: string }> = {
   index: { label: 'Карта', shape: 'M3 6.5l6-3 6 3 6-3v14l-6 3-6-3-6 3z', details: 'M9 3.5v14M15 6.5v14' },
@@ -178,13 +178,13 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
     width: 366, maxWidth: '94%', height: BAR_H, padding: 5, borderRadius: 33, flexDirection: 'row', gap: 2,
-    backgroundColor: '#FBFAF6', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)',
+    backgroundColor: '#EEE9DE', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)',
     shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 10 }, elevation: 12,
   },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: 6, left: '50%', marginLeft: 5, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FBFAF6',
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#EEE9DE',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },

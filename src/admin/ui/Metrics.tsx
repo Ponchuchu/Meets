@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   value: { fontFamily: fonts.display700, fontSize: 30, color: colors.ink },
   norm: { fontFamily: fonts.mono500, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
-  flag: { alignSelf: 'flex-start', backgroundColor: '#F8DCCD', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  flag: { alignSelf: 'flex-start', backgroundColor: '#EDC6B2', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   flagText: { fontFamily: fonts.body600, fontSize: 13, color: colors.accentText },
   note: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, lineHeight: 19 },
 });

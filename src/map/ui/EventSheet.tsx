@@ -80,7 +80,7 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
             <View style={styles.who}>
               {friends.length > 0 && (
                 <View style={{ flexDirection: 'row', marginRight: 2 }}>
-                  {friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={28} style={{ marginLeft: i ? -9 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}
+                  {friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={28} style={{ marginLeft: i ? -9 : 0, borderWidth: 2, borderColor: '#EEE9DE' }} />)}
                 </View>
               )}
               <Text style={styles.whoText} numberOfLines={1}>{socialLine(e, people)}</Text>
@@ -101,16 +101,16 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
 }
 
 const styles = StyleSheet.create({
-  sheet: { borderRadius: 28, backgroundColor: '#FBFAF6', overflow: 'hidden', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  sheet: { borderRadius: 28, backgroundColor: '#EEE9DE', overflow: 'hidden', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
   cover: { height: 178, justifyContent: 'flex-end' },
   grab: { position: 'absolute', top: 8, alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.75)' },
   coverText: { padding: 16, gap: 8 },
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: 'rgba(23,22,26,0.55)' },
-  stampText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#FBFAF6' },
+  stampText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   title: { fontFamily: fonts.display800, fontSize: 25, lineHeight: 28, letterSpacing: -0.7, color: '#FFFFFF' },
   body: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
   chips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#EFEBE1' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#DDD7CA' },
   chipText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink },
   who: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28 },
   whoText: { flex: 1, fontFamily: fonts.body600, fontSize: 14.5, color: colors.ink },

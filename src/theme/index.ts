@@ -2,13 +2,13 @@
 
 export const colors = {
   ink: '#17161A',
-  paper: '#F3F0E8',
-  card: '#FBFAF6',
-  cardAlt: '#FBF9F4',
-  sand: '#E7E2D6',
-  sand2: '#E9E5DB',
-  line: '#DDD8CC',
-  line2: '#CFC9BB',
+  paper: '#E2DDD0',
+  card: '#EEE9DE',
+  cardAlt: '#EBE6DA',
+  sand: '#D5CFC1',
+  sand2: '#D9D4C7',
+  line: '#C8C2B2',
+  line2: '#BAB3A2',
   muted: '#55524C',
   muted2: '#3A3833',
   muted3: '#6B675F',
@@ -18,16 +18,16 @@ export const colors = {
   friendLight: '#5B7FEA',
   ok: '#2F8F5B',
   darkCard: '#2A292E',
-  softGreen: '#D9E4D2',
-  softYellow: '#EADFB8',
-  softBlue: '#D6E0EE',
-  softPink: '#E5D3DC',
+  softGreen: '#C5D3BB',
+  softYellow: '#D9CC9E',
+  softBlue: '#BFCCDF',
+  softPink: '#D2BCC8',
 } as const;
 
 export const mapPalettes = {
   paper: {
-    land: '#EFEBE2', street: '#F6F3EC', highway: '#FBF9F4', park: '#DCE3CE', water: '#C4D5DB',
-    mountains: ['#E8E3D8', '#E1DBCE', '#D9D2C3'], label: '#9A9387', district: '#BDB6A8',
+    land: '#D9D4C6', street: '#E7E2D5', highway: '#EDE8DC', park: '#C6D0B6', water: '#AFC3CB',
+    mountains: ['#D0CABC', '#C9C2B3', '#C1BAA9'], label: '#7C7568', district: '#9A9384',
   },
   night: {
     land: '#1C1D21', street: '#222328', highway: '#2E3036', park: '#1F2924', water: '#1C2E36',

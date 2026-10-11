@@ -119,7 +119,7 @@ export default function ProfileScreen() {
         <View style={styles.tiles}>
           <Pressable onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Где я был: ${exploredPct(s?.cells ?? [])} Алматы`}>
             <View style={styles.ringBox}>
-              <Ring value={pct} size={46} stroke={5} color={colors.accent} track="#E6E0D4" />
+              <Ring value={pct} size={46} stroke={5} color={colors.accent} track="#CFC9BB" />
               <Text style={styles.ringText}>{exploredPct(s?.cells ?? []).replace(' ', '').replace(',0', '')}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -130,10 +130,10 @@ export default function ProfileScreen() {
           <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" style={[styles.tile, styles.tileDark]} accessibilityLabel={`Уровень ${s?.level ?? 1}, ${s?.points ?? 0} из ${nextAt} очков`}>
             <View style={styles.ringBox}>
               <Ring value={s ? s.points / nextAt : 0} size={46} stroke={5} color="#F7A47E" track="#3A393F" />
-              <Text style={[styles.ringText, { color: '#FBFAF6', fontSize: 16 }]}>{s?.level ?? 1}</Text>
+              <Text style={[styles.ringText, { color: '#EEE9DE', fontSize: 16 }]}>{s?.level ?? 1}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.tileTitle, { color: '#FBFAF6' }]}>Уровень {s?.level ?? 1}</Text>
+              <Text style={[styles.tileTitle, { color: '#EEE9DE' }]}>Уровень {s?.level ?? 1}</Text>
               <Text style={[styles.tileSub, { color: '#BDB8AD' }]} numberOfLines={1} adjustsFontSizeToFit>{s?.points ?? 0} / {nextAt} очков</Text>
             </View>
           </Pressable>
@@ -146,14 +146,14 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.badges}>
             {(s?.badges ?? []).slice(0, 4).map((b) => {
-              const B = BADGE[b.id] ?? { Icon: Zap, bg: '#E7E2D6', fg: colors.ink };
+              const B = BADGE[b.id] ?? { Icon: Zap, bg: '#D5CFC1', fg: colors.ink };
               return (
-                <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#ECE7DC' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
+                <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#D9D3C5' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
                   <B.Icon size={24} color={b.got ? B.fg : '#A8A296'} strokeWidth={1.9} />
                 </Pressable>
               );
             })}
-            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, { backgroundColor: '#ECE7DC' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></Pressable>
+            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, { backgroundColor: '#D9D3C5' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></Pressable>
           </View>
         </View>
 
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
 
 function Row({ Icon, title, value, onPress, last }: { Icon: LucideIcon; title: string; value: string; onPress: () => void; last?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowSep, pressed && { backgroundColor: '#F1EDE4' }]} accessibilityRole="button" accessibilityLabel={`${title}: ${value}`}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, !last && styles.rowSep, pressed && { backgroundColor: '#E0DACD' }]} accessibilityRole="button" accessibilityLabel={`${title}: ${value}`}>
       <Icon size={20} color={colors.ink} strokeWidth={1.8} />
       <Text style={styles.rowTitle}>{title}</Text>
       <Text style={styles.rowValue} numberOfLines={1}>{value}</Text>
@@ -188,32 +188,32 @@ const styles = StyleSheet.create({
   avatar: { flex: 1, borderRadius: 50 },
   avatarEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   letter: { fontFamily: fonts.body700, fontSize: 42, lineHeight: 58, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
-  homeBadge: { position: 'absolute', right: -2, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#FBFAF6', borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  homeBadge: { position: 'absolute', right: -2, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE9DE', borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.7, color: colors.ink },
   handle: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
   dev: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, paddingHorizontal: 16, borderRadius: 18, backgroundColor: colors.ink },
-  devText: { flex: 1, fontFamily: fonts.body700, fontSize: 15.5, color: '#FBFAF6' },
+  devText: { flex: 1, fontFamily: fonts.body700, fontSize: 15.5, color: '#EEE9DE' },
   devNew: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.6, color: '#F7A47E' },
   nums: { flexDirection: 'row', gap: 8 },
-  num: { flex: 1, borderRadius: 18, backgroundColor: '#FBFAF6', padding: 12, gap: 2 },
+  num: { flex: 1, borderRadius: 18, backgroundColor: '#EEE9DE', padding: 12, gap: 2 },
   numN: { fontFamily: fonts.display800, fontSize: 24, color: colors.ink },
   numL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, backgroundColor: '#FBFAF6' },
+  tile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, backgroundColor: '#EEE9DE' },
   tileDark: { backgroundColor: colors.ink },
   ringBox: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
   ringText: { position: 'absolute', fontFamily: fonts.body700, fontSize: 11, color: colors.ink },
   tileTitle: { fontFamily: fonts.display700, fontSize: 15, color: colors.ink },
   tileSub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted2 },
-  card: { borderRadius: 20, backgroundColor: '#FBFAF6', padding: 14, gap: 12 },
+  card: { borderRadius: 20, backgroundColor: '#EEE9DE', padding: 14, gap: 12 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   cardSub: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted },
   badges: { flexDirection: 'row', gap: 10 },
   badge: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  list: { borderRadius: 20, backgroundColor: '#FBFAF6', overflow: 'hidden' },
+  list: { borderRadius: 20, backgroundColor: '#EEE9DE', overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56, paddingHorizontal: 16 },
-  rowSep: { borderBottomWidth: 1, borderBottomColor: '#ECE7DC' },
+  rowSep: { borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },
   rowTitle: { flex: 1, fontFamily: fonts.body700, fontSize: 15.5, color: colors.ink },
   rowValue: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted2, maxWidth: 160 },
   pressed: { transform: [{ scale: 0.98 }] },

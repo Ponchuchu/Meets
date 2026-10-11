@@ -1,7 +1,7 @@
 // Живая заставка (V6.md §2.1, переделана 11 октября): один раз за холодный запуск, ≤ 3,3 с, тап — пропустить.
 // 0–0,8 с улицы · 0,2–1,5 с «Meets» пишется · 1,5–1,95 с точка падает в конец названия ·
-// 2,05–2,75 с карта раскрывается кругом из этой точки · 2,75 с карта плавно приближается к тебе (MapScreen слушает settled) ·
-// 3,0–3,3 с заставка уходит. Сразу после «Добро пожаловать» не показываем — флаг skipSplash().
+// затем ждём, пока карта под заставкой реально загрузится (не дольше 4,5 с), и она раскрывается кругом из этой точки (0,7 с) ·
+// потом карта плавно приближается к тебе (MapScreen слушает settled) · заставка уходит. Сразу после «Добро пожаловать» не показываем — флаг skipSplash().
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
@@ -16,8 +16,8 @@ let played = false;
 export const skipSplash = () => { played = true; useIntro.getState().set(false); useIntro.getState().settle(); };
 
 /** splash — идёт ли заставка (обучение ждёт её конца); settled — пора приблизить камеру к тебе. */
-export const useIntro = create<{ splash: boolean; settled: boolean; set: (v: boolean) => void; settle: () => void }>((set) => ({
-  splash: !played, settled: played, set: (splash) => set({ splash }), settle: () => set({ settled: true }),
+export const useIntro = create<{ splash: boolean; settled: boolean; mapReady: boolean; set: (v: boolean) => void; settle: () => void; ready: () => void }>((set) => ({
+  splash: !played, settled: played, mapReady: played, set: (splash) => set({ splash }), settle: () => set({ settled: true }), ready: () => set({ mapReady: true }),
 }));
 
 const B = 1400; // толщина «рамки» вокруг растущего круга
@@ -68,21 +68,31 @@ export function Splash() {
   useEffect(() => {
     if (!on) return;
     if (reduce) { const r = setTimeout(end, 700); return () => clearTimeout(r); }
+    const t0 = Date.now();
     t.set(withTiming(1450, { duration: 1450, easing: Easing.linear }));
     write.set(withDelay(200, withTiming(1, { duration: 1300, easing: Easing.bezier(0.45, 0, 0.35, 1) })));
     dotOpacity.set(withDelay(1480, withTiming(1, { duration: 80 })));
     drop.set(withDelay(1500, withTiming(0, { duration: 460, easing: Easing.bounce })));
     ring.set(withDelay(1930, withTiming(1, { duration: 520, easing: Easing.out(Easing.quad) })));
-    hole.set(withDelay(2050, withTiming(1, { duration: 700, easing: Easing.bezier(0.6, 0, 0.2, 1) })));
-    word.set(withDelay(2150, withTiming(0, { duration: 260 })));
-    const s = setTimeout(() => useIntro.getState().settle(), 2750);
-    const e = setTimeout(end, 3300);
-    return () => { clearTimeout(s); clearTimeout(e); };
+    // Раскрытие — только когда слово дописано, точка упала и карта загрузилась; иначе под заставкой была бы пустая подложка.
+    let opened = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const open = () => {
+      if (opened) return;
+      opened = true;
+      hole.set(withTiming(1, { duration: 700, easing: Easing.bezier(0.6, 0, 0.2, 1) }));
+      word.set(withDelay(100, withTiming(0, { duration: 260 })));
+      timers.push(setTimeout(() => useIntro.getState().settle(), 700), setTimeout(end, 1250));
+    };
+    const tryOpen = () => { if (Date.now() - t0 >= 2050 && useIntro.getState().mapReady) timers.push(setTimeout(open, 250)); };
+    timers.push(setTimeout(tryOpen, 2050), setTimeout(open, 4500));
+    const unsub = useIntro.subscribe(tryOpen);
+    return () => { timers.forEach(clearTimeout); unsub(); };
   }, [on]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bg = '#F0521F';
   const ink = '#17161A';
-  const dotC = '#FBFAF6';
+  const dotC = '#EEE9DE';
   const line = 'rgba(23,22,26,0.13)';
   // Слово по центру экрана; точка — в его конце. Из этой точки раскрывается карта.
   const wordLeft = (width - WORD_W) / 2;

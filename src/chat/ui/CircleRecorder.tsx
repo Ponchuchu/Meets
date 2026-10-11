@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   veil: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(23,22,26,0.62)', alignItems: 'center', justifyContent: 'center', zIndex: 50 },
   circle: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, overflow: 'hidden', backgroundColor: '#2A292E' },
   ring: { position: 'absolute' },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 96, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: '#FBFAF6', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 96, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: '#EEE9DE', flexDirection: 'row', alignItems: 'center', gap: 10 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   time: { fontFamily: fonts.mono600, fontSize: 16, color: colors.ink },
   hint: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },

@@ -12,7 +12,7 @@ export function TopBar({ weather, weatherNow, active, dark, lensOn, onSearch, on
   weather: DayWeather | null; weatherNow: boolean; active: number; dark?: boolean; lensOn?: boolean;
   onSearch: () => void; onLens: () => void; onFilters: () => void; onCreate: () => void;
 }) {
-  const fg = dark ? '#F3F0E8' : colors.ink;
+  const fg = dark ? '#E2DDD0' : colors.ink;
   return (
     <View style={{ gap: 10 }}>
       <View style={styles.row}>
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   plus: { backgroundColor: colors.ink },
   pressed: { transform: [{ scale: 0.92 }] },
-  dot: { position: 'absolute', right: 9, top: 9, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#FBFAF6', backgroundColor: colors.accent },
+  dot: { position: 'absolute', right: 9, top: 9, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#EEE9DE', backgroundColor: colors.accent },
   wx: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, height: 26 },
   temp: { fontFamily: fonts.body700, fontSize: 16 },
 });

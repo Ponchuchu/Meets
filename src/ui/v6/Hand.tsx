@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, type TextStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { fonts } from '../../theme';
 
-export function Hand({ text, size = 64, color = '#FBFAF6', delay = 200, ms = 1250, style }: {
+export function Hand({ text, size = 64, color = '#EEE9DE', delay = 200, ms = 1250, style }: {
   text: string; size?: number; color?: string; delay?: number; ms?: number; style?: TextStyle;
 }) {
   const reduce = useReducedMotion();

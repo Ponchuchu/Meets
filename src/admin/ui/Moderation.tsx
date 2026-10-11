@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   conf: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2 },
   title: { fontFamily: fonts.body700, fontSize: 19, color: colors.ink, lineHeight: 24 },
   meta: { fontFamily: fonts.body400, fontSize: 13.5, color: colors.muted2 },
-  flag: { alignSelf: 'flex-start', backgroundColor: '#F8DCCD', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5 },
+  flag: { alignSelf: 'flex-start', backgroundColor: '#EDC6B2', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5 },
   flagText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.accentText },
   actions: { flexDirection: 'row', gap: 6, marginTop: 4 },
   btn: { flex: 1, height: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },

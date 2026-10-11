@@ -51,7 +51,7 @@ export default function Taste() {
 
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20 },
-  chip: { height: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1.5, borderColor: '#DDD8CC', backgroundColor: colors.card, justifyContent: 'center' },
+  chip: { height: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1.5, borderColor: '#C8C2B2', backgroundColor: colors.card, justifyContent: 'center' },
   on: { backgroundColor: colors.ink, borderColor: colors.ink },
   text: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   error: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.accentText, paddingHorizontal: 24, marginTop: 14 },
