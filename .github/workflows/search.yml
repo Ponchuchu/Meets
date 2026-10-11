@@ -43,7 +43,7 @@ jobs:
         timeout-minutes: 6
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
           KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
           GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
