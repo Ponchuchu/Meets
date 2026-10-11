@@ -43,6 +43,8 @@ export interface EventItem {
   /** Встреча, которую создал я (CreateEvent). */
   meetup?: { kind: string; plusOne: boolean; invited: string[]; items: MeetupItem[] };
   visibility: Visibility;
+  /** В планах сохраняются и события, которые команда сняла с карты. */
+  status?: 'draft' | 'published' | 'cancelled' | 'archived';
   /** Откуда пришло: настоящее событие из афиши или демо-событие макета. */
   origin: 'real' | 'demo';
   /** id друзей, которые идут (только для демо; в supabase считается из attendance). */

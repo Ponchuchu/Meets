@@ -50,6 +50,7 @@ import { getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getS
 import { MallPin, VenueSheet } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
+import { watchMapPosition } from '../../live/watchMapPosition';
 import { startCamera } from '../../live/startPoint';
 import { MeDot, useHeading } from '../../map/MeDot';
 import { MapControls } from '../../map/ui/MapControls';
@@ -84,6 +85,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [focused, setFocused] = useState(true);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  useEffect(() => { useIntro.getState().map(focused); return () => useIntro.getState().map(false); }, [focused]);
   const tabPad = useTabInset();
   const { width: W, height: winH } = useWindowDimensions();
   const [H, setH] = useState(0);
@@ -115,7 +117,7 @@ export default function MapScreen() {
     if (!settled || !startCam || settledOnce.current) return;
     settledOnce.current = true;
     // Заставка закончилась: карта плавно приближается к тебе (центр экрана — это ты).
-    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, 15.2, 1500);
+    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, startCam.zoom + Math.log2(1.22), 800);
   }, [settled, startCam]);
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
@@ -168,21 +170,16 @@ export default function MapScreen() {
   };
   // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
   useEffect(() => {
+    if (!focused) return;
     let cancelled = false;
-    let sub: Location.LocationSubscription | null = null;
+    let stop: (() => void) | undefined;
     (async () => {
       const ok = await ensureGeo(true);
       if (!ok || cancelled) return;
-      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) { setGeo('off'); return; }
-      const last = await Location.getLastKnownPositionAsync().catch(() => null);
-      if (last && !cancelled) setMyPos({ lat: last.coords.latitude, lon: last.coords.longitude });
-      sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 3 },
-        (l) => { if (!cancelled) setMyPos({ lat: l.coords.latitude, lon: l.coords.longitude }); },
-      ).catch(() => null);
+      stop = watchMapPosition(setMyPos, () => setGeo('off'));
     })().catch(() => undefined);
-    return () => { cancelled = true; sub?.remove(); };
-  }, [ensureGeo]);
+    return () => { cancelled = true; stop?.(); };
+  }, [ensureGeo, focused]);
   const goToMe = async () => {
     try {
       const at0 = myPos ?? fix;

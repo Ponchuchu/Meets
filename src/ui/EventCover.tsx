@@ -21,9 +21,9 @@ export function shade(hex: string, amt: number): string {
 export function EventCover({ cover, category, color, style, iconSize = 150, children }: {
   cover?: string | null; category: Category; color?: string; style?: StyleProp<ViewStyle>; iconSize?: number; children?: ReactNode;
 }) {
-  const [broken, setBroken] = useState(false);
+  const [brokenCover, setBrokenCover] = useState<string | null>(null);
   const base = color ?? CAT_COLOR[category] ?? colors.sand;
-  const src = cover && !broken ? photo(cover) : undefined;
+  const src = cover && cover !== brokenCover ? photo(cover) : undefined;
   const fg = catFg(category);
   return (
     <View style={[styles.box, { backgroundColor: base }, style]}>
@@ -39,7 +39,7 @@ export function EventCover({ cover, category, color, style, iconSize = 150, chil
         <Circle cx="8%" cy="92%" r="28%" fill={fg} opacity={0.08} />
       </Svg>
       {!src && <View style={styles.icon} pointerEvents="none"><Ic d={CAT_ICON[category]} size={iconSize} color={fg} w={0.9} /></View>}
-      {src && <Image source={src} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBroken(true)} />}
+      {src && <Image source={src} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBrokenCover(cover ?? null)} />}
       {children}
     </View>
   );

@@ -426,8 +426,13 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
   }
   // 2. ИИ ищет дополнительно, только по заданным сайтам.
   let fromAi: Found[] = [];
-  if (sources !== 'sites') {
-    if (!key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY' : 'Нет GEMINI_API_KEY');
+  if (sources !== 'sites' && !key) {
+    const error = isKimi(model) ? 'Нет KIMI_API_KEY' : 'Нет GEMINI_API_KEY';
+    report.ai = { model, asked: 0, found: 0, kept: 0, tokensIn: 0, tokensOut: 0, error };
+    if (!fromSites.length) throw new Error(error);
+    console.error(`${error}. Сохраняем найденное сайтами.`);
+  }
+  if (sources !== 'sites' && key) {
     const t1 = Date.now();
     // Kimi на этом ключе пускает один запрос за раз (лимит аккаунта) — идём по разделам по очереди, Gemini — параллельно.
     const mapTopics = async <R>(fn: (t: string) => Promise<R>): Promise<R[]> => {

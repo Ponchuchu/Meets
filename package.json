@@ -55,6 +55,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@react-native/jest-preset": "^0.86.3",
     "@types/jest": "29.5.14",
     "@types/mapbox-gl": "^2.7.21",
@@ -68,6 +69,7 @@
     "jest-expo": "^57.0.5",
     "knip": "^6.39.0",
     "playwright": "^1.63.0",
+    "react-test-renderer": "^19.2.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -87,6 +89,7 @@
     "lint": "expo lint",
     "knip": "knip --no-progress",
     "test": "jest",
+    "test:sql": "node scripts/check-review-sql.mjs",
     "build:web": "expo export -p web",
     "shots": "NODE_USE_ENV_PROXY=1 node scripts/shots.mjs",
     "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs",

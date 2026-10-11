@@ -168,6 +168,7 @@ interface LiveRow {
   address: string | null; address_note: string | null; lat: number | null; lon: number | null; needs_pin: boolean;
   price_min: number | null; price_max: number | null; is_free: boolean; about: string | null; organizer: string | null;
   cover_url: string | null; source_url: string | null; visibility: 'public' | 'friends';
+  status?: EventItem['status'];
 }
 
 export function mapLive(r: LiveRow): EventItem {
@@ -177,7 +178,7 @@ export function mapLive(r: LiveRow): EventItem {
     venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
     lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null, noPoint: r.lat == null || r.lon == null,
     priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free, about: r.about ?? '', organizer: r.organizer,
-    sourceUrl: r.source_url, cover: r.cover_url, visibility: r.visibility, origin: 'real',
+    sourceUrl: r.source_url, cover: r.cover_url, visibility: r.visibility, status: r.status, origin: 'real',
     friendsGoing: [], lookingCount: 0, goingCount: 0,
   };
 }
@@ -289,7 +290,7 @@ export async function answerInvite(inv: Invite, yes: boolean): Promise<void> {
 /** События по id (для «Были» в Планах и приглашений на дальние даты). */
 export async function getEventsByIds(ids: string[]): Promise<EventItem[]> {
   if (!ids.length) return [];
-  const rows = await must(sb().from('events_live').select('*').in('id', ids.slice(0, 200))) as LiveRow[];
+  const rows = await must(sb().from('events_for_plans').select('*').in('id', ids.slice(0, 200))) as LiveRow[];
   return withMeetupLocations(rows.map(mapLive));
 }
 

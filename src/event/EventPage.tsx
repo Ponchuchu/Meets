@@ -38,6 +38,7 @@ import { distM } from '../live/geo';
 import { kmText, stampOf } from '../map/ui/EventSheet';
 import { eventLink, shareText, shareUrl, type ShareTarget } from './share';
 import { plural, whenTitle } from './text';
+import { eventStatusLabel } from './availability';
 
 const LIVE = config.dataMode !== 'demo';
 
@@ -83,7 +84,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
-  const canArrive = going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
+  const statusLabel = eventStatusLabel(e);
+  const canArrive = !statusLabel && going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
   // Прошедшее (открыли из хроники): вместо кнопок — «Было · с кем».
   const past = endMs < now.getTime();
   const was = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
@@ -95,6 +97,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   };
 
   const toggleGo = () => {
+    if (statusLabel && !going) return;
     if (onGo && !going) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
@@ -240,7 +243,17 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 100 + insets.bottom }} />}
 
-      {past ? (
+      {statusLabel ? (
+        <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pastTitle}>{statusLabel}</Text>
+            <Text style={styles.pastSub}>Твой план и переписка сохранены</Text>
+          </View>
+          <Pressable onPress={going ? toggleGo : onClose} style={styles.inviteBtn} accessibilityRole="button">
+            <Text style={styles.inviteText}>{going ? 'Убрать' : 'Закрыть'}</Text>
+          </Pressable>
+        </View>
+      ) : past ? (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
           {was.length > 0 && <View style={{ flexDirection: 'row' }}>{was.slice(0, 4).map((p, i) => <Avatar key={p.id} p={p} size={36} ring={colors.friend} style={{ marginLeft: i ? -10 : 0 }} />)}</View>}
           <View style={{ flex: 1 }}>
@@ -269,6 +282,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             {sheet === 'company' && <CompanySheet e={e} when={whenTitle(e, now).toLowerCase()} now={now} people={people} onClose={() => setSheet(null)} onWrite={write} />}
             {sheet === 'invite' && (
               <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} busy={inviting} onSend={async(ids) => {
+                if (statusLabel) { setSheet(null); show({ text: statusLabel }); return; }
                 if(sendingInvite.current)return;
                 sendingInvite.current=true;setInviting(true);
                 try{

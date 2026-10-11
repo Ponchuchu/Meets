@@ -19,13 +19,24 @@ import { Banner, Btn, Chip, Section } from './kit';
 export type ListFilter = 'all' | 'gaps';
 
 async function loadAll(): Promise<AdminEvent[]> {
-  const since = new Date(Date.now() - 2 * 86400e3).toISOString();
-  const r = await withTimeout(
-    supabase().from('events').select('id,title,category,starts_at,address,price_min,price_max,is_free,cover_url,source_url,venues(name),sources(kind,handle,title)')
-      .eq('visibility', 'public').eq('status', 'published').gte('starts_at', since).order('starts_at').limit(400),
-  );
-  if (r.error) throw r.error;
-  return (r.data as unknown as { id: string; title: string; category: Category; starts_at: string; address: string | null; price_min: number | null; price_max: number | null; is_free: boolean; cover_url: string | null; source_url: string | null; venues: { name: string } | null; sources: { kind: SourceItem['kind']; handle: string; title: string } | null }[])
+  const now = new Date().toISOString();
+  const cutoff = new Date(Date.now() - 3 * 3600e3).toISOString();
+  type Row = { id: string; title: string; category: Category; starts_at: string; ends_at: string | null; address: string | null; price_min: number | null; price_max: number | null; is_free: boolean; cover_url: string | null; source_url: string | null; venues: { name: string } | null; sources: { kind: SourceItem['kind']; handle: string; title: string } | null };
+  const all: Row[] = [];
+  let after: string | null = null;
+  for (;;) {
+    let query = supabase().from('events').select('id,title,category,starts_at,ends_at,address,price_min,price_max,is_free,cover_url,source_url,venues(name),sources(kind,handle,title)')
+      .eq('visibility', 'public').eq('status', 'published')
+      .or(`ends_at.gt.${now},and(ends_at.is.null,starts_at.gt.${cutoff})`).order('id').limit(400);
+    if (after) query = query.gt('id', after);
+    const r = await withTimeout(query);
+    if (r.error) throw r.error;
+    const rows = r.data as unknown as Row[];
+    all.push(...rows);
+    if (rows.length < 400) break;
+    after = rows[rows.length - 1].id;
+  }
+  return all.sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))
     .map((x) => ({ id: x.id, title: x.title, category: x.category, startsAt: x.starts_at, venue: x.venues?.name ?? null, address: x.address, priceMin: x.price_min, priceMax: x.price_max, isFree: x.is_free, cover: x.cover_url, source: x.source_url, from: x.sources ? sourceLabel(x.sources.kind, x.sources.handle, x.sources.title) : 'ДОБАВЛЕНО ВРУЧНУЮ' }));
 }
 
@@ -82,6 +93,8 @@ export function EventsList({ live, filter, onFilter }: { live: boolean; filter: 
       if (job.kind === 'unpublish' || job.kind === 'delete') setOpenId(null);
       void qc.invalidateQueries({ queryKey: ['admin'] });
       void qc.invalidateQueries({ queryKey: ['events'] });
+      void qc.invalidateQueries({ queryKey: ['eventsById'] });
+      void qc.invalidateQueries({ queryKey: ['event'] });
     },
     onError: (e) => setError(e instanceof Error && e.message ? e.message : 'Не получилось. Проверь связь и попробуй ещё раз'),
   });

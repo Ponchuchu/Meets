@@ -16,6 +16,7 @@ import { myId } from '../../live/auth';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { usePlans } from '../../state/plans';
 import { MonthCalendar } from '../../event/ui/pickers';
+import { eventStatusLabel } from '../../event/availability';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
 import { colors, fonts } from '../../theme';
@@ -119,7 +120,7 @@ export default function PlansTab() {
     },
     { key: 'invite', label: 'Позвать', color: colors.friend, icon: <UserPlus size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => router.push({ pathname: '/event/[id]', params: { id: e.id, invite: '1' } }) },
     { key: 'del', label: 'Убрать', color: '#D8362A', icon: <Trash2 size={22} color="#FFFFFF" strokeWidth={1.9} />, onPress: () => usePlans.getState().ungo(e.id) },
-  ];
+  ].filter((a) => a.key !== 'invite' || !eventStatusLabel(e));
   const open = (e: EventItem) => router.push({ pathname: '/event/[id]', params: { id: e.id } });
 
   return (
@@ -194,6 +195,7 @@ export default function PlansTab() {
                     <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{e.title}</Text>
                     <Text style={styles.time}>{hm(e.startsAt)}</Text>
                   </View>
+                  {eventStatusLabel(e) && <Text style={[styles.sub, { color: colors.accentText }]}>{eventStatusLabel(e)}</Text>}
                   <View style={styles.meta}>
                     <Faces ids={e.friendsGoing} people={people} />
                     {looking > 0 && <View style={styles.look}><Hand size={13} color={colors.accentText} strokeWidth={2} /><Text style={styles.lookText}>{looking}</Text></View>}
