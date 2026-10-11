@@ -7,13 +7,21 @@ import { Banner, Section, Stat } from './kit';
 
 export interface Overview {
   users: number; new_24h: number; new_7d: number; online_24h: number; sharing_now: number; friendships: number; chats: number;
-  messages_24h: number; going: number; meetups: number; events_published: number; events_draft: number; events_no_price: number;
-  events_no_place: number; top_cats: { category: string; n: number }[];
+  messages_24h: number; going: number; meetups: number; events_published: number; events_upcoming: number; events_draft: number; drafts_stale: number;
+  events_no_price: number; events_no_place: number; events_no_cover: number; runs_failed_24h: number;
+  last_run: { status: string; found: number; queued: number; at: string; error: string | null } | null;
+  top_cats: { category: string; n: number }[];
 }
-const SAMPLE: Overview = { users: 2, new_24h: 0, new_7d: 2, online_24h: 2, sharing_now: 1, friendships: 1, chats: 2, messages_24h: 14, going: 3, meetups: 1, events_published: 48, events_draft: 4, events_no_price: 6, events_no_place: 0, top_cats: [{ category: 'music', n: 12 }, { category: 'standup', n: 8 }] };
+export const SAMPLE: Overview = {
+  users: 2, new_24h: 0, new_7d: 2, online_24h: 2, sharing_now: 1, friendships: 1, chats: 2, messages_24h: 14, going: 3, meetups: 1,
+  events_published: 48, events_upcoming: 31, events_draft: 4, drafts_stale: 1, events_no_price: 6, events_no_place: 2, events_no_cover: 9, runs_failed_24h: 0,
+  last_run: { status: 'done', found: 28, queued: 28, at: new Date().toISOString(), error: null },
+  top_cats: [{ category: 'music', n: 12 }, { category: 'standup', n: 8 }],
+};
 const CAT: Record<string, string> = { music: 'Музыка', concert: 'Концерты', standup: 'Стендап', art: 'Выставки', theatre: 'Театр', sport: 'Спорт', food: 'Еда', party: 'Вечеринки', talks: 'Лекции', lecture: 'Лекции', meetup: 'Встречи', hike: 'Горы', games: 'Настолки', bike: 'Вело' };
 
-export function OverviewBlock({ live }: { live: boolean }) {
+/** Сводка из базы (только команда). Без входа сотрудника — пример. Обновляется раз в минуту. */
+export function useOverview(live: boolean) {
   const q = useQuery({
     queryKey: ['admin', 'overview'], enabled: live, refetchInterval: 60_000,
     queryFn: async () => {
@@ -22,10 +30,15 @@ export function OverviewBlock({ live }: { live: boolean }) {
       return r.data as Overview;
     },
   });
-  const o = live ? q.data : SAMPLE;
+  return { data: live ? q.data : SAMPLE, isError: live && q.isError, isLoading: live && q.isPending, refetch: q.refetch };
+}
+
+export function OverviewBlock({ live }: { live: boolean }) {
+  const q = useOverview(live);
+  const o = q.data;
   return (
     <Section title="Люди" hint={live ? 'Обновляется раз в минуту' : 'Пример: настоящие цифры видны после входа сотрудника'}>
-      {q.isError && <Banner tone="error" text="Сводка не загрузилась. Нужна миграция 19 (admin_overview) — Actions → Supabase backend." />}
+      {q.isError && <Banner tone="error" text="Сводка не загрузилась. Нужна миграция 21 (admin_overview) — Actions → Supabase backend." />}
       {!o && !q.isError && <Text style={styles.muted}>Загружаю…</Text>}
       {o && (
         <>
@@ -45,8 +58,6 @@ export function OverviewBlock({ live }: { live: boolean }) {
             <Stat n={o.events_published} label="на карте" />
             <Stat n={o.events_draft} label="ждут согласования" />
             <Stat n={o.meetups} label="встреч друзей" />
-            <Stat n={o.events_no_price} label="без цены" warn={o.events_no_price > 0} />
-            <Stat n={o.events_no_place} label="без места" warn={o.events_no_place > 0} />
           </View>
           {o.top_cats.length > 0 && <Text style={styles.muted}>Больше всего: {o.top_cats.map((c) => `${CAT[c.category] ?? c.category} ${c.n}`).join(' · ')}</Text>}
         </>

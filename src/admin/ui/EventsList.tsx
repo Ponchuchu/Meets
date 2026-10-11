@@ -1,4 +1,4 @@
-// «Ивенты» → все события с поиском: время, место и цена видны в каждой карточке; чего нет — подсвечено оранжевым.
+// «Ивенты» → «На карте»: опубликованные события с поиском. Время, место и цена видны в каждой карточке; чего нет — подсвечено.
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -13,21 +13,21 @@ interface Row {
   id: string; title: string; status: string; startsAt: string | null; venue: string | null; address: string | null;
   priceMin: number | null; priceMax: number | null; isFree: boolean; cover: string | null; source: string | null;
 }
-type F = 'all' | 'published' | 'draft' | 'gaps';
+export type ListFilter = 'all' | 'gaps';
 const STATUS: Record<string, string> = { published: 'на карте', draft: 'ждёт', cancelled: 'отменено', archived: 'архив' };
 
 async function loadAll(): Promise<Row[]> {
   const since = new Date(Date.now() - 2 * 86400e3).toISOString();
   const r = await withTimeout(
     supabase().from('events').select('id,title,status,starts_at,address,price_min,price_max,is_free,cover_url,source_url,venues(name)')
-      .eq('visibility', 'public').in('status', ['published', 'draft']).gte('starts_at', since).order('starts_at').limit(400),
+      .eq('visibility', 'public').eq('status', 'published').gte('starts_at', since).order('starts_at').limit(400),
   );
   if (r.error) throw r.error;
   return (r.data as unknown as { id: string; title: string; status: string; starts_at: string; address: string | null; price_min: number | null; price_max: number | null; is_free: boolean; cover_url: string | null; source_url: string | null; venues: { name: string } | null }[])
     .map((x) => ({ id: x.id, title: x.title, status: x.status, startsAt: x.starts_at, venue: x.venues?.name ?? null, address: x.address, priceMin: x.price_min, priceMax: x.price_max, isFree: x.is_free, cover: x.cover_url, source: x.source_url }));
 }
 
-export function EventsList({ live }: { live: boolean }) {
+export function EventsList({ live, filter, onFilter }: { live: boolean; filter: ListFilter; onFilter: (f: ListFilter) => void }) {
   const q = useQuery({
     queryKey: ['admin', 'events-all', live], staleTime: 30_000,
     queryFn: async (): Promise<Row[]> => live ? loadAll() : (await data.getEvents()).map((e) => ({
@@ -35,28 +35,24 @@ export function EventsList({ live }: { live: boolean }) {
     })),
   });
   const [text, setText] = useState('');
-  const [f, setF] = useState<F>('all');
+  const f = filter;
   const [shown, setShown] = useState(20);
   const rows = useMemo(() => {
     const s = text.trim().toLowerCase().replace(/ё/g, 'е');
     return (q.data ?? []).filter((r) => {
       const facts = eventFacts({ startsAt: r.startsAt, venueName: r.venue, address: r.address, priceMin: r.priceMin, priceMax: r.priceMax, isFree: r.isFree });
-      if (f === 'published' && r.status !== 'published') return false;
-      if (f === 'draft' && r.status !== 'draft') return false;
       if (f === 'gaps' && facts.missing === 0) return false;
       return !s || `${r.title} ${r.venue ?? ''} ${r.address ?? ''}`.toLowerCase().replace(/ё/g, 'е').includes(s);
     });
   }, [q.data, text, f]);
 
   return (
-    <Section title="Все события" hint="Время, место и цена — в каждой карточке. Чего не нашли, подсвечено.">
+    <Section title="На карте" hint="Время, место и цена — в каждой карточке. Чего не нашли, подсвечено.">
       <TextInput value={text} onChangeText={(v) => { setText(v); setShown(20); }} placeholder="Поиск по названию, месту, адресу" placeholderTextColor={colors.muted3}
         style={styles.search} accessibilityLabel="Поиск по событиям" returnKeyType="search" />
       <View style={styles.chips}>
-        <Chip label="Все" on={f === 'all'} onPress={() => setF('all')} count={q.data?.length} />
-        <Chip label="На карте" on={f === 'published'} onPress={() => setF('published')} />
-        <Chip label="Ждут" on={f === 'draft'} onPress={() => setF('draft')} />
-        <Chip label="Чего-то нет" on={f === 'gaps'} onPress={() => setF('gaps')} />
+        <Chip label="Все" on={f === 'all'} onPress={() => onFilter('all')} count={q.data?.length} />
+        <Chip label="Чего-то нет" on={f === 'gaps'} onPress={() => onFilter('gaps')} />
       </View>
       {q.isError && <Text style={styles.muted}>Не удалось загрузить события. Проверь связь.</Text>}
       {q.isLoading && <Text style={styles.muted}>Загружаю…</Text>}

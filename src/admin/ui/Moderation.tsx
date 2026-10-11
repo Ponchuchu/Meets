@@ -7,21 +7,15 @@ import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Toggle as Switch } from '../../ui/v6/Settings';
 import { Toast, type ToastData } from '../../ui/Toast';
-import { loadQueue, loadSources, loadStats, moderate, saveDraft, setAutoPublish as saveAutoPublish } from '../api';
-import { demoQueue, DEMO_STATS, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';
+import { loadQueue, moderate, saveDraft } from '../api';
+import { demoQueue, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';
 import { useAdminDemo } from '../store';
 
 const FLAG_TEXT: Record<QueueFlag, string> = {
   needs_pin: 'Адрес неточный — поставь точку',
   check_price: 'Цена мелким шрифтом — проверь сумму',
   cancel_reported: 'Пишут, что отменили — проверь',
-};
-
-const hm = (iso: string) => {
-  const d = new Date(new Date(iso).getTime() + 5 * 3600e3);
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 };
 
 export function Moderation({ live }: { live: boolean }) {
@@ -40,8 +34,6 @@ export function Moderation({ live }: { live: boolean }) {
   };
 
   const queueQ = useQuery({ queryKey: ['admin', 'queue'], queryFn: loadQueue, enabled: live });
-  const sourcesQ=useQuery({queryKey:['admin','sources'],queryFn:loadSources,enabled:live});
-  const statsQ = useQuery({ queryKey: ['admin', 'stats'], queryFn: loadStats, enabled: live });
 
   // Демо: очередь макета.
   const demoItems = useMemo(() => {
@@ -58,11 +50,9 @@ export function Moderation({ live }: { live: boolean }) {
       .map((x) => ({ ...x, ...demo.edits[x.id] }));
   }, [suggestions, demo.done, demo.edits, myName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const items = live ? (queueQ.data ?? []) : demoItems;
-  const stats = live
-    ? (statsQ.data ?? { waiting: 0, onMap: 0, filtered: 0, lastRun: null })
-    : { ...DEMO_STATS, waiting: demoItems.length, onMap: demo.published };
-  const lastRun = stats.lastRun ? hm(stats.lastRun) : '—';
+  const allItems = live ? (queueQ.data ?? []) : demoItems;
+  const [qf, setQf] = useState<'all' | 'pin' | 'price'>('all');
+  const items = allItems.filter((x) => qf === 'all' || (qf === 'pin' ? x.flags.includes('needs_pin') : !x.isFree && x.priceMin == null));
 
   const act = useMutation({
     mutationFn: async ({ item, action, point }: { item: QueueItem; action: 'publish' | 'reject' | 'pin'; point?: { lat: number; lon: number } }) => {
@@ -83,27 +73,18 @@ export function Moderation({ live }: { live: boolean }) {
     onError: () => say('Не получилось — проверь связь и попробуй ещё раз'),
   });
 
-  const autoPublish = live ? !!sourcesQ.data?.some(s=>s.trusted&&s.autoPublish) : demo.autoPublish;
-  const toggleAuto = (v: boolean) => {
-    if (live) void saveAutoPublish(v).then(() => {void qc.invalidateQueries({queryKey:['admin','sources']});say(v ? 'Источники с доверием публикуются сразу' : 'Всё идёт через очередь');}).catch(()=>say('Не удалось сохранить настройку'));
-    else demo.setAutoPublish(v);
-  };
-
   return (
     <View style={styles.root}>
-      <Text style={styles.h1} accessibilityRole="header">Ждут согласования</Text>
-      <Text style={styles.last}>ПОСЛЕДНИЙ СБОР {lastRun}</Text>
-      <View style={styles.stats}>
-        {([[stats.waiting, 'ждут тебя'], [stats.onMap, 'на карте'], [stats.filtered, 'отсеял ИИ']] as const).map(([n, label]) => (
-          <View key={label} style={styles.stat}>
-            <Text style={styles.statN}>{n}</Text>
-            <Text style={styles.statLabel}>{label}</Text>
-          </View>
+      <View style={styles.filters}>
+        {([['all', 'Все'], ['pin', 'Нужна точка'], ['price', 'Без цены']] as const).map(([k, label]) => (
+          <Pressable key={k} onPress={() => setQf(k)} accessibilityRole="button" accessibilityState={{ selected: qf === k }} style={[styles.fchip, qf === k && styles.fchipOn]}>
+            <Text style={[styles.fchipText, qf === k && { color: colors.paper }]}>{label}{k === 'all' ? `  ${allItems.length}` : ''}</Text>
+          </Pressable>
         ))}
       </View>
 
       {items.length === 0 && (
-        <View style={styles.empty}><Text style={styles.emptyText}>{live && queueQ.isLoading ? 'Загружаю очередь…' : 'Очередь пуста — всё проверено'}</Text></View>
+        <View style={styles.empty}><Text style={styles.emptyText}>{live && queueQ.isLoading ? 'Загружаю очередь…' : queueQ.isError ? 'Не удалось загрузить очередь. Проверь связь.' : allItems.length ? 'Под этот фильтр ничего нет' : 'Очередь пуста. Нажми «Найти события» наверху'}</Text></View>
       )}
       {items.map((item) => {
         const pin = item.flags.includes('needs_pin');
@@ -131,14 +112,6 @@ export function Moderation({ live }: { live: boolean }) {
           </Animated.View>
         );
       })}
-
-      <View style={styles.auto}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.autoTitle}>Публиковать сразу, если 95%+</Text>
-          <Text style={styles.autoSub}>только для источников с доверием</Text>
-        </View>
-        <Switch on={autoPublish} onChange={toggleAuto} label="Публиковать сразу, если 95%+" />
-      </View>
 
       {preview&&<Overlay label="Карточка события" onClose={()=>setPreview(null)}>
         {preview.coverUrl&&<Image source={{uri:preview.coverUrl}} style={{width:'100%',height:180,borderRadius:18}} resizeMode="cover"/>}
@@ -257,7 +230,10 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper, letterSpacing: 0.4 },
   last: { fontFamily: fonts.mono500, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4 },
   h1: { fontFamily: fonts.display700, fontSize: 32, color: colors.ink, letterSpacing: -0.6, marginTop: 4 },
-  stats: { flexDirection: 'row', gap: 8 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  fchip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line2, justifyContent: 'center' },
+  fchipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  fchipText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, paddingVertical: 12 },
   statN: { fontFamily: fonts.display700, fontSize: 24, color: colors.ink },
   statLabel: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted2, marginTop: 2 },

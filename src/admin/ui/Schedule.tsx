@@ -1,18 +1,18 @@
-// «Ивенты» → расписание Gemini: по умолчанию выключено. Запускает Supabase (robot-tick раз в 5 минут), время — по Алматы.
+// «Настройки» → расписание поиска: по умолчанию выключено. Запускает Supabase (robot-tick раз в 5 минут), время — по Алматы.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase, withTimeout } from '../../data/client';
 import { colors, fonts } from '../../theme';
 import { Toggle } from '../../ui/v6/Settings';
-import { Banner, Btn, Card, Chip, Section } from './kit';
+import { Banner, Btn, Card, Chip, Section, Stepper } from './kit';
 
 type Row = { repeat: 'daily' | 'weekly' | 'hours'; days: number[]; time: string; every_hours: number | null; paused: boolean; last_run_at: string | null };
 const WD: [number, string][] = [[1, 'пн'], [2, 'вт'], [3, 'ср'], [4, 'чт'], [5, 'пт'], [6, 'сб'], [0, 'вс']];
 
-export function Schedule({ live }: { live: boolean }) {
-  const qc = useQueryClient();
-  const q = useQuery({
+/** Расписание поиска из базы (общий запрос для «Настроек» и «Внимания»). */
+export function useScheduleRow(live: boolean) {
+  return useQuery({
     queryKey: ['admin', 'schedule'], enabled: live,
     queryFn: async () => {
       const r = await withTimeout(supabase().from('robot_schedule').select('repeat,days,time,every_hours,paused,last_run_at').eq('task', 'search').maybeSingle());
@@ -20,6 +20,11 @@ export function Schedule({ live }: { live: boolean }) {
       return r.data as Row | null;
     },
   });
+}
+
+export function Schedule({ live }: { live: boolean }) {
+  const qc = useQueryClient();
+  const q = useScheduleRow(live);
   // Строка = то, что в базе, поверх — то, что человек уже поменял на экране.
   const [edits, setEdits] = useState<Partial<Row>>({});
   const row: Row = { repeat: 'daily', days: [1, 2, 3, 4, 5, 6, 0], time: '09:00', every_hours: 6, paused: true, last_run_at: null, ...q.data, ...edits };
@@ -41,7 +46,7 @@ export function Schedule({ live }: { live: boolean }) {
   const on = !row.paused;
 
   return (
-    <Section title="Расписание" hint="Сам по себе Gemini не ищет: деньги тратятся только по расписанию, которое ты включишь здесь.">
+    <Section title="Расписание" hint="Без расписания поиск запускается только кнопкой. Включишь, и он пойдёт сам в назначенное время (по Алматы).">
       <Card>
         <View style={styles.line}>
           <View style={{ flex: 1 }}>
@@ -55,11 +60,7 @@ export function Schedule({ live }: { live: boolean }) {
           <Chip label="Каждые N часов" on={row.repeat === 'hours'} onPress={() => up({ repeat: 'hours' })} />
         </View>
         {row.repeat === 'hours' ? (
-          <View style={styles.line}>
-            <Text style={styles.title}>Раз в</Text>
-            <TextInput style={[styles.input, { width: 80 }]} value={String(row.every_hours ?? '')} onChangeText={(v) => up({ every_hours: Number(v.replace(/\D/g, '')) || null })} keyboardType="number-pad" accessibilityLabel="Раз в сколько часов" />
-            <Text style={styles.title}>ч</Text>
-          </View>
+          <Stepper label="Раз в" unit="ч" value={row.every_hours ?? 6} min={1} max={48} onChange={(v) => up({ every_hours: v })} />
         ) : (
           <>
             <View style={styles.line}>

@@ -104,7 +104,30 @@ describe('диалоги: превью и последнее действие', 
 describe('причина ошибки Gemini', () => {
   it('402 — закончились деньги', () => {
     expect(explainFailure('Gemini 402: Your prepayment credits are depleted')).toContain('закончились деньги');
-    expect(explainFailure('RESOURCE_EXHAUSTED quota')).toContain('квота');
+    expect(explainFailure('RESOURCE_EXHAUSTED quota')).toContain('Лимит запросов');
     expect(explainFailure('')).toContain('Журнал');
+  });
+});
+
+describe('панель разработчика: понятные ошибки', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { explainError, ago } = require('../admin/errors') as typeof import('../admin/errors');
+  it('деньги, лимит, ключ, модель, GitHub', () => {
+    expect(explainError('Gemini 402: Your prepayment credits are depleted').kind).toBe('money');
+    expect(explainError('Kimi 429: rate limit').kind).toBe('limit');
+    expect(explainError('Нет KIMI_API_KEY. Добавь ключ').kind).toBe('key');
+    expect(explainError('Kimi: модели kimi-x нет').kind).toBe('model');
+    expect(explainError('Не удалось запустить workflow на GitHub: 404').kind).toBe('github');
+    expect(explainError('Kimi: время вышло').kind).toBe('timeout');
+    expect(explainError('что-то странное').kind).toBe('other');
+    expect(explainError('что-то странное').title).toBe('Запуск не удался');
+  });
+  it('«когда»: только что, минуты, сегодня, вчера', () => {
+    const now = new Date('2026-10-12T10:00:00Z');
+    expect(ago(null, now)).toBe('ещё не запускали');
+    expect(ago('2026-10-12T09:59:40Z', now)).toBe('только что');
+    expect(ago('2026-10-12T09:30:00Z', now)).toBe('30 мин назад');
+    expect(ago('2026-10-12T04:00:00Z', now)).toBe('сегодня 09:00');
+    expect(ago('2026-10-11T04:00:00Z', now)).toBe('вчера 09:00');
   });
 });

@@ -154,3 +154,23 @@ export async function loadUserTaste(query: string): Promise<UserTaste | null> {
     })),
   };
 }
+
+/** Черновики, у которых дата уже прошла: в согласовании они не нужны. Возвращает, сколько убрали. */
+export async function rejectStaleDrafts(): Promise<number> {
+  const cutoff = new Date(Date.now() - 3 * 3600e3).toISOString();
+  const { data, error } = await withTimeout(supabase().from('events').update({ rejected: true, updated_at: new Date().toISOString() })
+    .eq('status', 'draft').eq('rejected', false).lt('starts_at', cutoff).or(`ends_at.is.null,ends_at.lt.${cutoff}`).select('id'));
+  if (error) throw error;
+  return (data as unknown[] | null)?.length ?? 0;
+}
+
+/** Флаг в app_flags (например, covers_paused). */
+export async function getFlag(key: string): Promise<boolean | null> {
+  const { data, error } = await withTimeout(supabase().from('app_flags').select('value').eq('key', key).maybeSingle());
+  if (error) throw error;
+  return data ? (data as { value: unknown }).value === true : null;
+}
+export async function setFlag(key: string, value: boolean): Promise<void> {
+  const { error } = await withTimeout(supabase().from('app_flags').upsert({ key, value, updated_at: new Date().toISOString() }));
+  if (error) throw error;
+}

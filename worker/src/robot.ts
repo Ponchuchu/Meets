@@ -21,10 +21,11 @@ export async function robotUpdate(patch:Record<string,unknown>):Promise<void>{aw
 export async function robotLog(text:string,level='info'):Promise<void>{if(runId)await robot('robot_log','POST',{run_id:runId,text,level});}
 /** Понятная причина по хвосту журнала поиска: деньги на счёте, квота, ключ. */
 export function explainFailure(log:string):string{
-  if(/\b402\b|prepayment credits|depleted/i.test(log))return 'На счёте Gemini API закончились деньги (ошибка 402). Пополни баланс: ai.studio → Billing. Код приложения исправлять не нужно';
-  if(/\b429\b|RESOURCE_EXHAUSTED|quota/i.test(log))return 'Превышена квота Gemini API (429). Подожди или повысь лимит в AI Studio';
-  if(/\b(400|401|403)\b.*(API key|permission|PERMISSION_DENIED)|API_KEY_INVALID|Нет GEMINI_API_KEY/i.test(log))return 'Ключ Gemini не принят. Проверь секрет GEMINI_API_KEY в GitHub → Settings → Secrets';
-  if(/404|not found/i.test(log))return 'Такой модели Gemini нет. Проверь название модели в панели';
+  if(/\b402\b|prepayment credits|depleted|insufficient/i.test(log))return 'На счёте ИИ закончились деньги (ошибка 402). Пополни баланс у поставщика. Код менять не нужно. Афиши сайтов ищутся бесплатно';
+  if(/Нет (GEMINI|KIMI)_API_KEY|API_KEY_INVALID|PERMISSION_DENIED|\b401\b/i.test(log))return 'Ключ ИИ не принят или не добавлен. Проверь секреты GEMINI_API_KEY или KIMI в GitHub → Settings → Secrets';
+  if(/\b429\b|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(log))return 'Лимит запросов ИИ (429). Подожди минуту и запусти снова';
+  if(/модели .* нет|not found|\b404\b/i.test(log))return 'Такой модели нет. Выбери модель в панели: Настройки → ИИ-поиск';
+  if(/время вышло|timeout/i.test(log))return 'ИИ не успел ответить. Запусти ещё раз';
   return 'Запуск завершился с ошибкой. Журнал: GitHub → Actions → search';
 }
 async function main(){

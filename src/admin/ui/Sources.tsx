@@ -1,4 +1,4 @@
-// Источники — карточка «01 · Ты, один раз» из design/png/Pipeline.png: ссылки, доверие, «Добавить ссылку».
+// Источники: ссылки, доверие, «собирать», «Добавить ссылку». Заголовок и пояснение даёт «Настройки».
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -49,8 +49,6 @@ export function Sources({ live }: { live: boolean }) {
 
   return (
     <View style={styles.root}>
-      <Text style={styles.cap}>01 · ТЫ, ОДИН РАЗ</Text>
-      <Text style={styles.h1} accessibilityRole="header">Добавляешь источники</Text>
       <View style={styles.box}>
         {list.map((s, i) => (
           <Animated.View key={s.id} entering={FadeInDown.duration(200)} layout={LinearTransition} style={[styles.row, i > 0 && styles.rowLine]}>
@@ -74,16 +72,12 @@ export function Sources({ live }: { live: boolean }) {
       </View>
       {(q.isError||change.isError)&&<Text style={[styles.note,{color:colors.accentText}]}>Не удалось сохранить источники. Проверь связь и повтори.</Text>}
       {error && <Text style={[styles.note, { color: colors.accentText }]}>{error}</Text>}
-      <Text style={styles.foot}>У источника есть уровень доверия: официальным афишам можно разрешить публикацию без проверки.</Text>
-      <Text style={styles.foot}>Сейчас сборщик читает публичные превью Telegram-каналов каждые 2 часа с 08:00 до полуночи. Сайты и Threads — после юридической проверки (docs/TECH.md).</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 12 },
-  cap: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2, letterSpacing: 0.8 },
-  h1: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink, letterSpacing: -0.4 },
   box: { backgroundColor: colors.cardAlt, borderRadius: 18, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, flexWrap: 'wrap' },
   rowLine: { borderTopWidth: 1, borderTopColor: colors.line },
@@ -100,5 +94,4 @@ const styles = StyleSheet.create({
   input: { flex: 1, height: 36, fontFamily: fonts.body500, fontSize: 14.5, color: colors.ink },
   addBtn: { height: 34, borderRadius: 10, backgroundColor: colors.ink, paddingHorizontal: 14, justifyContent: 'center' },
   addText: { fontFamily: fonts.body700, fontSize: 13, color: colors.paper },
-  foot: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2, lineHeight: 19 },
 });
