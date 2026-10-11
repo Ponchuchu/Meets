@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs>
+ <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#DC3E18"/>
+ </linearGradient>
+ <radialGradient id="h4" cx=".25" cy=".15" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <filter id="s4" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#5a1a05" flood-opacity=".35"/></filter>
+ <clipPath id="c4"><rect width="1024" height="1024" rx="228"/></clipPath>
+</defs>
+<rect width="1024" height="1024" rx="228" fill="url(#g4)"/>
+<rect width="1024" height="1024" rx="228" fill="url(#h4)"/><g clip-path="url(#c4)"><line x1="285" y1="-60" x2="345" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><line x1="760" y1="-60" x2="690" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><g filter="url(#s4)" transform="rotate(-8 512 560)">
+     <path d="M512 860 C430 760 320 650 320 520 A192 192 0 0 1 704 520 C704 650 594 760 512 860 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="34" stroke-linejoin="round"/>
+     <g fill="#17130F"><circle cx="512" cy="462" r="50"/><path d="M430 640 L430 600 A82 74 0 0 1 594 600 L594 640 Q512 668 430 640 Z"/></g></g></g></svg>

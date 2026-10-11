@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs>
+ <linearGradient id="g7" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#DC3E18"/>
+ </linearGradient>
+ <radialGradient id="h7" cx=".25" cy=".15" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <filter id="s7" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#5a1a05" flood-opacity=".35"/></filter>
+ <clipPath id="c7"><rect width="1024" height="1024" rx="228"/></clipPath>
+</defs>
+<rect width="1024" height="1024" rx="228" fill="url(#g7)"/>
+<rect width="1024" height="1024" rx="228" fill="url(#h7)"/><g clip-path="url(#c7)"><line x1="285" y1="-60" x2="345" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><line x1="760" y1="-60" x2="690" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><g filter="url(#s7)" transform="rotate(-8 512 580)">
+     <circle cx="512" cy="580" r="205" fill="#FFFFFF" stroke="#17130F" stroke-width="34"/>
+     <clipPath id="ac7"><circle cx="512" cy="580" r="188"/></clipPath>
+     <g fill="#17130F" clip-path="url(#ac7)"><circle cx="512" cy="514.5" r="66.5"/>
+  <path d="M379,900 L379,721.6 A133,119.7 0 0 1 645,721.6 L645,900 Z"/></g></g></g></svg>
