@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
 import { fetchSxodimFound } from './sites.ts';
+import { fetchYandexFound } from './yandex.ts';
 
 export interface Found {
   title: string;
@@ -23,6 +24,8 @@ export interface Found {
   image_url?: string | null;
   source_name?: string | null;
   confidence?: number;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 const ALMATY = '+05:00';
@@ -331,14 +334,39 @@ export function finalize(list: Found[], from: string, to: string): Found[] {
   });
 }
 
+/** До limit штук: по кругу берём ближайшее событие каждой категории, чтобы стендап не вытеснил концерты, театр и лекции. */
+export function balanced(list: Found[], limit: number): Found[] {
+  if (list.length <= limit) return list;
+  const groups = new Map<string, Found[]>();
+  for (const f of list) groups.set(f.category, [...(groups.get(f.category) ?? []), f]);
+  const queues = [...groups.values()];
+  const out: Found[] = [];
+  for (let i = 0; out.length < limit; i++) {
+    let took = false;
+    for (const q of queues) if (q[i] && out.length < limit) { out.push(q[i]); took = true; }
+    if (!took) break;
+  }
+  return out.sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+}
+
 export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all'): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
-  // 1. Афиша Sxodim читается кодом: дата, место, цена и фото берутся со страницы, ИИ не нужен.
+  // 1. Афиши читает код: дата, площадка, цена, фото берутся прямо со страницы события, ИИ не нужен (0 токенов).
+  //    Яндекс Афиша — первой: у неё есть координаты площадки; дубли между сайтами отсекает finalize и общий конвейер.
   let fromSites: Found[] = [];
   if (sources !== 'ai') {
-    try { fromSites = finalize((await fetchSxodimFound()).filter((f) => startsInWindow(f, from)), from, to); } catch (err) { console.error(`  ✕ Sxodim: ${(err as Error).message}`); }
-    console.error(`Сайты: Sxodim дал ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
+    const grab = async (name: string, run: () => Promise<Found[]>): Promise<Found[]> => {
+      const t = Date.now();
+      try {
+        const list = (await run()).filter((f) => startsInWindow(f, from));
+        console.error(`  ${name}: ${list.length} событий с ${from} (${((Date.now() - t) / 1000).toFixed(0)} с)`);
+        return list;
+      } catch (err) { console.error(`  ✕ ${name}: ${(err as Error).message}`); return []; }
+    };
+    const [ya, sx] = await Promise.all([grab('Яндекс Афиша', () => fetchYandexFound(from)), grab('Sxodim', () => fetchSxodimFound())]);
+    fromSites = finalize([...ya, ...sx], from, to);
+    console.error(`Сайты: после отсева дублей и дат ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
   }
   // 2. ИИ ищет дополнительно, только по заданным сайтам.
   let fromAi: Found[] = [];
@@ -371,7 +399,7 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
   const out = finalize([...fromSites, ...fromAi], from, to).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
   const withPhoto = out.filter((f) => f.image_url).length;
   console.error(`Итого ${out.length} событий, с фото ${withPhoto}. Оставляем ${Math.min(limit, out.length)}.`);
-  return out.slice(0, limit);
+  return balanced(out, limit);
 }
 
 // ——— В конвейер ———
@@ -413,6 +441,8 @@ export function toPost(f: Found, sourceId: string, now = new Date()): { post: Ra
     // Поиск — не проверенный источник: сразу на карту не идёт никогда (см. autoPublish), только в «Согласование».
     confidence: Math.max(0, Math.min(1, Number(f.confidence ?? 0.6))),
     cancel_of: null,
+    lat: f.lat ?? null,
+    lon: f.lon ?? null,
   };
   return { post, x };
 }
