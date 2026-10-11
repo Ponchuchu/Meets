@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { EventPage } from '../../event/EventPage';
+import { LazyEventPage } from '../../event/LazyEventPage';
 import { useApp, useCoverTabBar } from '../../state/app';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
@@ -548,7 +548,7 @@ export default function MapScreen() {
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH, flex: 1 }, clipInner]}>
-            <EventPage e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
+            <LazyEventPage progress={ex} e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
           </Animated.View>
         </Animated.View>
       )}

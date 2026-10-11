@@ -10,8 +10,9 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { tabCenter, tabInset } from '../../components/TabBar';
 import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
-import { EventPage } from '../../event/EventPage';
+import { LazyEventPage } from '../../event/LazyEventPage';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
+import { EdgeGlow, SwipeHints } from '../../feed/SwipeHints';
 import { now as clockNow } from '../../lib/clock';
 import { buildDeck, makeSignal, tasteFrom } from '../../reco';
 import { useApp, useCoverTabBar } from '../../state/app';
@@ -49,6 +50,10 @@ export default function ForYouScreen() {
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
+  // Смещение верхней карточки: по нему подсвечиваются подсказки жестов и края экрана.
+  const dragX = useSharedValue(0);
+  const dragY = useSharedValue(0);
+  const drag = { x: dragX, y: dragY };
 
   // Вкус = ответы регистрации + свайпы. Колода пересчитывается после каждого решения.
   const answers = { interests: draft.interests ?? INITIAL_DRAFT.interests, times: draft.times ?? INITIAL_DRAFT.times, withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' };
@@ -72,12 +77,18 @@ export default function ForYouScreen() {
     return d;
   }, [taste, events, decided, history, now, enter]);
 
-  const cardTop = Math.max(50, insets.top + 6) + 62;
-  // Таб-бар плавает поверх: карточки и кнопки — над ним, раскрытое событие — на весь экран.
+  // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
+  const headTop = Math.max(50, insets.top + 6);
+  const baseTop = headTop + 56;
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
+  const HINTS_H = 40;
+  const GAP = 44; // под карточкой видна стопка (28) и зазор
   const cardW = Math.min(350, W - 40);
-  const cardH = Math.max(350, Math.min(510, screenH - cardTop - 30));
+  const cardH = Math.max(340, Math.min(500, screenH - baseTop - GAP - HINTS_H - 16));
+  const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 16);
+  const cardTop = baseTop + Math.round(free * 0.45);
+  const hintsTop = cardTop + cardH + GAP;
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
   const plansIcon = tabCenter(2, W, fullH, insets.bottom);
@@ -151,9 +162,11 @@ export default function ForYouScreen() {
 
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <View style={[styles.head, { top: Math.max(50, insets.top + 6) }]}>
+      <View style={[styles.head, { top: headTop, left: cardX + 2, right: cardX }]}>
         <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
+
+      {top && <EdgeGlow x={dragX} width={W} />}
 
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {deck.slice(0, STACK).map((e, k) => (
@@ -169,9 +182,14 @@ export default function ForYouScreen() {
             expand={p} onReveal={() => openCard(e, true)}
             onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeCard(); }}
             onUndo={doUndo}
+            drag={k === 0 ? drag : undefined}
           />
         )).reverse()}
       </View>
+
+      {top && !open && (
+        <View style={[styles.hints, { top: hintsTop, left: cardX, width: cardW }]} pointerEvents="none"><SwipeHints x={dragX} y={dragY} /></View>
+      )}
 
       {!top && (
         <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
@@ -197,7 +215,7 @@ export default function ForYouScreen() {
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
-            <EventPage e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+            <LazyEventPage progress={p} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} />
           </Animated.View>
         </Animated.View>
@@ -218,4 +236,5 @@ const styles = StyleSheet.create({
   emptyGhostText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink, textDecorationLine: 'underline' },
   emptyBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 50 },
+  hints: { position: 'absolute' },
 });
