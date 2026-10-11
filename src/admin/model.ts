@@ -32,7 +32,9 @@ export interface QueueStats {
 
 export interface SourceItem {
   id: string;
-  kind: 'telegram' | 'site' | 'threads' | 'manual' | 'user';
+  kind: 'telegram' | 'site' | 'threads' | 'manual' | 'user' | 'search';
+  /** Адрес/ник: по нему отличаем Sxodim от Яндекса. */
+  handle?: string;
   title: string;
   note: string | null;
   trusted: boolean;

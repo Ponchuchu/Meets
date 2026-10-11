@@ -3,15 +3,15 @@
 //   node worker/src/index.ts --demo     — посты из worker/fixtures, печать черновиков, без записи в базу
 //   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
-import {cancelled,robotUpdate,robotLog} from './robot.ts';
+import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
+import { readReport, runStats, telegramLine, telegramStat, type TelegramStat } from './runstats.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { understand } from './ai.ts';
 import { createDb } from './db.ts';
 import { processPosts, summary, type Outcome } from './pipeline.ts';
-import { fillImages, parseGeminiOutput, toPost } from './search.ts';
-import { fetchSite } from './sites.ts';
+import { fillImages, parseGeminiOutput, toPost, type Found } from './search.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
 import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
@@ -22,15 +22,33 @@ const argv = process.argv.slice(2);
 const args = new Set(argv);
 const searchFile = args.has('--search') ? argv[argv.indexOf('--search') + 1] : null;
 
-/** Файл с ответом Gemini CLI → посты + готовые разборы. */
-async function loadSearch(file: string, sourceId: string) {
-  const items = parseGeminiOutput(await readFile(file, 'utf8')).map((f) => toPost(f, sourceId));
+/** Найденные события из файла поиска. */
+async function readFound(file: string): Promise<Found[]> {
+  return parseGeminiOutput(await readFile(file, 'utf8'));
+}
+
+/** Найденное → посты конвейера + готовый разбор (второй раз ИИ не нужен). */
+async function batchOf(found: Found[], sourceId: string) {
+  const items = found.map((f) => toPost(f, sourceId));
   const posts = items.map((i) => i.post);
   if (!args.has('--no-images')) await fillImages(posts);
   const byId = new Map<string, Extraction>(items.map((i) => [i.post.externalId, i.x]));
   const understandFound = async (p: RawPost) => ({ ...byId.get(p.externalId)!, by: 'ai' as const });
   return { posts, understandFound };
 }
+
+/** Файл с ответом Gemini CLI → посты + готовые разборы (демо). */
+async function loadSearch(file: string, sourceId: string) {
+  return batchOf(await readFound(file), sourceId);
+}
+
+/** Какой строке «Источников» принадлежит событие: «Яндекс Афиша» → сайт Яндекса, «Sxodim» → Sxodim, остальное — «Поиск». */
+function sourceKeyOf(f: Found): 'yandex' | 'sxodim' | 'search' {
+  const n = (f.source_name ?? '').toLowerCase();
+  return n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
+}
+const rowFor = (key: 'yandex' | 'sxodim' | 'search', sources: Source[], fallback: Source): Source =>
+  key === 'search' ? fallback : (sources.find((s) => s.kind === 'site' && s.handle.toLowerCase().includes(key)) ?? fallback);
 
 function print(results: Outcome[]) {
   for (const r of results) {
@@ -124,34 +142,58 @@ async function live() {
       console.log('В базе нет источника «Поиск · Gemini» — примени миграцию 20261004000008_search.sql.');
       throw new Error('Нет источника Gemini в базе');
     }
-    const { posts, understandFound } = await loadSearch(searchFile, source.id);
-    const fresh = await db.savePosts(posts);
-    console.log(`${source.title}: найдено ${posts.length}, новых ${fresh.length}`);
-    const results = await processPosts(fresh, source, { understand: understandFound, geocode, venues, known, now: new Date() });
-    drafts += await store(db, results, source.id);
-    print(results);
-    await robotUpdate({found:posts.length,verified:results.filter(r=>r.kind==='draft').length,queued:drafts});
+    const found = await readFound(searchFile);
+    // Каждое событие записываем на «свой» источник: на карточке будет «Яндекс Афиша» или «Sxodim», а не «ИИ».
+    const groups = new Map<string, { source: Source; found: Found[] }>();
+    for (const f of found) {
+      const src = rowFor(sourceKeyOf(f), sources, source);
+      const g = groups.get(src.id) ?? { source: src, found: [] };
+      g.found.push(f);
+      groups.set(src.id, g);
+    }
+    const all: Outcome[] = [];
+    let total = 0;
+    for (const { source: src, found: list } of groups.values()) {
+      const { posts, understandFound } = await batchOf(list, src.id);
+      const fresh = await db.savePosts(posts);
+      total += posts.length;
+      console.log(`${src.title}: найдено ${posts.length}, новых ${fresh.length}`);
+      const results = await processPosts(fresh, src, { understand: understandFound, geocode, venues, known, now: new Date() });
+      drafts += await store(db, results, src.id);
+      print(results);
+      all.push(...results);
+      await db.touchSource(src.id, null);
+    }
+    await robotUpdate({ found: total, verified: all.filter((r) => r.kind === 'draft').length, queued: drafts });
+    await robotMergeStats({ ...runStats(all, await readReport(), purged) });
     await robotLog(`На согласование отправлено ${drafts} новых событий`);
-    await db.touchSource(source.id, null);
     if (drafts) await db.notifyStaff();
     return;
   }
+  const tgStats: TelegramStat[] = [];
   for (const source of sources) {
-    if (source.kind === 'search') continue;
+    // Сайты-афиши читает поиск (код, без ИИ); здесь только каналы. Режим --telegram: только Telegram, с отчётом для панели.
+    if (source.kind === 'search' || source.kind === 'site') continue;
+    if (args.has('--telegram') && source.kind !== 'telegram') continue;
     try {
-      const fetched = source.kind === 'site' ? await fetchSite(source.handle, source.id) : await fetchChannel(source.handle, source.id, source.cursor);
+      const fetched = await fetchChannel(source.handle, source.id, source.cursor);
       const fresh = await db.savePosts(fetched);
       console.log(`${source.title}: новых постов ${fresh.length}`);
       const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, source.id);
       print(results);
-      // У сайтов нет сквозной нумерации — повторы отсекает база по адресу страницы.
-      const lastId = source.kind === 'site' ? source.cursor : (fresh.at(-1)?.externalId ?? source.cursor);
-      await db.touchSource(source.id, lastId);
+      if (source.kind === 'telegram') {
+        const t = telegramStat(source.handle, results);
+        tgStats.push(t);
+        await robotLog(telegramLine(t));
+      }
+      await db.touchSource(source.id, fresh.at(-1)?.externalId ?? source.cursor);
     } catch (err) {
       console.error(`${source.title}: ${(err as Error).message}`);
+      if (source.kind === 'telegram') await robotLog(`Источник · Telegram @${source.handle} · не открылся`, 'warn');
     }
   }
+  if (tgStats.length) await robotMergeStats({ telegram: tgStats });
   if (drafts) await db.notifyStaff();
 }
 

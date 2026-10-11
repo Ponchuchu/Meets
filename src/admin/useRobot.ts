@@ -5,8 +5,11 @@ import { supabase, withTimeout } from '../data/client';
 import { explainError, type Explained } from './errors';
 import { useRobotConfig } from './robotConfig';
 import { searchProblem } from './rules';
+import { keyStatuses, type KeyStatus, type RunStats } from './runStats';
+import { loadSources } from './api';
+import type { SourceItem } from './model';
 
-export interface Run { id: string; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'; found: number; queued: number; started_at: string; finished_at: string | null; params: { sources?: string; model?: string } | null }
+export interface Run { id: string; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'; found: number; queued: number; started_at: string; finished_at: string | null; params: { sources?: string; model?: string } | null; stats: RunStats | null }
 export interface LogLine { id: number; text: string; level: 'info' | 'ok' | 'warn' | 'error' }
 
 export type RobotState = 'never' | 'running' | 'done' | 'failed' | 'cancelled';
@@ -26,7 +29,7 @@ export function useRobotView(live: boolean): RobotView {
     queryKey: ['admin', 'robot'], enabled: live,
     refetchInterval: (q) => ((q.state.data as Run[] | undefined)?.some((r) => r.status === 'queued' || r.status === 'running') ? 4000 : 20000),
     queryFn: async () => {
-      const r = await withTimeout(supabase().from('robot_runs').select('id,status,found,queued,started_at,finished_at,params').order('started_at', { ascending: false }).limit(3));
+      const r = await withTimeout(supabase().from('robot_runs').select('id,status,found,queued,started_at,finished_at,params,stats').order('started_at', { ascending: false }).limit(3));
       if (r.error) throw r.error;
       return r.data as Run[];
     },
@@ -62,11 +65,30 @@ export function useRobotCommand(live: boolean, runId?: string) {
         const problem = searchProblem(cfg);
         if (problem) throw new Error(problem);
       }
-      const body = { action, run_id: runId, model: cfg.model, days: cfg.days, limit: cfg.limit, topics: cfg.topics, sources: cfg.sources };
+      const body = { action, run_id: runId, model: cfg.model, days: cfg.days, limit: cfg.limit, topics: cfg.topics, sources: cfg.sources, find_images: cfg.findImages };
       const r = await withTimeout(supabase().functions.invoke('robot-run', { body }), 20000);
       if (r.error || r.data?.error) throw new Error(r.data?.error || r.error?.message || 'Не получилось');
       return action === 'check' ? 'Связь с GitHub работает' : action === 'stop' ? 'Останавливаю: текущий шаг дойдёт до конца' : 'Поиск запущен. Обычно 1–2 минуты';
     },
     onSettled: () => { void qc.invalidateQueries({ queryKey: ['admin', 'robot'] }); void qc.invalidateQueries({ queryKey: ['admin', 'overview'] }); },
   });
+}
+
+/** Ключи ИИ из журнала последних запусков (воркер пишет «Ключ · Kimi · есть, баланс 12.50»). Самих ключей здесь нет. */
+export function useKeyStatuses(live: boolean): { keys: KeyStatus[]; loading: boolean } {
+  const q = useQuery({
+    queryKey: ['admin', 'keys'], enabled: live, staleTime: 30_000,
+    queryFn: async () => {
+      const r = await withTimeout(supabase().from('robot_log').select('text,at').like('text', 'Ключ · %').order('at', { ascending: false }).limit(12));
+      if (r.error) throw r.error;
+      return keyStatuses(r.data as { text: string }[]);
+    },
+  });
+  return { keys: q.data ?? [], loading: live && q.isPending };
+}
+
+/** Включённые источники (переключатели «собирать»): что реально будет прочитано при поиске. Без входа — оба сайта, как в макете. */
+export function useEnabledSources(live: boolean): { list: SourceItem[]; loading: boolean } {
+  const q = useQuery({ queryKey: ['admin', 'sources'], queryFn: loadSources, enabled: live });
+  return { list: live ? (q.data ?? []).filter((s) => s.enabled) : [], loading: live && q.isPending };
 }

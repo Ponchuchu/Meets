@@ -7,9 +7,8 @@ import { colors, fonts } from '../../theme';
 import { Toggle as Switch } from '../../ui/v6/Settings';
 import { addSource, loadSources, parseSourceLink, updateSource } from '../api';
 import type { SourceItem } from '../model';
+import { sourceHow, sourceMark } from '../runStats';
 import { useAdminDemo } from '../store';
-
-const MARK: Record<SourceItem['kind'], string> = { site: 'ЯА', threads: 'TH', telegram: 'TG', manual: 'РУ', user: 'ПП' };
 
 export function Sources({ live }: { live: boolean }) {
   const qc = useQueryClient();
@@ -52,14 +51,15 @@ export function Sources({ live }: { live: boolean }) {
       <View style={styles.box}>
         {list.map((s, i) => (
           <Animated.View key={s.id} entering={FadeInDown.duration(200)} layout={LinearTransition} style={[styles.row, i > 0 && styles.rowLine]}>
-            <View style={styles.mark}><Text style={styles.markText}>{MARK[s.kind]}</Text></View>
+            <View style={styles.mark}><Text style={styles.markText}>{sourceMark(s.kind, s.title, s.handle)}</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{s.title}</Text>
               {!!s.note && <Text style={styles.note}>{s.note}</Text>}
+              {!!sourceHow(s.kind).label && <Text style={[styles.note, { color: sourceHow(s.kind).free ? colors.muted2 : colors.muted }]}>{sourceHow(s.kind).label}</Text>}
             </View>
             {s.trusted && <View style={styles.trust}><Text style={styles.trustText}>ДОВЕРИЕ</Text></View>}
             <View style={styles.toggles}>
-              <View style={styles.toggle}><Text style={styles.tLabel}>доверие</Text><Switch on={s.trusted} onChange={(v) => {if(!change.isPending)change.mutate({ s, patch: { trusted: v } });}} label={`Доверие: ${s.title}`} /></View>
+              <View style={styles.toggle}><Text style={styles.tLabel}>доверять</Text><Switch on={s.trusted} onChange={(v) => {if(!change.isPending)change.mutate({ s, patch: { trusted: v } });}} label={`Доверие: ${s.title}`} /></View>
               <View style={styles.toggle}><Text style={styles.tLabel}>собирать</Text><Switch on={s.enabled} onChange={(v) => {if(!change.isPending)change.mutate({ s, patch: { enabled: v } });}} label={`Собирать: ${s.title}`} /></View>
             </View>
           </Animated.View>

@@ -6,10 +6,11 @@ import { colors, fonts } from '../../theme';
 import { Toggle } from '../../ui/v6/Settings';
 import { getFlag, loadSources, setAutoPublish as saveAutoPublish, setFlag } from '../api';
 import { explainError } from '../errors';
-import { ALL_TOPICS, MODELS, modelOk, useRobotConfig } from '../robotConfig';
+import { ALL_TOPICS, MODELS, modelOk, useRobotConfig, type FindImages } from '../robotConfig';
+import { keyHelp } from '../runStats';
 import { useAdminDemo } from '../store';
-import { useRobotCommand } from '../useRobot';
-import { Banner, Btn, Card, Chip, SettingRow, Section, Stepper } from './kit';
+import { useKeyStatuses, useRobotCommand } from '../useRobot';
+import { Banner, Btn, Card, Chip, Segmented, SettingRow, Section, Stepper } from './kit';
 import { Schedule } from './Schedule';
 import { Sources } from './Sources';
 
@@ -75,29 +76,73 @@ function Publishing({ live }: { live: boolean }) {
   );
 }
 
+const PHOTO_HELP: Record<FindImages, string> = {
+  0: 'Фото берётся со страницы афиши. Если его там нет, в приложении показывается постер раздела (музыка, стендап…). Бесплатно.',
+  6: 'ИИ найдёт страницу события в интернете, а картинку с неё возьмёт и проверит код (не логотип, открывается, про это событие). До 6 событий за поиск. Платно и небыстро: Kimi отвечает примерно раз в минуту.',
+  12: 'То же, до 12 событий за поиск. Платно и небыстро: запуск может занять до 10 минут.',
+};
+
+function PhotoSettings() {
+  const cfg = useRobotConfig();
+  return (
+    <Section title="Фото событий" hint="Откуда берётся картинка, если на афише её нет.">
+      <Card>
+        <Text style={styles.label}>Если фото нет</Text>
+        <Segmented<string> value={String(cfg.findImages)} onChange={(v) => cfg.set({ findImages: Number(v) as FindImages })}
+          options={[{ id: '0', label: 'Постер раздела', sub: 'бесплатно' }, { id: '6', label: 'Искать ИИ', sub: 'до 6' }, { id: '12', label: 'Искать ИИ', sub: 'до 12' }]} />
+        <Text style={styles.help}>{PHOTO_HELP[cfg.findImages]}</Text>
+        <Text style={styles.help}>Картинки, которые рисует ИИ, включаются в «Публикация → Рисовать обложки ИИ».</Text>
+      </Card>
+    </Section>
+  );
+}
+
+function Dot({ ok, warn }: { ok: boolean; warn?: boolean }) {
+  return <View style={[styles.dot, { backgroundColor: !ok ? colors.accent : warn ? '#C79A2E' : '#4E7A52' }]} accessibilityElementsHidden />;
+}
+
 function Connection({ live }: { live: boolean }) {
   const cmd = useRobotCommand(live);
+  const { keys, loading } = useKeyStatuses(live);
   const err = cmd.isError ? explainError(cmd.error instanceof Error ? cmd.error.message : '') : null;
   return (
-    <Section title="Подключение" hint="Проверяет, что приложение достучалось до GitHub, где работает поиск. Поиск ничего не запускает и ничего не тратит.">
+    <Section title="Подключения" hint="Что нужно, чтобы поиск работал: связь с GitHub и ключи ИИ. Статусы обновляются при каждом поиске. Сами ключи здесь не видны.">
       <Card>
-        <Btn label={cmd.isPending ? 'Проверяю…' : 'Проверить связь'} kind="ghost" disabled={cmd.isPending} onPress={() => cmd.mutate('check')} />
-        {cmd.isSuccess && <Banner tone="ok" text={cmd.data} />}
+        <SettingRow title="GitHub" sub={cmd.isSuccess ? 'Связь работает' : 'Здесь запускается поиск. Нажми, чтобы проверить связь (ничего не тратит)'}
+          right={<Btn label={cmd.isPending ? 'Проверяю…' : 'Проверить'} kind="ghost" disabled={cmd.isPending} onPress={() => cmd.mutate('check')} />} />
         {err && <Banner tone="error" title={err.title} hint={err.hint} text={cmd.error instanceof Error ? cmd.error.message : undefined} />}
+        {live && loading && <Text style={styles.help}>Читаю статусы ключей…</Text>}
+        {live && !loading && keys.length === 0 && <Text style={styles.help}>Статусы ключей появятся после первого поиска.</Text>}
+        {keys.map((k) => {
+          const help = keyHelp(k);
+          return (
+            <View key={k.name} style={styles.keyRow}>
+              <Dot ok={k.ok} warn={k.low} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.keyName}>{k.name}</Text>
+                <Text style={styles.help}>{k.ok ? (k.note ? `Ключ есть · ${k.note}` : 'Ключ есть') : k.note || 'Ключа нет'}</Text>
+                {!!help && <Text style={[styles.help, { color: colors.accentText }]}>{help}</Text>}
+              </View>
+            </View>
+          );
+        })}
+        {live && !loading && keys.length > 0 && <Text style={styles.help}>Ключи нужны только для ИИ-поиска и разбора Telegram. Афиши сайтов работают без них.</Text>}
       </Card>
     </Section>
   );
 }
 
 export function SettingsTab({ live }: { live: boolean }) {
+  // Порядок по смыслу: откуда события → фото → что публиковать сразу → когда искать → ИИ → подключения.
   return (
     <View style={{ gap: 28 }}>
-      <AiSettings />
-      <Schedule live={live} />
-      <Publishing live={live} />
-      <Section title="Источники" hint="Откуда читаем афиши. «Доверие» разрешает публикацию без проверки, «собирать» включает чтение.">
+      <Section title="Источники" hint="Откуда берём события. «Собирать» включает чтение при поиске. «Доверие» разрешает публиковать события оттуда без проверки (только если включено «Публиковать сразу» ниже).">
         <Sources live={live} />
       </Section>
+      <PhotoSettings />
+      <Publishing live={live} />
+      <Schedule live={live} />
+      <AiSettings />
       <Connection live={live} />
     </View>
   );
@@ -108,4 +153,8 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   input: { minHeight: 48, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line, color: colors.ink, fontFamily: fonts.body500, fontSize: 15 },
   warn: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.accentText },
+  help: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted },
+  dot: { width: 12, height: 12, borderRadius: 6, marginTop: 4 },
+  keyRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingTop: 4 },
+  keyName: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
 });

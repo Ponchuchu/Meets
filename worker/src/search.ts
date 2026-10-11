@@ -5,6 +5,7 @@
 //   3. node worker/src/index.ts --search search.json → черновики в «Согласование» (дубли, места, флаги — общий конвейер).
 // Запуск шага 1: GEMINI_API_KEY=… node worker/src/search.ts --run > search.json  (ключи базы этому шагу не нужны)
 import { createHash } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
 import { normalize, similarity } from './dedupe.ts';
 import { fetchSxodimFound } from './sites.ts';
@@ -273,13 +274,19 @@ export function startsInWindow(f: Found, from: string): boolean {
 }
 
 /** Дубли внутри запуска и даты вне окна — прочь. */
+/** Событие пересекается с окном дат [from, to] (по Алматы). */
+export function inWindow(f: Found, from: string, to: string): boolean {
+  const day = almatyDate(new Date(f.starts_at));
+  const endDay = f.ends_at && !Number.isNaN(Date.parse(f.ends_at)) ? almatyDate(new Date(f.ends_at)) : day;
+  return !(endDay < from || day > to);
+}
+
 export function finalize(list: Found[], from: string, to: string): Found[] {
   const kept: Found[] = [];
   const urls = new Set<string>();
   for (const f of list) {
+    if (!inWindow(f, from, to)) continue;
     const day = almatyDate(new Date(f.starts_at));
-    const endDay = f.ends_at && !Number.isNaN(Date.parse(f.ends_at)) ? almatyDate(new Date(f.ends_at)) : day;
-    if (endDay < from || day > to) continue;
     // Ссылка одна, а сеансов несколько (Яндекс) — дубль только ссылка в тот же день.
     if (urls.has(`${f.url}|${day}`)) continue;
     urls.add(`${f.url}|${day}`);
@@ -363,8 +370,30 @@ export function balanced(list: Found[], limit: number): Found[] {
   return out.sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
 }
 
-export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all'): Promise<Found[]> {
+/** Отчёт запуска для панели разработчика: откуда сколько пришло, что отсеялось, какого качества результат. Пишется в robot_runs.stats. */
+export interface SearchReport {
+  window: { from: string; to: string };
+  sources: { name: string; found: number; ok: boolean; error?: string }[];
+  /** Прочитано, но дата вне выбранного периода. */
+  outside: number;
+  /** Склеено как дубли между сайтами. */
+  merged: number;
+  kept: number;
+  photo: number;
+  noPhoto: number;
+  /** Событий, у которых координаты пришли вместе с сайтом (Яндекс). Остальное определяет геокодер при записи в базу. */
+  siteGeo: number;
+  price: number;
+  ai?: { model: string; asked: number; found: number; kept: number; tokensIn: number; tokensOut: number; error?: string };
+  kimiPhotos?: number;
+}
+export const newReport = (): SearchReport => ({ window: { from: '', to: '' }, sources: [], outside: 0, merged: 0, kept: 0, photo: 0, noPhoto: 0, siteGeo: 0, price: 0 });
+
+export const SITE_KEYS = ['yandex', 'sxodim'] as const;
+
+export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all', report: SearchReport = newReport(), sitesOn: readonly string[] = SITE_KEYS): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
+  report.window = { from, to };
   const t0 = Date.now();
   // 1. Афиши читает код: дата, площадка, цена, фото берутся прямо со страницы события, ИИ не нужен (0 токенов).
   //    Яндекс Афиша — первой: у неё есть координаты площадки; дубли между сайтами отсекает finalize и общий конвейер.
@@ -375,11 +404,24 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
       try {
         const list = (await run()).filter((f) => startsInWindow(f, from));
         console.error(`  ${name}: ${list.length} событий с ${from} (${((Date.now() - t) / 1000).toFixed(0)} с)`);
+        report.sources.push({ name, found: list.length, ok: true });
         return list;
-      } catch (err) { console.error(`  ✕ ${name}: ${(err as Error).message}`); return []; }
+      } catch (err) {
+        console.error(`  ✕ ${name}: ${(err as Error).message}`);
+        report.sources.push({ name, found: 0, ok: false, error: (err as Error).message.slice(0, 120) });
+        return [];
+      }
     };
-    const [ya, sx] = await Promise.all([grab('Яндекс Афиша', () => fetchYandexFound(from)), grab('Sxodim', () => fetchSxodimFound())]);
-    fromSites = finalize([...ya, ...sx], from, to);
+    // Какие сайты читать, решают переключатели «собирать» в панели (передаются из функции запуска).
+    const [ya, sx] = await Promise.all([
+      sitesOn.includes('yandex') ? grab('Яндекс Афиша', () => fetchYandexFound(from)) : Promise.resolve([] as Found[]),
+      sitesOn.includes('sxodim') ? grab('Sxodim', () => fetchSxodimFound()) : Promise.resolve([] as Found[]),
+    ]);
+    const all = [...ya, ...sx];
+    const inside = all.filter((f) => inWindow(f, from, to));
+    fromSites = finalize(inside, from, to);
+    report.outside = all.length - inside.length;
+    report.merged = inside.length - fromSites.length;
     console.error(`Сайты: после отсева дублей и дат ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
   }
   // 2. ИИ ищет дополнительно, только по заданным сайтам.
@@ -401,12 +443,14 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
       }
     });
     // Если ИИ недоступен, а сайты уже дали события — не падаем, отдаём то, что есть.
+    if (answers.every((a) => a.usage.prompt === 0)) report.ai = { model, asked: topics.length, found: 0, kept: 0, tokensIn: 0, tokensOut: 0, error: `${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил` };
     if (answers.every((a) => a.usage.prompt === 0) && !fromSites.length) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
     const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
     const raw = finalize(answers.flatMap((a) => a.found), from, to);
     const t2 = Date.now();
     const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
     fromAi = finalize(checked, from, to);
+    report.ai = { model, asked: topics.length, found: raw.length, kept: fromAi.length, tokensIn: usage.prompt, tokensOut: usage.output, ...(report.ai?.error ? { error: report.ai.error } : {}) };
     console.error(`ИИ нашёл ${raw.length} (${((t2 - t1) / 1000).toFixed(0)} с), после проверки страниц ${fromAi.length}. Расход: вход ${usage.prompt}, выход ${usage.output} токенов, поисков ${usage.searches}. Модель ${model}.`);
   }
   // Сначала то, что прочитано с сайта (точнее); дубли по названию и дню отсекает finalize.
@@ -419,9 +463,15 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
   const findMax = Number(process.env.SEARCH_FIND_IMAGES || 0);
   if (findMax > 0 && kimiKey) {
     const filled = await findImagesWithKimi(picked, kimiKey, isKimi(model) ? model : KIMI_DEFAULT_MODEL, findMax);
+    report.kimiPhotos = filled;
     console.error(`Фото через Kimi: нашла для ${filled} из ${Math.min(findMax, picked.filter((f) => !f.image_url).length + filled)} карточек без фото.`);
   }
   console.error(`Без фото осталось ${picked.filter((f) => !f.image_url).length} (в приложении покажется обложка раздела).`);
+  report.kept = picked.length;
+  report.photo = picked.filter((f) => f.image_url).length;
+  report.noPhoto = picked.length - report.photo;
+  report.siteGeo = picked.filter((f) => f.lat != null).length;
+  report.price = picked.filter((f) => f.price_min != null || f.is_free).length;
   return picked;
 }
 
@@ -493,8 +543,15 @@ async function main() {
   const topics=selected.length?TOPICS.filter((_t,i)=>selected.includes(names[i])):TOPICS;
   const days=Number(process.env.SEARCH_DAYS||7), limit=Number(process.env.SEARCH_LIMIT||40);
   if(!topics.length||!Number.isInteger(days)||days<1||days>30||!Number.isInteger(limit)||limit<1||limit>100)throw new Error('Invalid search parameters');
-  const out=await runSearch(key,model,new Date(),days,topics,limit,sources);
-  console.log(JSON.stringify(out,null,1));
+  const sitesOn = (process.env.SEARCH_SITES_ON || SITE_KEYS.join(',')).split(',').map((x) => x.trim()).filter((x) => (SITE_KEYS as readonly string[]).includes(x));
+  const report = newReport();
+  try {
+    const out=await runSearch(key,model,new Date(),days,topics,limit,sources,report,sitesOn);
+    console.log(JSON.stringify(out,null,1));
+  } finally {
+    // Отчёт нужен панели даже если поиск упал: следующий шаг (с доступом к базе) положит его в запуск.
+    writeFileSync(process.env.SEARCH_REPORT || 'search-report.json', JSON.stringify(report));
+  }
 }
 
 if(process.argv[1]?.endsWith('search.ts')&&process.argv.includes('--run'))void main().catch(e=>{console.error(e instanceof Error?e.message:'Search failed');process.exitCode=1;});

@@ -6,12 +6,14 @@ import { colors, fonts } from '../../theme';
 import { ago, explainError } from '../errors';
 import { ALL_TOPICS, useRobotConfig, type SearchSources } from '../robotConfig';
 import { activeSources, PERIODS, searchProblem, sourceResults, TOPIC_TITLE } from '../rules';
-import { useRobotCommand, useRobotView } from '../useRobot';
+import { describeRun } from '../runStats';
+import { useEnabledSources, useRobotCommand, useRobotView } from '../useRobot';
 import { Banner, Btn, Card, Chip, Segmented } from './kit';
+import { RunSummary } from './RunSummary';
 import { SearchRadar } from './SearchRadar';
 
 const WHAT: Record<SearchSources, string> = {
-  sites: 'Код читает афиши Sxodim и Яндекс.Афиши. Без ИИ, бесплатно, 1–2 минуты.',
+  sites: 'Код читает афиши включённых сайтов. Без ИИ, бесплатно, 1–2 минуты.',
   ai: 'ИИ ищет по интернету. Платно, у аккаунта есть лимит запросов.',
   all: 'Сначала афиши сайтов, потом ИИ добавляет то, чего не хватило.',
 };
@@ -20,11 +22,13 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
   const view = useRobotView(live);
   const cmd = useRobotCommand(live, view.run?.id);
   const cfg = useRobotConfig();
+  const enabled = useEnabledSources(live);
   const [log, setLog] = useState(false);
   const running = view.state === 'running';
-  const problem = searchProblem(cfg);
+  const noSource = live && !enabled.loading && cfg.sources !== 'ai' && enabled.list.length === 0;
+  const problem = searchProblem(cfg) ?? (noSource ? 'Включи хотя бы один источник: Настройки → Источники → «собирать»' : null);
   const cmdError = cmd.isError ? explainError(cmd.error instanceof Error ? cmd.error.message : '') : null;
-  const plain = cmd.isError && cmd.error instanceof Error && /откроется|Выбери|Период/.test(cmd.error.message);
+  const plain = cmd.isError && cmd.error instanceof Error && /откроется|Выбери|Период|Включи/.test(cmd.error.message);
 
   // Был «идёт» — стало «готово»: показать найденное.
   const was = useRef(view.state);
@@ -34,7 +38,10 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
   }, [view.state, onDone]);
 
   const startedAt = view.run?.started_at;
-  const results = view.state === 'done' ? sourceResults(view.logs) : [];
+  const summary = view.state === 'done' && view.run?.stats ? describeRun(view.run.stats) : null;
+  const results = view.state === 'done' && !summary ? sourceResults(view.logs) : [];
+  const siteNames = enabled.list.filter((x) => x.kind === 'site').map((x) => x.title.replace(/ · .*$/, ''));
+  const tgOn = enabled.list.some((x) => x.kind === 'telegram');
   const days = cfg.days;
 
   return (
@@ -45,14 +52,14 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
 
       {running && startedAt ? (
         <>
-          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model)} line={view.line} />
+          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model, live && siteNames.length ? siteNames : undefined, tgOn)} line={view.line} />
         </>
       ) : (
         <>
           {view.state === 'never' && !view.loading && <Banner tone="info" text="Поиск ещё не запускали." />}
-          {view.state === 'done' && view.run && (
-            <Banner tone="ok" title={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} text={`Найдено ${view.run.found}${view.run.queued ? `, ждут проверки ${view.run.queued}` : ''}`} />
-          )}
+          {view.state === 'done' && view.run && (summary && view.run.stats
+            ? <RunSummary stats={view.run.stats} when={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} />
+            : <Banner tone="ok" title={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} text={`Найдено ${view.run.found}${view.run.queued ? `, ждут проверки ${view.run.queued}` : ''}`} />)}
           {results.length > 0 && (
             <View style={styles.results}>
               {results.map((r) => (
@@ -69,9 +76,16 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
             <Banner tone="error" title={view.error.title} hint={view.error.hint} action={problem ? undefined : { label: 'Запустить снова', onPress: () => cmd.mutate('start') }} />
           )}
 
+          {live && !enabled.loading && (
+            <View style={styles.reads}>
+              <Text style={styles.readsT}>Будет прочитано</Text>
+              <Text style={styles.readsV}>{activeSources(cfg.sources, cfg.model, siteNames, tgOn).join(' · ') || 'ничего: включи источник'}</Text>
+              <Pressable onPress={onSettings} accessibilityRole="button" hitSlop={8} style={styles.link}><Text style={styles.linkText}>Изменить источники</Text></Pressable>
+            </View>
+          )}
           <Segmented<SearchSources> value={cfg.sources} onChange={(sources) => cfg.set({ sources })}
             options={[{ id: 'sites', label: 'Скрипт', sub: 'бесплатно' }, { id: 'ai', label: 'ИИ', sub: 'платно' }, { id: 'all', label: 'Оба' }]} />
-          <Text style={styles.what}>{cfg.sources === 'sites' ? '' : `Модель ${cfg.model}. `}{WHAT[cfg.sources]}</Text>
+          <Text style={styles.what}>{cfg.sources === 'sites' ? '' : `Модель ${cfg.model}. `}{WHAT[cfg.sources]}{tgOn ? ' Telegram разбирает ИИ: отсеивает рекламу и мемы, токены уходят только на новые посты.' : ''}</Text>
 
           {cfg.sources !== 'sites' && (
             <View style={styles.chips} accessibilityLabel="Темы для ИИ">
@@ -115,6 +129,9 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
 const styles = StyleSheet.create({
   h: { fontFamily: fonts.display700, fontSize: 21, color: colors.ink, letterSpacing: -0.3 },
   what: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted },
+  reads: { gap: 2, padding: 12, borderRadius: 14, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.line },
+  readsT: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted3, textTransform: 'uppercase', letterSpacing: 0.3 },
+  readsV: { fontFamily: fonts.body700, fontSize: 14.5, lineHeight: 20, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   period: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted3, textTransform: 'uppercase', marginRight: 2 },
   warn: { fontFamily: fonts.body600, fontSize: 13, color: colors.accentText },

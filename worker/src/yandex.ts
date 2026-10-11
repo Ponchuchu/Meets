@@ -109,7 +109,7 @@ export function yandexFound(html: string, url: string, from = ''): Found[] {
     url,
     image_url: typeof image === 'string' && /^https?:\/\//.test(image) ? image : null,
     source_name: 'Яндекс Афиша',
-    confidence: 0.85,
+    confidence: 0.9,
     lat: Number.isFinite(lat) && lat !== 0 ? lat : null,
     lon: Number.isFinite(lon) && lon !== 0 ? lon : null,
   }));

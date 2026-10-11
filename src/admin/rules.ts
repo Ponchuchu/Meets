@@ -38,7 +38,11 @@ export function elapsed(fromIso: string, now = Date.now()): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** Что читает поиск сейчас — по выбранным источникам. */
-export function activeSources(s: SearchSources, model: string): string[] {
-  return [...(s !== 'ai' ? ['Яндекс Афиша', 'Sxodim'] : []), ...(s !== 'sites' ? [model.startsWith('kimi') ? 'ИИ · Kimi' : 'ИИ · Gemini'] : [])];
+/** Что читает поиск сейчас — по выбранному режиму и включённым источникам («собирать» в настройках). */
+export function activeSources(s: SearchSources, model: string, sites: string[] = ['Яндекс Афиша', 'Sxodim'], telegram = false): string[] {
+  return [
+    ...(s !== 'ai' ? sites : []),
+    ...(telegram ? ['Telegram'] : []),
+    ...(s !== 'sites' ? [model.startsWith('kimi') ? 'ИИ · Kimi' : 'ИИ · Gemini'] : []),
+  ];
 }

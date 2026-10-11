@@ -131,7 +131,7 @@ export function sxodimFound(html: string, url: string): Found | null {
     url,
     image_url: typeof image === 'string' && /^https?:\/\//.test(image) ? image : null,
     source_name: 'Sxodim',
-    confidence: 0.85, // разметка страницы точнее, чем пересказ ИИ
+    confidence: 0.9, // разметка страницы точнее, чем пересказ ИИ; подтверждено двумя сайтами — 0.95
   };
 }
 

@@ -85,10 +85,10 @@ export async function saveDraft(id: string, patch: { title: string; about: strin
 }
 
 export async function loadSources(): Promise<SourceItem[]> {
-  const { data, error } = await withTimeout(supabase().from('sources').select('id,kind,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at'));
+  const { data, error } = await withTimeout(supabase().from('sources').select('id,kind,handle,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at'));
   if (error) throw error;
-  return (data as { id: string; kind: SourceItem['kind']; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean }[])
-    .map((r) => ({ id: r.id, kind: r.kind, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
+  return (data as { id: string; kind: SourceItem['kind']; handle: string; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean }[])
+    .map((r) => ({ id: r.id, kind: r.kind, handle: r.handle, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
 }
 
 export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean }>): Promise<void> {

@@ -19,6 +19,34 @@ export async function cancelled():Promise<boolean> {
 }
 export async function robotUpdate(patch:Record<string,unknown>):Promise<void>{await robot(`robot_runs?id=eq.${runId}`,'PATCH',patch);}
 export async function robotLog(text:string,level='info'):Promise<void>{if(runId)await robot('robot_log','POST',{run_id:runId,text,level});}
+/** Итоги запуска (для панели) дописываются к уже записанным: поиск и Telegram идут разными шагами. */
+export async function robotMergeStats(patch:Record<string,unknown>):Promise<void>{
+  if(!runId)return;
+  try{
+    const rows=await robot(`robot_runs?id=eq.${runId}&select=stats`) as {stats:Record<string,unknown>|null}[];
+    await robotUpdate({stats:{...(rows?.[0]?.stats??{}),...patch}});
+  }catch(e){console.error(`Итоги запуска не записались: ${(e as Error).message}`);}
+}
+/** Какие ключи на месте. Строки «Ключ · имя · статус» панель показывает в «Настройки → Подключения». Самих ключей не пишем. */
+export async function keyLines(env:Record<string,string|undefined>=process.env,fetchFn:typeof fetch=fetch):Promise<{text:string;level:'info'|'warn'}[]>{
+  const out:{text:string;level:'info'|'warn'}[]=[];
+  const add=(name:string,ok:boolean,note='')=>out.push({text:`Ключ · ${name} · ${ok?`есть${note?`, ${note}`:''}`:note||'нет'}`,level:ok?'info':'warn'});
+  add('Gemini',env.HAS_GEMINI==='true');
+  add('Anthropic (Claude)',env.HAS_ANTHROPIC==='true');
+  const kimi=env.KIMI_API_KEY;
+  if(!kimi)add('Kimi',false);
+  else{
+    try{
+      const res=await fetchFn(`${(env.KIMI_BASE_URL||'https://api.moonshot.ai/v1').replace(/\/$/,'')}/users/me/balance`,{headers:{authorization:`Bearer ${kimi}`},signal:AbortSignal.timeout(8000)});
+      if(res.status===401)add('Kimi',false,'не принят');
+      else if(res.ok){
+        const b=((await res.json()) as {data?:{available_balance?:number}}).data?.available_balance;
+        add('Kimi',true,typeof b==='number'?`баланс ${b.toFixed(2)}${b<1?' — мало':''}`:'');
+      }else add('Kimi',true);
+    }catch{add('Kimi',true);}
+  }
+  return out;
+}
 /** Понятная причина по хвосту журнала поиска: деньги на счёте, квота, ключ. */
 export function explainFailure(log:string):string{
   if(/\b402\b|prepayment credits|depleted|insufficient/i.test(log))return 'На счёте ИИ закончились деньги (ошибка 402). Пополни баланс у поставщика. Код менять не нужно. Афиши сайтов ищутся бесплатно';
@@ -45,7 +73,7 @@ async function main(){
   if(!runId)return;
   const action=process.argv[2];
   const covers=process.env.ROBOT_TASK==='covers';
-  if(action==='start'){await robotUpdate({status:'running'});await robotLog(covers?'Генерация обложек запущена':'Поиск запущен · параметры переданы Gemini');}
+  if(action==='start'){await robotUpdate({status:'running'});await robotLog(covers?'Генерация обложек запущена':'Поиск запущен');for(const l of await keyLines())await robotLog(l.text,l.level);}
   else if(action==='finish'){
     const stopped=await cancelled();const status=stopped?'cancelled':process.env.ROBOT_JOB_STATUS==='success'?'done':'failed';
     let reason='';try{reason=explainFailure(await readFile('search.log','utf8'));}catch{reason=explainFailure('');}
