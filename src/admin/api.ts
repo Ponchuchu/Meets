@@ -55,6 +55,7 @@ export async function loadQueue(): Promise<QueueItem[]> {
     meta: metaLine({ startsAt: r.starts_at, endsAt: r.ends_at, place: r.venues?.name ?? r.address, priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free }),
     flags: r.flags ?? [],
     startsAt: r.starts_at,
+    endsAt: r.ends_at,
     address: r.address,
     about: r.about ?? '',
     priceMin: r.price_min,

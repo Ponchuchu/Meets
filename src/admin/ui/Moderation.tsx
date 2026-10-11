@@ -130,7 +130,7 @@ export function Moderation({ live }: { live: boolean }) {
       {items.map((item, i) => {
         const pin = item.flags.includes('needs_pin');
         return (
-          <EventRow key={item.id} index={i} title={item.title} sub={item.meta} cover={item.coverUrl} category={item.category}
+          <EventRow key={item.id} index={i} title={item.title} sub={item.meta} tag={item.source} cover={item.coverUrl} category={item.category}
             warn={item.flags[0] ? FLAG_TEXT[item.flags[0]] : undefined} onPress={() => setPreview(item)}
             right={(
               <View style={styles.rowActions}>

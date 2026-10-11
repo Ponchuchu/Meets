@@ -10,6 +10,7 @@ import type { Category } from '../../data/types';
 import { eventFacts } from '../../event/facts';
 import { colors, fonts } from '../../theme';
 import { eventAction, renameEvent, setEventCover } from '../api';
+import { sourceLabel, type SourceItem } from '../model';
 import { useAdminDemo } from '../store';
 import { EventRow } from './EventRow';
 import { EventSheet, type AdminEvent } from './EventSheet';
@@ -20,12 +21,12 @@ export type ListFilter = 'all' | 'gaps';
 async function loadAll(): Promise<AdminEvent[]> {
   const since = new Date(Date.now() - 2 * 86400e3).toISOString();
   const r = await withTimeout(
-    supabase().from('events').select('id,title,category,starts_at,address,price_min,price_max,is_free,cover_url,source_url,venues(name)')
+    supabase().from('events').select('id,title,category,starts_at,address,price_min,price_max,is_free,cover_url,source_url,venues(name),sources(kind,handle,title)')
       .eq('visibility', 'public').eq('status', 'published').gte('starts_at', since).order('starts_at').limit(400),
   );
   if (r.error) throw r.error;
-  return (r.data as unknown as { id: string; title: string; category: Category; starts_at: string; address: string | null; price_min: number | null; price_max: number | null; is_free: boolean; cover_url: string | null; source_url: string | null; venues: { name: string } | null }[])
-    .map((x) => ({ id: x.id, title: x.title, category: x.category, startsAt: x.starts_at, venue: x.venues?.name ?? null, address: x.address, priceMin: x.price_min, priceMax: x.price_max, isFree: x.is_free, cover: x.cover_url, source: x.source_url }));
+  return (r.data as unknown as { id: string; title: string; category: Category; starts_at: string; address: string | null; price_min: number | null; price_max: number | null; is_free: boolean; cover_url: string | null; source_url: string | null; venues: { name: string } | null; sources: { kind: SourceItem['kind']; handle: string; title: string } | null }[])
+    .map((x) => ({ id: x.id, title: x.title, category: x.category, startsAt: x.starts_at, venue: x.venues?.name ?? null, address: x.address, priceMin: x.price_min, priceMax: x.price_max, isFree: x.is_free, cover: x.cover_url, source: x.source_url, from: x.sources ? sourceLabel(x.sources.kind, x.sources.handle, x.sources.title) : 'ДОБАВЛЕНО ВРУЧНУЮ' }));
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
@@ -101,7 +102,7 @@ export function EventsList({ live, filter, onFilter }: { live: boolean; filter: 
         {rows.slice(0, shown).map((r, i) => {
           const x = factsOf(r);
           return <EventRow key={r.id} index={i} title={r.title} sub={`${x.when} · ${x.place}`} warn={x.missing ? `Не указано: ${x.missing}` : undefined}
-            cover={r.cover} category={r.category} onPress={() => { setError(null); setNote(null); setOpenId(r.id); }} />;
+            cover={r.cover} category={r.category} tag={r.from} onPress={() => { setError(null); setNote(null); setOpenId(r.id); }} />;
         })}
       </View>
       {rows.length > shown && <Btn label={`Показать ещё (${rows.length - shown})`} kind="ghost" onPress={() => setShown((n) => n + 20)} />}

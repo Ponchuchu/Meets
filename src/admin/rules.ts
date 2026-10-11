@@ -14,12 +14,16 @@ export function searchProblem(c: { sources: SearchSources; model: string; topics
   return null;
 }
 
-/** «Надёжное»: без пометок, уверенность 90%+ (или событие прочитано кодом с сайта) и не предложено человеком. */
-export function isReliable(x: Pick<QueueItem, 'flags' | 'confidence' | 'source' | 'startsAt'>, now = Date.now()): boolean {
+/**
+ * «Надёжное»: без пометок, уверенность 90%+ (афиши: Sxodim и Яндекс — 90%, подтверждённые двумя сайтами — 95%; ИИ-поиск — 85% и ниже,
+ * поэтому он остаётся на ручную проверку) и не предложено человеком. Не закончилось: идущая выставка тоже годится.
+ */
+export function isReliable(x: Pick<QueueItem, 'flags' | 'confidence' | 'source' | 'startsAt'> & { endsAt?: string | null }, now = Date.now()): boolean {
   if (x.flags.length) return false;
   if (x.source.startsWith('ПРЕДЛОЖИЛ') || x.source.startsWith('ДОБАВЛЕНО')) return false;
   if (x.confidence != null && x.confidence < 90) return false;
-  return Date.parse(x.startsAt) > now;
+  const end = x.endsAt ? Date.parse(x.endsAt) : Date.parse(x.startsAt) + 3 * 3600e3;
+  return end > now;
 }
 
 /** Строки «Источник · имя · итог» из журнала → для плашки результата. */
