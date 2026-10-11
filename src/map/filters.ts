@@ -1,4 +1,4 @@
-// Фильтры карты v6 (V6Filters): «Ближайшее время» (сейчас + 24 часа, по умолчанию) или даты из календаря,
+// Фильтры карты v6 (V6Filters): по умолчанию — неделя; «Ближайшее время» (сейчас + 24 часа) тумблером, или даты из календаря,
 // разделы, цена ступенями (5 / 20 / 50 тыс / любая), «Только бесплатное».
 import { dayIndex } from '../lib/clock';
 import type { Category, EventItem } from '../data/types';
@@ -22,7 +22,7 @@ export const PRICE_STOPS = [5000, 20000, 50000, MAX_PRICE];
 export const SOON_HOURS = 24;
 
 export interface MapFilters {
-  /** «Ближайшее время»: сейчас и следующие 24 часа. Выключено — работают from/to. */
+  /** «Ближайшее время»: сейчас и следующие 24 часа (по умолчанию выключено). Выключено — работают from/to (неделя). */
   soon: boolean;
   /** Смещения дней от сегодня, включительно. */
   from: number;
@@ -34,10 +34,12 @@ export interface MapFilters {
   company: boolean;
 }
 
-export const DEFAULT_FILTERS: MapFilters = { soon: true, from: 0, to: 0, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
+/** По умолчанию — вся неделя (сегодня + 6 дней). «Ближайшее время» (24 часа) включается тумблером в фильтрах. */
+export const WEEK_TO = 6;
+export const DEFAULT_FILTERS: MapFilters = { soon: false, from: 0, to: WEEK_TO, free: false, max: MAX_PRICE, cats: [], friends: true, company: false };
 
 export function activeCount(f: MapFilters): number {
-  return (f.soon === false ? 1 : 0) + (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
+  return (f.soon || f.from !== 0 || f.to !== WEEK_TO ? 1 : 0) + (f.free || f.max < MAX_PRICE ? 1 : 0) + (f.cats.length ? 1 : 0) + (!f.friends ? 1 : 0) + (f.company ? 1 : 0);
 }
 
 export function occursOnDay(e: Pick<EventItem, 'startsAt' | 'endsAt'>, day: number): boolean {

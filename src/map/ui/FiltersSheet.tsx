@@ -1,4 +1,4 @@
-// Фильтры v6 — design/png/V6Filters.png, V6FiltersDate.png. «Ближайшее время» (24 ч) или дни в календаре,
+// Фильтры v6 — design/png/V6Filters.png, V6FiltersDate.png. По умолчанию — неделя; «Ближайшее время» (24 ч) тумблером или дни в календаре,
 // разделы лентой, цена ступенями, «Только бесплатное». Внизу — «Показать N событий».
 import { Bike, Clock, Dices, Drama, Image as ImageIcon, Mic, Mountain, Music, PartyPopper, Presentation, Utensils, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
@@ -8,7 +8,7 @@ import { almaty, dayIndex } from '../../lib/clock';
 import { colors, fonts } from '../../theme';
 import { Ic } from '../../ui/Ic';
 import { Toggle as Switch } from '../../ui/v6/Settings';
-import { FILTER_CATS, MAX_PRICE, occursOnDay, PRICE_STOPS, type FilterCat, type MapFilters } from '../filters';
+import { FILTER_CATS, MAX_PRICE, occursOnDay, PRICE_STOPS, WEEK_TO, type FilterCat, type MapFilters } from '../filters';
 
 const ICON: Record<FilterCat, LucideIcon> = {
   music: Music, standup: Mic, theatre: Drama, art: ImageIcon, hike: Mountain, party: PartyPopper, sport: Bike, games: Dices, food: Utensils, talks: Presentation,
@@ -108,9 +108,9 @@ export function FiltersSheet({ f, set, reset, onShow, showText, now, events }: {
         <Clock size={22} color={colors.ink} strokeWidth={1.8} />
         <View style={{ flex: 1 }}>
           <Text style={styles.soonTitle}>Ближайшее время</Text>
-          <Text style={styles.soonSub}>{f.soon ? 'сейчас и следующие 24 часа' : 'выключено — выбери дни в календаре'}</Text>
+          <Text style={styles.soonSub}>{f.soon ? 'сейчас и следующие 24 часа' : 'выключено — показываю неделю, дни можно выбрать ниже'}</Text>
         </View>
-        <Switch on={f.soon} onChange={(soon) => set(soon ? { soon } : { soon, from: 0, to: 0 })} label="Ближайшее время" />
+        <Switch on={f.soon} onChange={(soon) => set(soon ? { soon } : { soon, from: 0, to: WEEK_TO })} label="Ближайшее время" />
       </View>
 
       {!f.soon && <Calendar now={now} events={events} f={f} set={set} />}

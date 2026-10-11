@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
 import type { MapTheme } from '../theme';
 
 export interface MapMarker {
@@ -44,11 +45,15 @@ export interface MapCanvasProps {
   follow?: boolean;
   /** Следование выключилось (человек сдвинул карту). */
   onFollowEnd?: () => void;
+  /** Моя точка. На телефоне рисуется слоями самой карты (оранжевая, с конусом направления) — не зависит от маркеров. */
+  me?: { lat: number; lon: number } | null;
+  /** Куда смотрит телефон, градусы (0 — север). Нет значения — конус не рисуем. */
+  meHeading?: SharedValue<number>;
 }
 
 export interface MapCanvasHandle {
   navigateTo: (lat: number, lon: number, heading: number) => void;
-  flyTo: (lat: number, lon: number, zoom?: number) => void;
+  flyTo: (lat: number, lon: number, zoom?: number, durationMs?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
   zoomBy: (delta: number) => void;
   /** Компас: повернуть карту севером вверх. */

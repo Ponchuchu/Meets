@@ -1,6 +1,6 @@
 // «Ивенты» → расписание Gemini: по умолчанию выключено. Запускает Supabase (robot-tick раз в 5 минут), время — по Алматы.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase, withTimeout } from '../../data/client';
 import { colors, fonts } from '../../theme';
@@ -20,8 +20,9 @@ export function Schedule({ live }: { live: boolean }) {
       return r.data as Row | null;
     },
   });
-  const [row, setRow] = useState<Row>({ repeat: 'daily', days: [1, 2, 3, 4, 5, 6, 0], time: '09:00', every_hours: 6, paused: true, last_run_at: null });
-  useEffect(() => { if (q.data) setRow(q.data); }, [q.data]);
+  // Строка = то, что в базе, поверх — то, что человек уже поменял на экране.
+  const [edits, setEdits] = useState<Partial<Row>>({});
+  const row: Row = { repeat: 'daily', days: [1, 2, 3, 4, 5, 6, 0], time: '09:00', every_hours: 6, paused: true, last_run_at: null, ...q.data, ...edits };
   const [note, setNote] = useState('');
   const save = useMutation({
     mutationFn: async (r: Row) => {
@@ -33,10 +34,10 @@ export function Schedule({ live }: { live: boolean }) {
       const b = await withTimeout(supabase().from('app_flags').upsert({ key: 'robot_paused', value: r.paused, updated_at: new Date().toISOString() }));
       if (b.error) throw b.error;
     },
-    onSuccess: (_d, r) => { setNote(r.paused ? 'Расписание выключено' : 'Сохранено. Gemini запустится сам в назначенное время'); void qc.invalidateQueries({ queryKey: ['admin', 'schedule'] }); },
+    onSuccess: (_d, r) => { setEdits({}); setNote(r.paused ? 'Расписание выключено' : 'Сохранено. Gemini запустится сам в назначенное время'); void qc.invalidateQueries({ queryKey: ['admin', 'schedule'] }); },
     onError: (e) => setNote(e instanceof Error ? e.message : 'Не удалось сохранить'),
   });
-  const up = (p: Partial<Row>) => setRow((r) => ({ ...r, ...p }));
+  const up = (p: Partial<Row>) => setEdits((e) => ({ ...e, ...p }));
   const on = !row.paused;
 
   return (

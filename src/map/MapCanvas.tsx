@@ -2,9 +2,13 @@
 // Android: пины и своя точка в рамке 72×72 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useAnimatedReaction } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
+import { MeDot } from './MeDot';
+import { meFeatures } from './meLayers';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import type { MapCanvasHandle, MapCanvasProps } from './types';
@@ -26,7 +30,7 @@ const LOAD_TIMEOUT_MS = 8000;
 const PIN_BOX = 72;
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd } = props;
+  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading } = props;
   const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -34,6 +38,16 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const moved = useRef(false);
   const z = useRef(camera.zoom);
   const [attempt, setAttempt] = useState(0);
+  // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
+  const [zoomNow, setZoomNow] = useState(camera.zoom);
+  const [hd, setHd] = useState<number | null>(null);
+  const hdRef = useRef<number | null>(null);
+  useAnimatedReaction(
+    () => (meHeading ? Math.round(meHeading.get() / 4) * 4 : null),
+    (v, prev) => { if (v !== null && v !== prev) scheduleOnRN(setHd, ((v % 360) + 360) % 360); },
+  );
+  hdRef.current = hd;
+  const meShape = useMemo(() => (me ? meFeatures(me.lat, me.lon, hd, zoomNow) : null), [me?.lat, me?.lon, hd, zoomNow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
@@ -50,12 +64,23 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const toStart = () => {
     if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, animationDuration: 0 });
   };
+  // Первый запуск: Android иногда оставляет камеру в точке (0, 0) — пустой голубой океан. Пока человек не трогал карту,
+  // повторно ставим стартовую точку после загрузки стиля, а потом проверяем центр на каждом «покое» карты.
+  useEffect(() => {
+    if (failed) return;
+    const ts = [250, 700, 1400, 2600, 4500].map((ms) => setTimeout(toStart, ms));
+    return () => ts.forEach(clearTimeout);
+  }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const checkCenter = (lat: number, lon: number) => {
+    if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
+  };
 
   useImperativeHandle(ref, () => ({
     navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
-    flyTo: (lat, lon, zoom) => {
+    flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
-      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: 600 });
+      if (zoom != null) z.current = zoom;
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -67,7 +92,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
 
-  if (failed || !Mapbox) return <StaticMap ref={staticRef} {...props} />;
+  if (failed || !Mapbox) {
+    const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
+    return <StaticMap ref={staticRef} {...props} markers={withMe} />;
+  }
   const M = Mapbox;
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -90,10 +118,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
           if (st.gestures?.isGestureActive) moved.current = true;
           if (Math.abs(z.current - st.properties.zoom) > 0.03) { z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }
+          if (Math.abs(zoomNow - st.properties.zoom) > 0.12) setZoomNow(st.properties.zoom);
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={() => onPress?.()}
-        onMapIdle={(st: { properties: { center: number[] } }) => onCenter?.(st.properties.center[1], st.properties.center[0])}
+        onMapIdle={(st: { properties: { center: number[] } }) => { onCenter?.(st.properties.center[1], st.properties.center[0]); checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => { loaded.current = true; toStart(); onMode?.('mapbox'); }}
         onMapLoadingError={() => {
@@ -124,6 +153,18 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         ))}
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
+        {meShape && (
+          <M.ShapeSource id="me-src" shape={meShape.point as never}>
+            <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16, circlePitchAlignment: 'map' }} />
+            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#FBFAF6', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
+            <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
+          </M.ShapeSource>
+        )}
+        {meShape?.cone && (
+          <M.ShapeSource id="me-cone-src" shape={meShape.cone as never}>
+            <M.FillLayer id="me-cone" belowLayerID="me-halo" style={{ fillColor: '#F0521F', fillOpacity: ['get', 'o'] as never, fillAntialias: true }} />
+          </M.ShapeSource>
+        )}
         {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>
             <View collapsable={false} pointerEvents="box-none" style={styles.pin}>{mk.node}</View>

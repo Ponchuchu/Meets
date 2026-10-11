@@ -5,7 +5,7 @@ import { activeCount, DEFAULT_FILTERS as BASE, matchesPrice, showLabel, visibleE
 import { phaseOf, whenLabel } from '../map/lifecycle';
 
 // Тесты по датам — с выключенным «Ближайшим временем».
-const DEFAULT_FILTERS = { ...BASE, soon: false };
+const DEFAULT_FILTERS = { ...BASE, soon: false, from: 0, to: 0 };
 
 // Понедельник 28.09.2026, время — по Алматы (UTC+5).
 const at = (hhmm: string, day = 28) => new Date(`2026-09-${String(day).padStart(2, '0')}T${hhmm}:00+05:00`);
@@ -97,7 +97,7 @@ describe('календарь', () => {
     expect(rangeLabel(1, 1, base)).toBe('Завтра');
     expect(rangeLabel(5, 6, base)).toBe('Выходные');
     expect(rangeLabel(3, 3, base)).toBe('1 окт');
-    expect(rangeLabel(0, 6, base)).toBe('28 сен – 4 окт');
+    expect(rangeLabel(0, 6, base)).toBe('Неделя');
   });
 });
 
@@ -111,7 +111,7 @@ describe('ближайшее время (v6)', () => {
       ev('later', '2026-09-30T19:00:00+05:00', '2026-09-30T21:00:00+05:00'),
       ev('past', '2026-09-28T10:00:00+05:00', '2026-09-28T12:00:00+05:00'),
     ];
-    expect(visibleEvents(list, BASE, now).map((e) => e.id).sort()).toEqual(['tomorrow-am', 'tonight']);
+    expect(visibleEvents(list, { ...BASE, soon: true }, now).map((e) => e.id).sort()).toEqual(['tomorrow-am', 'tonight']);
   });
 });
 
@@ -120,9 +120,9 @@ describe('FIX1 И2 п.8: на карте все одобренные событ�
   const mk = (id: string, h: number, extra: Partial<EventItem> = {}): EventItem => ({
     ...demoEvents()[0], id, startsAt: new Date(base.getTime() + h * 3600e3).toISOString(), endsAt: null, isLong: false, isFree: false, priceMin: 15000, ...extra,
   });
-  it('«Ближайшее время» по умолчанию: всё в следующие 24 часа, платное тоже', () => {
+  it('«Ближайшее время»: всё в следующие 24 часа, платное тоже', () => {
     const list = [mk('a', 1), mk('b', 6, { priceMin: 30000 }), mk('c', 23), mk('d', 30), mk('e', 5, { noPoint: true })];
     expect(BASE.free).toBe(false);
-    expect(visibleEvents(list, BASE, base).map((e) => e.id).sort()).toEqual(['a', 'b', 'c']);
+    expect(visibleEvents(list, { ...BASE, soon: true }, base).map((e) => e.id).sort()).toEqual(['a', 'b', 'c']);
   });
 });

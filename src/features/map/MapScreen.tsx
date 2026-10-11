@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { EventPage } from '../../event/EventPage';
@@ -15,7 +15,7 @@ import { useLiveFriends } from '../../data/realtime';
 import { DEMO_FORECAST } from '../../data/weather';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { rangeLabel } from '../../map/calendar';
-import { activeCount, MAX_PRICE, occursOnDay, showLabel, visibleEvents } from '../../map/filters';
+import { activeCount, MAX_PRICE, occursOnDay, showLabel, visibleEvents, WEEK_TO } from '../../map/filters';
 import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MapCanvas } from '../../map/MapCanvas';
 import { EventPin, FocusPin, FriendPin, MePin, type PinKind } from '../../map/pins';
@@ -114,7 +114,8 @@ export default function MapScreen() {
   useEffect(() => {
     if (!settled || !startCam || settledOnce.current) return;
     settledOnce.current = true;
-    if (startCam !== ALMATY_CAMERA) mapRef.current?.zoomBy(Math.log2(1.22));
+    // Заставка закончилась: карта плавно приближается к тебе (центр экрана — это ты).
+    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, 15.2, 1500);
   }, [settled, startCam]);
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
@@ -186,6 +187,13 @@ export default function MapScreen() {
     }
   };
 
+  // Первый запуск: разрешения не было, камера стояла на центре города. Как только появилась моя точка — плавно переезжаем к ней.
+  const centeredOnMe = useRef(false);
+  useEffect(() => {
+    if (!settled || !startCam || centeredOnMe.current || !myPos || startCam !== ALMATY_CAMERA) return;
+    centeredOnMe.current = true;
+    mapRef.current?.flyTo(myPos.lat, myPos.lon, 15, 1400);
+  }, [settled, startCam, myPos]);
   // Время идёт — точки живут: обновляем раз в минуту.
   useEffect(() => {
     const t = setInterval(() => setClock(clockNow()), 60000);
@@ -310,8 +318,9 @@ export default function MapScreen() {
     }
     // Моя точка: оранжевая с конусом и спокойным пульсом.
     if (LIVE) {
+      // На телефоне моя точка — слои самой карты (MapCanvas, prop me); маркер нужен только в web.
       const at = fix ?? myPos;
-      if (at) list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
+      if (at && Platform.OS === 'web') list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
@@ -351,8 +360,8 @@ export default function MapScreen() {
     // Событие может быть не в выбранных датах — переключаем дату на его день.
     let d = Math.max(0, dayIndex(e.startsAt) - today);
     if (e.isLong && occursOnDay(e, today)) d = 0;
-    const soon = new Date(e.startsAt).getTime() - clock.getTime() < 24 * 3600e3;
-    setFilters({ soon, from: d, to: d, cats: [], free: false, max: MAX_PRICE });
+    // В пределах недели оставляем неделю, дальше — только его день.
+    setFilters(d <= WEEK_TO ? { soon: false, from: 0, to: WEEK_TO, cats: [], free: false, max: MAX_PRICE } : { soon: false, from: d, to: d, cats: [], free: false, max: MAX_PRICE });
     select(e.id);
     setCardHidden(false);
     setSheet(null);
@@ -383,7 +392,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog}
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} me={LIVE ? (fix ?? myPos) : null} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 

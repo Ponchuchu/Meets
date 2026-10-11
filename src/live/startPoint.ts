@@ -4,7 +4,8 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { ALMATY_CAMERA, type Camera } from '../map/types';
 
-export const START_ZOOM = 14;
+// Шире, чем итоговый (15,2): после заставки карта плавно приближается к тебе.
+export const START_ZOOM = 12.8;
 
 async function lastKnown(): Promise<Camera | null> {
   if (Platform.OS === 'web') return null;
