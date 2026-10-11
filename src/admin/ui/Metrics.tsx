@@ -39,7 +39,7 @@ export function Metrics({ live }: { live: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%', maxWidth: 820, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 28, paddingBottom: 40, gap: 14 },
+  root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 14 },
   cap: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2, letterSpacing: 0.6 },
   h1: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink, letterSpacing: -0.4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

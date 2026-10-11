@@ -91,11 +91,8 @@ export function Moderation({ live }: { live: boolean }) {
 
   return (
     <View style={styles.root}>
-      <View style={styles.top}>
-        <View style={styles.badge}><Text style={styles.badgeText}>РЕЖИМ РАЗРАБОТЧИКА</Text></View>
-        <Text style={styles.last}>ПОСЛЕДНИЙ СБОР {lastRun}</Text>
-      </View>
-      <Text style={styles.h1} accessibilityRole="header">Модерация</Text>
+      <Text style={styles.h1} accessibilityRole="header">Ждут согласования</Text>
+      <Text style={styles.last}>ПОСЛЕДНИЙ СБОР {lastRun}</Text>
       <View style={styles.stats}>
         {([[stats.waiting, 'ждут тебя'], [stats.onMap, 'на карте'], [stats.filtered, 'отсеял ИИ']] as const).map(([n, label]) => (
           <View key={label} style={styles.stat}>
@@ -254,7 +251,7 @@ function Overlay({ children, onClose, label }: { children: React.ReactNode; onCl
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 40, gap: 12 },
+  root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   badge: { backgroundColor: colors.ink, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper, letterSpacing: 0.4 },

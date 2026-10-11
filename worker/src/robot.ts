@@ -19,6 +19,14 @@ export async function cancelled():Promise<boolean> {
 }
 export async function robotUpdate(patch:Record<string,unknown>):Promise<void>{await robot(`robot_runs?id=eq.${runId}`,'PATCH',patch);}
 export async function robotLog(text:string,level='info'):Promise<void>{if(runId)await robot('robot_log','POST',{run_id:runId,text,level});}
+/** Понятная причина по хвосту журнала поиска: деньги на счёте, квота, ключ. */
+export function explainFailure(log:string):string{
+  if(/\b402\b|prepayment credits|depleted/i.test(log))return 'На счёте Gemini API закончились деньги (ошибка 402). Пополни баланс: ai.studio → Billing. Код приложения исправлять не нужно';
+  if(/\b429\b|RESOURCE_EXHAUSTED|quota/i.test(log))return 'Превышена квота Gemini API (429). Подожди или повысь лимит в AI Studio';
+  if(/\b(400|401|403)\b.*(API key|permission|PERMISSION_DENIED)|API_KEY_INVALID|Нет GEMINI_API_KEY/i.test(log))return 'Ключ Gemini не принят. Проверь секрет GEMINI_API_KEY в GitHub → Settings → Secrets';
+  if(/404|not found/i.test(log))return 'Такой модели Gemini нет. Проверь название модели в панели';
+  return 'Запуск завершился с ошибкой. Журнал: GitHub → Actions → search';
+}
 async function main(){
   if(!runId)return;
   const action=process.argv[2];
@@ -26,8 +34,9 @@ async function main(){
   if(action==='start'){await robotUpdate({status:'running'});await robotLog(covers?'Генерация обложек запущена':'Поиск запущен · параметры переданы Gemini');}
   else if(action==='finish'){
     const stopped=await cancelled();const status=stopped?'cancelled':process.env.ROBOT_JOB_STATUS==='success'?'done':'failed';
+    let reason='';try{reason=explainFailure(await readFile('search.log','utf8'));}catch{reason=explainFailure('');}
     let found=0;try{found=(JSON.parse(await readFile('search.json','utf8')) as unknown[]).length;}catch{/* шаг поиска завершился с ошибкой */}
-    await robotUpdate({status,...(!covers?{found}:{}),finished_at:new Date().toISOString()});await robotLog(status==='done'?(covers?'Генерация обложек завершена':`Готово · проверено ${found} событий · новые карточки в согласовании`):stopped?'Остановлено':'Запуск завершился с ошибкой. Проверь ключ Gemini и журнал GitHub Actions',status==='failed'?'error':'ok');
+    await robotUpdate({status,...(!covers?{found}:{}),finished_at:new Date().toISOString()});await robotLog(status==='done'?(covers?'Генерация обложек завершена':`Готово · проверено ${found} событий · новые карточки в согласовании`):stopped?'Остановлено':reason,status==='failed'?'error':'ok');
   }
 }
 if(process.argv[1]?.endsWith('robot.ts'))void main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -47,7 +47,7 @@ jobs:
           SEARCH_TOPICS: ${{ inputs.topics }}
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
-        run: node worker/src/search.ts --run > search.json
+        run: node worker/src/search.ts --run > search.json 2> search.log || code=$?; cat search.log >&2; exit ${code:-0}
       - name: Что нашёл ИИ (файл для проверки)
         uses: actions/upload-artifact@v4
         with:

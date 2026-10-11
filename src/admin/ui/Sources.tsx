@@ -81,7 +81,7 @@ export function Sources({ live }: { live: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 28, paddingBottom: 40, gap: 12 },
+  root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 12 },
   cap: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2, letterSpacing: 0.8 },
   h1: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink, letterSpacing: -0.4 },
   box: { backgroundColor: colors.cardAlt, borderRadius: 18, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
