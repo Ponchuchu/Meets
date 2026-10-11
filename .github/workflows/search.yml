@@ -1,6 +1,6 @@
 # Поиск событий ИИ: Gemini API ищет в интернете → проверка страниц → «Согласование».
 # Сам по расписанию НЕ запускается (выключено 5 октября по просьбе владельца). Запуск — вручную (Actions → Run workflow), позже — кнопкой «Искать сейчас» в панели разработчика.
-# Секреты (docs/KEYS.md): GEMINI_API_KEY, SUPABASE_SECRET_KEY. Модель — переменная GEMINI_MODEL (необязательно).
+# Секреты (docs/KEYS.md): GEMINI_API_KEY или KIMI_API_KEY (ИИ выбирается по имени модели: gemini-… или kimi-…), SUPABASE_SECRET_KEY. Модель — переменная GEMINI_MODEL (необязательно).
 # Без ключа Gemini шаг поиска пропускается, ничего не ломается. Обычно весь запуск — 1–2 минуты.
 name: search
 on:
@@ -39,10 +39,12 @@ jobs:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
-      - name: Поиск событий (Gemini API, 6 разделов параллельно + проверка страниц)
+      - name: Поиск событий (Gemini или Kimi, 6 разделов параллельно + проверка страниц)
         timeout-minutes: 6
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
           GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
           SEARCH_DAYS: ${{ inputs.days }}

@@ -161,6 +161,8 @@
 2. GitHub → репозиторий → Settings → Secrets and variables → Actions → секрет `GEMINI_API_KEY`.
 3. Проверить: Actions → search → Run workflow. В конце — файл `search-…` с тем, что нашлось, а в логе шага поиска — сколько нашёл ИИ, сколько прошло проверку и сколько потрачено токенов.
 
+**Kimi вместо Google.** Если поиск Google не работает, добавь секрет `KIMI_API_KEY` (GitHub → Settings → Secrets and variables → Actions). В Supabase ключ **не нужен**: поиск идёт в GitHub Actions. В панели разработчика в поле модели впиши `kimi-k2-turbo-preview` (ИИ выбирается по началу имени: `gemini-…` или `kimi-…`). Если ключ из китайского кабинета (platform.moonshot.cn), добавь переменную `KIMI_BASE_URL` = `https://api.moonshot.cn/v1`.
+
 Модель можно поменять переменной `GEMINI_MODEL` (вкладка Variables), по умолчанию `gemini-3.8-flash`. Бесплатно — до 5 000 поисков Google в месяц; один запуск — около 10–20 поисков.
 
 Ещё нужно один раз применить в базе `supabase/migrations/20261004000008_search.sql` (или весь `supabase/apply-all.sql`): он добавляет источник «Поиск · Gemini».

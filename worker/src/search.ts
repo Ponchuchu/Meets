@@ -43,7 +43,7 @@ export const TOPICS = [
 ];
 
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
-  return `Найди через поиск Google до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
+  return `Найди через поиск в интернете до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
 Бери только события с конкретной датой, у которых есть страница (организатор, площадка, афиша, городской обзор). Ничего не выдумывай, год проверяй.
 Ответь только JSON-массивом, без текста вокруг:
 [{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
@@ -67,6 +67,48 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
 }
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
+export const KIMI_MODEL = 'kimi-k2-turbo-preview';
+export const isKimi = (model: string) => /^(kimi|moonshot)-/i.test(model);
+
+// ——— Kimi (Moonshot) со встроенным веб-поиском $web_search ———
+// Ключ — секрет KIMI_API_KEY. Адрес можно сменить переменной KIMI_BASE_URL (по умолчанию международный api.moonshot.ai; для ключа из Китая — https://api.moonshot.cn/v1).
+export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 150_000): Promise<{ found: Found[]; usage: Usage }> {
+  const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
+  type Msg = { role: string; content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string; name?: string };
+  const messages: Msg[] = [{ role: 'user', content: prompt }];
+  const usage: Usage = { prompt: 0, output: 0, searches: 0, sources: 0 };
+  const deadline = Date.now() + timeoutMs;
+  for (let step = 0; step < 6; step++) {
+    const left = deadline - Date.now();
+    if (left <= 0) throw new Error('Kimi: время вышло');
+    let res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }),
+      signal: AbortSignal.timeout(left),
+    });
+    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }), signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) }); }
+    if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
+    usage.prompt += body.usage?.prompt_tokens ?? 0;
+    usage.output += body.usage?.completion_tokens ?? 0;
+    const choice = body.choices?.[0];
+    if (!choice?.message) throw new Error('Kimi: пустой ответ');
+    if (choice.finish_reason === 'tool_calls' && choice.message.tool_calls?.length) {
+      messages.push(choice.message);
+      for (const tc of choice.message.tool_calls) {
+        usage.searches++;
+        // Поиск выполняет сам Kimi: по правилам API аргументы возвращаются как есть.
+        messages.push({ role: 'tool', tool_call_id: tc.id, name: tc.function.name, content: tc.function.arguments });
+      }
+      continue;
+    }
+    return { found: parseGeminiOutput(choice.message.content ?? ''), usage };
+  }
+  throw new Error('Kimi: слишком много шагов поиска');
+}
+
+export const askModel = (prompt: string, key: string, model: string) => (isKimi(model) ? askKimi(prompt, key, model) : askGemini(prompt, key, model));
 const FALLBACK_MODEL = 'gemini-flash-latest';
 
 export async function askGemini(prompt: string, key: string, model: string, timeoutMs = 120_000): Promise<{ found: Found[]; usage: Usage }> {
@@ -208,12 +250,12 @@ export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Da
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
   const answers = await Promise.all(topics.map(async (topic) => {
-    try { return await askGemini(topicPrompt(topic, from, to), key, model); } catch (err) {
+    try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
       console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
       return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
     }
   }));
-  if (answers.every(a=>a.usage.prompt===0)) throw new Error('Gemini не ответил. Проверь модель, ключ и квоту API');
+  if (answers.every(a=>a.usage.prompt===0)) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
   const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
   const raw = finalize(answers.flatMap((a) => a.found), from, to);
   const t1 = Date.now();
@@ -281,14 +323,15 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
 
 // Шаг 1 воркфлоу: поиск → JSON в stdout, отчёт — в stderr.
 async function main() {
-  const key = process.env.GEMINI_API_KEY;
-  if(!key)throw new Error('Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
+  const model = process.env.GEMINI_MODEL || (process.env.KIMI_API_KEY && !process.env.GEMINI_API_KEY ? KIMI_MODEL : undefined) || DEFAULT_MODEL;
+  const key = isKimi(model) ? process.env.KIMI_API_KEY : process.env.GEMINI_API_KEY;
+  if(!key)throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
   const names=['music','standup','cinema','art','food','sport'];
   const selected=(process.env.SEARCH_TOPICS||'').split(',').filter(Boolean);
   const topics=selected.length?TOPICS.filter((_t,i)=>selected.includes(names[i])):TOPICS;
   const days=Number(process.env.SEARCH_DAYS||7), limit=Number(process.env.SEARCH_LIMIT||40);
   if(!topics.length||!Number.isInteger(days)||days<1||days>30||!Number.isInteger(limit)||limit<1||limit>100)throw new Error('Invalid search parameters');
-  const out=await runSearch(key,process.env.GEMINI_MODEL||undefined,new Date(),days,topics,limit);
+  const out=await runSearch(key,model,new Date(),days,topics,limit);
   console.log(JSON.stringify(out,null,1));
 }
 
