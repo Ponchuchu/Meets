@@ -18,6 +18,8 @@ export interface Deps {
   venues: VenueRow[];
   /** Известные события: из базы + найденные в этом же запуске (склеиваем дубли между каналами). */
   known: KnownEvent[];
+  /** Текущий момент: события, которые уже закончились, не принимаем. Без него проверка отключена (тесты с датами из прошлого). */
+  now?: Date;
 }
 
 export async function processPosts(posts: RawPost[], source: Source, deps: Deps): Promise<Outcome[]> {
@@ -35,6 +37,11 @@ export async function processPosts(posts: RawPost[], source: Source, deps: Deps)
     }
     if (!x.starts_at) {
       out.push({ post, kind: 'unclear', reason: 'нет даты' });
+      continue;
+    }
+    // Уже прошло (с запасом 3 часа на «идёт сейчас»): карточка никому не нужна.
+    if (deps.now && Date.parse(x.ends_at ?? x.starts_at) < deps.now.getTime() - 3 * 3600e3) {
+      out.push({ post, kind: 'unclear', reason: 'уже прошло' });
       continue;
     }
     const dup = findDuplicate({ title: x.title, starts_at: x.starts_at, venue_name: x.venue_name }, deps.known);
