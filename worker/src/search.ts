@@ -86,7 +86,7 @@ export function pickKimiModel(ids: string[]): string | null {
 }
 const triedModels = new Map<string, string>();
 
-export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 150_000): Promise<{ found: Found[]; usage: Usage }> {
+export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 300_000): Promise<{ found: Found[]; usage: Usage }> {
   model = triedModels.get(model) ?? model;
   try { return await askKimiOnce(prompt, key, model, timeoutMs); } catch (e) {
     if (!/Kimi 404/.test((e as Error).message)) throw e;
@@ -101,6 +101,15 @@ export async function askKimi(prompt: string, key: string, model: string, timeou
   }
 }
 
+// Лимит аккаунта Kimi (бесплатный уровень): 3 запроса в минуту, один одновременно — выдерживаем паузу между запросами.
+let lastKimi = 0;
+async function paceKimi() {
+  const gap = Number(process.env.KIMI_MIN_GAP_MS ?? 21_000);
+  const wait = lastKimi + gap - Date.now();
+  lastKimi = Date.now() + Math.max(0, wait);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+}
+
 const NUDGE = 'Поиск закончен, больше ничего не вызывай. Выдай результат: только JSON-массив событий из найденного (формат из первого сообщения). Если подходящих событий нет — [].';
 
 async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs: number): Promise<{ found: Found[]; usage: Usage }> {
@@ -110,14 +119,16 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
   const usage: Usage = { prompt: 0, output: 0, searches: 0, sources: 0 };
   const deadline = Date.now() + timeoutMs;
   let final = false;
+  let noThinking = process.env.KIMI_THINKING !== 'on';
   for (let step = 0; step < 6; step++) {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error('Kimi: время вышло');
     // После двух поисков или после «вызова функции» текстом — инструмент отключаем: пусть пишет итог.
-    const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
-    const send = (ms: number) => fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) });
+    const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(noThinking ? { thinking: { type: 'disabled' } } : {}), ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
+    const send = async (ms: number) => { await paceKimi(); return fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) }); };
     let res = await send(left);
     for (let retry = 1; retry <= 3 && (res.status === 429 || res.status >= 500) && deadline - Date.now() > 5000; retry++) { await new Promise((r) => setTimeout(r, 2000 * retry)); res = await send(Math.max(1000, deadline - Date.now())); }
+    if (res.status === 400 && noThinking && /thinking/i.test(await res.clone().text())) { noThinking = false; res = await send(Math.max(1000, deadline - Date.now())); }
     if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     usage.prompt += body.usage?.prompt_tokens ?? 0;
