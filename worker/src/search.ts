@@ -6,6 +6,7 @@
 // Запуск шага 1: GEMINI_API_KEY=… node worker/src/search.ts --run > search.json  (ключи базы этому шагу не нужны)
 import { createHash } from 'node:crypto';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
+import { fetchSxodimFound } from './sites.ts';
 
 export interface Found {
   title: string;
@@ -42,8 +43,11 @@ export const TOPICS = [
   'спорт для зрителей и участников, забеги, велопрогулки, походы в горы, события для детей',
 ];
 
+/** Сайты, на которых ИИ ищет афишу (дешевле и точнее, чем весь интернет). Меняется переменной SEARCH_SITES (через запятую). */
+export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'tickets.kz', 'kino.kz', 'ticketon.kz/almaty', 'kassir.kz', 'gorodzovet.ru/almaty'];
+
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
-  return `Найди через поиск в интернете до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
+  return `Найди через поиск до ${max} реальных событий в Алматы (искать по сайтам: ${(process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).join(', ')}; другие сайты — только если там есть страница события) с ${from} по ${to}. Тема: ${topic}.
 Бери только события с конкретной датой и временем. В url — ссылка на страницу этого события; если её нет, дай ссылку на афишу площадки или обзор, где событие указано (не главную страницу сайта). Укажи площадку, адрес и цену (если цены нет на странице — null). Верни всё найденное, даже если событий мало; пустой массив — только если не нашлось ни одного. Ничего не выдумывай, год проверяй.
 Сделай не больше двух поисков, затем сразу ответь. Ответь только JSON-массивом, без текста вокруг и без вызовов функций:
 [{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
@@ -303,6 +307,15 @@ async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Prom
   return out;
 }
 
+/** Начинается в окне или это короткое (до 14 дней) событие, которое уже идёт; туры «на весь год» отсекаем. */
+export function startsInWindow(f: Found, from: string): boolean {
+  const day = almatyDate(new Date(f.starts_at));
+  if (day >= from) return true;
+  // Уже идущее показываем только если это выставка и закончится в ближайшие недели.
+  if (f.category !== 'art' || !f.ends_at || Number.isNaN(Date.parse(f.ends_at))) return false;
+  return Date.parse(f.ends_at) - Date.parse(f.starts_at) <= 60 * 86400e3;
+}
+
 /** Дубли внутри запуска и даты вне окна — прочь. */
 export function finalize(list: Found[], from: string, to: string): Found[] {
   const seen = new Set<string>();
@@ -318,31 +331,47 @@ export function finalize(list: Found[], from: string, to: string): Found[] {
   });
 }
 
-export async function runSearch(key: string, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40): Promise<Found[]> {
+export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all'): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
   const t0 = Date.now();
-  // Kimi на этом ключе пускает один запрос за раз (лимит аккаунта) — идём по разделам по очереди, Gemini — параллельно.
-  const mapTopics = async <R>(fn: (t: string) => Promise<R>): Promise<R[]> => {
-    if (!isKimi(model)) return Promise.all(topics.map(fn));
-    const out: R[] = [];
-    for (const t of topics) out.push(await fn(t));
-    return out;
-  };
-  const answers = await mapTopics(async (topic) => {
-    try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
-      console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
-      return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
-    }
-  });
-  if (answers.every(a=>a.usage.prompt===0)) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
-  const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
-  const raw = finalize(answers.flatMap((a) => a.found), from, to);
-  const t1 = Date.now();
-  const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
-  const out = finalize(checked, from, to);
-  console.error(`Поиск ${from}…${to}: ИИ нашёл ${raw.length} (${((t1 - t0) / 1000).toFixed(0)} с), после проверки страниц ${out.length} (${((Date.now() - t1) / 1000).toFixed(0)} с).`);
-  console.error(`Расход: токенов на вход ${usage.prompt}, на выход ${usage.output}, поисков Google ${usage.searches}, страниц-источников ${usage.sources}. Модель ${model}.`);
-  return out.slice(0,limit);
+  // 1. Афиша Sxodim читается кодом: дата, место, цена и фото берутся со страницы, ИИ не нужен.
+  let fromSites: Found[] = [];
+  if (sources !== 'ai') {
+    try { fromSites = finalize((await fetchSxodimFound()).filter((f) => startsInWindow(f, from)), from, to); } catch (err) { console.error(`  ✕ Sxodim: ${(err as Error).message}`); }
+    console.error(`Сайты: Sxodim дал ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
+  }
+  // 2. ИИ ищет дополнительно, только по заданным сайтам.
+  let fromAi: Found[] = [];
+  if (sources !== 'sites') {
+    if (!key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY' : 'Нет GEMINI_API_KEY');
+    const t1 = Date.now();
+    // Kimi на этом ключе пускает один запрос за раз (лимит аккаунта) — идём по разделам по очереди, Gemini — параллельно.
+    const mapTopics = async <R>(fn: (t: string) => Promise<R>): Promise<R[]> => {
+      if (!isKimi(model)) return Promise.all(topics.map(fn));
+      const out: R[] = [];
+      for (const t of topics) out.push(await fn(t));
+      return out;
+    };
+    const answers = await mapTopics(async (topic) => {
+      try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
+        console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
+        return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
+      }
+    });
+    // Если ИИ недоступен, а сайты уже дали события — не падаем, отдаём то, что есть.
+    if (answers.every((a) => a.usage.prompt === 0) && !fromSites.length) throw new Error(`${isKimi(model) ? 'Kimi' : 'Gemini'} не ответил. Проверь модель, ключ и квоту API`);
+    const usage = answers.reduce((s, a) => ({ prompt: s.prompt + a.usage.prompt, output: s.output + a.usage.output, searches: s.searches + a.usage.searches, sources: s.sources + a.usage.sources }), { prompt: 0, output: 0, searches: 0, sources: 0 });
+    const raw = finalize(answers.flatMap((a) => a.found), from, to);
+    const t2 = Date.now();
+    const checked = (await pool(raw, 8, checkOne)).filter((f): f is Found => !!f);
+    fromAi = finalize(checked, from, to);
+    console.error(`ИИ нашёл ${raw.length} (${((t2 - t1) / 1000).toFixed(0)} с), после проверки страниц ${fromAi.length}. Расход: вход ${usage.prompt}, выход ${usage.output} токенов, поисков ${usage.searches}. Модель ${model}.`);
+  }
+  // Сначала то, что прочитано с сайта (точнее); дубли по названию и дню отсекает finalize.
+  const out = finalize([...fromSites, ...fromAi], from, to).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const withPhoto = out.filter((f) => f.image_url).length;
+  console.error(`Итого ${out.length} событий, с фото ${withPhoto}. Оставляем ${Math.min(limit, out.length)}.`);
+  return out.slice(0, limit);
 }
 
 // ——— В конвейер ———
@@ -402,15 +431,16 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
 
 // Шаг 1 воркфлоу: поиск → JSON в stdout, отчёт — в stderr.
 async function main() {
+  const sources = (['sites', 'ai', 'all'] as const).find((x) => x === process.env.SEARCH_SOURCES) ?? 'all';
   const model = process.env.GEMINI_MODEL || (process.env.KIMI_API_KEY && !process.env.GEMINI_API_KEY ? KIMI_MODEL : undefined) || DEFAULT_MODEL;
   const key = isKimi(model) ? process.env.KIMI_API_KEY : process.env.GEMINI_API_KEY;
-  if(!key)throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
+  if (sources !== 'sites' && !key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
   const names=['music','standup','cinema','art','food','sport'];
   const selected=(process.env.SEARCH_TOPICS||'').split(',').filter(Boolean);
   const topics=selected.length?TOPICS.filter((_t,i)=>selected.includes(names[i])):TOPICS;
   const days=Number(process.env.SEARCH_DAYS||7), limit=Number(process.env.SEARCH_LIMIT||40);
   if(!topics.length||!Number.isInteger(days)||days<1||days>30||!Number.isInteger(limit)||limit<1||limit>100)throw new Error('Invalid search parameters');
-  const out=await runSearch(key,model,new Date(),days,topics,limit);
+  const out=await runSearch(key,model,new Date(),days,topics,limit,sources);
   console.log(JSON.stringify(out,null,1));
 }
 
