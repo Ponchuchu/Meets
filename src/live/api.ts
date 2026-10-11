@@ -191,7 +191,8 @@ async function withMeetupLocations(events: EventItem[]): Promise<EventItem[]> {
 }
 
 /** Одобренные события, которые ещё не закончились (до `days` дней вперёд), + кто из друзей идёт и сколько всего. */
-export async function getEvents(days = 14): Promise<EventItem[]> {
+// Окно — три месяца: в фильтрах карты можно выбрать даты хоть на 2 месяца вперёд.
+export async function getEvents(days = 92): Promise<EventItem[]> {
   const now = Date.now();
   const rows = await must(sb().from('events_live').select('*')
     .or(`ends_at.gte.${new Date(now).toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now - 3 * 3600e3).toISOString()})`)

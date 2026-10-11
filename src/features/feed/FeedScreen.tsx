@@ -35,7 +35,8 @@ export default function ForYouScreen() {
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, decided, history, undosLeft, decide, addSignal, undo } = useFeed();
+  const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
   const removePlan = useApp((s) => s.removePlan);
@@ -181,6 +182,11 @@ export default function ForYouScreen() {
               <Pressable onPress={() => router.navigate('/')} style={({ pressed }) => [styles.emptyBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
                 <Text style={styles.emptyBtnText}>Открыть карту</Text>
               </Pressable>
+              {skippedCount > 0 && (
+                <Pressable onPress={restoreSkipped} style={({ pressed }) => [styles.emptyGhost, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+                  <Text style={styles.emptyGhostText}>Показать пропущенные ({skippedCount})</Text>
+                </Pressable>
+              )}
             </>
           )}
         </View>
@@ -208,6 +214,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  emptyGhost: { minHeight: 44, justifyContent: 'center' },
+  emptyGhostText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink, textDecorationLine: 'underline' },
   emptyBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 50 },
 });

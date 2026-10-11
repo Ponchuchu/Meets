@@ -25,6 +25,8 @@ interface FeedState {
   undo: () => Decision | null;
   /** «Сбросить вкус» из админки: снова считаем только от ответов при регистрации. */
   resetTaste: () => void;
+  /** Снова показать всё, что пропустил («Мимо»); «Пойду» остаётся в планах. */
+  restoreSkipped: () => void;
 }
 
 export const useFeed = create<FeedState>()(
@@ -70,6 +72,12 @@ export const useFeed = create<FeedState>()(
         return last;
       },
       resetTaste: () => set({ signals: [], decided: {}, history: [] }),
+      restoreSkipped: () => {
+        const st = get();
+        const skipped = Object.keys(st.decided).filter((id) => st.decided[id] === 'skip');
+        skipped.forEach((id) => pushAttendance(id, null));
+        set({ decided: Object.fromEntries(Object.entries(st.decided).filter(([, k]) => k !== 'skip')), history: st.history.filter((h) => h.kind !== 'skip') });
+      },
     }),
     { name: 'ryadom-feed', storage: deviceStorage(), partialize: ({ undosLeft: _u, history: _h, ...rest }) => rest },
   ),
