@@ -114,6 +114,9 @@ async function live() {
   }
   const [sources, venues, known] = loaded;
   let drafts = 0;
+  // Просроченные черновики никому не нужны: чистим при каждом запуске, чтобы «Согласование» не копило мусор.
+  const purged = await db.purgeExpiredDrafts().catch((err) => { console.error(`Чистка просроченных: ${(err as Error).message}`); return 0; });
+  if (purged) { console.log(`Удалено просроченных черновиков: ${purged}`); await robotLog(`Удалено просроченных черновиков: ${purged}`); }
   if (searchFile) {
     if(await cancelled()){await robotLog('Остановлено до публикации черновиков');return;}
     const source = sources.find((s) => s.kind === 'search');
@@ -124,7 +127,7 @@ async function live() {
     const { posts, understandFound } = await loadSearch(searchFile, source.id);
     const fresh = await db.savePosts(posts);
     console.log(`${source.title}: найдено ${posts.length}, новых ${fresh.length}`);
-    const results = await processPosts(fresh, source, { understand: understandFound, geocode, venues, known });
+    const results = await processPosts(fresh, source, { understand: understandFound, geocode, venues, known, now: new Date() });
     drafts += await store(db, results, source.id);
     print(results);
     await robotUpdate({found:posts.length,verified:results.filter(r=>r.kind==='draft').length,queued:drafts});
@@ -139,7 +142,7 @@ async function live() {
       const fetched = source.kind === 'site' ? await fetchSite(source.handle, source.id) : await fetchChannel(source.handle, source.id, source.cursor);
       const fresh = await db.savePosts(fetched);
       console.log(`${source.title}: новых постов ${fresh.length}`);
-      const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known });
+      const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, source.id);
       print(results);
       // У сайтов нет сквозной нумерации — повторы отсекает база по адресу страницы.

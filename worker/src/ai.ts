@@ -2,6 +2,7 @@
 // картинки-афиши — vision). Уверенность ниже 0.8 — повтор на Sonnet. Ключ — только в секретах воркера.
 // Если ключа Anthropic нет, но есть KIMI_API_KEY — разбирает Kimi (Moonshot, OpenAI-совместимый API, режим JSON).
 import { extract } from './heuristics.ts';
+import { KIMI_DEFAULT_MODEL, kimiPost } from './kimi.ts';
 import { CATEGORIES, type Extraction, type RawPost } from './types.ts';
 
 export const MODEL_FAST = 'claude-haiku-4-5-20251001';
@@ -59,46 +60,34 @@ async function ask(model: string, post: RawPost, key: string): Promise<Extractio
   return out;
 }
 
-const KIMI_BASE = process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1';
-let kimiModel: string | null = process.env.KIMI_MODEL || null;
-
-/** Модель Kimi: из KIMI_MODEL или самая новая из списка аккаунта (k3 → k2 → первая текстовая). */
-async function pickKimiModel(key: string): Promise<string> {
-  if (kimiModel) return kimiModel;
-  const res = await fetch(`${KIMI_BASE}/models`, { headers: { authorization: `Bearer ${key}` } });
-  if (!res.ok) throw new Error(`Kimi models ${res.status}`);
-  const ids = ((await res.json()) as { data: { id: string }[] }).data.map((m) => m.id).filter((id) => !/vision|embed|audio/i.test(id));
-  kimiModel = ids.find((id) => /k3/i.test(id)) ?? ids.find((id) => /k2/i.test(id)) ?? ids[0];
-  if (!kimiModel) throw new Error('Kimi: нет доступных моделей');
-  return kimiModel;
-}
-
-/** Kimi отвечает JSON-объектом по той же схеме, что и инструмент Claude. */
+/** Kimi отвечает JSON-объектом по той же схеме, что и инструмент Claude. Модель — KIMI_MODEL или kimi-k2.6. */
 export async function askKimi(post: RawPost, key: string): Promise<Extraction> {
-  const model = await pickKimiModel(key);
-  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: `${SYSTEM.replace('через инструмент event_card', 'одним JSON-объектом')}\nСхема ответа (JSON Schema): ${JSON.stringify(SCHEMA)}\nРеклама, скидки, промокоды, розыгрыши, мемы — class ad или meme. Бесплатное событие с датой и местом — event.` },
-        { role: 'user', content: `Пост от ${post.postedAt ?? 'неизвестно когда'} (${post.url}):\n\n${post.text}` },
-      ],
-    }),
+  const body = await kimiPost(key, {
+    model: process.env.KIMI_MODEL || KIMI_DEFAULT_MODEL,
+    max_tokens: 1500,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: `${SYSTEM.replace('через инструмент event_card', 'одним JSON-объектом')}\nСхема ответа (JSON Schema): ${JSON.stringify(SCHEMA)}\nРеклама, скидки, промокоды, розыгрыши, мемы — class ad или meme. Бесплатное событие с датой и местом — event.` },
+      { role: 'user', content: `Пост от ${post.postedAt ?? 'неизвестно когда'} (${post.url}):\n\n${post.text}` },
+    ],
   });
-  if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const body = (await res.json()) as { choices: { message: { content: string } }[] };
-  const raw = body.choices[0]?.message.content ?? '';
+  const raw = body.choices?.[0]?.message?.content ?? '';
   const json = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) as Partial<Extraction>;
   if (!json.class || !json.title) throw new Error('Kimi: неполный ответ');
   return { ...extract(post.text, post.postedAt), ...json } as Extraction;
 }
 
+/** Явная реклама: рекламные слова и никакой даты. ИИ на такие посты не тратим (токены и 3 запроса в минуту у Kimi). */
+export function obviousAd(text: string): boolean {
+  const t = text.toLowerCase();
+  const ad = /промокод|скидк[аиу]|распродаж|доставк|закажи|купи(те)?\b|реклам|розыгрыш|подпишись|акци[яи]\b/.test(t);
+  const date = /\d{1,2}\s*(январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр)|\b\d{1,2}\.\d{1,2}\b|\b\d{1,2}:\d{2}\b|сегодня|завтра|суббот|воскресень|пятниц/.test(t);
+  return ad && !date;
+}
+
 /** Разбор поста. Без ключа или при ошибке API — эвристики (они не публикуют сами: уверенность < 0.9). */
 export async function understand(post: RawPost, key = process.env.ANTHROPIC_API_KEY, kimiKey = process.env.KIMI_API_KEY): Promise<Extraction & { by: 'ai' | 'heuristics' }> {
+  if (obviousAd(post.text)) return { ...extract(post.text, post.postedAt), class: 'ad', by: 'heuristics' };
   if (!key && kimiKey) {
     try { return { ...(await askKimi(post, kimiKey)), by: 'ai' }; } catch (err) {
       console.warn(`  Kimi недоступен (${(err as Error).message}) — эвристики`);
