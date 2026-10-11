@@ -44,7 +44,7 @@ export const TOPICS = [
 
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
   return `Найди через поиск в интернете до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
-Бери только события с конкретной датой, у которых есть страница (организатор, площадка, афиша, городской обзор). Ничего не выдумывай, год проверяй.
+Бери только события с конкретной датой и временем. В url — ссылка именно на страницу этого события (не главная страница сайта и не общий список афиши); если такой страницы нет, пропусти событие. Укажи площадку, адрес и цену (если цены нет на странице — null). Ничего не выдумывай, год проверяй.
 Сделай не больше двух поисков, затем сразу ответь. Ответь только JSON-массивом, без текста вокруг и без вызовов функций:
 [{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
 }
@@ -187,6 +187,9 @@ export function parseGeminiOutput(raw: string): Found[] {
   try { return clean(JSON.parse(text.slice(start, end + 1))); } catch { return []; }
 }
 
+/** Ссылка ведёт на главную страницу сайта, а не на само событие. */
+export const isHomepage = (u: string) => { try { const x = new URL(u); return x.pathname.replace(/\/+$/, '') === '' && !x.search; } catch { return false; } };
+
 const isUrl = (u: unknown): u is string => typeof u === 'string' && /^https?:\/\/\S+$/.test(u);
 
 function clean(list: unknown[]): Found[] {
@@ -269,6 +272,8 @@ async function checkOne(f: Found): Promise<Found | null> {
     if (res.status === 403 || res.status === 429) return { ...f, url: res.url || f.url, confidence: Math.min(Number(f.confidence ?? 0.6), 0.6) };
     if (!res.ok) return null;
     const judged = judgePage(f, (await res.text()).slice(0, 1_500_000), res.url || f.url);
+    // Главная страница сайта — не страница события: оставляем на проверку модератору, без картинки сайта.
+    if (judged && isHomepage(judged.url)) { judged.confidence = Math.min(Number(judged.confidence ?? 0.6), 0.5); judged.image_url = null; }
     // Картинка не открывается — лучше без неё: приложение покажет обложку раздела, а не пустой квадрат.
     if (judged?.image_url && !(await imageAlive(judged.image_url))) judged.image_url = null;
     return judged;
