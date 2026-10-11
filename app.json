@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "ryadom",
+    "name": "Meets",
     "slug": "ryadom",
     "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon/icon.png",
-    "scheme": "ryadom",
+    "scheme": ["meets", "ryadom"],
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
@@ -57,8 +57,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icon/splash-word.png",
-          "imageWidth": 240,
+          "image": "./assets/icon/splash-blank.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#F0521F"
         }

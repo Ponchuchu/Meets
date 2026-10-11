@@ -217,7 +217,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
               <View style={[styles.itemIcon, { backgroundColor: colors.accent }]}><MapPin size={20} color={colors.ink} strokeWidth={1.9} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle} numberOfLines={1}>{[e.venueName, e.address.split(',').slice(0, 2).join(',')].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в «рядом.»</Text>
+                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в Meets</Text>
               </View>
               <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
             </Pressable>

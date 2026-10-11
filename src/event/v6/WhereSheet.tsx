@@ -41,7 +41,7 @@ export function WhereSheet({ e, me, onCopied }: { e: EventItem; me: { lat: numbe
       </View>
       {!e.needsPin && (
         <View style={styles.here}>
-          <View style={styles.hereHead}><Navigation size={18} color={colors.accent} strokeWidth={2} /><Text style={styles.hereTitle}>Маршрут здесь, в «рядом.»</Text></View>
+          <View style={styles.hereHead}><Navigation size={18} color={colors.accent} strokeWidth={2} /><Text style={styles.hereTitle}>Маршрут здесь, в Meets</Text></View>
           {me ? (
             <View style={styles.tiles}>
               {tiles.map(({ mode, Icon, min, label }) => (

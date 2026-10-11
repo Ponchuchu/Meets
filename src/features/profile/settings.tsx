@@ -79,7 +79,7 @@ export function SettingsRoot() {
         <Row Icon={Map} title="О карте и данных" onPress={() => go('map')} />
         <Row Icon={CircleHelp} title="Помощь и вопросы" onPress={() => go('help')} last />
       </Group>
-      <Text style={styles.ver}>рядом. {VERSION} · альфа</Text>
+      <Text style={styles.ver}>Meets {VERSION} · альфа</Text>
     </SettingsPage>
   );
 }

@@ -33,7 +33,7 @@ const SCHEMA = {
   required: ['class', 'title', 'category', 'tags', 'starts_at', 'ends_at', 'is_long', 'venue_name', 'address', 'address_note', 'price_min', 'price_max', 'is_free', 'price_unsure', 'about', 'organizer', 'confidence', 'cancel_of'],
 };
 
-const SYSTEM = `Ты разбираешь посты городских афиш Алматы для приложения «рядом.» — карты событий.
+const SYSTEM = `Ты разбираешь посты городских афиш Алматы для приложения Meets — карты событий.
 Верни поля через инструмент event_card. Время — по Алматы (+05:00). Если год не указан — ближайшая будущая дата после даты поста.
 Описание пиши нейтрально, без восклицаний и эмодзи, по-русски. Не выдумывай то, чего нет в посте или на афише.`;
 

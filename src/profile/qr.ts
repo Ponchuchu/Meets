@@ -2,7 +2,7 @@ import {APP_URL} from '../lib/config';
 export function parseProfileLink(value:string):{kind:'person'|'handle';value:string}|null{
  try{
   const u=new URL(value);let parts:string[];
-  if(u.protocol==='ryadom:')parts=[u.hostname,...u.pathname.split('/').filter(Boolean)];
+  if(u.protocol==='ryadom:'||u.protocol==='meets:')parts=[u.hostname,...u.pathname.split('/').filter(Boolean)];
   else if(u.protocol==='https:'&&u.hostname===new URL(APP_URL).hostname)parts=u.pathname.split('/').filter(Boolean);
   else return null;
   if(parts.length!==2)return null;
