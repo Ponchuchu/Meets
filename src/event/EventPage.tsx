@@ -7,16 +7,14 @@ import { sendInvite } from '../live/api';
 import { router } from 'expo-router';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
-import { photo } from '../data/photos';
 import type { EventItem, Person } from '../data/types';
 import { dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
-import { CAT_COLOR, CAT_ICON, catFg } from '../map/icons';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
@@ -25,7 +23,8 @@ import { activeCompany, usePlans } from '../state/plans';
 import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
-import { Ic, IC } from '../ui/Ic';
+import { EventCover } from '../ui/EventCover';
+import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { CompanySheet, InviteSheet } from './sheets';
@@ -103,7 +102,6 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     show({ text: 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
-  const hasPhoto = !!e.cover;
   const goingInfo = goingLine(e, people, going);
   const lookers = e.lookers ?? [];
   const lookCount = Math.max(e.lookingCount, lookers.length) + (activeCompany(company, e, now) ? 1 : 0);
@@ -151,10 +149,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     <View style={styles.root}>
       <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
-        <View style={[styles.cover, { backgroundColor: hasPhoto ? colors.ink : CAT_COLOR[e.category] }]}>
-          {hasPhoto ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={e.title} /> : (
-            <View style={styles.coverIcon} pointerEvents="none"><Ic d={CAT_ICON[e.category]} size={220} color={catFg(e.category)} w={0.7} /></View>
-          )}
+        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
@@ -177,7 +172,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </View>
-        </View>
+        </EventCover>
 
         <View style={styles.body}>
           <View style={styles.chips}>

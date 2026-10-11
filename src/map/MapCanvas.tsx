@@ -37,6 +37,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const loaded = useRef(false);
   const moved = useRef(false);
   const z = useRef(camera.zoom);
+  const lastStep = useRef(Math.round(camera.zoom * 2) / 2);
   const [attempt, setAttempt] = useState(0);
   // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
   const [zoomNow, setZoomNow] = useState(camera.zoom);
@@ -117,8 +118,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
           if (st.gestures?.isGestureActive) moved.current = true;
-          if (Math.abs(z.current - st.properties.zoom) > 0.03) { z.current = st.properties.zoom; onZoom?.(st.properties.zoom); }
-          if (Math.abs(zoomNow - st.properties.zoom) > 0.12) setZoomNow(st.properties.zoom);
+          // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
+          // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
+          z.current = st.properties.zoom;
+          const step = Math.round(st.properties.zoom * 2) / 2;
+          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); setZoomNow(step); }
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={() => onPress?.()}

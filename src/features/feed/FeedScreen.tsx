@@ -57,14 +57,19 @@ export default function ForYouScreen() {
     const dec = new Set(Object.keys(decided));
     let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
     // Нет дна: когда кандидаты кончились — возвращаем пропущенные (ослабляем фильтры).
-    if (d.length < STACK) d = [...d, ...buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x))];
+    // Только что пропущенную карточку не показываем сразу снова, если есть из чего выбрать.
+    const lastId = history[history.length - 1]?.eventId;
+    if (d.length < STACK) {
+      const more = buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x));
+      d = [...d, ...more.filter((x) => x.id !== lastId || more.length === 1)];
+    }
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
       if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
     }
     return d;
-  }, [taste, events, decided, history.length, now, enter]);
+  }, [taste, events, decided, history, now, enter]);
 
   const cardTop = Math.max(50, insets.top + 6) + 62;
   // Таб-бар плавает поверх: карточки и кнопки — над ним, раскрытое событие — на весь экран.
@@ -83,7 +88,12 @@ export default function ForYouScreen() {
     if (t) toastTimer.current = setTimeout(() => setToast(null), ms);
   };
 
+  // Каждое решение даёт карточке новый «круг»: если она вернётся в колоду (пропущенное или «Вернуть»), это новый экземпляр,
+  // а не старый, улетевший за экран, с занятым жестом — иначе лента «зависала» и смотреть было нечего.
+  const [rounds, setRounds] = useState<Record<string, number>>({});
+  const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
+    bump(e.id);
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
@@ -102,6 +112,7 @@ export default function ForYouScreen() {
     const last = undo();
     showToast(null);
     if (!last) return;
+    bump(last.eventId);
     // «Отменить» после «пойду» считается в ungo как cancel_plan, «вернуть» после «мимо» — здесь.
     if (last.kind === 'go') { ungo(last.eventId); removePlan(); } else track('undo', last.eventId);
     setEnter({ id: last.eventId, from: last.kind });
@@ -146,7 +157,7 @@ export default function ForYouScreen() {
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
-            key={e.id}
+            key={`${e.id}:${rounds[e.id] ?? 0}`}
             ref={k === 0 ? topRef : undefined}
             e={e} people={people} now={now}
             k={k} top={k === 0} width={cardW} height={cardH} target={target}
