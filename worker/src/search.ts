@@ -6,8 +6,10 @@
 // Запуск шага 1: GEMINI_API_KEY=… node worker/src/search.ts --run > search.json  (ключи базы этому шагу не нужны)
 import { createHash } from 'node:crypto';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
+import { normalize, similarity } from './dedupe.ts';
 import { fetchSxodimFound } from './sites.ts';
 import { fetchYandexFound } from './yandex.ts';
+import { isKimi, KIMI_DEFAULT_MODEL, kimiPost, type KimiMessage } from './kimi.ts';
 
 export interface Found {
   title: string;
@@ -74,70 +76,20 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
 }
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
-export const KIMI_MODEL = 'kimi-k2.6';
-export const isKimi = (model: string) => /^(kimi|moonshot)-/i.test(model);
+export { isKimi } from './kimi.ts';
 
-// ——— Kimi (Moonshot) со встроенным веб-поиском $web_search ———
-// Ключ — секрет KIMI_API_KEY. Адрес можно сменить переменной KIMI_BASE_URL (по умолчанию международный api.moonshot.ai; для ключа из Китая — https://api.moonshot.cn/v1).
-/** Модели, которые доступны этому ключу; для поиска берём не-«thinking» k2 или moonshot-v1. */
-export async function kimiModels(key: string): Promise<string[]> {
-  const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
-  const res = await fetch(`${base}/models`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) throw new Error(`Kimi /models ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return ((await res.json()) as { data?: { id: string }[] }).data?.map((m) => m.id) ?? [];
-}
-export function pickKimiModel(ids: string[]): string | null {
-  const ok = ids.filter((m) => !/thinking|vision|image|audio|code/i.test(m));
-  for (const re of [/^kimi-k2\.6$/i, /^kimi-k3$/i, /^kimi-k2/i, /^kimi-latest$/i, /^moonshot-v1-32k$/i, /^moonshot-v1/i]) { const m = ok.find((x) => re.test(x)); if (m) return m; }
-  return null;
-}
-const triedModels = new Map<string, string>();
+const NUDGE = 'Поиск закончен, больше ничего не вызывай. Выдай результат: только JSON (формат из первого сообщения). Если подходящего нет — [].';
 
-export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 300_000): Promise<{ found: Found[]; usage: Usage }> {
-  model = triedModels.get(model) ?? model;
-  try { return await askKimiOnce(prompt, key, model, timeoutMs); } catch (e) {
-    if (!/Kimi 404/.test((e as Error).message)) throw e;
-    // Такой модели у ключа нет — смотрим список доступных и берём подходящую (один раз на запуск).
-    const ids = await kimiModels(key);
-    console.error(`  Kimi: модели ${model} нет. Доступно: ${ids.join(', ') || '—'}`);
-    const alt = pickKimiModel(ids);
-    if (!alt || alt === model) throw e;
-    console.error(`  Kimi: беру ${alt}`);
-    triedModels.set(model, alt);
-    return askKimiOnce(prompt, key, alt, timeoutMs);
-  }
-}
-
-// Лимит аккаунта Kimi (бесплатный уровень): 3 запроса в минуту, один одновременно — выдерживаем паузу между запросами.
-let lastKimi = 0;
-async function paceKimi() {
-  const gap = Number(process.env.KIMI_MIN_GAP_MS ?? 21_000);
-  const wait = lastKimi + gap - Date.now();
-  lastKimi = Date.now() + Math.max(0, wait);
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-}
-
-const NUDGE = 'Поиск закончен, больше ничего не вызывай. Выдай результат: только JSON-массив событий из найденного (формат из первого сообщения). Если подходящих событий нет — [].';
-
-async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs: number): Promise<{ found: Found[]; usage: Usage }> {
-  const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
-  type Msg = { role: string; content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string; name?: string };
-  const messages: Msg[] = [{ role: 'user', content: prompt }];
+/**
+ * Вопрос Kimi с её встроенным веб-поиском ($web_search). Не больше двух поисков, потом просим итог без инструментов.
+ * Возвращает текст ответа и расход.
+ */
+export async function kimiSearch(prompt: string, key: string, model: string, maxSearches = 2): Promise<{ text: string; usage: Usage }> {
+  const messages: KimiMessage[] = [{ role: 'user', content: prompt }];
   const usage: Usage = { prompt: 0, output: 0, searches: 0, sources: 0 };
-  const deadline = Date.now() + timeoutMs;
   let final = false;
-  let noThinking = process.env.KIMI_THINKING !== 'on';
-  for (let step = 0; step < 6; step++) {
-    const left = deadline - Date.now();
-    if (left <= 0) throw new Error('Kimi: время вышло');
-    // После двух поисков или после «вызова функции» текстом — инструмент отключаем: пусть пишет итог.
-    const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(noThinking ? { thinking: { type: 'disabled' } } : {}), ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
-    const send = async (ms: number) => { await paceKimi(); return fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) }); };
-    let res = await send(left);
-    for (let retry = 1; retry <= 3 && (res.status === 429 || res.status >= 500) && deadline - Date.now() > 5000; retry++) { await new Promise((r) => setTimeout(r, 2000 * retry)); res = await send(Math.max(1000, deadline - Date.now())); }
-    if (res.status === 400 && noThinking && /thinking/i.test(await res.clone().text())) { noThinking = false; res = await send(Math.max(1000, deadline - Date.now())); }
-    if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
+  for (let step = 0; step < maxSearches + 3; step++) {
+    const body = await kimiPost(key, { model, messages, max_tokens: 6000, ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) }, 300_000);
     usage.prompt += body.usage?.prompt_tokens ?? 0;
     usage.output += body.usage?.completion_tokens ?? 0;
     const choice = body.choices?.[0];
@@ -149,21 +101,22 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
         // Поиск выполняет сам Kimi: по правилам API аргументы возвращаются как есть.
         messages.push({ role: 'tool', tool_call_id: tc.id, name: tc.function.name, content: tc.function.arguments });
       }
-      if (usage.searches >= 2) { final = true; messages.push({ role: 'user', content: NUDGE }); }
+      if (usage.searches >= maxSearches) { final = true; messages.push({ role: 'user', content: NUDGE }); }
       continue;
     }
     const text = choice.message.content ?? '';
-    const found = parseGeminiOutput(text);
-    // Модель написала «вызов функции» текстом или просто план, а JSON не дала — один раз просим итог без поиска.
-    if (!found.length && !final && !text.includes('[]')) {
-      final = true;
-      messages.push({ role: 'assistant', content: text || '…' }, { role: 'user', content: NUDGE });
-      continue;
-    }
-    if (!found.length) console.error(`  Kimi: 0 событий. finish=${choice.finish_reason}, ответ: ${(text || '(пусто)').replace(/\s+/g, ' ').slice(0, 500)}`);
-    return { found, usage };
+    // «Вызов функции» текстом или план вместо JSON — один раз просим итог без поиска.
+    if (!final && !/[[{]/.test(text)) { final = true; messages.push({ role: 'assistant', content: text || '…' }, { role: 'user', content: NUDGE }); continue; }
+    return { text, usage };
   }
   throw new Error('Kimi: слишком много шагов поиска');
+}
+
+export async function askKimi(prompt: string, key: string, model: string): Promise<{ found: Found[]; usage: Usage }> {
+  const { text, usage } = await kimiSearch(prompt, key, model);
+  const found = parseGeminiOutput(text);
+  if (!found.length) console.error(`  Kimi: 0 событий. Ответ: ${(text || '(пусто)').replace(/\s+/g, ' ').slice(0, 400)}`);
+  return { found, usage };
 }
 
 export const askModel = (prompt: string, key: string, model: string) => (isKimi(model) ? askKimi(prompt, key, model) : askGemini(prompt, key, model));
@@ -321,17 +274,78 @@ export function startsInWindow(f: Found, from: string): boolean {
 
 /** Дубли внутри запуска и даты вне окна — прочь. */
 export function finalize(list: Found[], from: string, to: string): Found[] {
-  const seen = new Set<string>();
-  return list.filter((f) => {
+  const kept: Found[] = [];
+  const urls = new Set<string>();
+  for (const f of list) {
     const day = almatyDate(new Date(f.starts_at));
     const endDay = f.ends_at && !Number.isNaN(Date.parse(f.ends_at)) ? almatyDate(new Date(f.ends_at)) : day;
-    if (endDay < from || day > to) return false;
-    const key = `${words(f.title).join(' ')}|${day}`;
-    if (seen.has(key) || seen.has(f.url)) return false;
-    seen.add(key);
-    seen.add(f.url);
-    return true;
-  });
+    if (endDay < from || day > to) continue;
+    // Ссылка одна, а сеансов несколько (Яндекс) — дубль только ссылка в тот же день.
+    if (urls.has(`${f.url}|${day}`)) continue;
+    urls.add(`${f.url}|${day}`);
+    const twin = kept.find((k) => sameEvent(k, f));
+    if (twin) { mergeInto(twin, f); continue; }
+    kept.push({ ...f });
+  }
+  return kept;
+}
+
+const stems = (t: string) => new Set(normalize(t).split(' ').filter((w) => w.length >= 4).map((w) => w.slice(0, 3)));
+const hasTime = (iso: string) => /T\d{2}:\d{2}/.test(iso);
+
+/** Одно и то же событие на разных сайтах: день и площадка те же, а название похоже или совпадает время и корни слов (падежи: «Миша» / «Миши»). */
+export function sameEvent(a: Found, b: Found): boolean {
+  if (almatyDate(new Date(a.starts_at)) !== almatyDate(new Date(b.starts_at))) return false;
+  if (a.venue_name && b.venue_name && similarity(a.venue_name, b.venue_name) < 0.3) return false;
+  if (similarity(a.title, b.title) >= 0.5) return true;
+  const sameTime = hasTime(a.starts_at) && hasTime(b.starts_at) && Math.abs(Date.parse(a.starts_at) - Date.parse(b.starts_at)) <= 30 * 60e3;
+  if (!sameTime) return false;
+  const x = stems(a.title), y = stems(b.title);
+  let common = 0;
+  x.forEach((w) => y.has(w) && common++);
+  return common >= 2;
+}
+
+/** То же событие нашли на втором сайте: пустые поля первой карточки (фото, цена, точка, площадка) берём со второй. */
+export function mergeInto(a: Found, b: Found): void {
+  a.image_url ||= b.image_url ?? null;
+  if (a.price_min == null && b.price_min != null) { a.price_min = b.price_min; a.price_max = b.price_max ?? a.price_max ?? null; }
+  if (!a.is_free && b.is_free) a.is_free = true;
+  a.venue_name ||= b.venue_name ?? null;
+  a.address ||= b.address ?? null;
+  a.about ||= b.about;
+  if (a.lat == null && b.lat != null) { a.lat = b.lat; a.lon = b.lon ?? null; }
+  if (a.source_name && b.source_name && !a.source_name.includes(b.source_name)) a.source_name = `${a.source_name} + ${b.source_name}`;
+  // Подтверждено двумя сайтами — доверяем чуть больше.
+  a.confidence = Math.min(0.95, Math.max(Number(a.confidence ?? 0.6), Number(b.confidence ?? 0.6)) + 0.05);
+}
+
+/**
+ * Последний шаг для карточек без картинки: Kimi ищет официальную страницу события, а картинку берём с неё сами и проверяем
+ * (открывается, не логотип, на странице есть слова из названия). Ссылкам на картинки от ИИ напрямую не верим.
+ * Дорого по токенам и по лимиту аккаунта (3 запроса в минуту), поэтому не больше `max` карточек за запуск.
+ */
+export async function findImagesWithKimi(list: Found[], key: string, model: string, max: number): Promise<number> {
+  let filled = 0;
+  for (const f of list.filter((x) => !x.image_url).slice(0, max)) {
+    try {
+      const day = almatyDate(new Date(f.starts_at));
+      const { text } = await kimiSearch(`Найди официальную страницу или афишу события «${f.title}» (${day}, ${f.venue_name ?? 'Алматы'}). Верни только JSON {"page":"ссылка на страницу события","image":"прямая ссылка на афишу или null"}. Ничего не выдумывай.`, key, model, 1);
+      const raw = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+      const hit = JSON.parse(raw) as { page?: unknown; image?: unknown };
+      let image: string | null = null;
+      if (isUrl(hit.page)) {
+        const res = await fetch(hit.page, { headers: UA, redirect: 'follow', signal: AbortSignal.timeout(12_000) });
+        if (res.ok) {
+          const judged = judgePage({ ...f, image_url: null }, (await res.text()).slice(0, 1_500_000), res.url || hit.page);
+          if (judged?.image_url && !looksLikeLogo(judged.image_url) && (await imageAlive(judged.image_url))) image = judged.image_url;
+        }
+      }
+      if (!image && isUrl(hit.image) && !looksLikeLogo(hit.image) && (await imageAlive(hit.image))) image = hit.image;
+      if (image) { f.image_url = image; filled++; console.error(`  фото найдено Kimi: ${f.title.slice(0, 40)}`); }
+    } catch (err) { console.error(`  ✕ фото для «${f.title.slice(0, 30)}»: ${(err as Error).message.slice(0, 120)}`); }
+  }
+  return filled;
 }
 
 /** До limit штук: по кругу берём ближайшее событие каждой категории, чтобы стендап не вытеснил концерты, театр и лекции. */
@@ -399,7 +413,16 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
   const out = finalize([...fromSites, ...fromAi], from, to).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
   const withPhoto = out.filter((f) => f.image_url).length;
   console.error(`Итого ${out.length} событий, с фото ${withPhoto}. Оставляем ${Math.min(limit, out.length)}.`);
-  return balanced(out, limit);
+  const picked = balanced(out, limit);
+  // Фото: сначала со страницы события и со второго сайта (уже сделано выше); для оставшихся без фото — Kimi, если разрешено.
+  const kimiKey = process.env.KIMI_API_KEY;
+  const findMax = Number(process.env.SEARCH_FIND_IMAGES || 0);
+  if (findMax > 0 && kimiKey) {
+    const filled = await findImagesWithKimi(picked, kimiKey, isKimi(model) ? model : KIMI_DEFAULT_MODEL, findMax);
+    console.error(`Фото через Kimi: нашла для ${filled} из ${Math.min(findMax, picked.filter((f) => !f.image_url).length + filled)} карточек без фото.`);
+  }
+  console.error(`Без фото осталось ${picked.filter((f) => !f.image_url).length} (в приложении покажется обложка раздела).`);
+  return picked;
 }
 
 // ——— В конвейер ———
@@ -462,7 +485,7 @@ export async function fillImages(posts: RawPost[], limit = 25): Promise<void> {
 // Шаг 1 воркфлоу: поиск → JSON в stdout, отчёт — в stderr.
 async function main() {
   const sources = (['sites', 'ai', 'all'] as const).find((x) => x === process.env.SEARCH_SOURCES) ?? 'all';
-  const model = process.env.GEMINI_MODEL || (process.env.KIMI_API_KEY && !process.env.GEMINI_API_KEY ? KIMI_MODEL : undefined) || DEFAULT_MODEL;
+  const model = process.env.GEMINI_MODEL || (process.env.KIMI_API_KEY && !process.env.GEMINI_API_KEY ? KIMI_DEFAULT_MODEL : undefined) || DEFAULT_MODEL;
   const key = isKimi(model) ? process.env.KIMI_API_KEY : process.env.GEMINI_API_KEY;
   if (sources !== 'sites' && !key) throw new Error(isKimi(model) ? 'Нет KIMI_API_KEY. Добавь ключ в секреты GitHub Actions' : 'Нет GEMINI_API_KEY. Добавь ключ в секреты GitHub Actions');
   const names=['music','standup','cinema','art','food','sport'];

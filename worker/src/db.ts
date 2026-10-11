@@ -13,6 +13,8 @@ export interface Db {
   cancel(eventId: string, sure: boolean): Promise<void>;
   touchSource(id: string, cursor: string | null): Promise<void>;
   notifyStaff(): Promise<void>;
+  /** Черновики, которые уже закончились: ждать их одобрения незачем — удаляем. Возвращает число. */
+  purgeExpiredDrafts(): Promise<number>;
 }
 
 export function createDb(url: string, key: string): Db {
@@ -74,6 +76,14 @@ export function createDb(url: string, key: string): Db {
     },
     touchSource: async (id, cursor) => {
       await patch(`sources?id=eq.${id}`, { cursor, last_run_at: new Date().toISOString() });
+    },
+    purgeExpiredDrafts: async () => {
+      const now = new Date().toISOString();
+      const gone = await rest<{ id: string }[]>(
+        `events?status=eq.draft&or=(ends_at.lt.${now},and(ends_at.is.null,starts_at.lt.${now}))&select=id`,
+        { method: 'DELETE', headers: { Prefer: 'return=representation' } },
+      );
+      return gone?.length ?? 0;
     },
     notifyStaff: async () => {
       await post('rpc/notify_staff', {}, 'return=minimal');

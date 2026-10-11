@@ -21,6 +21,10 @@ on:
       model:
         type: string
         default: 'gemini-2.5-flash'
+      find_images:
+        type: string
+        description: 'Сколько карточек без фото дать Kimi на поиск картинки (0 — не искать; дорого по токенам)'
+        default: '0'
       sources:
         type: string
         description: 'sites — только афиши сайтов без ИИ (бесплатно), ai — только ИИ, all — оба'
@@ -52,6 +56,7 @@ jobs:
           GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
           SEARCH_SOURCES: ${{ inputs.sources || 'sites' }}
+          SEARCH_FIND_IMAGES: ${{ inputs.find_images || '0' }}
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
         run: node worker/src/search.ts --run > search.json
