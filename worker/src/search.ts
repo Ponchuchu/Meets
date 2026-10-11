@@ -67,7 +67,7 @@ export function readResponse(body: unknown): { text: string; links: string[]; us
 }
 
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
-export const KIMI_MODEL = 'kimi-k2-turbo-preview';
+export const KIMI_MODEL = 'kimi-k2.6';
 export const isKimi = (model: string) => /^(kimi|moonshot)-/i.test(model);
 
 // ——— Kimi (Moonshot) со встроенным веб-поиском $web_search ———
@@ -80,8 +80,8 @@ export async function kimiModels(key: string): Promise<string[]> {
   return ((await res.json()) as { data?: { id: string }[] }).data?.map((m) => m.id) ?? [];
 }
 export function pickKimiModel(ids: string[]): string | null {
-  const ok = ids.filter((m) => !/thinking|vision|image|audio/i.test(m));
-  for (const re of [/^kimi-k2\.?\d*-?turbo/i, /^kimi-k2/i, /^kimi-latest$/i, /^moonshot-v1-32k$/i, /^moonshot-v1/i]) { const m = ok.find((x) => re.test(x)); if (m) return m; }
+  const ok = ids.filter((m) => !/thinking|vision|image|audio|code/i.test(m));
+  for (const re of [/^kimi-k2\.6$/i, /^kimi-k3$/i, /^kimi-k2/i, /^kimi-latest$/i, /^moonshot-v1-32k$/i, /^moonshot-v1/i]) { const m = ok.find((x) => re.test(x)); if (m) return m; }
   return null;
 }
 const triedModels = new Map<string, string>();
@@ -113,10 +113,10 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
     let res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }),
+      body: JSON.stringify({ model, messages, max_tokens: 6000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }),
       signal: AbortSignal.timeout(left),
     });
-    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }), signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) }); }
+    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages, max_tokens: 6000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }), signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) }); }
     if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     usage.prompt += body.usage?.prompt_tokens ?? 0;
