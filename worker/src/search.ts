@@ -47,13 +47,13 @@ export const TOPICS = [
 ];
 
 /** Сайты, на которых ИИ ищет афишу (дешевле и точнее, чем весь интернет). Меняется переменной SEARCH_SITES (через запятую). */
-export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'tickets.kz', 'kino.kz', 'ticketon.kz/almaty', 'kassir.kz', 'gorodzovet.ru/almaty'];
+export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'kassir.kz', 'kino.kz'];
 
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
-  return `Найди через поиск до ${max} реальных событий в Алматы (искать по сайтам: ${(process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).join(', ')}; другие сайты — только если там есть страница события) с ${from} по ${to}. Тема: ${topic}.
-Бери только события с конкретной датой и временем. В url — ссылка на страницу этого события; если её нет, дай ссылку на афишу площадки или обзор, где событие указано (не главную страницу сайта). Укажи площадку, адрес и цену (если цены нет на странице — null). Верни всё найденное, даже если событий мало; пустой массив — только если не нашлось ни одного. Ничего не выдумывай, год проверяй.
-Сделай не больше двух поисков, затем сразу ответь. Ответь только JSON-массивом, без текста вокруг и без вызовов функций:
-[{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
+  const sites = (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
+  return `Найди через поиск до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
+Ищи на: ${sites}. Нужны дата и время, площадка, адрес, цена (нет — null). url — страница события или афиша площадки, не главная сайта. Не выдумывай, год проверяй. Не больше двух поисков, затем сразу ответ: только JSON-массив без вызовов функций ([] если пусто):
+[{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов","url":"","source_name":"","confidence":0.8}]`;
 }
 
 // ——— Gemini API ———
