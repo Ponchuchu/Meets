@@ -72,7 +72,36 @@ export const isKimi = (model: string) => /^(kimi|moonshot)-/i.test(model);
 
 // ——— Kimi (Moonshot) со встроенным веб-поиском $web_search ———
 // Ключ — секрет KIMI_API_KEY. Адрес можно сменить переменной KIMI_BASE_URL (по умолчанию международный api.moonshot.ai; для ключа из Китая — https://api.moonshot.cn/v1).
+/** Модели, которые доступны этому ключу; для поиска берём не-«thinking» k2 или moonshot-v1. */
+export async function kimiModels(key: string): Promise<string[]> {
+  const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
+  const res = await fetch(`${base}/models`, { headers: { authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`Kimi /models ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return ((await res.json()) as { data?: { id: string }[] }).data?.map((m) => m.id) ?? [];
+}
+export function pickKimiModel(ids: string[]): string | null {
+  const ok = ids.filter((m) => !/thinking|vision|image|audio/i.test(m));
+  for (const re of [/^kimi-k2\.?\d*-?turbo/i, /^kimi-k2/i, /^kimi-latest$/i, /^moonshot-v1-32k$/i, /^moonshot-v1/i]) { const m = ok.find((x) => re.test(x)); if (m) return m; }
+  return null;
+}
+const triedModels = new Map<string, string>();
+
 export async function askKimi(prompt: string, key: string, model: string, timeoutMs = 150_000): Promise<{ found: Found[]; usage: Usage }> {
+  model = triedModels.get(model) ?? model;
+  try { return await askKimiOnce(prompt, key, model, timeoutMs); } catch (e) {
+    if (!/Kimi 404/.test((e as Error).message)) throw e;
+    // Такой модели у ключа нет — смотрим список доступных и берём подходящую (один раз на запуск).
+    const ids = await kimiModels(key);
+    console.error(`  Kimi: модели ${model} нет. Доступно: ${ids.join(', ') || '—'}`);
+    const alt = pickKimiModel(ids);
+    if (!alt || alt === model) throw e;
+    console.error(`  Kimi: беру ${alt}`);
+    triedModels.set(model, alt);
+    return askKimiOnce(prompt, key, alt, timeoutMs);
+  }
+}
+
+async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs: number): Promise<{ found: Found[]; usage: Usage }> {
   const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
   type Msg = { role: string; content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string; name?: string };
   const messages: Msg[] = [{ role: 'user', content: prompt }];
