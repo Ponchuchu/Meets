@@ -7,7 +7,7 @@ export async function dispatch(workflow: string, inputs: Record<string, string>)
   const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'ryadom-robot' },
-    body: JSON.stringify({ ref: 'main', inputs }),
+    body: JSON.stringify({ ref: Deno.env.get('ROBOT_GITHUB_REF') || 'main', inputs }),
   });
   return res.ok ? null : `GitHub ${res.status}: ${(await res.text()).slice(0, 160)}`;
 }

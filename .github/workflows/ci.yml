@@ -13,6 +13,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --ci
+      - run: npm run test:sql
       - name: Общий код Edge Functions собран из src
         run: npm run functions:build && git diff --exit-code supabase/functions/_shared/app.js supabase/functions/_shared/notify-types.ts
       - run: npm run build:web

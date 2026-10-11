@@ -5,6 +5,11 @@ name: Android APK
 
 on:
   workflow_dispatch:
+  push:
+    tags: ['apk-review-*']
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   build:
@@ -16,7 +21,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Проверить код перед сборкой
+        run: npm run typecheck && npm run lint && npm run knip && npm test -- --ci --runInBand && npm run test:sql
       - name: Проверить токен Expo
+        id: expo-token
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
@@ -39,6 +47,39 @@ jobs:
             echo "::warning::Нет секрета TOPTOP_TOKEN — линза «Пробки» будет без данных"
           fi
       - name: Собрать APK
+        id: apk
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait
+        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait --json > /tmp/meets-eas-build.json
+      - name: Ссылка на APK
+        if: steps.apk.outcome == 'success'
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const raw = JSON.parse(readFileSync('/tmp/meets-eas-build.json', 'utf8'));
+          const build = (Array.isArray(raw) ? raw : [raw]).find((b) => b.platform === 'ANDROID' && b.status === 'FINISHED');
+          const url = build?.artifacts?.buildUrl ?? build?.artifacts?.applicationArchiveUrl;
+          if (!url?.startsWith('https://')) throw new Error('Expo не вернул ссылку на готовый APK');
+          console.log(`APK: ${url}`);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Meets для Android\n\n[Скачать APK](${url})\n`);
+          JS
+      - name: Открыть изменения для проверки
+        if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh pr list --head review/dev-panel-polish --base main --state open --json url --jq '.[0].url // empty')
+          if [ -n "$current" ]; then echo "$current" > /tmp/meets-pr-url.txt; exit 0; fi
+          cat > /tmp/meets-pr.txt <<'BODY'
+          Исправлены десять ошибок проверки 11–12 октября: удалённые события не возвращаются из поиска, планы участников сохраняются, права переименования ограничены публичной афишей, неточные адреса требуют проверки, подписка карты останавливается, фото заменяется после ошибки, запуск длится до 3,2 секунды.
+
+          Добавлены проверки повторного появления событий, прав базы, сохранения планов, геолокации, фото и заставки. Сборка APK — профиль preview с настоящей базой. Состояние применения миграции 24 и APK фиксируется в docs/builds на ветках build-results.
+          BODY
+          gh pr create --head review/dev-panel-polish --base main --title "Meets: исправления проверки и короткая заставка" --body-file /tmp/meets-pr.txt > /tmp/meets-pr-url.txt
+      - name: Сохранить результат сборки
+        if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
+        env:
+          RESULT_STATUS: ${{ job.status }}
+          RESULT_STAGE: ${{ steps.expo-token.outcome == 'failure' && 'expo-token' || steps.apk.outcome }}
+        run: node scripts/report-action.mjs
