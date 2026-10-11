@@ -39,14 +39,14 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const y = useSharedValue(0);
   const revealing = useSharedValue(false);
-  const pan = Gesture.Pan().activeOffsetY([-12, 12]).failOffsetX([-28, 28])
+  const pan = Gesture.Pan().activeOffsetY([-8, 12]).failOffsetX([-40, 40])
     .onUpdate((g) => {
-      if (g.translationY < -18 && !revealing.get()) { revealing.set(true); scheduleOnRN(onReveal); }
-      if (revealing.get()) expand.set(Math.max(0, Math.min(0.85, -g.translationY / 300)));
+      if (g.translationY < -8 && -g.translationY > Math.abs(g.translationX) * 1.1 && !revealing.get()) { revealing.set(true); scheduleOnRN(onReveal); }
+      if (revealing.get()) expand.set(Math.max(0, Math.min(1, -g.translationY / 300)));
       else y.set(Math.max(0, g.translationY));
     })
     .onEnd((g) => {
-      if (revealing.get()) { revealing.set(false); scheduleOnRN(onRevealEnd, g.translationY < -50 || g.velocityY < -500); }
+      if (revealing.get()) { revealing.set(false); scheduleOnRN(onRevealEnd, expand.get() > 0.12 || g.velocityY < -350); }
       else if (g.translationY > 70 || g.velocityY > 800) scheduleOnRN(onHide);
       y.set(withSpring(0, { damping: 28, stiffness: 240, overshootClamping: true }));
     }).onFinalize((_e,success)=>{if(!success&&revealing.get()){revealing.set(false);scheduleOnRN(onRevealEnd,false);}});

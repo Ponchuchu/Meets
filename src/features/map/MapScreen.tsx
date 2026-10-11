@@ -349,7 +349,7 @@ export default function MapScreen() {
     setOpen(e);
     if (interactive) return;
     ex.set(0);
-    ex.set(withTiming(1, { duration: 360, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
+    ex.set(withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) }));
   };
   const closeEvent = () => {
     ex.set(withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, (done) => { if (done) scheduleOnRN(setOpen, null); }));
@@ -461,7 +461,7 @@ export default function MapScreen() {
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
             expand={ex} onReveal={() => openEvent(selected, null, true)}
-            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeEvent(); }}
+            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeEvent(); }}
             me={myPos ?? fix} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();

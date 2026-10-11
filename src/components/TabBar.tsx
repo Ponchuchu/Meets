@@ -19,9 +19,10 @@ const POP = Easing.bezier(0.3, 1.4, 0.5, 1);
 const OFF = '#5F5B55';
 const ON_DETAIL = '#EEE9DE';
 
-const TABS: Record<string, { label: string; shape?: string; details?: string }> = {
+const TABS: Record<string, { label: string; shape?: string; details?: string; back?: string }> = {
   index: { label: 'Карта', shape: 'M3 6.5l6-3 6 3 6-3v14l-6 3-6-3-6 3z', details: 'M9 3.5v14M15 6.5v14' },
-  foryou: { label: 'Рекомендации', shape: 'M8.5 2.5h9.5a2.5 2.5 0 012.5 2.5v11.5a2.5 2.5 0 01-2.5 2.5H8.5A2.5 2.5 0 016 16.5V5a2.5 2.5 0 012.5-2.5z', details: 'M3 6.5v12a3 3 0 003 3h9.5M13.25 6.8l1.1 2.3 2.5.35-1.8 1.75.42 2.5-2.22-1.2-2.22 1.2.42-2.5-1.8-1.75 2.5-.35z' },
+  // Рекомендации: передняя карточка со звездой и вторая карточка позади — читается как стопка. Выбрано: всё сплошным чёрным, как в Instagram.
+  foryou: { label: 'Рекомендации', shape: 'M8 3h9.5A2.5 2.5 0 0120 5.5v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 17.5v-12A2.5 2.5 0 018 3z', back: 'M3 7v11a3 3 0 003 3h9', details: 'M12.75 7.8l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z' },
   plans: { label: 'Планы', shape: 'M5 4.5h14a2.5 2.5 0 012.5 2.5v12a2.5 2.5 0 01-2.5 2.5H5A2.5 2.5 0 012.5 19V7A2.5 2.5 0 015 4.5z', details: 'M2.5 9.5h19M8 2.5v4M16 2.5v4M8.5 15l2.3 2.3 4.7-4.6' },
   chats: { label: 'Чаты', shape: 'M4 4h16a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-1.5 1.5h-9.5L5.5 21.5v-4H4A1.5 1.5 0 012.5 16V5.5A1.5 1.5 0 014 4z', details: 'M7.5 9h9M7.5 12.5h5.5' },
   me: { label: 'Профиль' },
@@ -74,12 +75,14 @@ function TabIcon({ name, on, pop }: { name: string; on: boolean; pop: SharedValu
         <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
           <Path d={d.shape} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
           <Path d={d.details} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          {d.back ? <Path d={d.back} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
       </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, filled]}>
         <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
           <Path d={d.shape} fill={colors.ink} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={d.back ? ON_DETAIL : 'none'} />
+          {d.back ? <Path d={d.back} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
       </Animated.View>
     </Animated.View>

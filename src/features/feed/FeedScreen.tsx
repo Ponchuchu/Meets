@@ -12,7 +12,8 @@ import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import { LazyEventPage } from '../../event/LazyEventPage';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
-import { EdgeGlow, SwipeHints } from '../../feed/SwipeHints';
+import { QuickButtons } from '../../feed/SwipeHints';
+import { UndoBar } from '../../feed/UndoBar';
 import { now as clockNow } from '../../lib/clock';
 import { buildDeck, makeSignal, tasteFrom } from '../../reco';
 import { useApp, useCoverTabBar } from '../../state/app';
@@ -21,7 +22,6 @@ import { useFeed } from '../../state/feed';
 import { usePlans } from '../../state/plans';
 import { INITIAL_DRAFT, useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Toast, type ToastData } from '../../ui/Toast';
 
 const STACK = 3;
 
@@ -43,9 +43,10 @@ export default function ForYouScreen() {
   const removePlan = useApp((s) => s.removePlan);
   const pulsePlan = useApp((s) => s.pulsePlan);
 
-  const [toast, setToast] = useState<ToastData | null>(null);
+  // Плашка «Мимо · Вернуть»: тонкая, над нижней панелью, 5 секунд.
+  const undoSeq = useRef(0);
+  const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
@@ -82,23 +83,18 @@ export default function ForYouScreen() {
   const baseTop = headTop + 56;
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
-  const HINTS_H = 40;
-  const GAP = 44; // под карточкой видна стопка (28) и зазор
+  const HINTS_H = 84; // кнопки с подписями под карточкой
+  const GAP = 38; // под карточкой видна стопка (28) и зазор
   const cardW = Math.min(350, W - 40);
-  const cardH = Math.max(340, Math.min(500, screenH - baseTop - GAP - HINTS_H - 16));
-  const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 16);
-  const cardTop = baseTop + Math.round(free * 0.45);
+  const cardH = Math.max(330, Math.min(470, screenH - baseTop - GAP - HINTS_H - 10));
+  const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 10);
+  const cardTop = baseTop + Math.round(free * 0.5);
   const hintsTop = cardTop + cardH + GAP;
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
   const plansIcon = tabCenter(2, W, fullH, insets.bottom);
   const target = { x: plansIcon.x - (cardX + cardW / 2), y: plansIcon.y - (cardTop + cardH / 2) };
 
-  const showToast = (t: ToastData | null, ms = 4000) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(t);
-    if (t) toastTimer.current = setTimeout(() => setToast(null), ms);
-  };
 
   // Каждое решение даёт карточке новый «круг»: если она вернётся в колоду (пропущенное или «Вернуть»), это новый экземпляр,
   // а не старый, улетевший за экран, с занятым жестом — иначе лента «зависала» и смотреть было нечего.
@@ -115,14 +111,14 @@ export default function ForYouScreen() {
       addPlan();
       pulsePlan();
     } else if (undosLeft > 0) {
-      showToast({ text: `Мимо: ${e.title}`, cta: 'Вернуть', onCta: () => doUndo() }, 5000);
+      setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}` });
     }
   };
 
   // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.
   function doUndo() {
     const last = undo();
-    showToast(null);
+    setUndoBar(null);
     if (!last) return;
     bump(last.eventId);
     // «Отменить» после «пойду» считается в ungo как cancel_plan, «вернуть» после «мимо» — здесь.
@@ -138,11 +134,11 @@ export default function ForYouScreen() {
   const p = useSharedValue(0);
   const openCard = (e: EventItem, interactive = false) => {
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
-    showToast(null);
+    setUndoBar(null);
     setOpen(e);
     if (interactive) return;
     p.value = 0;
-    p.value = withTiming(1, { duration: 350, easing: Easing.bezier(0.2, 0.8, 0.3, 1) });
+    p.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) });
   };
   const closeCard = (then?: () => void) => {
     p.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, () => {
@@ -166,8 +162,6 @@ export default function ForYouScreen() {
         <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
 
-      {top && <EdgeGlow x={dragX} width={W} />}
-
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
@@ -180,7 +174,7 @@ export default function ForYouScreen() {
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
             expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeCard(); }}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
             onUndo={doUndo}
             drag={k === 0 ? drag : undefined}
           />
@@ -188,7 +182,9 @@ export default function ForYouScreen() {
       </View>
 
       {top && !open && (
-        <View style={[styles.hints, { top: hintsTop, left: cardX, width: cardW }]} pointerEvents="none"><SwipeHints x={dragX} y={dragY} /></View>
+        <View style={[styles.hints, { top: hintsTop, left: cardX - 6, width: cardW + 12 }]}>
+          <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => openCard(top)} />
+        </View>
       )}
 
       {!top && (
@@ -210,7 +206,7 @@ export default function ForYouScreen() {
         </View>
       )}
 
-      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, top: cardTop + cardH - 70 }} />}
+      {undoBar && !open && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>

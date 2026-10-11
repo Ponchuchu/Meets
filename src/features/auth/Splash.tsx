@@ -90,7 +90,7 @@ export function Splash() {
     return () => { timers.forEach(clearTimeout); unsub(); };
   }, [on]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const bg = '#F0521F';
+  const bg = '#F8613B';
   const ink = '#17161A';
   const dotC = '#EEE9DE';
   const line = 'rgba(23,22,26,0.13)';

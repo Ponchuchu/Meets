@@ -31,7 +31,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/adaptive-foreground.png",
-        "backgroundColor": "#F0521F",
+        "backgroundColor": "#F8613B",
         "monochromeImage": "./assets/icon/adaptive-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -60,7 +60,7 @@
           "image": "./assets/icon/splash-blank.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F0521F"
+          "backgroundColor": "#F8613B"
         }
       ],
       "expo-font",

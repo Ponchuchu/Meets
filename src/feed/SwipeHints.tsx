@@ -1,51 +1,54 @@
-// Подсказки жестов ленты: три «кнопки» под карточкой — ← Мимо · ↑ Подробнее · Пойду →. Они не нажимаются, а показывают,
-// куда тянуть: при движении карточки нужная подсвечивается, по краям экрана проступает цветная заливка.
-import { StyleSheet, View } from 'react-native';
+// Кнопки под карточкой: ✕ «Мимо», ⌃ «Подробнее», ♥ «Пойду». Их можно нажимать, и они же объясняют жесты:
+// когда тянешь карточку, нужная кнопка подсвечивается (Мимо чернеет, Пойду оранжевая, Подробнее синяя).
+import { ChevronUp, Heart, X } from 'lucide-react-native';
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, interpolateColor, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { colors, fonts } from '../theme';
 
 const THRESHOLD = 90;
 
-function Pill({ label, src, range, tint, side }: { label: string; src: SharedValue<number>; range: [number, number]; tint: string; side?: 'left' | 'right' | 'mid' }) {
-  const st = useAnimatedStyle(() => {
-    const a = interpolate(src.get(), range, [0, 1], Extrapolation.CLAMP);
-    return { backgroundColor: interpolateColor(a, [0, 1], [colors.sand, tint]), transform: [{ scale: 1 + 0.08 * a }], opacity: 0.8 + 0.2 * a };
-  });
-  const tx = useAnimatedStyle(() => ({ color: interpolateColor(interpolate(src.get(), range, [0, 1], Extrapolation.CLAMP), [0, 1], [colors.muted2, '#FFFFFF']) as string }));
+function Btn({ label, src, range, neg, tint, size, icon, iconOn, onPress }: {
+  label: string; src: SharedValue<number>; range: [number, number]; neg?: boolean; tint: string; size: number;
+  icon: ReactNode; iconOn: ReactNode; onPress: () => void;
+}) {
+  // neg — тянем в минус (влево / вверх): значение переворачиваем, диапазон для interpolate должен возрастать.
+  const a = (v: number) => { 'worklet'; return interpolate(neg ? -v : v, range, [0, 1], Extrapolation.CLAMP); };
+  const circle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(a(src.get()), [0, 1], [colors.card, tint]),
+    transform: [{ scale: 1 + 0.14 * a(src.get()) }],
+  }));
+  const off = useAnimatedStyle(() => ({ opacity: 1 - a(src.get()) }));
+  const on = useAnimatedStyle(() => ({ opacity: a(src.get()) }));
   return (
-    <Animated.View style={[styles.pill, side === 'mid' && styles.mid, st]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Animated.Text style={[styles.label, tx]}>{label}</Animated.Text>
-    </Animated.View>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.item} hitSlop={6}>
+      <Animated.View style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }, circle]}>
+        <Animated.View style={[styles.icon, off]}>{icon}</Animated.View>
+        <Animated.View style={[styles.icon, on]}>{iconOn}</Animated.View>
+      </Animated.View>
+      <Text style={styles.label}>{label}</Text>
+    </Pressable>
   );
 }
 
-export function SwipeHints({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
+export function QuickButtons({ x, y, onNo, onUp, onGo }: { x: SharedValue<number>; y: SharedValue<number>; onNo: () => void; onUp: () => void; onGo: () => void }) {
+  const p = { size: 24, strokeWidth: 2.2 };
   return (
     <View style={styles.row}>
-      <Pill label="←  Мимо" src={x} range={[-12, -THRESHOLD]} tint={colors.ink} side="left" />
-      <Pill label="↑  Подробнее" src={y} range={[-10, -60]} tint={colors.friend} side="mid" />
-      <Pill label="Пойду  →" src={x} range={[12, THRESHOLD]} tint={colors.accent} side="right" />
+      <Btn label="Мимо" src={x} range={[12, THRESHOLD]} neg tint={colors.ink} size={54} onPress={onNo}
+        icon={<X {...p} color={colors.ink} />} iconOn={<X {...p} color="#FFFFFF" />} />
+      <Btn label="Подробнее" src={y} range={[10, 60]} neg tint={colors.friend} size={54} onPress={onUp}
+        icon={<ChevronUp {...p} color={colors.ink} />} iconOn={<ChevronUp {...p} color="#FFFFFF" />} />
+      <Btn label="Пойду" src={x} range={[12, THRESHOLD]} tint={colors.accent} size={54} onPress={onGo}
+        icon={<Heart {...p} color={colors.accent} />} iconOn={<Heart {...p} color={colors.ink} />} />
     </View>
   );
 }
 
-/** Цветная заливка по краям экрана: слева тёмная («Мимо»), справа оранжевая («Пойду»). */
-export function EdgeGlow({ x, width }: { x: SharedValue<number>; width: number }) {
-  const l = useAnimatedStyle(() => ({ opacity: interpolate(x.get(), [-THRESHOLD * 1.4, -10], [0.28, 0], Extrapolation.CLAMP) }));
-  const r = useAnimatedStyle(() => ({ opacity: interpolate(x.get(), [10, THRESHOLD * 1.4], [0, 0.4], Extrapolation.CLAMP) }));
-  return (
-    <>
-      <Animated.View pointerEvents="none" style={[styles.glow, { left: 0, width: width * 0.35, backgroundColor: colors.ink }, l]} />
-      <Animated.View pointerEvents="none" style={[styles.glow, { right: 0, width: width * 0.35, backgroundColor: colors.accent }, r]} />
-    </>
-  );
-}
-
-
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  pill: { height: 40, paddingHorizontal: 14, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  mid: { paddingHorizontal: 12 },
-  label: { fontFamily: fonts.body700, fontSize: 13.5 },
-  glow: { position: 'absolute', top: 0, bottom: 0 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around' },
+  item: { width: 90, alignItems: 'center', gap: 5 },
+  circle: { alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  icon: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  label: { fontFamily: fonts.body600, fontSize: 11, color: colors.muted },
 });

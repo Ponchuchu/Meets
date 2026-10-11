@@ -126,10 +126,11 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     })
     .onChange((ev) => {
       if (busy.get()) return;
-      if (!revealing.get() && ev.translationY < -18 && Math.abs(ev.translationX) < 32) {
+      // Раскрытие вверх: хватает лёгкого движения; направление — по соотношению, а не по жёсткому коридору (палец ходит дугой).
+      if (!revealing.get() && ev.translationY < -8 && -ev.translationY > Math.abs(ev.translationX) * 1.1) {
         revealing.set(true); scheduleOnRN(onReveal);
       }
-      if (revealing.get()) { expand.set(Math.max(0, Math.min(0.85, -ev.translationY / 320))); return; }
+      if (revealing.get()) { expand.set(Math.max(0, Math.min(1, -ev.translationY / 300))); return; }
       dx.set(ev.translationX);
       dy.set(ev.translationY < 0 ? ev.translationY * 0.6 : ev.translationY * 0.3);
       rot.set(Math.max(-9, Math.min(9, ev.translationX / 18)));
@@ -138,7 +139,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
       if (busy.get()) return;
       if (revealing.get()) {
         revealing.set(false); dx.set(0); dy.set(0); rot.set(0);
-        scheduleOnRN(onRevealEnd, ev.translationY < -UP || ev.velocityY < -500); return;
+        scheduleOnRN(onRevealEnd, expand.get() > 0.12 || ev.velocityY < -350); return;
       }
       if (ev.translationY > 70 && Math.abs(ev.translationX) < 50) {
         dx.set(0); dy.set(0); rot.set(0); scheduleOnRN(onUndo); return;
@@ -170,7 +171,8 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     const x = q * q * sx.get() + 2 * q * p * cx + p * p * target.x;
     const y = q * q * sy.get() + 2 * q * p * cy + p * p * target.y;
     return {
-      opacity: op.get(),
+      // В самом конце полёта кружок растворяется в значке «Планы».
+      opacity: op.get() * (1 - Math.max(0, (p - 0.9) / 0.1)),
       borderRadius: 30 + (Math.min(width, height) / 2 - 30) * p,
       transform: [
         { translateX: dx.get() + x }, { translateY: dy.get() + y },
