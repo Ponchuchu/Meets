@@ -6,7 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 const tag = process.env.GITHUB_REF_NAME ?? '';
 if (!/^(apk|backend)-review-[a-zA-Z0-9.-]+$/.test(tag)) throw new Error('Ожидалась метка review-сборки');
 const kind = tag.startsWith('apk-') ? 'apk' : 'backend';
-let apkUrl = null, buildId = null, prUrl = null;
+let apkUrl = null, buildId = null, prUrl = null, prError = null;
 if (kind === 'apk') {
   try {
     const raw = JSON.parse(await readFile('/tmp/meets-eas-build.json', 'utf8'));
@@ -21,12 +21,18 @@ if (kind === 'apk') {
     const link = (await readFile('/tmp/meets-pr-url.txt', 'utf8')).trim();
     if (link.startsWith(`https://github.com/${process.env.GITHUB_REPOSITORY}/pull/`)) prUrl = link;
   } catch { /* PR не удалось открыть или его ссылка отсутствует. */ }
+  if (!prUrl) {
+    try {
+      prError = (await readFile('/tmp/meets-pr-error.txt', 'utf8')).trim()
+        .replace(/github_pat_[A-Za-z0-9_]+|gh[pousr]_[A-Za-z0-9]+/g, '[скрыто]').slice(0, 400) || null;
+    } catch { /* Нет сообщения об ошибке. */ }
+  }
 }
 const result = {
   kind, tag, source: process.env.GITHUB_SHA, status: apkUrl ? 'success' : process.env.RESULT_STATUS,
   job_status: process.env.RESULT_STATUS, stage: process.env.RESULT_STAGE,
   run_url: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
-  ...(kind === 'apk' ? { apk_url: apkUrl, build_id: buildId, pr_url: prUrl } : {}),
+  ...(kind === 'apk' ? { apk_url: apkUrl, build_id: buildId, pr_url: prUrl, pr_error: prError } : {}),
 };
 const git = (...args) => execFileSync('git', args, { stdio: 'inherit' });
 git('config', 'user.name', 'meets-build-bot');
