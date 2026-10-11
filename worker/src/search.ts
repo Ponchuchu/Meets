@@ -45,7 +45,7 @@ export const TOPICS = [
 export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
   return `Найди через поиск в интернете до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
 Бери только события с конкретной датой, у которых есть страница (организатор, площадка, афиша, городской обзор). Ничего не выдумывай, год проверяй.
-Ответь только JSON-массивом, без текста вокруг:
+Сделай не больше двух поисков, затем сразу ответь. Ответь только JSON-массивом, без текста вокруг и без вызовов функций:
 [{"title":"","category":"одно из: ${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов своими словами","url":"страница события","source_name":"","confidence":0.8}]`;
 }
 
@@ -101,22 +101,23 @@ export async function askKimi(prompt: string, key: string, model: string, timeou
   }
 }
 
+const NUDGE = 'Поиск закончен, больше ничего не вызывай. Выдай результат: только JSON-массив событий из найденного (формат из первого сообщения). Если подходящих событий нет — [].';
+
 async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs: number): Promise<{ found: Found[]; usage: Usage }> {
   const base = (process.env.KIMI_BASE_URL || 'https://api.moonshot.ai/v1').replace(/\/$/, '');
   type Msg = { role: string; content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[]; tool_call_id?: string; name?: string };
   const messages: Msg[] = [{ role: 'user', content: prompt }];
   const usage: Usage = { prompt: 0, output: 0, searches: 0, sources: 0 };
   const deadline = Date.now() + timeoutMs;
+  let final = false;
   for (let step = 0; step < 6; step++) {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error('Kimi: время вышло');
-    let res = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, max_tokens: 6000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }),
-      signal: AbortSignal.timeout(left),
-    });
-    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages, max_tokens: 6000, tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }), signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) }); }
+    // После двух поисков или после «вызова функции» текстом — инструмент отключаем: пусть пишет итог.
+    const payload = () => JSON.stringify({ model, messages, max_tokens: 6000, ...(final ? {} : { tools: [{ type: 'builtin_function', function: { name: '$web_search' } }] }) });
+    const send = (ms: number) => fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: payload(), signal: AbortSignal.timeout(ms) });
+    let res = await send(left);
+    if (res.status === 429 || res.status >= 500) { await new Promise((r) => setTimeout(r, 4000)); res = await send(Math.max(1000, deadline - Date.now())); }
     if (!res.ok) throw new Error(`Kimi ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = await res.json() as { choices?: { finish_reason?: string; message?: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
     usage.prompt += body.usage?.prompt_tokens ?? 0;
@@ -130,10 +131,17 @@ async function askKimiOnce(prompt: string, key: string, model: string, timeoutMs
         // Поиск выполняет сам Kimi: по правилам API аргументы возвращаются как есть.
         messages.push({ role: 'tool', tool_call_id: tc.id, name: tc.function.name, content: tc.function.arguments });
       }
+      if (usage.searches >= 2) { final = true; messages.push({ role: 'user', content: NUDGE }); }
       continue;
     }
     const text = choice.message.content ?? '';
     const found = parseGeminiOutput(text);
+    // Модель написала «вызов функции» текстом или просто план, а JSON не дала — один раз просим итог без поиска.
+    if (!found.length && !final && !text.includes('[]')) {
+      final = true;
+      messages.push({ role: 'assistant', content: text || '…' }, { role: 'user', content: NUDGE });
+      continue;
+    }
     if (!found.length) console.error(`  Kimi: 0 событий. finish=${choice.finish_reason}, ответ: ${(text || '(пусто)').replace(/\s+/g, ' ').slice(0, 500)}`);
     return { found, usage };
   }
