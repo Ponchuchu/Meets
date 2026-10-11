@@ -1,15 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<defs>
- <linearGradient id="g7" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#DC3E18"/>
- </linearGradient>
- <radialGradient id="h7" cx=".25" cy=".15" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
- <filter id="s7" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#5a1a05" flood-opacity=".35"/></filter>
- <clipPath id="c7"><rect width="1024" height="1024" rx="228"/></clipPath>
-</defs>
-<rect width="1024" height="1024" rx="228" fill="url(#g7)"/>
-<rect width="1024" height="1024" rx="228" fill="url(#h7)"/><g clip-path="url(#c7)"><line x1="285" y1="-60" x2="345" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><line x1="760" y1="-60" x2="690" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><g filter="url(#s7)" transform="rotate(-8 512 580)">
-     <circle cx="512" cy="580" r="205" fill="#FFFFFF" stroke="#17130F" stroke-width="34"/>
-     <clipPath id="ac7"><circle cx="512" cy="580" r="188"/></clipPath>
-     <g fill="#17130F" clip-path="url(#ac7)"><circle cx="512" cy="514.5" r="66.5"/>
-  <path d="M379,900 L379,721.6 A133,119.7 0 0 1 645,721.6 L645,900 Z"/></g></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs>
+ <linearGradient id="g7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#D93C16"/></linearGradient>
+ <radialGradient id="h7" cx=".25" cy=".12" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="st7" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#fff"/><stop offset="1" stop-color="#FBE3D8"/></linearGradient>
+ <filter id="b7" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="s7" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#5a1a05" flood-opacity=".3"/></filter>
+ <clipPath id="c7"><rect width="1024" height="1024" rx="228"/></clipPath></defs><rect width="1024" height="1024" rx="228" fill="url(#g7)"/><rect width="1024" height="1024" rx="228" fill="url(#h7)"/>
+  <g clip-path="url(#c7)">
+   <ellipse cx="512" cy="925" rx="170" ry="34" fill="#7a2408" opacity=".28" filter="url(#b7)"/>
+   <path d="M240 600 l-90 0" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="18" stroke-linecap="round"/><path d="M240 646 l-68 0" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="18" stroke-linecap="round"/><path d="M240 692 l-46 0" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="18" stroke-linecap="round"/>
+   <g filter="url(#s7)" transform="rotate(14 512 600) translate(512 600) scale(1.1) translate(-512 -600)"><path d="M512 330 a90 90 0 0 1 64 153 C650 500 730 520 730 570 c0 40 -60 50 -100 40 L660 790 c6 30 -14 44 -44 44 L560 834 L512 740 L464 834 L408 834 c-30 0 -50 -14 -44 -44 L394 610 c-40 10 -100 0 -100 -40 c0 -50 80 -70 154 -87 A90 90 0 0 1 512 330 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="34" stroke-linejoin="round"/><circle cx="490.4" cy="410" r="9" fill="#17130F"/><circle cx="533.6" cy="410" r="9" fill="#17130F"/>
+  <path d="M494 437 Q512 453.2 530 437" fill="none" stroke="#17130F" stroke-width="8.1" stroke-linecap="round"/></g>
+   <g filter="url(#s7)"><path d="M729.5017297842646,-126.84850539728585 L637.1537804489432,427.97306878414736 A17 17 0 0 0 670.4965428155582,434.6259025986536 L798.1485934802367,-113.15149460271415 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="26" stroke-linejoin="round" paint-order="stroke"/><path d="M302.08321193429776,-111.26586673429223 L449.51374186677094,388.70570000379143 A17 17 0 0 0 482.43807618366463,380.2211134028182 L369.8686061161378,-128.73413326570775 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="26" stroke-linejoin="round" paint-order="stroke"/></g>
+  </g></svg>

@@ -1,13 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<defs>
- <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#DC3E18"/>
- </linearGradient>
- <radialGradient id="h4" cx=".25" cy=".15" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
- <filter id="s4" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#5a1a05" flood-opacity=".35"/></filter>
- <clipPath id="c4"><rect width="1024" height="1024" rx="228"/></clipPath>
-</defs>
-<rect width="1024" height="1024" rx="228" fill="url(#g4)"/>
-<rect width="1024" height="1024" rx="228" fill="url(#h4)"/><g clip-path="url(#c4)"><line x1="285" y1="-60" x2="345" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><line x1="760" y1="-60" x2="690" y2="1080" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round"/><g filter="url(#s4)" transform="rotate(-8 512 560)">
-     <path d="M512 860 C430 760 320 650 320 520 A192 192 0 0 1 704 520 C704 650 594 760 512 860 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="34" stroke-linejoin="round"/>
-     <g fill="#17130F"><circle cx="512" cy="462" r="50"/><path d="M430 640 L430 600 A82 74 0 0 1 594 600 L594 640 Q512 668 430 640 Z"/></g></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs>
+ <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7B47"/><stop offset=".55" stop-color="#F0521F"/><stop offset="1" stop-color="#D93C16"/></linearGradient>
+ <radialGradient id="h4" cx=".25" cy=".12" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="st4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#fff"/><stop offset="1" stop-color="#FBE3D8"/></linearGradient>
+ <filter id="b4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="s4" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#5a1a05" flood-opacity=".3"/></filter>
+ <clipPath id="c4"><rect width="1024" height="1024" rx="228"/></clipPath></defs><rect width="1024" height="1024" rx="228" fill="url(#g4)"/><rect width="1024" height="1024" rx="228" fill="url(#h4)"/>
+  <g clip-path="url(#c4)">
+   <ellipse cx="512" cy="925" rx="170" ry="34" fill="#7a2408" opacity=".28" filter="url(#b4)"/>
+   
+   <g filter="url(#s4)" transform="rotate(-7 512 600) translate(512 600) scale(1.05) translate(-512 -600)"><path d="M512 560 L512 680" fill="none" stroke="#17130F" stroke-width="266" stroke-linecap="round" stroke-linejoin="round"/><path d="M450 790 L440 820" fill="none" stroke="#17130F" stroke-width="106" stroke-linecap="round" stroke-linejoin="round"/><path d="M574 790 L584 820" fill="none" stroke="#17130F" stroke-width="106" stroke-linecap="round" stroke-linejoin="round"/><circle cx="512" cy="395" r="126" fill="#17130F"/><path d="M512 560 L512 680" fill="none" stroke="#FFFFFF" stroke-width="230" stroke-linecap="round" stroke-linejoin="round"/><path d="M450 790 L440 820" fill="none" stroke="#FFFFFF" stroke-width="70" stroke-linecap="round" stroke-linejoin="round"/><path d="M574 790 L584 820" fill="none" stroke="#FFFFFF" stroke-width="70" stroke-linecap="round" stroke-linejoin="round"/><circle cx="512" cy="395" r="108" fill="#FFFFFF"/><circle cx="483.2" cy="385" r="12" fill="#17130F"/><circle cx="540.8" cy="385" r="12" fill="#17130F"/>
+  <path d="M488 421 Q512 442.6 536 421" fill="none" stroke="#17130F" stroke-width="10.799999999999999" stroke-linecap="round"/></g>
+   <g filter="url(#s4)"><path d="M629.5011622381194,-124.91977133305886 L577.3224486483134,370.65670534044904 A17 17 0 0 0 610.9848785342353,375.43591177827767 L698.8061649444294,-115.08022866694114 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="26" stroke-linejoin="round" paint-order="stroke"/><path d="M252.89496785443217,-114.02728689736901 L360.63094190959777,402.5636052374683 A17 17 0 0 0 394.1322262360216,396.7615410806268 L321.86820029118724,-125.97271310263099 Z" fill="#FFFFFF" stroke="#17130F" stroke-width="26" stroke-linejoin="round" paint-order="stroke"/></g>
+  </g></svg>
