@@ -54,6 +54,7 @@ export function dayName(offset: number, now: Date): string {
 /** Подпись на пилюле: «Сегодня», «Завтра», «Выходные», «3 окт», «28 сен – 4 окт». */
 export function rangeLabel(from: number, to: number, now: Date): string {
   if (from === to) return from === 0 ? 'Сегодня' : from === 1 ? 'Завтра' : dayName(from, now);
+  if (from === 0 && to === 6) return 'Неделя';
   const [sat, sun] = weekend(now);
   if (from === sat && to === sun) return 'Выходные';
   return `${dayName(from, now)} – ${dayName(to, now)}`;

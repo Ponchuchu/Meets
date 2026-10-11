@@ -29,6 +29,14 @@ on:
         type: string
         description: 'sites — только афиши сайтов без ИИ (бесплатно), ai — только ИИ, all — оба'
         default: 'sites'
+      sites:
+        type: string
+        description: 'Какие афиши читать: yandex,sxodim (none — никакие). Панель берёт из «Настройки → Источники»'
+        default: 'yandex,sxodim'
+      telegram:
+        type: string
+        description: '1 — после афиш разобрать новые посты Telegram-каналов (ИИ отсеивает рекламу и мемы)'
+        default: '0'
 concurrency: worker
 jobs:
   search:
@@ -41,11 +49,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Статус запуска
+      - name: Статус запуска и проверка ключей
         run: node worker/src/robot.ts start
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          # Сами ключи в журнал не попадают: только «есть / нет» и баланс Kimi.
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
+          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
       - name: Поиск событий (Gemini или Kimi, 6 разделов параллельно + проверка страниц)
         timeout-minutes: 15
@@ -56,21 +69,35 @@ jobs:
           GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
           SEARCH_SOURCES: ${{ inputs.sources || 'sites' }}
+          SEARCH_SITES_ON: ${{ inputs.sites || 'yandex,sxodim' }}
           SEARCH_FIND_IMAGES: ${{ inputs.find_images || '0' }}
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
-        run: node worker/src/search.ts --run > search.json
+        run: node worker/src/search.ts --run > search.json 2> search.log || code=$?; cat search.log >&2; exit ${code:-0}
       - name: Что нашёл ИИ (файл для проверки)
         uses: actions/upload-artifact@v4
         with:
           name: search-${{ github.run_id }}
-          path: search.json
+          path: |
+            search.json
+            search-report.json
           retention-days: 14
       - name: Черновики в «Согласование»
         run: node worker/src/index.ts --search search.json --no-images
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # Telegram: ИИ решает, где событие, а где реклама и мемы. Явная реклама отсеивается без ИИ. Сбой канала не роняет весь запуск.
+      - name: Telegram-каналы (новые посты)
+        if: ${{ !cancelled() && inputs.telegram == '1' }}
+        continue-on-error: true
+        run: node worker/src/index.ts --telegram
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
+          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
       - name: Результат запуска
         if: always()
         run: node worker/src/robot.ts finish

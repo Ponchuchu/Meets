@@ -41,12 +41,12 @@ export function WhereSheet({ e, me, onCopied }: { e: EventItem; me: { lat: numbe
       </View>
       {!e.needsPin && (
         <View style={styles.here}>
-          <View style={styles.hereHead}><Navigation size={18} color={colors.accent} strokeWidth={2} /><Text style={styles.hereTitle}>Маршрут здесь, в «рядом.»</Text></View>
+          <View style={styles.hereHead}><Navigation size={18} color={colors.accent} strokeWidth={2} /><Text style={styles.hereTitle}>Маршрут здесь, в Meets</Text></View>
           {me ? (
             <View style={styles.tiles}>
               {tiles.map(({ mode, Icon, min, label }) => (
                 <Pressable key={mode} onPress={() => go(mode)} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityLabel={`${label}: ${min ?? '…'} минут`}>
-                  <Icon size={18} color="#FBFAF6" strokeWidth={1.9} />
+                  <Icon size={18} color="#EEE9DE" strokeWidth={1.9} />
                   <Text style={styles.tileText}>{min != null ? `${t.rough && mode !== 'bus' ? '~' : ''}${min} мин` : '…'}</Text>
                 </Pressable>
               ))}
@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted2 },
   here: { borderRadius: 20, backgroundColor: colors.ink, padding: 14, gap: 12 },
   hereHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  hereTitle: { fontFamily: fonts.body700, fontSize: 16, color: '#FBFAF6' },
+  hereTitle: { fontFamily: fonts.body700, fontSize: 16, color: '#EEE9DE' },
   hereSub: { fontFamily: fonts.body400, fontSize: 14, color: '#BDB8AD' },
   tiles: { flexDirection: 'row', gap: 8 },
   tile: { flex: 1, height: 50, borderRadius: 13, backgroundColor: '#2A292E', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  tileText: { fontFamily: fonts.body700, fontSize: 15.5, color: '#FBFAF6' },
+  tileText: { fontFamily: fonts.body700, fontSize: 15.5, color: '#EEE9DE' },
   apps: { flexDirection: 'row', gap: 8 },
-  app: { flex: 1, height: 54, borderRadius: 16, backgroundColor: '#ECE7DC', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  app: { flex: 1, height: 54, borderRadius: 16, backgroundColor: '#D9D3C5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   mark: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   markText: { fontFamily: fonts.display800, fontSize: 13, color: '#FFFFFF' },
   appText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.ink },

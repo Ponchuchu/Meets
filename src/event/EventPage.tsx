@@ -7,16 +7,14 @@ import { sendInvite } from '../live/api';
 import { router } from 'expo-router';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
-import { photo } from '../data/photos';
 import type { EventItem, Person } from '../data/types';
 import { dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
-import { CAT_COLOR, CAT_ICON, catFg } from '../map/icons';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
@@ -25,7 +23,8 @@ import { activeCompany, usePlans } from '../state/plans';
 import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
-import { Ic, IC } from '../ui/Ic';
+import { EventCover } from '../ui/EventCover';
+import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { CompanySheet, InviteSheet } from './sheets';
@@ -103,7 +102,6 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     show({ text: 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
-  const hasPhoto = !!e.cover;
   const goingInfo = goingLine(e, people, going);
   const lookers = e.lookers ?? [];
   const lookCount = Math.max(e.lookingCount, lookers.length) + (activeCompany(company, e, now) ? 1 : 0);
@@ -151,10 +149,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     <View style={styles.root}>
       <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
-        <View style={[styles.cover, { backgroundColor: hasPhoto ? colors.ink : CAT_COLOR[e.category] }]}>
-          {hasPhoto ? <Image source={photo(e.cover)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={e.title} /> : (
-            <View style={styles.coverIcon} pointerEvents="none"><Ic d={CAT_ICON[e.category]} size={220} color={catFg(e.category)} w={0.7} /></View>
-          )}
+        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
@@ -177,7 +172,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </View>
-        </View>
+        </EventCover>
 
         <View style={styles.body}>
           <View style={styles.chips}>
@@ -217,13 +212,13 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
               <View style={[styles.itemIcon, { backgroundColor: colors.accent }]}><MapPin size={20} color={colors.ink} strokeWidth={1.9} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle} numberOfLines={1}>{[e.venueName, e.address.split(',').slice(0, 2).join(',')].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в «рядом.»</Text>
+                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в Meets</Text>
               </View>
               <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
             </Pressable>
             {moreHere > 0 && (
               <View style={[styles.item, styles.itemSep]}>
-                <View style={[styles.itemIcon, { backgroundColor: '#E7E2D6' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
+                <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
                 <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
               </View>
             )}
@@ -306,7 +301,7 @@ const SHARE_TARGETS: [ShareTarget | 'copy' | 'more', string, string, string][] =
   ['instagram', 'Instagram', '#E1306C', 'M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zM12 8a4 4 0 100 8 4 4 0 000-8z'],
   ['threads', 'Threads', '#17161A', 'M15.5 11.5c-.5-2.5-2-3.5-3.8-3.5-2.3 0-3.7 1.6-3.7 4s1.5 4 4 4c2 0 3.5-1 3.5-3 0-2-1.8-2.8-4-2.3M12 21a9 9 0 119-9c0 3-1.5 5-4 5'],
   ['copy', 'Ссылка', '#6B675F', 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1'],
-  ['more', 'Ещё', '#E7E2D6', 'M5 12h.01M12 12h.01M19 12h.01'],
+  ['more', 'Ещё', '#D5CFC1', 'M5 12h.01M12 12h.01M19 12h.01'],
 ];
 
 
@@ -353,21 +348,21 @@ const styles = StyleSheet.create({
   cover: { height: 470, overflow: 'hidden', justifyContent: 'flex-end' },
   coverText: { padding: 18, gap: 10 },
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
-  stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#FBFAF6' },
+  stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#ECE7DC' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#D9D3C5' },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   lineText: { flex: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   hand: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  list: { borderRadius: 20, backgroundColor: '#ECE7DC', overflow: 'hidden' },
+  list: { borderRadius: 20, backgroundColor: '#D9D3C5', overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: 64 },
-  itemSep: { borderTopWidth: 1, borderTopColor: '#DDD8CC' },
+  itemSep: { borderTopWidth: 1, borderTopColor: '#C8C2B2' },
   itemIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   itemLetter: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   itemTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
   itemSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  skip: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  skip: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   goBtn: { flex: 1, height: 56, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   goText: { fontFamily: fonts.body700, fontSize: 17, color: colors.ink },
   inviteText: { fontFamily: fonts.body700, fontSize: 17, color: colors.paper },

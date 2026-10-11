@@ -1,83 +1,116 @@
-// Панель разработчика /dev (docs/PIPELINE.md §5, вход только для is_staff): Модерация / Рекомендации / Источники / Метрики.
-// Настоящие данные — только команде (таблица staff). Остальным — демо макета, в базу ничего не пишется.
-import { useQuery } from '@tanstack/react-query';
+// Панель разработчика /dev. Три вкладки, у каждой одна задача:
+//   Ивенты    — найти новые события, согласовать очередь, посмотреть, что на карте;
+//   Аналитика — что требует внимания (ошибки, пустые поля), люди и метрики из базы;
+//   Настройки — ИИ-поиск, расписание, публикация, источники, подключение.
+// Настоящие данные — только команде (таблица staff), остальным — демо.
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isStaff } from '../../admin/api';
-import { RobotPanel } from '../../admin/ui/RobotPanel';
+import { isStaff, loadStats } from '../../admin/api';
+import { Attention, type Goto } from '../../admin/ui/Attention';
+import { EventsList, type ListFilter } from '../../admin/ui/EventsList';
 import { Metrics } from '../../admin/ui/Metrics';
 import { Moderation } from '../../admin/ui/Moderation';
-import { Sources } from '../../admin/ui/Sources';
+import { OverviewBlock, useOverview } from '../../admin/ui/Overview';
+import { SearchCard } from '../../admin/ui/SearchCard';
+import { SettingsTab } from '../../admin/ui/SettingsTab';
 import { TasteAdmin } from '../../admin/ui/TasteAdmin';
-import { useSession } from '../../state/session';
+import { Chip, Section } from '../../admin/ui/kit';
 import { colors, fonts } from '../../theme';
 
-type Tab = 'moderation' | 'taste' | 'sources' | 'metrics';
-const TABS: [Tab, string][] = [['moderation', 'Модерация'], ['taste', 'Рекомендации'], ['sources', 'Источники'], ['metrics', 'Метрики']];
+type Tab = 'events' | 'analytics' | 'settings';
+type Sub = 'queue' | 'map';
+const TABS: [Tab, string][] = [['events', 'Ивенты'], ['analytics', 'Аналитика'], ['settings', 'Настройки']];
 
 export default function Admin() {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const wide = width >= 820;
+  const qc = useQueryClient();
   const params = useLocalSearchParams<{ tab?: Tab }>();
-  const tab: Tab = TABS.some(([k]) => k === params.tab) ? (params.tab as Tab) : 'moderation';
+  const tab: Tab = TABS.some(([k]) => k === params.tab) ? (params.tab as Tab) : 'events';
+  const [sub, setSub] = useState<Sub>('queue');
+  const [filter, setFilter] = useState<ListFilter>('all');
+  const [taste, setTaste] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { data: staff = false } = useQuery({ queryKey: ['admin', 'staff'], queryFn: isStaff });
-  const name = useSession((s) => s.draft.name) || 'Данил';
-  const go = (t: Tab) => router.setParams({ tab: t });
+  const stats = useQuery({ queryKey: ['admin', 'stats'], queryFn: loadStats, enabled: staff });
+  const overview = useOverview(staff);
+
+  const showFound = useCallback(() => setSub('queue'), []);
+  const go: Goto = (to, s) => {
+    router.setParams({ tab: to });
+    if (s === 'queue') setSub('queue');
+    if (s === 'map') { setSub('map'); setFilter('all'); }
+    if (s === 'gaps') { setSub('map'); setFilter('gaps'); }
+  };
+  // Точка на вкладке «Аналитика», если есть что исправить.
+  const alerts = !!overview.data && (overview.data.runs_failed_24h > 0 || overview.data.drafts_stale > 0 || overview.data.events_no_place > 0 || overview.data.events_no_price > 0);
+  const waiting = stats.data?.waiting ?? (staff ? 0 : 4);
+  const refresh = async () => { setRefreshing(true); await qc.invalidateQueries({ queryKey: ['admin'] }); setRefreshing(false); };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      {wide && (
-        <View style={styles.nav}>
-          <Text style={styles.logo}>рядом<Text style={{ color: colors.accent }}>.</Text> <Text style={styles.logoSub}>АДМИНКА</Text></Text>
-          <View style={styles.tabs}>
-            {TABS.map(([k, label]) => (
-              <Pressable key={k} onPress={() => go(k)} style={[styles.tab, tab === k && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
-                <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={styles.who}><Text style={styles.whoText}>{staff ? `${name} · команда` : `${name} · #10482 · демо`}</Text></View>
+    <View style={[styles.root, { paddingTop: insets.top + 6 }]}>
+      <View style={styles.head}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/me'))} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад" hitSlop={6}>
+          <ChevronLeft size={26} color={colors.ink} strokeWidth={2} />
+        </Pressable>
+        <Text style={styles.title} accessibilityRole="header">Панель разработчика</Text>
+      </View>
+      <View style={styles.seg} accessibilityRole="tablist">
+        {TABS.map(([k, label]) => (
+          <Pressable key={k} onPress={() => router.setParams({ tab: k })} style={[styles.segBtn, tab === k && styles.segOn]} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
+            <Text style={[styles.segText, tab === k && { color: colors.paper }]}>{label}</Text>
+            {k === 'events' && waiting > 0 && <View style={styles.count}><Text style={styles.countText}>{waiting}</Text></View>}
+            {k === 'analytics' && alerts && <View style={styles.dot} accessibilityLabel="Есть что исправить" />}
+          </Pressable>
+        ))}
+      </View>
+      {!staff && <Text style={styles.demo}>Демо: настоящие данные откроются после входа сотрудника (таблица staff в Supabase).</Text>}
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
+        <View style={styles.page}>
+          {tab === 'events' && (
+            <>
+              <SearchCard live={staff} onSettings={() => go('settings')} onDone={showFound} />
+              <View style={styles.subs}>
+                <Chip label="Новые" a11y="Новые: найденное, ждёт проверки" count={waiting} on={sub === 'queue'} onPress={() => setSub('queue')} />
+                <Chip label="Все" a11y="Все события на карте" count={staff ? overview.data?.events_upcoming : undefined} on={sub === 'map'} onPress={() => setSub('map')} />
+              </View>
+              {sub === 'queue' ? <Moderation live={staff} /> : <EventsList live={staff} filter={filter} onFilter={setFilter} />}
+            </>
+          )}
+          {tab === 'analytics' && (
+            <>
+              <Attention live={staff} go={go} />
+              <OverviewBlock live={staff} />
+              <Metrics live={staff} />
+              <Section title="Вкус человека" hint="Найди человека по нику и увидишь, что ему показываем и почему.">
+                {taste ? <TasteAdmin live={staff} /> : <Chip label="Открыть" onPress={() => setTaste(true)} />}
+              </Section>
+            </>
+          )}
+          {tab === 'settings' && <SettingsTab live={staff} />}
         </View>
-      )}
-      {!staff && (
-        <Text style={styles.demo}>Демо-режим: очередь и решения — только на этом экране. Настоящая очередь откроется после входа сотрудника (таблица staff в Supabase).</Text>
-      )}
-      <ScrollView contentContainerStyle={{ paddingBottom: wide ? 0 : 76 + insets.bottom }}>
-        {tab === 'moderation' && <Moderation live={staff} />}
-        {tab === 'taste' && <TasteAdmin live={staff} />}
-        {tab === 'sources' && <><RobotPanel live={staff}/><Sources live={staff}/></>}
-        {tab === 'metrics' && <Metrics live={staff} />}
       </ScrollView>
-      {!wide && (
-        <View style={[styles.bottom, { paddingBottom: 10 + insets.bottom }]}>
-          {TABS.map(([k, label]) => (
-            <Pressable key={k} onPress={() => go(k)} style={[styles.pill, tab === k && styles.pillOn]} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
-              <Text style={[styles.pillText, tab === k && { color: colors.paper }]}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
-  nav: { height: 64, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 32, gap: 32 },
-  logo: { fontFamily: fonts.display800, fontSize: 21, color: colors.paper, letterSpacing: -0.5 },
-  logoSub: { fontFamily: fonts.mono600, fontSize: 10.5, color: '#A9A59C', letterSpacing: 0.6 },
-  tabs: { flexDirection: 'row', gap: 6, flex: 1 },
-  tab: { height: 36, borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' },
-  tabOn: { backgroundColor: '#2A292E' },
-  tabText: { fontFamily: fonts.body500, fontSize: 14, color: '#C9C5BC' },
-  tabTextOn: { fontFamily: fonts.body700, color: colors.paper },
-  who: { height: 38, minWidth: 280, borderRadius: 10, borderWidth: 1, borderColor: '#3A3940', backgroundColor: '#212024', paddingHorizontal: 14, justifyContent: 'center' },
-  whoText: { fontFamily: fonts.body500, fontSize: 13.5, color: colors.paper },
-  demo: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted, textAlign: 'center', paddingHorizontal: 16, paddingTop: 8 },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 10, backgroundColor: colors.paper, borderTopWidth: 1, borderTopColor: colors.line },
-  pill: { flex: 1, height: 38, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, alignItems: 'center', justifyContent: 'center' },
-  pillOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  pillText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, minHeight: 48 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink, letterSpacing: -0.3 },
+  seg: { flexDirection: 'row', gap: 4, marginHorizontal: 16, marginVertical: 8, padding: 4, borderRadius: 18, backgroundColor: colors.sand },
+  segBtn: { flex: 1, minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  segOn: { backgroundColor: colors.ink },
+  segText: { fontFamily: fonts.display700, fontSize: 15, color: colors.ink },
+  count: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  countText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
+  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
+  demo: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted, textAlign: 'center', paddingHorizontal: 16, paddingBottom: 6 },
+  page: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 24 },
+  subs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

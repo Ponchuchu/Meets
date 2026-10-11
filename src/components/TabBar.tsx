@@ -17,11 +17,12 @@ import { colors, fonts } from '../theme';
 const BAR_H = 66;
 const POP = Easing.bezier(0.3, 1.4, 0.5, 1);
 const OFF = '#5F5B55';
-const ON_DETAIL = '#FBFAF6';
+const ON_DETAIL = '#EEE9DE';
 
-const TABS: Record<string, { label: string; shape?: string; details?: string }> = {
+const TABS: Record<string, { label: string; shape?: string; details?: string; back?: string }> = {
   index: { label: 'Карта', shape: 'M3 6.5l6-3 6 3 6-3v14l-6 3-6-3-6 3z', details: 'M9 3.5v14M15 6.5v14' },
-  foryou: { label: 'Рекомендации', shape: 'M8.5 2.5h9.5a2.5 2.5 0 012.5 2.5v11.5a2.5 2.5 0 01-2.5 2.5H8.5A2.5 2.5 0 016 16.5V5a2.5 2.5 0 012.5-2.5z', details: 'M3 6.5v12a3 3 0 003 3h9.5M13.25 6.8l1.1 2.3 2.5.35-1.8 1.75.42 2.5-2.22-1.2-2.22 1.2.42-2.5-1.8-1.75 2.5-.35z' },
+  // Рекомендации: передняя карточка со звездой и вторая карточка позади — читается как стопка. Выбрано: всё сплошным чёрным, как в Instagram.
+  foryou: { label: 'Рекомендации', shape: 'M8 3h9.5A2.5 2.5 0 0120 5.5v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 17.5v-12A2.5 2.5 0 018 3z', back: 'M3 7v11a3 3 0 003 3h9', details: 'M12.75 7.8l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z' },
   plans: { label: 'Планы', shape: 'M5 4.5h14a2.5 2.5 0 012.5 2.5v12a2.5 2.5 0 01-2.5 2.5H5A2.5 2.5 0 012.5 19V7A2.5 2.5 0 015 4.5z', details: 'M2.5 9.5h19M8 2.5v4M16 2.5v4M8.5 15l2.3 2.3 4.7-4.6' },
   chats: { label: 'Чаты', shape: 'M4 4h16a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-1.5 1.5h-9.5L5.5 21.5v-4H4A1.5 1.5 0 012.5 16V5.5A1.5 1.5 0 014 4z', details: 'M7.5 9h9M7.5 12.5h5.5' },
   me: { label: 'Профиль' },
@@ -74,12 +75,14 @@ function TabIcon({ name, on, pop }: { name: string; on: boolean; pop: SharedValu
         <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
           <Path d={d.shape} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
           <Path d={d.details} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          {d.back ? <Path d={d.back} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
       </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, filled]}>
         <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
           <Path d={d.shape} fill={colors.ink} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={d.back ? ON_DETAIL : 'none'} />
+          {d.back ? <Path d={d.back} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
       </Animated.View>
     </Animated.View>
@@ -90,7 +93,7 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   const avatar = useTabBadges((s) => s.avatar);
   const ring = useSharedValue(on ? 1 : 0);
   useEffect(() => { ring.set(withTiming(on ? 1 : 0, { duration: 420 })); }, [on, ring]);
-  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(23,22,26,${ring.get()})` }));
+  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(23,22,26,${0.14 + 0.86 * ring.get()})` }));
   return (
     <Animated.View style={[styles.meRing, st]}>
       {avatar.url ? <Image source={{ uri: avatar.url }} style={styles.meFace} /> : (
@@ -178,21 +181,22 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
     width: 366, maxWidth: '94%', height: BAR_H, padding: 5, borderRadius: 33, flexDirection: 'row', gap: 2,
-    backgroundColor: '#FBFAF6', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)',
+    backgroundColor: '#EEE9DE', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)',
     shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 10 }, elevation: 12,
   },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: 6, left: '50%', marginLeft: 5, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FBFAF6',
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#EEE9DE',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  meRing: { width: 34, height: 34, borderRadius: 17, padding: 2, borderWidth: 2 },
-  meFace: { width:26,height:26, borderRadius: 13, overflow: 'hidden' },
+  // Аватар на панели не меньше соседних значков (28): кольцо 36, лицо 30.
+  meRing: { width: 36, height: 36, borderRadius: 18, padding: 1.5, borderWidth: 1.5 },
+  meFace: { width: 30, height: 30, borderRadius: 15, overflow: 'hidden' },
   meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  meLetter: { fontFamily: fonts.body700, fontSize: 13, lineHeight: 18, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
+  meLetter: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
   hint: { position: 'absolute', bottom: BAR_H + 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.ink },
   hintText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
 });

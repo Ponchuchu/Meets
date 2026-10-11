@@ -178,6 +178,8 @@ export async function getChats(): Promise<Chat[]> {
       eventId: r.chats.event_id ?? undefined,
       lastText: top ? (top.body ?? '') : '',
       lastTime: top ? hhmm(top.created_at) : '',
+      lastKind: top?.kind,
+      lastMine: top ? top.author_id === me : undefined,
       unread,
       meetPoint: r.chats.meet_point ?? undefined,
       members: direct ? undefined : others.length + 1,

@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.6, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, borderBottomWidth: 1, borderBottomColor: '#ECE7DC' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },
   time: { fontFamily: fonts.mono600, fontSize: 14, color: colors.ink, width: 50 },
   name: { flex: 1, fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
 });

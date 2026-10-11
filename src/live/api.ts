@@ -40,8 +40,9 @@ export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<
 
 export async function uploadAvatar(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).arrayBuffer();
+  // Имя каждый раз новое, поэтому без upsert: он требует лишних прав и раньше ронял загрузку.
   const path = `${me()}/avatar-${Date.now()}.jpg`;
-  const { error } = await sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+  const { error } = await withTimeout(sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' }), 30000);
   if (error) throw new Error(error.message);
   const url = sb().storage.from('avatars').getPublicUrl(path).data.publicUrl;
   await saveProfile({ photo_url: url });
@@ -190,7 +191,8 @@ async function withMeetupLocations(events: EventItem[]): Promise<EventItem[]> {
 }
 
 /** Одобренные события, которые ещё не закончились (до `days` дней вперёд), + кто из друзей идёт и сколько всего. */
-export async function getEvents(days = 14): Promise<EventItem[]> {
+// Окно — три месяца: в фильтрах карты можно выбрать даты хоть на 2 месяца вперёд.
+export async function getEvents(days = 92): Promise<EventItem[]> {
   const now = Date.now();
   const rows = await must(sb().from('events_live').select('*')
     .or(`ends_at.gte.${new Date(now).toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now - 3 * 3600e3).toISOString()})`)

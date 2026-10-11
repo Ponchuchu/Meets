@@ -1,6 +1,7 @@
 // Модель админки (docs/PIPELINE.md §5, макеты Admin и TasteAdmin). Чистые функции — покрыты тестами.
 import { almaty } from '../lib/clock';
 import type {Category} from '../data/types';
+import { eventFacts } from '../event/facts';
 
 export type QueueFlag = 'needs_pin' | 'check_price' | 'cancel_reported';
 
@@ -31,7 +32,9 @@ export interface QueueStats {
 
 export interface SourceItem {
   id: string;
-  kind: 'telegram' | 'site' | 'threads' | 'manual' | 'user';
+  kind: 'telegram' | 'site' | 'threads' | 'manual' | 'user' | 'search';
+  /** Адрес/ник: по нему отличаем Sxodim от Яндекса. */
+  handle?: string;
   title: string;
   note: string | null;
   trusted: boolean;
@@ -41,17 +44,19 @@ export interface SourceItem {
 
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const hm = (d: Date) => `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-const money = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 /** Строка под названием в очереди: день(и), время, место, цена — как в макете Admin. */
 export function metaLine(e: { startsAt: string; endsAt?: string | null; place: string | null; priceMin: number | null; priceMax: number | null; isFree: boolean }): string {
-  const s = almaty(e.startsAt);
-  const end = e.endsAt ? almaty(e.endsAt) : null;
-  const sameDay = !end || end.toISOString().slice(0, 10) === s.toISOString().slice(0, 10);
-  const days = sameDay ? WD[s.getUTCDay()] : `${WD[s.getUTCDay()]}–${WD[end!.getUTCDay()]}`;
-  const time = end ? `${hm(s)}–${hm(end)}` : hm(s);
-  const price = e.isFree ? 'бесплатно' : e.priceMin != null ? `${e.priceMax && e.priceMax !== e.priceMin ? 'от ' : ''}${money(e.priceMin)} ₸` : null;
-  return [`${days}, ${time}`, e.place, price].filter(Boolean).join(' · ');
+  const f = eventFacts({ startsAt: e.startsAt, venueName: e.place, priceMin: e.priceMin, priceMax: e.priceMax, isFree: e.isFree });
+  let when = f.when;
+  if (!f.whenMissing && !f.when.includes('время не указано')) {
+    const s = almaty(e.startsAt);
+    const end = e.endsAt ? almaty(e.endsAt) : null;
+    const sameDay = !end || end.toISOString().slice(0, 10) === s.toISOString().slice(0, 10);
+    const days = sameDay ? WD[s.getUTCDay()] : `${WD[s.getUTCDay()]}–${WD[end!.getUTCDay()]}`;
+    when = `${days}, ${end ? `${hm(s)}–${hm(end)}` : hm(s)}`;
+  }
+  return [when, f.place, f.price].join(' · ');
 }
 
 export function sourceLabel(kind: SourceItem['kind'], handle: string, title: string, suggestedBy?: string | null): string {

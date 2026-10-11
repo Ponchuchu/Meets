@@ -49,7 +49,7 @@ export default function Code() {
           {Array.from({ length: size }, (_, i) => {
             const active = i === code.length && !busy;
             return (
-              <View key={i} style={[styles.box, { width: cell, height: cell * 1.2, borderColor: error ? colors.accent : active || code[i] ? colors.ink : '#CFC9BB', borderWidth: active ? 2.5 : 1.5 }]}>
+              <View key={i} style={[styles.box, { width: cell, height: cell * 1.2, borderColor: error ? colors.accent : active || code[i] ? colors.ink : '#BAB3A2', borderWidth: active ? 2.5 : 1.5 }]}>
                 <Text style={[styles.digit, { fontSize: cell * 0.5 }]}>{code[i] ?? ''}</Text>
               </View>
             );
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   box: { borderRadius: 16, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   digit: { fontFamily: fonts.display700, color: colors.ink },
   hidden: { position: 'absolute', width: 1, height: 1, opacity: 0.01 },
-  hint: { alignSelf: 'flex-start', marginLeft: 24, marginTop: 16, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: '#FBDCCB' },
+  hint: { alignSelf: 'flex-start', marginLeft: 24, marginTop: 16, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: '#F0C5AE' },
   hintText: { fontFamily: fonts.body700, fontSize: 13, color: colors.accentText },
 });

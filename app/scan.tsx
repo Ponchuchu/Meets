@@ -9,7 +9,7 @@ export default function Scan(){
  const [permission,ask]=useCameraPermissions();const [error,setError]=useState('');const opening=useRef(false);
  const scanned=({data}:{data:string})=>{
   if(opening.current)return;
-  const p=parseProfileLink(data);if(!p){setError('Это не QR-код профиля «рядом.»');return;}
+  const p=parseProfileLink(data);if(!p){setError('Это не QR-код профиля Meets');return;}
   opening.current=true;
   router.replace(p.kind==='person'?{pathname:'/person/[id]',params:{id:p.value}}:{pathname:'/u/[handle]',params:{handle:p.value}});
  };

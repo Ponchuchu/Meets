@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { EventPage } from '../../event/EventPage';
+import { LazyEventPage } from '../../event/LazyEventPage';
 import { useApp, useCoverTabBar } from '../../state/app';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
@@ -15,7 +15,7 @@ import { useLiveFriends } from '../../data/realtime';
 import { DEMO_FORECAST } from '../../data/weather';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { rangeLabel } from '../../map/calendar';
-import { activeCount, MAX_PRICE, occursOnDay, showLabel, visibleEvents } from '../../map/filters';
+import { activeCount, MAX_PRICE, occursOnDay, showLabel, visibleEvents, WEEK_TO } from '../../map/filters';
 import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MapCanvas } from '../../map/MapCanvas';
 import { EventPin, FocusPin, FriendPin, MePin, type PinKind } from '../../map/pins';
@@ -114,7 +114,8 @@ export default function MapScreen() {
   useEffect(() => {
     if (!settled || !startCam || settledOnce.current) return;
     settledOnce.current = true;
-    if (startCam !== ALMATY_CAMERA) mapRef.current?.zoomBy(Math.log2(1.22));
+    // Заставка закончилась: карта плавно приближается к тебе (центр экрана — это ты).
+    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, 15.2, 1500);
   }, [settled, startCam]);
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
@@ -128,7 +129,7 @@ export default function MapScreen() {
 
   // Моя точка: разрешение спрашиваем при первом открытии карты, а не только в регистрации.
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
-  const [geo, setGeo] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [geo, setGeo] = useState<'unknown' | 'granted' | 'denied' | 'off'>('unknown');
   const [askBg, setAskBg] = useState(false);
   const requestedLens = useMapState((s) => s.lens);
   const setRequestedLens = useMapState((s) => s.setLens);
@@ -165,27 +166,43 @@ export default function MapScreen() {
     const r = await Location.requestBackgroundPermissionsAsync().catch(() => null);
     if (r?.granted) void startBackground();
   };
+  // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
   useEffect(() => {
     let cancelled = false;
+    let sub: Location.LocationSubscription | null = null;
     (async () => {
       const ok = await ensureGeo(true);
       if (!ok || cancelled) return;
-      const p = await Location.getLastKnownPositionAsync() ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if (p && !cancelled) setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) { setGeo('off'); return; }
+      const last = await Location.getLastKnownPositionAsync().catch(() => null);
+      if (last && !cancelled) setMyPos({ lat: last.coords.latitude, lon: last.coords.longitude });
+      sub = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 3 },
+        (l) => { if (!cancelled) setMyPos({ lat: l.coords.latitude, lon: l.coords.longitude }); },
+      ).catch(() => null);
     })().catch(() => undefined);
-    return () => { cancelled = true; };
+    return () => { cancelled = true; sub?.remove(); };
   }, [ensureGeo]);
   const goToMe = async () => {
     try {
+      const at0 = myPos ?? fix;
+      if (at0) mapRef.current?.flyTo(at0.lat, at0.lon, 15.5);
       const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
-      mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15);
+      mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15.5);
     } catch {
-      const at = myPos ?? me;
-      if (at) mapRef.current?.flyTo(at.lat, at.lon, 15);
+      const at = myPos ?? fix ?? me;
+      if (at) mapRef.current?.flyTo(at.lat, at.lon, 15.5);
     }
   };
 
+  // Первый запуск: разрешения не было, камера стояла на центре города. Как только появилась моя точка — плавно переезжаем к ней.
+  const centeredOnMe = useRef(false);
+  useEffect(() => {
+    if (!settled || !startCam || centeredOnMe.current || !myPos || distM(startCam, myPos) < 800) return;
+    centeredOnMe.current = true;
+    mapRef.current?.flyTo(myPos.lat, myPos.lon, 15, 1400);
+  }, [settled, startCam, myPos]);
   // Время идёт — точки живут: обновляем раз в минуту.
   useEffect(() => {
     const t = setInterval(() => setClock(clockNow()), 60000);
@@ -245,7 +262,7 @@ export default function MapScreen() {
   // Линза «Пробки»: балл города (traffic-score, раз в 10 мин) и время на машине до ближайшего проспекта.
   const trafficOn = LIVE && lens === 'traffic';
   const tscore = useQuery({ queryKey: ['traffic', 'score'], queryFn: getTrafficScore, enabled: trafficOn, staleTime: 5 * 60e3, refetchInterval: trafficOn ? 10 * 60e3 : false });
-  const meAt = fix ?? myPos;
+  const meAt = myPos ?? fix;
   const nearAve = useMemo(() => {
     if (!meAt || !tscore.data?.points.length) return null;
     return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
@@ -310,8 +327,9 @@ export default function MapScreen() {
     }
     // Моя точка: оранжевая с конусом и спокойным пульсом.
     if (LIVE) {
-      const at = fix ?? myPos;
-      if (at) list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
+      // На телефоне моя точка — слои самой карты (MapCanvas, prop me); маркер нужен только в web.
+      const at = myPos ?? fix;
+      if (at && Platform.OS === 'web') list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
@@ -319,7 +337,7 @@ export default function MapScreen() {
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
-  const showText = showLabel(count) + (filters.soon || count === 0 ? '' : ` · ${dateText}`);
+  const showText = showLabel(count) + (count === 0 ? '' : filters.soon ? ' · на неделю' : ` · ${dateText}`);
   const { data: forecast = DEMO_FORECAST } = useQuery({ queryKey: ['forecast'], queryFn: () => data.getForecast(), staleTime: 30 * 60e3 });
   const { data: nowWx } = useQuery({ queryKey: ['weatherNow'], queryFn: () => data.getWeatherNow(), staleTime: 15 * 60e3, refetchInterval: 15 * 60e3 });
   // Погода по дате в фильтре: сегодня — «сейчас», другой день — прогноз на него.
@@ -331,7 +349,7 @@ export default function MapScreen() {
     setOpen(e);
     if (interactive) return;
     ex.set(0);
-    ex.set(withTiming(1, { duration: 360, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
+    ex.set(withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) }));
   };
   const closeEvent = () => {
     ex.set(withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, (done) => { if (done) scheduleOnRN(setOpen, null); }));
@@ -351,8 +369,8 @@ export default function MapScreen() {
     // Событие может быть не в выбранных датах — переключаем дату на его день.
     let d = Math.max(0, dayIndex(e.startsAt) - today);
     if (e.isLong && occursOnDay(e, today)) d = 0;
-    const soon = new Date(e.startsAt).getTime() - clock.getTime() < 24 * 3600e3;
-    setFilters({ soon, from: d, to: d, cats: [], free: false, max: MAX_PRICE });
+    // В пределах недели оставляем неделю, дальше — только его день.
+    setFilters(d <= WEEK_TO ? { soon: true, from: 0, to: WEEK_TO, cats: [], free: false, max: MAX_PRICE } : { soon: false, from: d, to: d, cats: [], free: false, max: MAX_PRICE });
     select(e.id);
     setCardHidden(false);
     setSheet(null);
@@ -382,8 +400,8 @@ export default function MapScreen() {
   const topY = Math.max(50, insets.top + 6);
 
   return (
-    <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#EFEBE2' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} showUser={!!myPos} onZoom={setZoom} traffic={traffic} fog={fog}
+    <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(myPos ?? fix)} me={myPos ?? fix} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -399,6 +417,9 @@ export default function MapScreen() {
           onLens={() => setSheet('lens')}
           onFilters={() => setSheet('filters')}
         />
+        {geo === 'granted' && !(myPos ?? fix) && (
+          <View style={styles.finding} accessibilityLiveRegion="polite"><Text style={styles.findingText}>Ищу тебя на карте…</Text></View>
+        )}
         {LIVE && (!net.online || net.serverDown) && (
           <View style={{ marginTop: 6 }}>
             <NetPill kind={net.online ? 'server' : 'offline'} onRetry={() => { void pingDb().then((ok) => { if (ok) void queryClient.invalidateQueries(); }); }} />
@@ -440,8 +461,8 @@ export default function MapScreen() {
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
             expand={ex} onReveal={() => openEvent(selected, null, true)}
-            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeEvent(); }}
-            me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
+            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeEvent(); }}
+            me={myPos ?? fix} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();
               if (going.has(selected.id)) { p.ungo(selected.id); useApp.getState().removePlan(); }
@@ -498,7 +519,7 @@ export default function MapScreen() {
         </View>
       )}
 
-      {LIVE && geo === 'denied' && <NoGeoCard onEnable={() => void ensureGeo(true)} />}
+      {LIVE && (geo === 'denied' || geo === 'off') && <NoGeoCard off={geo === 'off'} onEnable={() => (geo === 'off' ? void Linking.openSettings() : void ensureGeo(true))} />}
 
       {inviteOpen && focusPerson && (
         <>
@@ -527,7 +548,7 @@ export default function MapScreen() {
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH, flex: 1 }, clipInner]}>
-            <EventPage e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
+            <LazyEventPage progress={ex} e={open} now={clock} onClose={closeEvent} initialSheet={openSheet} />
           </Animated.View>
         </Animated.View>
       )}
@@ -545,6 +566,8 @@ const styles = StyleSheet.create({
   calendar: { position: 'absolute', left: 12, right: 12 },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   lensInfo: { position: 'absolute', left: 16 },
+  finding: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 30, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
+  findingText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },
   fly: { position: 'absolute', height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', zIndex: 80 },
   flyText: { fontFamily: fonts.display800, fontSize: 13 },

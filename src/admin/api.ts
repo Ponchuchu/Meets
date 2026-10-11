@@ -85,10 +85,10 @@ export async function saveDraft(id: string, patch: { title: string; about: strin
 }
 
 export async function loadSources(): Promise<SourceItem[]> {
-  const { data, error } = await withTimeout(supabase().from('sources').select('id,kind,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at'));
+  const { data, error } = await withTimeout(supabase().from('sources').select('id,kind,handle,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at'));
   if (error) throw error;
-  return (data as { id: string; kind: SourceItem['kind']; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean }[])
-    .map((r) => ({ id: r.id, kind: r.kind, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
+  return (data as { id: string; kind: SourceItem['kind']; handle: string; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean }[])
+    .map((r) => ({ id: r.id, kind: r.kind, handle: r.handle, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
 }
 
 export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean }>): Promise<void> {
@@ -153,4 +153,61 @@ export async function loadUserTaste(query: string): Promise<UserTaste | null> {
       id: r.id, eventId: r.event_id, kind: r.kind, at: r.created_at, tags: r.events?.tags ?? [], category: r.events?.category ?? 'meetup', title: r.events?.title ?? 'Событие',
     })),
   };
+}
+
+/** Черновики, у которых дата уже прошла: в согласовании они не нужны. Возвращает, сколько убрали. */
+export async function rejectStaleDrafts(): Promise<number> {
+  const cutoff = new Date(Date.now() - 3 * 3600e3).toISOString();
+  const { data, error } = await withTimeout(supabase().from('events').update({ rejected: true, updated_at: new Date().toISOString() })
+    .eq('status', 'draft').eq('rejected', false).lt('starts_at', cutoff).or(`ends_at.is.null,ends_at.lt.${cutoff}`).select('id'));
+  if (error) throw error;
+  return (data as unknown[] | null)?.length ?? 0;
+}
+
+/** Флаг в app_flags (например, covers_paused). */
+export async function getFlag(key: string): Promise<boolean | null> {
+  const { data, error } = await withTimeout(supabase().from('app_flags').select('value').eq('key', key).maybeSingle());
+  if (error) throw error;
+  return data ? (data as { value: unknown }).value === true : null;
+}
+export async function setFlag(key: string, value: boolean): Promise<void> {
+  const { error } = await withTimeout(supabase().from('app_flags').upsert({ key, value, updated_at: new Date().toISOString() }));
+  if (error) throw error;
+}
+
+// ——— «Все события»: переименовать, фото, снять с карты, удалить ———
+
+export const TITLE_MIN = 2;
+export const TITLE_MAX = 120;
+/** Название после правки: без лишних пробелов; null — если не подходит. */
+export function cleanTitle(s: string): string | null {
+  const t = s.replace(/\s+/g, ' ').trim();
+  return t.length >= TITLE_MIN && t.length <= TITLE_MAX ? t : null;
+}
+
+export async function renameEvent(id: string, title: string): Promise<string> {
+  const t = cleanTitle(title);
+  if (!t) throw new Error(`Название — от ${TITLE_MIN} до ${TITLE_MAX} знаков`);
+  const { error } = await withTimeout(supabase().rpc('staff_rename_event', { ev: id, new_title: t }));
+  if (error) throw error;
+  return t;
+}
+
+/** «Снять с карты» — событие возвращается в очередь «Новые»; «Удалить» — уходит в архив и больше не находится поиском. */
+export async function eventAction(id: string, action: 'unpublish' | 'delete'): Promise<void> {
+  const { error } = await withTimeout(supabase().rpc('staff_event_action', { ev: id, action }));
+  if (error) throw error;
+}
+
+/** Своё фото события: в бакет covers, ссылка — в cover_url. Возвращает ссылку. */
+export async function setEventCover(id: string, uri: string): Promise<string> {
+  const bytes = await (await fetch(uri)).arrayBuffer();
+  if (bytes.byteLength > 8 * 1024 * 1024) throw new Error('Фото больше 8 МБ — выбери другое');
+  const path = `manual/${id}-${Date.now()}.jpg`;
+  const up = await withTimeout(supabase().storage.from('covers').upload(path, bytes, { contentType: 'image/jpeg' }), 30000);
+  if (up.error) throw new Error(up.error.message);
+  const url = supabase().storage.from('covers').getPublicUrl(path).data.publicUrl;
+  const { error } = await withTimeout(supabase().from('events').update({ cover_url: url, cover_ai: false, updated_at: new Date().toISOString() }).eq('id', id));
+  if (error) throw error;
+  return url;
 }

@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   wheelOn: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
   colon: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card },
-  mapBox: { height: 230, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, backgroundColor: '#EFEBE2' },
+  mapBox: { height: 230, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, backgroundColor: '#DDD8CB' },
   centerPin: { position: 'absolute', left: '50%', top: '50%', marginLeft: -20, marginTop: -52, alignItems: 'center' },
   pinHead: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   pinLeg: { width: 3, height: 12, backgroundColor: colors.ink, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },

@@ -139,10 +139,10 @@ function Run({ onFinish }: { onFinish: () => void }) {
 
 const styles = StyleSheet.create({
   block: { position: 'absolute' },
-  card: { position: 'absolute', left: 20, right: 20, borderRadius: 26, backgroundColor: '#FBFAF6', padding: 20, gap: 8, shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
+  card: { position: 'absolute', left: 20, right: 20, borderRadius: 26, backgroundColor: '#EEE9DE', padding: 20, gap: 8, shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center' },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#DDD8CC' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#C8C2B2' },
   dotOn: { width: 18, backgroundColor: colors.accent },
   skip: { fontFamily: fonts.body700, fontSize: 14, color: colors.muted },
   title: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.6, color: colors.ink },

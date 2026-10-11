@@ -79,7 +79,7 @@ export function SettingsRoot() {
         <Row Icon={Map} title="О карте и данных" onPress={() => go('map')} />
         <Row Icon={CircleHelp} title="Помощь и вопросы" onPress={() => go('help')} last />
       </Group>
-      <Text style={styles.ver}>рядом. {VERSION} · альфа</Text>
+      <Text style={styles.ver}>Meets {VERSION} · альфа</Text>
     </SettingsPage>
   );
 }
@@ -337,21 +337,21 @@ export function SettingsSubPage({ page }: { page: string }) {
 const styles = StyleSheet.create({
   ver: { textAlign: 'center', fontFamily: fonts.mono500, fontSize: 11.5, color: colors.muted, marginTop: 14 },
   edit: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  input: { flex: 1, height: 50, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#FBFAF6', paddingHorizontal: 14, fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
+  input: { flex: 1, height: 50, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#EEE9DE', paddingHorizontal: 14, fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
   saveBtn: { height: 50, paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.ink, justifyContent: 'center' },
   saveText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#BDB6A8', alignItems: 'center', justifyContent: 'center' },
   radioOn: { borderColor: colors.accent },
   radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent },
-  ghost: { borderRadius: 22, backgroundColor: '#FBFAF6', padding: 16, gap: 14 },
+  ghost: { borderRadius: 22, backgroundColor: '#EEE9DE', padding: 16, gap: 14 },
   ghostHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ghostIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  ghostIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   ghostTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   ghostSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   hours: { flexDirection: 'row', gap: 8 },
-  hour: { flex: 1, height: 44, borderRadius: 13, backgroundColor: '#ECE7DC', alignItems: 'center', justifyContent: 'center' },
+  hour: { flex: 1, height: 44, borderRadius: 13, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center' },
   hourOn: { backgroundColor: colors.accent },
   hourText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
-  small: { height: 34, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#ECE7DC', justifyContent: 'center' },
+  small: { height: 34, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#D9D3C5', justifyContent: 'center' },
   smallText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink },
 });

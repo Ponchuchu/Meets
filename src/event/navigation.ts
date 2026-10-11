@@ -23,3 +23,29 @@ export function closestInstruction(pos:{lat:number;lon:number},steps:Instruction
   const distances=valid.map(s=>distM(pos,s));const i=distances.indexOf(Math.min(...distances));
   return valid[distances[i]<25&&i+1<valid.length?i+1:i];
 }
+
+export type Mode = 'walk' | 'car' | 'bus';
+export type ManeuverKind = 'flag' | 'uturn' | 'left' | 'right' | 'soft-left' | 'soft-right' | 'straight';
+/** Вид манёвра по тексту подсказки TomTom («Поверните направо…», «Сделайте разворот…», «Вы прибыли»). */
+export function maneuverKind(message: string): ManeuverKind {
+  const t = message.toLowerCase();
+  if (/прибы|назначени|финиш/.test(t)) return 'flag';
+  if (/разворот|развернит/.test(t)) return 'uturn';
+  const left = /лев/.test(t);
+  const right = /прав/.test(t);
+  const soft = /слегка|плавно|держитесь|примите/.test(t);
+  if (left && !right) return soft ? 'soft-left' : 'left';
+  if (right && !left) return soft ? 'soft-right' : 'right';
+  return 'straight';
+}
+
+/** Что лучше: пешком, если близко; иначе самый быстрый способ с поправкой на парковку и ожидание. */
+export function bestMode(walkMin: number | null, carMin: number | null, busMin: number | null): Mode | null {
+  if (walkMin != null && walkMin <= 15) return 'walk';
+  const options: [Mode, number][] = [];
+  if (walkMin != null) options.push(['walk', walkMin]);
+  if (carMin != null) options.push(['car', carMin + 8]); // парковка и дорога от неё
+  if (busMin != null) options.push(['bus', busMin]);
+  return options.sort((a, b) => a[1] - b[1])[0]?.[0] ?? null;
+}
+

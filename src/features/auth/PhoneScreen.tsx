@@ -93,14 +93,14 @@ export default function Phone() {
 
 const styles = StyleSheet.create({
   fields: { flexDirection: 'row', gap: 8, paddingHorizontal: 24 },
-  cc: { width: 79, height: 60, borderRadius: 16, borderWidth: 1.5, borderColor: '#DDD8CC', backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  cc: { width: 79, height: 60, borderRadius: 16, borderWidth: 1.5, borderColor: '#C8C2B2', backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   ccText: { fontFamily: fonts.mono600, fontSize: 17, color: colors.ink },
   num: { flex: 1, height: 60, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.card, justifyContent: 'center', paddingHorizontal: 16 },
   numText: { fontFamily: fonts.mono600, fontSize: 21, color: colors.ink, letterSpacing: 0.4 },
   chip: { alignSelf: 'flex-start', marginLeft: 24, marginTop: 14, height: 32, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chipWarn: { backgroundColor: '#FBDCCB', height: undefined, paddingVertical: 8, marginRight: 24 },
+  chipWarn: { backgroundColor: '#F0C5AE', height: undefined, paddingVertical: 8, marginRight: 24 },
   chipText: { fontFamily: fonts.body700, fontSize: 13, color: colors.paper },
-  pad: { backgroundColor: '#E7E2D6', paddingHorizontal: 10, paddingTop: 10, gap: 8 },
+  pad: { backgroundColor: '#D5CFC1', paddingHorizontal: 10, paddingTop: 10, gap: 8 },
   keys: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   key: { flexBasis: '30%', flexGrow: 1, height: 50, borderRadius: 8, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   keyText: { fontFamily: fonts.body400, fontSize: 23, lineHeight: 26, color: colors.ink },

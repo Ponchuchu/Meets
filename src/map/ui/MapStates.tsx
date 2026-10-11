@@ -17,14 +17,14 @@ export function NetPill({ kind, onRetry }: { kind: 'offline' | 'server'; onRetry
   );
 }
 
-export function NoGeoCard({ onEnable }: { onEnable: () => void }) {
+export function NoGeoCard({ onEnable, off }: { onEnable: () => void; off?: boolean }) {
   return (
     <View style={styles.veil}>
       <View style={styles.card}>
         <View style={styles.icon}><Navigation size={26} color={colors.ink} strokeWidth={1.9} /></View>
-        <Text style={styles.cardTitle}>Включи геолокацию</Text>
+        <Text style={styles.cardTitle}>{off ? 'Геолокация выключена в телефоне' : 'Включи геолокацию'}</Text>
         <Pressable onPress={onEnable} style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
-          <Text style={styles.btnText}>Включить</Text>
+          <Text style={styles.btnText}>{off ? 'Открыть настройки' : 'Включить'}</Text>
         </Pressable>
       </View>
     </View>
@@ -37,7 +37,7 @@ export function ExploreBadge({ pct, value }: { pct: string; value: number }) {
   return (
     <View style={styles.explore} accessibilityLabel={`Открыто ${pct} города`}>
       <Svg width={50} height={50} viewBox="0 0 50 50">
-        <Circle cx={25} cy={25} r={r} stroke="#E6E0D4" strokeWidth={5} fill="none" />
+        <Circle cx={25} cy={25} r={r} stroke="#CFC9BB" strokeWidth={5} fill="none" />
         <Circle cx={25} cy={25} r={r} stroke={colors.accent} strokeWidth={5} fill="none" strokeLinecap="round"
           strokeDasharray={`${Math.max(2, c * Math.min(1, value))} ${c}`} transform="rotate(-90 25 25)" />
       </Svg>
@@ -97,20 +97,20 @@ const styles = StyleSheet.create({
   pill: { height: 40, paddingHorizontal: 14, marginRight: 72, borderRadius: 20, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 10 },
   pillText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },
   veil: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(243,240,232,0.72)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
-  card: { width: '100%', maxWidth: 340, borderRadius: 26, backgroundColor: '#FBFAF6', padding: 22, alignItems: 'center', gap: 18, shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  card: { width: '100%', maxWidth: 340, borderRadius: 26, backgroundColor: '#EEE9DE', padding: 22, alignItems: 'center', gap: 18, shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   icon: { width: 64, height: 64, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: fonts.display800, fontSize: 23, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   btn: { alignSelf: 'stretch', height: 54, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body700, fontSize: 16.5, color: colors.paper },
   meDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, borderWidth: 4, borderColor: '#FFFFFF' },
-  explore: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 8, paddingRight: 16, height: 66, borderRadius: 33, backgroundColor: '#FBFAF6', alignSelf: 'flex-start', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  explore: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 8, paddingRight: 16, height: 66, borderRadius: 33, backgroundColor: '#EEE9DE', alignSelf: 'flex-start', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   pct: { fontFamily: fonts.display800, fontSize: 25, letterSpacing: -0.6, color: colors.ink, lineHeight: 28 },
   pctSub: { fontFamily: fonts.body600, fontSize: 13, color: colors.muted2 },
-  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22, backgroundColor: '#FBFAF6', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22, backgroundColor: '#EEE9DE', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   legend: { flexDirection: 'row', gap: 3 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
-  ask: { borderRadius: 22, backgroundColor: '#FBFAF6', padding: 16, gap: 4, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  ask: { borderRadius: 22, backgroundColor: '#EEE9DE', padding: 16, gap: 4, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
   askTitle: { fontFamily: fonts.display700, fontSize: 16.5, color: colors.ink },
   askText: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 19, color: colors.muted2 },
   askBtn: { flex: 1, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

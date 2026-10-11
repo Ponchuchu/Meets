@@ -28,6 +28,6 @@ export const useMapState = create<MapState>((set) => ({
   inviteOpen: false,
   setInviteOpen: (v) => set({ inviteOpen: v }),
   setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
-  resetFilters: () => set((s) => ({ filters: { ...DEFAULT_FILTERS, from: s.filters.from, to: s.filters.to } })),
+  resetFilters: () => set({ filters: DEFAULT_FILTERS }),
   select: (id) => set({ selectedId: id }),
 }));

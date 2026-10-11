@@ -234,7 +234,7 @@ function Mini({ k, v }: { k: string; v: string }) {
 const COLS = [{ width: 40 }, { flex: 1, minWidth: 260 }, { width: 82 }, { width: 82 }, { width: 82 }, { width: 82 }, { width: 82 }, { width: 82 }, { width: 82 }, { width: 170 }];
 
 const styles = StyleSheet.create({
-  root: { width: '100%', maxWidth: 1440, alignSelf: 'center', paddingTop: 24, paddingBottom: 48, gap: 20 },
+  root: { width: '100%', maxWidth: 1440, alignSelf: 'center', paddingTop: 0, paddingBottom: 0, gap: 20 },
   search: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   searchInput: { flex: 1, maxWidth: 320, height: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, paddingHorizontal: 12, fontFamily: fonts.body500, fontSize: 14, color: colors.ink },
   head: { flexDirection: 'row', alignItems: 'center', gap: 16 },

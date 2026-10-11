@@ -1,10 +1,10 @@
 // Карточка в стопке v6 (V6.md §4.1): вправо — «Пойду», влево — «Мимо», вверх (60 px) или тап — раскрыть.
 // «Пойду» — одна дуга (квадратичная кривая Безье) от точки отпускания к иконке «Планы»: ease-in, масштаб до 0,06,
 // поворот до −18°, углы скругляются до круга. Считается в worklet по параметру t — без остановок.
-import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { EventItem, Person } from '../data/types';
 import { colors } from '../theme';
@@ -33,7 +33,9 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   onUndo: () => void;
   /** Карточка коснулась иконки «Планы» — панель подпрыгивает. */
   onLand?: () => void;
-}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand, expand, onReveal, onRevealEnd, onUndo }, ref) {
+  /** Куда отдавать смещение верхней карточки — для подсказок жестов и подсветки краёв. */
+  drag?: { x: SharedValue<number>; y: SharedValue<number> };
+}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand, expand, onReveal, onRevealEnd, onUndo, drag }, ref) {
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
   const rot = useSharedValue(0);
@@ -45,6 +47,35 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   const busy = useSharedValue(false);
   const stamp = useSharedValue(0);
   const revealing = useSharedValue(false);
+
+  // Смещение верхней карточки — наружу (подсказки под карточкой и свечение по краям).
+  useAnimatedReaction(() => dx.get(), (v) => { if (top && drag) drag.x.set(v); });
+  useAnimatedReaction(() => dy.get(), (v) => { if (top && drag) drag.y.set(v); });
+
+  // Как в TikTok: если задумался на карточке, она сама «намекает» движением — чуть вправо («Пойду»), чуть вверх («Подробнее»),
+  // но не улетает: листнуть должен сам человек. Любое касание сбрасывает ожидание; не больше трёх подсказок на карточку.
+  const [touched, setTouched] = useState(0);
+  const touch = () => setTouched((c) => c + 1);
+  useEffect(() => {
+    if (!top || enterFrom) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let n = 0;
+    const play = () => {
+      if (busy.get() || revealing.get()) return;
+      n++;
+      const ease = Easing.inOut(Easing.cubic);
+      dx.set(withSequence(withTiming(46, { duration: 520, easing: Easing.out(Easing.cubic) }), withDelay(260, withTiming(0, { duration: 460, easing: ease }))));
+      rot.set(withSequence(withTiming(4, { duration: 520 }), withDelay(260, withTiming(0, { duration: 460 }))));
+      timers.push(setTimeout(() => {
+        if (busy.get() || revealing.get()) return;
+        dy.set(withSequence(withTiming(-30, { duration: 420, easing: Easing.out(Easing.cubic) }), withDelay(160, withTiming(0, { duration: 420, easing: ease }))));
+      }, 1900));
+      if (n < 3) timers.push(setTimeout(play, 7500));
+    };
+    timers.push(setTimeout(play, 5000));
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [top, touched, enterFrom]);
 
   // «Вернуть»: карточка появляется с той стороны, куда ушла.
   useEffect(() => {
@@ -86,12 +117,20 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   const pan = Gesture.Pan()
     .enabled(top)
     .minDistance(0)
+    .onBegin(() => {
+      scheduleOnRN(touch);
+      // Касание посреди подсказывающего движения — карточка сразу возвращается на место.
+      if (!busy.get() && (dx.get() !== 0 || dy.get() !== 0)) {
+        dx.set(withTiming(0, { duration: 140 })); dy.set(withTiming(0, { duration: 140 })); rot.set(withTiming(0, { duration: 140 }));
+      }
+    })
     .onChange((ev) => {
       if (busy.get()) return;
-      if (!revealing.get() && ev.translationY < -18 && Math.abs(ev.translationX) < 32) {
+      // Раскрытие вверх: хватает лёгкого движения; направление — по соотношению, а не по жёсткому коридору (палец ходит дугой).
+      if (!revealing.get() && ev.translationY < -8 && -ev.translationY > Math.abs(ev.translationX) * 1.1) {
         revealing.set(true); scheduleOnRN(onReveal);
       }
-      if (revealing.get()) { expand.set(Math.max(0, Math.min(0.85, -ev.translationY / 320))); return; }
+      if (revealing.get()) { expand.set(Math.max(0, Math.min(1, -ev.translationY / 300))); return; }
       dx.set(ev.translationX);
       dy.set(ev.translationY < 0 ? ev.translationY * 0.6 : ev.translationY * 0.3);
       rot.set(Math.max(-9, Math.min(9, ev.translationX / 18)));
@@ -100,7 +139,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
       if (busy.get()) return;
       if (revealing.get()) {
         revealing.set(false); dx.set(0); dy.set(0); rot.set(0);
-        scheduleOnRN(onRevealEnd, ev.translationY < -UP || ev.velocityY < -500); return;
+        scheduleOnRN(onRevealEnd, expand.get() > 0.12 || ev.velocityY < -350); return;
       }
       if (ev.translationY > 70 && Math.abs(ev.translationX) < 50) {
         dx.set(0); dy.set(0); rot.set(0); scheduleOnRN(onUndo); return;
@@ -132,7 +171,8 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     const x = q * q * sx.get() + 2 * q * p * cx + p * p * target.x;
     const y = q * q * sy.get() + 2 * q * p * cy + p * p * target.y;
     return {
-      opacity: op.get(),
+      // В самом конце полёта кружок растворяется в значке «Планы».
+      opacity: op.get() * (1 - Math.max(0, (p - 0.9) / 0.1)),
       borderRadius: 30 + (Math.min(width, height) / 2 - 30) * p,
       transform: [
         { translateX: dx.get() + x }, { translateY: dy.get() + y },

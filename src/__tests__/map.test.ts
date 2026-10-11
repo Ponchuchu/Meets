@@ -5,7 +5,7 @@ import { activeCount, DEFAULT_FILTERS as BASE, matchesPrice, showLabel, visibleE
 import { phaseOf, whenLabel } from '../map/lifecycle';
 
 // Тесты по датам — с выключенным «Ближайшим временем».
-const DEFAULT_FILTERS = { ...BASE, soon: false };
+const DEFAULT_FILTERS = { ...BASE, soon: false, from: 0, to: 0 };
 
 // Понедельник 28.09.2026, время — по Алматы (UTC+5).
 const at = (hhmm: string, day = 28) => new Date(`2026-09-${String(day).padStart(2, '0')}T${hhmm}:00+05:00`);
@@ -97,12 +97,12 @@ describe('календарь', () => {
     expect(rangeLabel(1, 1, base)).toBe('Завтра');
     expect(rangeLabel(5, 6, base)).toBe('Выходные');
     expect(rangeLabel(3, 3, base)).toBe('1 окт');
-    expect(rangeLabel(0, 6, base)).toBe('28 сен – 4 окт');
+    expect(rangeLabel(0, 6, base)).toBe('Неделя');
   });
 });
 
-describe('ближайшее время (v6)', () => {
-  it('сейчас и следующие 24 часа, прошедшее — нет', () => {
+describe('ближайшая неделя (v6)', () => {
+  it('неделя вперёд: сегодняшнее и завтрашнее есть, прошедшее — нет', () => {
     const now = new Date('2026-09-28T18:00:00+05:00');
     const ev = (id: string, start: string, end: string) => ({ ...demoEvents()[0], id, startsAt: start, endsAt: end, isLong: false, isFree: true, priceMin: 0 });
     const list = [
@@ -111,7 +111,7 @@ describe('ближайшее время (v6)', () => {
       ev('later', '2026-09-30T19:00:00+05:00', '2026-09-30T21:00:00+05:00'),
       ev('past', '2026-09-28T10:00:00+05:00', '2026-09-28T12:00:00+05:00'),
     ];
-    expect(visibleEvents(list, BASE, now).map((e) => e.id).sort()).toEqual(['tomorrow-am', 'tonight']);
+    expect(visibleEvents(list, BASE, now).map((e) => e.id).sort()).toEqual(['later', 'tomorrow-am', 'tonight']);
   });
 });
 
@@ -120,9 +120,14 @@ describe('FIX1 И2 п.8: на карте все одобренные событ�
   const mk = (id: string, h: number, extra: Partial<EventItem> = {}): EventItem => ({
     ...demoEvents()[0], id, startsAt: new Date(base.getTime() + h * 3600e3).toISOString(), endsAt: null, isLong: false, isFree: false, priceMin: 15000, ...extra,
   });
-  it('«Ближайшее время» по умолчанию: всё в следующие 24 часа, платное тоже', () => {
-    const list = [mk('a', 1), mk('b', 6, { priceMin: 30000 }), mk('c', 23), mk('d', 30), mk('e', 5, { noPoint: true })];
+  it('«Ближайшая неделя»: всё в ближайшие 7 дней, платное тоже, дальше — нет', () => {
+    const list = [mk('a', 1), mk('b', 6, { priceMin: 30000 }), mk('c', 23), mk('d', 30), mk('e', 5, { noPoint: true }), mk('far', 24 * 12)];
     expect(BASE.free).toBe(false);
-    expect(visibleEvents(list, BASE, base).map((e) => e.id).sort()).toEqual(['a', 'b', 'c']);
+    expect(visibleEvents(list, BASE, base).map((e) => e.id).sort()).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('тумблер выключен — любые даты, хоть на два месяца вперёд', () => {
+    const list = [mk('far', 24 * 12), mk('twoMonths', 24 * 58), mk('next', 24 * 3)];
+    expect(visibleEvents(list, { ...BASE, soon: false, from: 55, to: 62 }, base).map((e) => e.id)).toEqual(['twoMonths']);
+    expect(visibleEvents(list, { ...BASE, soon: false, from: 0, to: 62 }, base).map((e) => e.id).sort()).toEqual(['far', 'next', 'twoMonths']);
   });
 });

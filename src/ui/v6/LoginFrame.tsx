@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 16 },
   back: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
   bars: { flex: 1, flexDirection: 'row', gap: 6 },
-  seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#DDD8CC', overflow: 'hidden' },
+  seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#C8C2B2', overflow: 'hidden' },
   segOn: { height: 4, borderRadius: 2, backgroundColor: colors.ink },
   titles: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 18, gap: 6 },
   h1: { fontFamily: fonts.display800, fontSize: 31, lineHeight: 34, letterSpacing: -1, color: colors.ink },

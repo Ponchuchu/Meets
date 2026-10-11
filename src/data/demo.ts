@@ -141,13 +141,13 @@ const EVENT_DETAILS: Record<string, Partial<EventItem>> = {
     chat: { title: 'Чат события', members: 4200, who: 'Организатор', text: 'схема входов в закрепе' },
   },
   food: {
-    catLabel: 'ЕДА / МАРКЕТ', coverLines: [['ФУД-', 'ink'], ['МАРКЕТ', 'ink']], whereShort: 'АБАЯ 150', coverColor: '#EADFB8',
+    catLabel: 'ЕДА / МАРКЕТ', coverLines: [['ФУД-', 'ink'], ['МАРКЕТ', 'ink']], whereShort: 'АБАЯ 150', coverColor: '#D9CC9E',
     addressNote: 'во дворе ТРЦ, вход с Абая', priceNote: 'вход свободный',
     organizer: 'Маркет «Двор»', source: 'Instagram',
     chat: { title: 'Чат маркета', members: 40, who: 'Организатор', text: 'сегодня плов и фермерский сыр' },
   },
   bike: {
-    catLabel: 'СПОРТ / ВЕЛО', coverLines: [['ВЕЛО-', 'ink'], ['ПРОГУЛКА', 'ink']], whereShort: 'ПАРК ПАНФИЛОВЦЕВ', coverColor: '#D6E0EE',
+    catLabel: 'СПОРТ / ВЕЛО', coverLines: [['ВЕЛО-', 'ink'], ['ПРОГУЛКА', 'ink']], whereShort: 'ПАРК ПАНФИЛОВЦЕВ', coverColor: '#BFCCDF',
     addressNote: 'сбор у главного входа', priceNote: 'свой велосипед или прокат у парка',
     organizer: 'Вело-клуб «Круг»', source: 'Telegram',
     chat: { title: 'Чат прогулки', members: 14, who: 'Тимур', text: 'маршрут в закрепе' },
@@ -294,7 +294,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
     badges: ['wheels', 'games', 'opener'], gallery: ['denis'], online: true, commonFriends: ['igor', 'anton'], friendsCount: 21, commonCount: 5,
     friendIds: ['igor', 'anton', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка «Токио в Алматы»', when: 'СЕГОДНЯ', note: 'едет туда' }, { eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }],
     now: { place: 'едет по Абая к аниме-выставке', sharingUntil: '20:30' }, privacy: sharing,
-    planLine: { text: 'Идёт на аниме-выставку до 21:00', eventId: 'anime', color: '#E7E2D6' },
+    planLine: { text: 'Идёт на аниме-выставку до 21:00', eventId: 'anime', color: '#D5CFC1' },
   },
   anton: {
     id: 'anton', about: 'Выставки, аниме и хорошая еда. Зову на шашлыки по воскресеньям.',
@@ -302,7 +302,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
     badges: ['host', 'art'], gallery: ['anton'], online: true, commonFriends: ['igor', 'denis'], friendsCount: 18, commonCount: 4,
     friendIds: ['igor', 'denis', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка', when: 'СЕГОДНЯ', note: 'уже там' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'устраивает' }],
     now: { place: 'аниме-выставка, ТРЦ на Абая', sharingUntil: '21:00' }, privacy: sharing,
-    planLine: { text: 'Свободен весь вечер', color: '#D9E4D2' },
+    planLine: { text: 'Свободен весь вечер', color: '#C5D3BB' },
   },
   timur: {
     id: 'timur', about: 'Горы по субботам, велосипед по воскресеньям.',

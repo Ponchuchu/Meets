@@ -48,7 +48,7 @@ export default function FriendsScreen() {
   const openPerson = (id: string) => router.push({ pathname: '/person/[id]', params: { id } });
   const inviteLink = () => {
     social.inviteByLink();
-    Share.share({ message: `Пойдём куда-нибудь вместе? Я в «рядом.»: ${APP_URL}/i/danil` }).catch(() => {});
+    Share.share({ message: `Пойдём куда-нибудь вместе? Я в Meets: ${APP_URL}/i/danil` }).catch(() => {});
   };
 
   const friendPlans = useMemo(() => {

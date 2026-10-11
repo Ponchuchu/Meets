@@ -39,7 +39,7 @@ export function Metrics({ live }: { live: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%', maxWidth: 820, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 28, paddingBottom: 40, gap: 14 },
+  root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 14 },
   cap: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2, letterSpacing: 0.6 },
   h1: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink, letterSpacing: -0.4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   value: { fontFamily: fonts.display700, fontSize: 30, color: colors.ink },
   norm: { fontFamily: fonts.mono500, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
-  flag: { alignSelf: 'flex-start', backgroundColor: '#F8DCCD', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  flag: { alignSelf: 'flex-start', backgroundColor: '#EDC6B2', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   flagText: { fontFamily: fonts.body600, fontSize: 13, color: colors.accentText },
   note: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, lineHeight: 19 },
 });

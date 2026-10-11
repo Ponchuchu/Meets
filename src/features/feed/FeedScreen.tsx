@@ -10,8 +10,10 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { tabCenter, tabInset } from '../../components/TabBar';
 import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
-import { EventPage } from '../../event/EventPage';
+import { LazyEventPage } from '../../event/LazyEventPage';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
+import { QuickButtons } from '../../feed/SwipeHints';
+import { UndoBar } from '../../feed/UndoBar';
 import { now as clockNow } from '../../lib/clock';
 import { buildDeck, makeSignal, tasteFrom } from '../../reco';
 import { useApp, useCoverTabBar } from '../../state/app';
@@ -20,7 +22,6 @@ import { useFeed } from '../../state/feed';
 import { usePlans } from '../../state/plans';
 import { INITIAL_DRAFT, useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Toast, type ToastData } from '../../ui/Toast';
 
 const STACK = 3;
 
@@ -35,19 +36,25 @@ export default function ForYouScreen() {
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, decided, history, undosLeft, decide, addSignal, undo } = useFeed();
+  const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
   const removePlan = useApp((s) => s.removePlan);
   const pulsePlan = useApp((s) => s.pulsePlan);
 
-  const [toast, setToast] = useState<ToastData | null>(null);
+  // Плашка «Мимо · Вернуть»: тонкая, над нижней панелью, 5 секунд.
+  const undoSeq = useRef(0);
+  const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
+  // Смещение верхней карточки: по нему подсвечиваются подсказки жестов и края экрана.
+  const dragX = useSharedValue(0);
+  const dragY = useSharedValue(0);
+  const drag = { x: dragX, y: dragY };
 
   // Вкус = ответы регистрации + свайпы. Колода пересчитывается после каждого решения.
   const answers = { interests: draft.interests ?? INITIAL_DRAFT.interests, times: draft.times ?? INITIAL_DRAFT.times, withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' };
@@ -57,33 +64,44 @@ export default function ForYouScreen() {
     const dec = new Set(Object.keys(decided));
     let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
     // Нет дна: когда кандидаты кончились — возвращаем пропущенные (ослабляем фильтры).
-    if (d.length < STACK) d = [...d, ...buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x))];
+    // Только что пропущенную карточку не показываем сразу снова, если есть из чего выбрать.
+    const lastId = history[history.length - 1]?.eventId;
+    if (d.length < STACK) {
+      const more = buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x));
+      d = [...d, ...more.filter((x) => x.id !== lastId || more.length === 1)];
+    }
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
       if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
     }
     return d;
-  }, [taste, events, decided, history.length, now, enter]);
+  }, [taste, events, decided, history, now, enter]);
 
-  const cardTop = Math.max(50, insets.top + 6) + 62;
-  // Таб-бар плавает поверх: карточки и кнопки — над ним, раскрытое событие — на весь экран.
+  // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
+  const headTop = Math.max(50, insets.top + 6);
+  const baseTop = headTop + 56;
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
+  const HINTS_H = 84; // кнопки с подписями под карточкой
+  const GAP = 38; // под карточкой видна стопка (28) и зазор
   const cardW = Math.min(350, W - 40);
-  const cardH = Math.max(350, Math.min(510, screenH - cardTop - 30));
+  const cardH = Math.max(330, Math.min(470, screenH - baseTop - GAP - HINTS_H - 10));
+  const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 10);
+  const cardTop = baseTop + Math.round(free * 0.5);
+  const hintsTop = cardTop + cardH + GAP;
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
   const plansIcon = tabCenter(2, W, fullH, insets.bottom);
   const target = { x: plansIcon.x - (cardX + cardW / 2), y: plansIcon.y - (cardTop + cardH / 2) };
 
-  const showToast = (t: ToastData | null, ms = 4000) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(t);
-    if (t) toastTimer.current = setTimeout(() => setToast(null), ms);
-  };
 
+  // Каждое решение даёт карточке новый «круг»: если она вернётся в колоду (пропущенное или «Вернуть»), это новый экземпляр,
+  // а не старый, улетевший за экран, с занятым жестом — иначе лента «зависала» и смотреть было нечего.
+  const [rounds, setRounds] = useState<Record<string, number>>({});
+  const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
+    bump(e.id);
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
@@ -93,15 +111,16 @@ export default function ForYouScreen() {
       addPlan();
       pulsePlan();
     } else if (undosLeft > 0) {
-      showToast({ text: `Мимо: ${e.title}`, cta: 'Вернуть', onCta: () => doUndo() }, 5000);
+      setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}` });
     }
   };
 
   // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.
   function doUndo() {
     const last = undo();
-    showToast(null);
+    setUndoBar(null);
     if (!last) return;
+    bump(last.eventId);
     // «Отменить» после «пойду» считается в ungo как cancel_plan, «вернуть» после «мимо» — здесь.
     if (last.kind === 'go') { ungo(last.eventId); removePlan(); } else track('undo', last.eventId);
     setEnter({ id: last.eventId, from: last.kind });
@@ -115,11 +134,11 @@ export default function ForYouScreen() {
   const p = useSharedValue(0);
   const openCard = (e: EventItem, interactive = false) => {
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
-    showToast(null);
+    setUndoBar(null);
     setOpen(e);
     if (interactive) return;
     p.value = 0;
-    p.value = withTiming(1, { duration: 350, easing: Easing.bezier(0.2, 0.8, 0.3, 1) });
+    p.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) });
   };
   const closeCard = (then?: () => void) => {
     p.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, () => {
@@ -139,14 +158,14 @@ export default function ForYouScreen() {
 
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <View style={[styles.head, { top: Math.max(50, insets.top + 6) }]}>
+      <View style={[styles.head, { top: headTop, left: cardX + 2, right: cardX }]}>
         <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
 
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
-            key={e.id}
+            key={`${e.id}:${rounds[e.id] ?? 0}`}
             ref={k === 0 ? topRef : undefined}
             e={e} people={people} now={now}
             k={k} top={k === 0} width={cardW} height={cardH} target={target}
@@ -155,11 +174,18 @@ export default function ForYouScreen() {
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
             expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) })); else closeCard(); }}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
             onUndo={doUndo}
+            drag={k === 0 ? drag : undefined}
           />
         )).reverse()}
       </View>
+
+      {top && !open && (
+        <View style={[styles.hints, { top: hintsTop, left: cardX - 6, width: cardW + 12 }]}>
+          <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => openCard(top)} />
+        </View>
+      )}
 
       {!top && (
         <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
@@ -170,17 +196,22 @@ export default function ForYouScreen() {
               <Pressable onPress={() => router.navigate('/')} style={({ pressed }) => [styles.emptyBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
                 <Text style={styles.emptyBtnText}>Открыть карту</Text>
               </Pressable>
+              {skippedCount > 0 && (
+                <Pressable onPress={restoreSkipped} style={({ pressed }) => [styles.emptyGhost, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+                  <Text style={styles.emptyGhostText}>Показать пропущенные ({skippedCount})</Text>
+                </Pressable>
+              )}
             </>
           )}
         </View>
       )}
 
-      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, top: cardTop + cardH - 70 }} />}
+      {undoBar && !open && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
-            <EventPage e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+            <LazyEventPage progress={p} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} />
           </Animated.View>
         </Animated.View>
@@ -197,6 +228,9 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  emptyGhost: { minHeight: 44, justifyContent: 'center' },
+  emptyGhostText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink, textDecorationLine: 'underline' },
   emptyBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 50 },
+  hints: { position: 'absolute' },
 });

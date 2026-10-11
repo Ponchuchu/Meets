@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   main: { height: 56, borderRadius: 16, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   mainText: { fontFamily: fonts.body700, fontSize: 17, color: colors.paper },
   row: { flexDirection: 'row', gap: 10 },
-  alt: { flex: 1, height: 52, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1.5, borderColor: '#DDD8CC', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  alt: { flex: 1, height: 52, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1.5, borderColor: '#C8C2B2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   altText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   pressed: { transform: [{ scale: 0.98 }] },
   peek: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: 4 },

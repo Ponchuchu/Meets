@@ -110,7 +110,7 @@ export async function startBackground(): Promise<boolean> {
     pausesUpdatesAutomatically: true,
     showsBackgroundLocationIndicator: false,
     foregroundService: {
-      notificationTitle: 'рядом.',
+      notificationTitle: 'Meets',
       notificationBody: 'Друзья видят, где ты. Выключить — «Невидимка» в профиле.',
       notificationColor: '#F0521F',
     },
