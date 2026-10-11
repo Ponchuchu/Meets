@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
   }
 
   if(body.action !== 'start') return json({error:'unknown action'},400);
-  if(body.days != null && (!Number.isInteger(body.days)||body.days<1||body.days>30) || body.limit != null && (!Number.isInteger(body.limit)||body.limit<1||body.limit>100) || body.model != null && !/^gemini-[a-zA-Z0-9.-]+$/.test(body.model) || body.topics != null && (!Array.isArray(body.topics)||body.topics.some(t=>!['music','standup','cinema','art','food','sport'].includes(t))))return json({error:'invalid search parameters'},400);
+  if(body.days != null && (!Number.isInteger(body.days)||body.days<1||body.days>30) || body.limit != null && (!Number.isInteger(body.limit)||body.limit<1||body.limit>100) || body.model != null && !/^(gemini|kimi|moonshot)-[a-zA-Z0-9.-]+$/.test(body.model) || body.topics != null && (!Array.isArray(body.topics)||body.topics.some(t=>!['music','standup','cinema','art','food','sport'].includes(t))))return json({error:'invalid search parameters'},400);
   const task = body.task === 'covers' ? 'covers' : 'search';
   const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'gemini-2.5-flash', scheduled: !!body.scheduled };
   const { data: run, error } = await db.from('robot_runs').insert({ params, status: 'queued', started_by: me }).select('id').single();
