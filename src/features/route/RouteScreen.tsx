@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, CornerUpLeft, CornerUpRight, Flag, Footprints, Undo2, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
@@ -58,6 +58,10 @@ export default function RouteScreen() {
   const [follow, setFollow] = useState(false);
   const [origin, setOrigin] = useState<{ lat: number; lon: number } | null>(null);
   const [size, setSize] = useState({ h: 0, sheet: 0 });
+  const { width: screenW } = useWindowDimensions();
+  const [mapReady, setMapReady] = useState(false);
+  const [mapMode, setMapMode] = useState<'mapbox' | 'static' | null>(null);
+  const fitted = useRef('');
   const mapRef = useRef<MapCanvasHandle>(null);
   const fix = useMyFix((s) => s.fix);
   const pos = useMyPos();
@@ -94,6 +98,16 @@ export default function RouteScreen() {
     ];
   }, [e, me, mode, trip.route, trip.bus]);
 
+  useEffect(() => {
+    if (follow) { fitted.current = ''; return; }
+    if (!mapReady || !e || !size.h || !size.sheet) return;
+    const coords: [number, number][] = [...lines.flatMap(l => l.coords), [e.lon, e.lat], ...(me ? [[me.lon, me.lat] as [number, number]] : [])];
+    const key = `${e.id}:${mode}:${size.h}:${size.sheet}:${screenW}:${lines.map(l => `${l.id}:${l.coords.length}:${l.coords[0]}:${l.coords.at(-1)}`).join('|')}:${!!me}`;
+    if (fitted.current === key) return;
+    fitted.current = key;
+    mapRef.current?.fitBounds?.(coords, { top: Math.max(insets.top, 42) + 100, right: 72, bottom: size.sheet + 36, left: 36 });
+  }, [mapReady, follow, e, mode, size, screenW, lines, me, insets.top]);
+
   const leg = mode === 'car' ? trip.route?.car : trip.route?.walk;
   const progress = follow && me && leg?.line ? routeProgress(me, leg.line) : null;
   const instruction = follow && me ? closestInstruction(me, leg?.instructions ?? [], leg?.line ?? []) : null;
@@ -115,7 +129,7 @@ export default function RouteScreen() {
     { m: 'car', Icon: Car, min: trip.carMin, km: trip.route?.car ? km1(trip.route.car.km) : null, label: 'Машина' },
     ...(trip.bus ? [{ m: 'bus' as const, Icon: Bus, min: busMin, km: null, label: `Автобус ${trip.bus.ref}` }] : []),
   ];
-  const canNavigate = !!me && !e.needsPin && !e.noPoint && (mode === 'bus' ? !!trip.bus : (leg?.line?.length ?? 0) >= 2);
+  const canNavigate = mapMode === 'mapbox' && !!me && !e.needsPin && !e.noPoint && (mode === 'bus' ? !!trip.bus : (leg?.line?.length ?? 0) >= 2);
   const to = e.venueName ?? e.address.split(',')[0];
 
   // Остаток пути по маршруту: пропорционально пройденному.
@@ -150,7 +164,7 @@ export default function RouteScreen() {
 
   return (
     <View style={styles.root} onLayout={(ev) => setSize((s) => ({ ...s, h: ev.nativeEvent.layout.height }))}>
-      <MapCanvas ref={mapRef} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
+      <MapCanvas ref={mapRef} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
         me={me} meHeading={heading} bottomInset={size.sheet + 8} topInset={headTop + 80} />
 
       {!follow ? (
@@ -235,7 +249,7 @@ export default function RouteScreen() {
             </View>
             {mode === 'bus' && <Text style={styles.osm}>Остановки © участники OpenStreetMap</Text>}
             <Pressable disabled={!canNavigate} onPress={start} style={[styles.go, !canNavigate && { opacity: 0.5 }]} accessibilityRole="button">
-              <Text style={styles.goText}>{canNavigate ? (mode === 'car' ? 'Поехали' : 'В путь') : trip.loading ? 'Строю маршрут…' : 'Маршрут недоступен'}</Text>
+              <Text style={styles.goText}>{canNavigate ? (mode === 'car' ? 'Поехали' : 'В путь') : mapMode === 'static' ? 'Карта недоступна' : trip.loading ? 'Строю маршрут…' : 'Маршрут недоступен'}</Text>
             </Pressable>
           </>
         )}

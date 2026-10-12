@@ -27,11 +27,13 @@ export interface Profile {
   name: string;
   handle: string | null;
   photo_url: string | null;
+  map_trail?: 'none' | 'dots' | 'comet';
+  map_frame?: string;
   about: string | null;
 }
 
 export async function getProfile(id = me()): Promise<Profile | null> {
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about').eq('id', id).maybeSingle());
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').eq('id', id).maybeSingle());
 }
 
 export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void> {
@@ -100,7 +102,7 @@ export async function getFriends(): Promise<Friend[]> {
   const rows = await must(sb().from('friendships').select('a,b,created_at').or(`a.eq.${id},b.eq.${id}`)) as { a: string; b: string; created_at: string }[];
   const ids = rows.map((r) => (r.a === id ? r.b : r.a));
   if (!ids.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about').in('id', ids)) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[];
   return profs.map((p) => ({ ...p, since: rows.find((r) => r.a === p.id || r.b === p.id)!.created_at }));
 }
 
@@ -115,7 +117,7 @@ export async function removeFriend(friendId: string): Promise<void> {
 export async function findByHandle(q: string): Promise<Profile[]> {
   const h = q.replace(/^@/, '').trim().toLowerCase();
   if (h.length < 2) return [];
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about').ilike('handle', `${h}%`).neq('id', me()).limit(10));
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').ilike('handle', `${h}%`).neq('id', me()).limit(10));
 }
 
 /** Заявка в друзья. Встречная заявка уже есть — дружба сразу (триггер в базе). */
@@ -133,7 +135,7 @@ export async function answerFriend(from: string, accept: boolean): Promise<void>
 export async function getFriendRequests(): Promise<(Profile & { note: string | null })[]> {
   const rows = await must(sb().from('friend_requests').select('from_id,note').eq('to_id', me()).eq('status', 'pending')) as { from_id: string; note: string | null }[];
   if (!rows.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about').in('id', rows.map((r) => r.from_id))) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', rows.map((r) => r.from_id))) as Profile[];
   return profs.map((p) => ({ ...p, note: rows.find((r) => r.from_id === p.id)?.note ?? null }));
 }
 
@@ -167,12 +169,13 @@ interface LiveRow {
   venue_id: string | null; venue_name: string | null; venue_kind: string | null;
   address: string | null; address_note: string | null; lat: number | null; lon: number | null; needs_pin: boolean;
   price_min: number | null; price_max: number | null; is_free: boolean; about: string | null; organizer: string | null;
+  created_by?: string;
   cover_url: string | null; source_url: string | null; visibility: 'public' | 'friends';
 }
 
 export function mapLive(r: LiveRow): EventItem {
   return {
-    id: r.id, title: r.title, category: r.category as Category, tags: r.tags ?? [],
+    id: r.id, createdBy: r.created_by, title: r.title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
     venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
     lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null, noPoint: r.lat == null || r.lon == null,
@@ -183,7 +186,7 @@ export function mapLive(r: LiveRow): EventItem {
 }
 
 async function withMeetupLocations(events: EventItem[]): Promise<EventItem[]> {
-  const ids = events.filter(e => e.visibility === 'friends').map(e => e.id);
+  const ids = events.filter(e => e.visibility === 'friends' || e.createdBy === myId()).map(e => e.id);
   if (!ids.length) return events;
   // Точный адрес возвращает RLS только создателю и принявшим приглашение.
   const rows = await must(sb().from('meetup_locations').select('event_id,address,lat,lon,details').in('event_id', ids)) as {event_id:string;address:string;lat:number;lon:number;details:EventItem['meetup']}[];
@@ -219,8 +222,8 @@ export async function getEvents(days = 92): Promise<EventItem[]> {
 
 export type PlanStatus = 'going' | 'saved' | 'skipped' | 'arrived' | 'cancelled';
 
-export async function getMyAttendance(): Promise<{ event_id: string; status: PlanStatus; at: string }[]> {
-  return must(sb().from('attendance').select('event_id,status,at').eq('user_id', me()));
+export async function getMyAttendance(): Promise<{ event_id: string; status: PlanStatus; at: string; visit_at?: string | null }[]> {
+  return must(sb().from('attendance').select('event_id,status,at,visit_at').eq('user_id', me()));
 }
 
 export async function setAttendance(eventId: string, status: PlanStatus | null): Promise<void> {
@@ -230,10 +233,24 @@ export async function setAttendance(eventId: string, status: PlanStatus | null):
 
 // ——— Очередь отправок: сообщения уходят, когда появится сеть ———
 setOutboxSender(async (it) => {
-  if (it.kind === 'message') {
-    const { error } = await sb().from('messages').insert({ chat_id: it.chatId, author_id: me(), ...it.payload });
-    if (error) throw new Error(error.message);
+  if (it.kind !== 'message') return;
+  const p = it.payload;
+  if (p.owner && p.owner !== me()) throw new Error('auth: очередь другого аккаунта');
+  const { sendMessage, uploadMedia } = await import('../data/remote');
+  const { useOutbox } = await import('./outbox');
+  const { useChat } = await import('../state/chat');
+  const { queryClient } = await import('./query');
+  let path = typeof p.media_path === 'string' ? p.media_path : undefined;
+  if (!path && typeof p.local_media === 'string') {
+    path = await uploadMedia(it.chatId, p.local_media, (p.kind ?? 'photo') as import('../data/types').MessageKind);
+    useOutbox.getState().updatePayload(it.id, { media_path: path });
   }
+  if (p.owner && p.owner !== me()) throw new Error('auth: аккаунт изменился');
+  await sendMessage(it.chatId, String(p.body ?? ''), (p.kind ?? 'text') as import('../data/types').MessageKind, path, typeof p.duration_s === 'number' ? p.duration_s : undefined, typeof p.event_id === 'string' ? p.event_id : undefined, it.id);
+  await queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] });
+  void queryClient.invalidateQueries({ queryKey: ['chats'] });
+  useChat.getState().unsend(it.id);
+
 });
 
 // ——— ТРЦ (V6Venue): пины из venues.kind = 'mall', сеансы кино — если есть в базе ———
@@ -314,7 +331,7 @@ export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[];
     must(sb().from('company_requests').select('user_id,note').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null }[]>,
   ]);
   const ids = [...new Set([...att.map((a) => a.user_id), ...look.map((l) => l.user_id)])].filter((x) => x !== id);
-  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about').in('id', ids)) as Profile[] : [];
+  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[] : [];
   const friendIds = new Set(att.map((a) => a.user_id));
   return {
     friends: profs.filter((p) => friendIds.has(p.id)),
@@ -418,3 +435,6 @@ export async function toggleEventReminder(eventId:string):Promise<void>{
  const old=!!plans.getState().muted[eventId];plans.getState().toggleReminder(eventId);
  try{await setSetting('muted_events',Object.keys(plans.getState().muted));}catch(e){if(!!plans.getState().muted[eventId]!==old)plans.getState().toggleReminder(eventId);throw e;}
 }
+
+export async function chooseEventVisit(eventId: string, at: string): Promise<void> { await must(sb().rpc('choose_event_visit', { event: eventId, visit: at })); }
+export async function rescheduleMeetup(eventId: string, at: string): Promise<void> { await must(sb().rpc('reschedule_meetup', { event: eventId, new_start: at })); }

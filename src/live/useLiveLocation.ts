@@ -37,17 +37,28 @@ export function useLiveLocation() {
     if (!live) return;
     let stop: (() => void) | null = null;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    // Разрешения ещё нет (спросим на карте) — пробуем снова через 5 с, пока приложение открыто.
+    let active = AppState.currentState === 'active';
+    let generation = 0;
+    let starting = false;
     const on = () => {
-      if (stop) return;
+      if (!active || stop || starting) return;
+      starting = true;
+      const run = generation;
       void watchForeground().then((s) => {
-        if (s) { stop = s; if (!hiddenRef.current) void startBackground().catch(() => undefined); } else retry = setTimeout(on, 5000);
+        if (!active || run !== generation) { s?.(); return; }
+        starting = false;
+        if (s) { stop = s; if (!hiddenRef.current) void startBackground().catch(() => undefined); }
+        else retry = setTimeout(on, 5000);
+      }).catch(() => {
+        if (!active || run !== generation) return;
+        starting = false;
+        retry = setTimeout(on, 5000);
       });
     };
-    const off = () => { clearTimeout(retry); stop?.(); stop = null; };
-    if (AppState.currentState === 'active') on();
-    const sub = AppState.addEventListener('change', (s) => (s === 'active' ? on() : off()));
-    return () => { sub.remove(); off(); };
+    const off = () => { generation++; starting = false; clearTimeout(retry); stop?.(); stop = null; };
+    if (active) on();
+    const sub = AppState.addEventListener('change', (s) => { active = s === 'active'; if (active) on(); else off(); });
+    return () => { active = false; sub.remove(); off(); };
   }, [live]);
 
   // Фон: включён, пока не невидимка навсегда. Нет разрешения «Всё время» — просто не запускается.

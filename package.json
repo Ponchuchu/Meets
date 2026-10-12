@@ -91,7 +91,8 @@
     "shots": "NODE_USE_ENV_PROXY=1 node scripts/shots.mjs",
     "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs",
     "db:bundle": "node scripts/bundle-sql.mjs",
-    "icons": "node scripts/icons.mjs"
+    "icons": "node scripts/icons.mjs",
+    "check:feedback": "NODE_USE_ENV_PROXY=1 node scripts/check-phone-feedback.mjs"
   },
   "private": true,
   "jest": {

@@ -10,6 +10,6 @@ export function StickerPicker({level,onSelect}:{level:number;onSelect:(s:Sticker
     <ScrollView style={{maxHeight:350}} contentContainerStyle={{flexDirection:'row',flexWrap:'wrap',justifyContent:'space-around',gap:12,padding:6}}>
       {STICKERS.filter(s=>s.pack===pack).map(s=><Pressable key={s.id} disabled={!stickerUnlocked(s,level)} onPress={()=>onSelect(s)} accessibilityRole="button" accessibilityLabel={s.label} accessibilityState={{disabled:!stickerUnlocked(s,level)}} style={{opacity:stickerUnlocked(s,level)?1:0.4}}><StickerView st={s}/></Pressable>)}
     </ScrollView>
-    <Text style={{fontFamily:fonts.body400,color:colors.muted}}>51 стикер · новые коллекции на уровнях 3 и 7</Text>
+    <Text style={{fontFamily:fonts.body400,color:colors.muted}}>{STICKERS.length} стикеров · новые коллекции на уровнях 3 и 7</Text>
   </View>;
 }

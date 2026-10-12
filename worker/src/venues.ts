@@ -8,6 +8,7 @@ export interface VenueRow {
   id: string;
   name: string;
   aliases: string[];
+  address?: string | null;
   lat: number | null;
   lon: number | null;
 }
@@ -17,11 +18,15 @@ export function matchVenue(name: string | null, address: string | null, venues: 
   if (!probes.length) return null;
   let best: { v: VenueRow; s: number } | null = null;
   for (const v of venues) {
+    if (address && v.address) {
+      const a = splitQuery(address), b = splitQuery(v.address);
+      if (a.house && b.house && a.house.toLowerCase() !== b.house.toLowerCase()) continue;
+    }
     for (const label of [v.name, ...v.aliases]) {
       const l = normalize(label);
       for (const p of probes) {
-        const s = p === l ? 1 : p.includes(l) || l.includes(p) ? 0.8 : similarity(p, l);
-        if (s >= 0.6 && (!best || s > best.s)) best = { v, s };
+        const s = p === l ? 1 : p.includes(l) || l.includes(p) ? 0.9 : similarity(p, l);
+        if (s >= 0.85 && (!best || s > best.s)) best = { v, s };
       }
     }
   }
@@ -58,11 +63,13 @@ async function nominatim(params: Record<string, string>): Promise<Point | null> 
   const wait = 1100 - (Date.now() - last);
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   last = Date.now();
-  const qs = new URLSearchParams({ format: 'jsonv2', limit: '1', countrycodes: 'kz', 'accept-language': 'ru', bounded: '1', viewbox: VIEWBOX, ...params });
+  const qs = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', limit: '1', countrycodes: 'kz', 'accept-language': 'ru', bounded: '1', viewbox: VIEWBOX, ...params });
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?${qs}`, { headers: { 'User-Agent': 'ryadom-worker/0.2 (https://github.com/Ponchuchu/ryadom)' }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
-    const [hit] = (await res.json()) as { lat: string; lon: string }[];
+    const [hit] = (await res.json()) as { lat: string; lon: string; address?: { house_number?: string } }[];
+    const expected = params.street ? splitQuery(params.street).house : null;
+    if (expected && hit?.address?.house_number?.replace(/\s+/g, '').toLowerCase() !== expected.toLowerCase()) return null;
     const p = hit ? { lat: Number(hit.lat), lon: Number(hit.lon) } : null;
     return p && inCity(p) ? p : null; // дальше 18 км от центра — пригород или промах геокодера
   } catch { return null; }
@@ -78,7 +85,7 @@ async function mapbox(q: string): Promise<Point | null> {
     const res = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?${qs}`, { signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
     const f = ((await res.json()) as { features?: { geometry: { coordinates: [number, number] }; properties: { match_code?: { confidence?: string } } }[] }).features?.[0];
-    if (!f || !['exact', 'high', 'medium'].includes(f.properties.match_code?.confidence ?? '')) return null;
+    if (!f || !(splitQuery(q).house ? ['exact', 'high'] : ['exact', 'high', 'medium']).includes(f.properties.match_code?.confidence ?? '')) return null;
     const p = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
     return inCity(p) ? p : null;
   } catch { return null; }
@@ -94,8 +101,8 @@ export async function geocode(query: string): Promise<Point | null> {
   const { venue, street, house } = splitQuery(query);
   let p: Point | null = null;
   if (street) p = await nominatim({ street: `${house ? `${house} ` : ''}${street}`, city: 'Алматы' });
-  if (!p && street && house) p = await nominatim({ street: `${street}`, city: 'Алматы' });
-  if (!p && venue) p = await nominatim({ q: `${venue} Алматы` });
+  // Центр улицы не выдаём за точный дом: сохраняем needs_pin, если дом не найден.
+  if (!p && venue && !house) p = await nominatim({ q: `${venue} Алматы` });
   if (!p) p = await mapbox([venue, street && `${street} ${house ?? ''}`.trim()].filter(Boolean).join(', ') || query);
   cache.set(key, p);
   return p;

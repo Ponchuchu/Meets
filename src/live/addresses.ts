@@ -1,3 +1,4 @@
+import { supabase } from '../data/client';
 import { config } from '../lib/config';
 
 export interface AddressHit { id: string; label: string; lat: number; lon: number }
@@ -59,11 +60,18 @@ export function mergeHits(...lists: AddressHit[][]): AddressHit[] {
   return out.slice(0, 7);
 }
 
+async function knownVenues(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
+  const requests = ['name', 'address'].map(field => supabase().from('venues_points').select('id,name,address,lat,lon').ilike(field, `%${q.replace(/[%_]/g, '')}%`).not('lat', 'is', null).limit(5));
+  if (signal) requests.forEach(r => r.abortSignal(signal));
+  const results = await Promise.all(requests);
+  return results.flatMap(r => (r.data ?? []).map(v => ({ id: `venue-${v.id}`, label: [v.name, v.address].filter(Boolean).join(', '), lat: Number(v.lat), lon: Number(v.lon) }))).filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lon));
+}
+
 /** Поиск адреса в Алматы: Mapbox + OpenStreetMap параллельно. Ошибка — только если не ответил ни один. */
 export async function searchAddresses(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
   const text = q.trim();
   if (text.length < 3) return [];
-  const [a, b] = await Promise.allSettled([mapbox(text, signal), osm(text, signal)]);
-  if (a.status === 'rejected' && b.status === 'rejected') throw new Error('Не удалось найти адрес. Выбери точку на карте');
-  return mergeHits(a.status === 'fulfilled' ? a.value : [], b.status === 'fulfilled' ? b.value : []);
+  const [a, b, c] = await Promise.allSettled([mapbox(text, signal), osm(text, signal), knownVenues(text, signal)]);
+  if (a.status === 'rejected' && b.status === 'rejected' && (c.status === 'rejected' || !c.value.length)) throw new Error('Не удалось найти адрес. Выбери точку на карте');
+  return mergeHits(c.status === 'fulfilled' ? c.value : [], a.status === 'fulfilled' ? a.value : [], b.status === 'fulfilled' ? b.value : []);
 }

@@ -22,14 +22,16 @@ export function usePlansSync() {
     const remoteMuted=Array.isArray(settings.data?.muted_events)?settings.data.muted_events:[];
     usePlans.setState((s) => {
       const next = mergeServerPlans({ owner: s.owner, going: s.going, saved: s.saved, meetupIds: s.meetups.map((m) => m.id) }, q.data, uid);
-      return s.owner === uid ? next : { ...next, muted: Object.fromEntries(remoteMuted.filter((id:unknown):id is string=>typeof id==='string').map((id:string)=>[id,true as const])), company: {}, invites: [], meetups: [], declined: {} };
+      const visits = Object.fromEntries(q.data.filter(r => r.visit_at).map(r => [r.event_id, r.visit_at!]));
+      return s.owner === uid ? { ...next, visits } : { ...next, visits, muted: Object.fromEntries(remoteMuted.filter((id:unknown):id is string=>typeof id==='string').map((id:string)=>[id,true as const])), company: {}, invites: [], meetups: [], declined: {} };
     });
   }, [q.data, uid, settings.data]);
 
   // Напоминания за час: только мои «Иду» из известных событий.
   const going = usePlans((s) => s.going);
+  const visits = usePlans(s => s.visits);
   const muted = usePlans((s) => s.muted);
   const meetups = usePlans((s) => s.meetups);
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  useReminders([...events, ...meetups].filter((e, i, all) => going[e.id] && !muted[e.id] && all.findIndex((a) => a.id === e.id) === i));
+  useReminders([...events, ...meetups].map(e => visits[e.id] ? { ...e, startsAt: visits[e.id] } : e).filter((e, i, all) => going[e.id] && !muted[e.id] && all.findIndex((a) => a.id === e.id) === i));
 }

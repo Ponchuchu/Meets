@@ -10,6 +10,7 @@ import { buildMeetup, ctaLabel, DISTRICTS, fullAddress, validateMeetup, type Mee
 import { MonthCalendar, PlacePicker, TimeWheel } from '../../event/ui/pickers';
 import { almaty, dayIndex, dayStart, now as clockNow } from '../../lib/clock';
 import { uid } from '../../lib/uid';
+import { myId } from '../../live/auth';
 import { config } from '../../lib/config';
 import { createMeetup } from '../../live/api';
 import { queryClient } from '../../live/query';
@@ -90,7 +91,7 @@ export default function CreateScreen() {
     submitting.current = true; setBusy(true);
     try {
       let e = { ...buildMeetup(f, now), id: requestId.current };
-      if (config.dataMode !== 'demo') e = { ...e, id: await createMeetup(e), origin: 'real' };
+      if (config.dataMode !== 'demo') e = { ...e, id: await createMeetup(e), createdBy: myId() ?? undefined, origin: 'real' };
       addMeetup(e); addPlan();
       setFilters({ soon: false, from: f.dayOffset, to: f.dayOffset, free: false, cats: [] });
       select(e.id);

@@ -1,6 +1,6 @@
 // Выбор даты (календарь), времени (барабан, как будильник iPhone) и места (точка на карте, как в доставке).
 import { useEffect, useRef, useState } from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { almaty, dayIndex, dayStart } from '../../lib/clock';
 import { MapCanvas } from '../../map/MapCanvas';
 import type { MapCanvasHandle } from '../../map/types';
@@ -59,16 +59,18 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
   const idx = Math.max(0, items.indexOf(value));
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { ref.current?.scrollTo({ y: idx * ROW, animated: false }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  useEffect(() => () => { if (settle.current) clearTimeout(settle.current); }, []);
+  const commit = (y: number) => {
+    const i = Math.min(items.length - 1, Math.max(0, Math.round(y / ROW)));
+    ref.current?.scrollTo({ y: i * ROW, animated: true });
+    if (items[i] !== value) onChange(items[i]);
+  };
+  const settleAfter = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
     if (settle.current) clearTimeout(settle.current);
-    // На web инерции нет — ждём паузу и сами доводим до ближайшего значения.
-    settle.current = setTimeout(() => {
-      const i = Math.min(items.length - 1, Math.max(0, Math.round(y / ROW)));
-      ref.current?.scrollTo({ y: i * ROW, animated: true });
-      if (items[i] !== value) onChange(items[i]);
-    }, 120);
+    settle.current = setTimeout(() => commit(y), 180);
   };
+
   return (
     <View style={styles.wheel} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
@@ -76,7 +78,10 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
         const i = idx + (a.nativeEvent.actionName === 'increment' ? 1 : -1);
         if (items[i]) { onChange(items[i]); ref.current?.scrollTo({ y: i * ROW, animated: true }); }
       }}>
-      <ScrollView ref={ref} showsVerticalScrollIndicator={false} snapToInterval={ROW} decelerationRate="fast" onScroll={onScroll} scrollEventThrottle={32}
+      <ScrollView ref={ref} showsVerticalScrollIndicator={false} snapToInterval={ROW} decelerationRate="fast" onScroll={Platform.OS === 'web' ? settleAfter : undefined} scrollEventThrottle={32}
+        onScrollEndDrag={Platform.OS === 'web' ? undefined : settleAfter}
+        onMomentumScrollBegin={() => { if (settle.current) clearTimeout(settle.current); }}
+        onMomentumScrollEnd={e => { if (settle.current) clearTimeout(settle.current); commit(e.nativeEvent.contentOffset.y); }}
         contentContainerStyle={{ paddingVertical: ROW * 2 }}>
         {items.map((it) => (
           <Pressable key={it} onPress={() => { onChange(it); ref.current?.scrollTo({ y: items.indexOf(it) * ROW, animated: true }); }} style={styles.wheelRow}>
@@ -86,6 +91,13 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
       </ScrollView>
     </View>
   );
+}
+
+/** Даты одной колонкой, выбранная дата в центре. */
+export function DateWheel({ min, max, value, onChange }: { min: number; max: number; value: number; onChange: (v: number) => void }) {
+  const days = Array.from({ length: Math.max(1, Math.min(93, max - min + 1)) }, (_, i) => min + i);
+  const labels = days.map(d => { const a = almaty(dayStart(d)); return `${a.getUTCDate()} ${MONTHS[a.getUTCMonth()].toLowerCase()}`; });
+  return <View style={styles.wheels}><View pointerEvents="none" style={styles.wheelBand} /><Wheel items={labels} value={labels[Math.max(0, days.indexOf(value))]} onChange={label => onChange(days[labels.indexOf(label)])} label="Дата" /></View>;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));

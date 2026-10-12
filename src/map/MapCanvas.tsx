@@ -2,7 +2,7 @@
 // Android: пины и своя точка в рамке 72×72 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useAnimatedReaction } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -28,10 +28,39 @@ try {
 const LOAD_TIMEOUT_MS = 8000;
 
 const PIN_BOX = 72;
+const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
+
+// Компас обновляет только свои GeoJSON-слои, не MapView и все MarkerView.
+const MeLayers = memo(function MeLayers({ me, heading, zoom }: {
+  me: { lat: number; lon: number }; heading: MapCanvasProps['meHeading']; zoom: number;
+}) {
+  const [hd, setHd] = useState<number | null>(null);
+  useAnimatedReaction(
+    () => heading ? Math.round(heading.get() / 4) * 4 : null,
+    (v, prev) => { if (v !== prev) scheduleOnRN(setHd, v === null ? null : ((v % 360) + 360) % 360); },
+  );
+  const meShape = useMemo(() => meFeatures(me.lat, me.lon, hd, zoom), [me.lat, me.lon, hd, zoom]);
+  if (!Mapbox) return null;
+  const M = Mapbox;
+  return <>
+        {meShape && (
+          <M.ShapeSource id="me-src" shape={meShape.point as never}>
+            <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16, circlePitchAlignment: 'map' }} />
+            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
+            <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
+          </M.ShapeSource>
+        )}
+        {meShape?.cone && (
+          <M.ShapeSource id="me-cone-src" shape={meShape.cone as never}>
+            <M.FillLayer id="me-cone" belowLayerID="me-halo" style={{ fillColor: '#F0521F', fillOpacity: ['get', 'o'] as never, fillAntialias: true }} />
+          </M.ShapeSource>
+        )}
+  </>;
+});
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading } = props;
-  const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
+  const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
   const loaded = useRef(false);
@@ -41,18 +70,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const [attempt, setAttempt] = useState(0);
   // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
   const [zoomNow, setZoomNow] = useState(camera.zoom);
-  const [hd, setHd] = useState<number | null>(null);
-  const hdRef = useRef<number | null>(null);
-  useAnimatedReaction(
-    () => (meHeading ? Math.round(meHeading.get() / 4) * 4 : null),
-    (v, prev) => { if (v !== null && v !== prev) scheduleOnRN(setHd, ((v % 360) + 360) % 360); },
-  );
-  hdRef.current = hd;
-  const meShape = useMemo(() => (me ? meFeatures(me.lat, me.lon, hd, zoomNow) : null), [me?.lat, me?.lon, hd, zoomNow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
-    if (failed) return;
+    if (failed) { onMode?.('static'); return; }
     const t = setTimeout(() => {
       if (loaded.current) return;
       if (attempt === 0) { console.warn('[map] Mapbox не загрузился за 8 с — перезагружаю стиль'); setAttempt(1); return; }
@@ -77,6 +98,13 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   };
 
   useImperativeHandle(ref, () => ({
+    fitBounds: (coords, padding) => {
+      if (!coords.length) return;
+      moved.current = true;
+      const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+      if (cam.current) cam.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [padding.top, padding.right, padding.bottom, padding.left], 450);
+      else staticRef.current?.fitBounds?.(coords, padding);
+    },
     navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
@@ -103,7 +131,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       <M.MapView
         key={attempt}
         style={StyleSheet.absoluteFill}
-        styleJSON={JSON.stringify(mapStyle('paper'))}
+        styleJSON={PAPER_STYLE}
         surfaceView={false}
         rotateEnabled
         pitchEnabled={false}
@@ -157,18 +185,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         ))}
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
-        {meShape && (
-          <M.ShapeSource id="me-src" shape={meShape.point as never}>
-            <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16, circlePitchAlignment: 'map' }} />
-            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
-            <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
-          </M.ShapeSource>
-        )}
-        {meShape?.cone && (
-          <M.ShapeSource id="me-cone-src" shape={meShape.cone as never}>
-            <M.FillLayer id="me-cone" belowLayerID="me-halo" style={{ fillColor: '#F0521F', fillOpacity: ['get', 'o'] as never, fillAntialias: true }} />
-          </M.ShapeSource>
-        )}
+        {me && <MeLayers me={me} heading={meHeading} zoom={zoomNow} />}
         {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>
             <View collapsable={false} pointerEvents="box-none" style={styles.pin}>{mk.node}</View>

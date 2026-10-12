@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
@@ -17,8 +17,10 @@ import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { rangeLabel } from '../../map/calendar';
 import { activeCount, MAX_PRICE, occursOnDay, showLabel, visibleEvents, WEEK_TO } from '../../map/filters';
 import { phaseOf, whenLabel } from '../../map/lifecycle';
+import { MAP_FRAMES } from '../../map/MapAvatar';
+import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { EventPin, FocusPin, FriendPin, MePin, type PinKind } from '../../map/pins';
+import { EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
@@ -46,7 +48,7 @@ import { colors, fonts } from '../../theme';
 import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
-import { getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
+import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { MallPin, VenueSheet } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
@@ -97,6 +99,8 @@ export default function MapScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [clock, setClock] = useState(clockNow);
   const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState();
+  const inviteSending = useRef(false);
+  const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
@@ -105,7 +109,7 @@ export default function MapScreen() {
   const [startCam, setStartCam] = useState<Camera | null>(null);
   // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
   const bearing = useSharedValue(0);
-  const heading = useHeading();
+  const heading = useHeading(focused);
   const [follow, setFollow] = useState(false);
   useEffect(() => { void startCamera().then(setStartCam); }, []);
   // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
@@ -166,32 +170,47 @@ export default function MapScreen() {
     const r = await Location.requestBackgroundPermissionsAsync().catch(() => null);
     if (r?.granted) void startBackground();
   };
-  // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
-  useEffect(() => {
-    let cancelled = false;
+  // Возврат из настроек Android повторно проверяет разрешение и GPS.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    let generation = 0;
     let sub: Location.LocationSubscription | null = null;
-    (async () => {
-      const ok = await ensureGeo(true);
-      if (!ok || cancelled) return;
-      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) { setGeo('off'); return; }
+    const stop = () => { generation++; sub?.remove(); sub = null; };
+    const start = async (ask: boolean) => {
+      stop();
+      const run = generation;
+      const current = () => active && run === generation;
+      const ok = await ensureGeo(ask);
+      if (!ok || !current()) return;
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) {
+        if (current()) setGeo('off');
+        return;
+      }
       const last = await Location.getLastKnownPositionAsync().catch(() => null);
-      if (last && !cancelled) setMyPos({ lat: last.coords.latitude, lon: last.coords.longitude });
-      sub = await Location.watchPositionAsync(
+      if (last && current()) setMyPos({ lat: last.coords.latitude, lon: last.coords.longitude });
+      if (!current() || (LIVE && Platform.OS !== 'web')) return; // Одна нативная GPS-подписка в useLiveLocation.
+      const next = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 3 },
-        (l) => { if (!cancelled) setMyPos({ lat: l.coords.latitude, lon: l.coords.longitude }); },
+        (l) => { if (current()) setMyPos({ lat: l.coords.latitude, lon: l.coords.longitude }); },
       ).catch(() => null);
-    })().catch(() => undefined);
-    return () => { cancelled = true; sub?.remove(); };
-  }, [ensureGeo]);
+      if (current()) sub = next; else next?.remove();
+    };
+    void start(true).catch(() => undefined);
+    const app = AppState.addEventListener('change', state => {
+      if (state === 'active') void start(false).catch(() => undefined);
+      else stop();
+    });
+    return () => { active = false; app.remove(); stop(); };
+  }, [ensureGeo]));
   const goToMe = async () => {
     try {
-      const at0 = myPos ?? fix;
+      const at0 = fix ?? myPos;
       if (at0) mapRef.current?.flyTo(at0.lat, at0.lon, 15.5);
       const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
       mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15.5);
     } catch {
-      const at = myPos ?? fix ?? me;
+      const at = fix ?? myPos ?? me;
       if (at) mapRef.current?.flyTo(at.lat, at.lon, 15.5);
     }
   };
@@ -199,10 +218,11 @@ export default function MapScreen() {
   // Первый запуск: разрешения не было, камера стояла на центре города. Как только появилась моя точка — плавно переезжаем к ней.
   const centeredOnMe = useRef(false);
   useEffect(() => {
-    if (!settled || !startCam || centeredOnMe.current || !myPos || distM(startCam, myPos) < 800) return;
+    const at = fix ?? myPos;
+    if (!settled || !startCam || centeredOnMe.current || !at || distM(startCam, at) < 800) return;
     centeredOnMe.current = true;
-    mapRef.current?.flyTo(myPos.lat, myPos.lon, 15, 1400);
-  }, [settled, startCam, myPos]);
+    mapRef.current?.flyTo(at.lat, at.lon, 15, 1400);
+  }, [settled, startCam, fix, myPos]);
   // Время идёт — точки живут: обновляем раз в минуту.
   useEffect(() => {
     const t = setInterval(() => setClock(clockNow()), 60000);
@@ -215,6 +235,7 @@ export default function MapScreen() {
   const events = useMemo(() => [...meetups, ...loaded], [meetups, loaded]);
   const going = useMemo(() => new Set(Object.keys(goingMap)), [goingMap]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: myProfile } = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
   const { data: rawSpots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const spots = useSmoothSpots(rawSpots);
   useLiveFriends(useMemo(() => people.filter((x) => x.isFriend).map((x) => x.id), [people]));
@@ -229,6 +250,7 @@ export default function MapScreen() {
   const focusPerson = people.find((x) => x.id === focusId);
   // Хвост друга: последние 4 точки за 10 минут (только у выбранного).
   const { data: trail = [] } = useQuery({ queryKey: ['trail', focusId], queryFn: () => getTrail(focusId!), enabled: LIVE && !!focusId, refetchInterval: 20000 });
+  const friendLines = useMemo(() => focusSpot && filters.friends && focusPerson?.mapTrail === 'comet' && trail.length > 1 ? [{ id: 'friend-trail', coords: trail.map(t => [t.lon,t.lat] as [number,number]), color: MAP_FRAMES.find(f => f.id === focusPerson.mapFrame)?.color ?? colors.friend, width: 3 }] : [], [focusSpot, focusPerson, filters.friends, trail]);
   // «Где я был»: открытые клетки.
   const { data: cells = [] } = useQuery({
     queryKey: ['me', 'cells'], enabled: LIVE && lens === 'explore',
@@ -262,7 +284,7 @@ export default function MapScreen() {
   // Линза «Пробки»: балл города (traffic-score, раз в 10 мин) и время на машине до ближайшего проспекта.
   const trafficOn = LIVE && lens === 'traffic';
   const tscore = useQuery({ queryKey: ['traffic', 'score'], queryFn: getTrafficScore, enabled: trafficOn, staleTime: 5 * 60e3, refetchInterval: trafficOn ? 10 * 60e3 : false });
-  const meAt = myPos ?? fix;
+  const meAt = fix ?? myPos;
   const nearAve = useMemo(() => {
     if (!meAt || !tscore.data?.points.length) return null;
     return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
@@ -311,7 +333,18 @@ export default function MapScreen() {
     });
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
+      const grouped = new Set<string>();
+      const own = fix ?? myPos;
+      const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
+      const ownSpot = own ? { ...own, personId: 'map-self', place: 'Сейчас', state: 'here' as const, minutesAgo: 0 } : null;
+      if (!focusId && detail !== 'far') for (const group of closeGroups([...spots.filter(s => { const p = people.find(p => p.id === s.personId); return p && !social.removed[p.id] && (LIVE || !!detailsOf(p.id) && canSee('friend', 'location', detailsOf(p.id)!.privacy)); }), ...(ownSpot ? [ownSpot] : [])])) {
+        if (group.length < 2) continue;
+        group.forEach(s => grouped.add(s.personId));
+        const ps = group.map(s => s.personId === 'map-self' ? mePerson : people.find(p => p.id === s.personId)!);
+        list.push({ id: `together-${ps.map(p => p.id).sort().join('-')}`, lat: group.reduce((a,s) => a+s.lat,0)/group.length, lon: group.reduce((a,s) => a+s.lon,0)/group.length, z: 45, node: <TogetherPin people={ps} onPress={id => { focusFriend(id === 'map-self' ? ps.find(p => p.id !== 'map-self')!.id : id); setSheet(null); }} /> });
+      }
       for (const s of spots) {
+        if (grouped.has(s.personId)) continue;
         const p = people.find((x) => x.id === s.personId);
         const d = detailsOf(s.personId);
         // Только друзья, которые сами включили геолокацию, и не в зоне дома (правила «Кто что видит»).
@@ -319,7 +352,7 @@ export default function MapScreen() {
         if (!p || social.removed[p.id] || (!LIVE && (!d || !canSee('friend', 'location', d.privacy)))) continue;
         if (focusId === p.id) {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} /> });
-          trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
+          if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
         } else {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
         }
@@ -328,12 +361,12 @@ export default function MapScreen() {
     // Моя точка: оранжевая с конусом и спокойным пульсом.
     if (LIVE) {
       // На телефоне моя точка — слои самой карты (MapCanvas, prop me); маркер нужен только в web.
-      const at = myPos ?? fix;
+      const at = fix ?? myPos;
       if (at && Platform.OS === 'web') list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -401,7 +434,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(myPos ?? fix)} me={myPos ?? fix} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog}
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -417,7 +450,7 @@ export default function MapScreen() {
           onLens={() => setSheet('lens')}
           onFilters={() => setSheet('filters')}
         />
-        {geo === 'granted' && !(myPos ?? fix) && (
+        {geo === 'granted' && !(fix ?? myPos) && (
           <View style={styles.finding} accessibilityLiveRegion="polite"><Text style={styles.findingText}>Ищу тебя на карте…</Text></View>
         )}
         {LIVE && (!net.online || net.serverDown) && (
@@ -462,7 +495,7 @@ export default function MapScreen() {
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
             expand={ex} onReveal={() => openEvent(selected, null, true)}
             onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeEvent(); }}
-            me={myPos ?? fix} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
+            me={fix ?? myPos} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();
               if (going.has(selected.id)) { p.ungo(selected.id); useApp.getState().removePlan(); }
@@ -508,7 +541,7 @@ export default function MapScreen() {
       )}
 
       {sheet === null && lens !== 'normal' && !focusId && (
-        <View style={[styles.lensInfo, { bottom: tabPad + 12 }]} pointerEvents="none">
+        <View style={[styles.lensInfo, lens === 'traffic' ? { top: topY + 112, bottom: undefined } : { bottom: tabPad + 12 }]} pointerEvents="none">
           {lens === 'explore' ? <ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
@@ -527,16 +560,25 @@ export default function MapScreen() {
           <BottomSheet onClose={() => setInviteOpen(false)} label={`Позвать ${accusative(focusPerson.name)}`} style={{ gap: 14 }}>
             <InviteFriendSheet
               p={focusPerson}
+              busy={mapInviting}
               title={`Позвать ${accusative(focusPerson.name)}`}
               now={clock}
               ideas={detailsOf(focusPerson.id) ? ideasForTwo(tasteFrom({ interests: draft.interests, times: draft.times, withWho: draft.withWho, budget: draft.budget }, signals, clock), focusPerson.id, focusPerson.name, detailsOf(focusPerson.id)!, events, { now: clock, going, savedByFriend: focusPerson.id === 'igor' ? new Set(['standup']) : undefined }) : []}
               onOwn={() => { setInviteOpen(false); router.push('/create'); }}
-              onSend={(eventId) => {
-                social.invite(focusPerson.id, eventId);
-                usePlans.getState().invite(eventId, [focusPerson.id]);
-                setInviteOpen(false);
-                const ev = events.find((x) => x.id === eventId);
-                showToast({ text: `Позвал ${accusative(focusPerson.name)} на «${ev?.title ?? 'встречу'}». Ответ придёт в чат`, cta: 'Чат', onCta: () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${focusPerson.id}` } }) });
+              onSend={async (eventId) => {
+                if (inviteSending.current) return;
+                inviteSending.current = true; setMapInviting(true);
+                const person = focusPerson;
+                try {
+                  if (LIVE) await sendInvite(eventId, events.find(e => e.id === eventId)?.title ?? 'Встреча', [person.id]);
+                  social.invite(person.id, eventId);
+                  usePlans.getState().invite(eventId, [person.id]);
+                  setInviteOpen(false);
+                  const ev = events.find((x) => x.id === eventId);
+                  showToast({ text: `Позвал ${accusative(person.name)} на «${ev?.title ?? 'встречу'}». Ответ придёт в чат`, cta: 'Чат', onCta: () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${person.id}` } }) });
+                } catch { showToast({ text: 'Не удалось отправить приглашение. Проверь связь' }); }
+                finally { inviteSending.current = false; setMapInviting(false); }
+
               }}
             />
           </BottomSheet>

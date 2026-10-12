@@ -1,7 +1,22 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["app/**/*.tsx", "plugins/*.js", "scripts/*.mjs", "supabase/functions/*/index.ts", "src/server/shared.ts"],
-  "project": ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}", "worker/src/**/*.ts"],
+  "entry": [
+    "app/**/*.tsx",
+    "plugins/*.js",
+    "scripts/*.mjs",
+    "supabase/functions/*/index.ts",
+    "src/server/shared.ts"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "src/**/*.{ts,tsx}",
+    "worker/src/**/*.ts"
+  ],
   "ignoreExportsUsedInFile": true,
-  "ignoreDependencies": ["expo-updates", "@expo/config-plugins", "jsr", "expo-device", "expo-haptics", "expo-sensors", "expo-symbols"]
+  "ignoreDependencies": [
+    "expo-updates",
+    "@expo/config-plugins",
+    "jsr",
+    "expo-symbols"
+  ]
 }

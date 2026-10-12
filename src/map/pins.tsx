@@ -1,9 +1,9 @@
 // Точки на карте по макету Main: события, друзья, моя точка. Каждый пин центрирован на своей координате.
-import { useEffect, type ReactNode } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { photo } from '../data/photos';
+import { MapAvatar } from './MapAvatar';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
 import { CAT_COLOR, CAT_ICON, catFg } from './icons';
@@ -103,35 +103,15 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
   const moving = spot.state === 'moving';
   const paused = spot.state === 'paused';
-  const drift = useSharedValue(0);
-  useEffect(() => {
-    // «Друг в пути»: точка плавно ползёт вперёд между обновлениями (rdMove в макете).
-    if (moving) drift.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1, false);
-  }, [moving, drift]);
   const rad = ((spot.heading ?? 90) * Math.PI) / 180;
-  const moveStyle = useAnimatedStyle(() => {
-    const p = drift.value;
-    const op = p < 0.08 ? p / 0.08 : p > 0.86 ? (1 - p) / 0.14 : 1;
-    return { opacity: moving ? op : 1, transform: [{ translateX: Math.sin(rad) * 96 * p }, { translateY: -Math.cos(rad) * 96 * p }] };
-  });
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
   return (
-    <Animated.View style={[styles.anchor, { opacity: dim ? 0.35 : 1 }, moving && moveStyle]}>
-      {moving && [10, 19, 27].map((dx, i) => (
+    <View style={[styles.anchor, { opacity: dim ? 0.35 : 1 }]}>
+      {moving && person.mapTrail !== 'none' && [10, 19, 27].map((dx, i) => (
         <View key={dx} pointerEvents="none" style={{ position: 'absolute', width: 5 - i, height: 5 - i, borderRadius: 3, backgroundColor: colors.friend, opacity: [0.5, 0.3, 0.18][i], transform: [{ translateX: -Math.sin(rad) * (dx + 17) }, { translateY: Math.cos(rad) * (dx + 17) }] }} />
       ))}
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={5} style={{ alignItems: 'center' }}>
-        {person.photo ? (
-          <View style={styles.friendRingOuter}>
-            <Image source={photo(person.photo)} style={[styles.friendPhoto, { borderColor: paused ? '#8C8577' : colors.friend }]} />
-          </View>
-        ) : (
-          <View style={[styles.friendRingOuter, { width: 34, height: 34, borderRadius: 17 }]}>
-            <View style={[styles.letter, { backgroundColor: person.tint, borderColor: paused ? '#8C8577' : colors.friend }]}>
-              <Text style={styles.letterText}>{person.initial}</Text>
-            </View>
-          </View>
-        )}
+        <MapAvatar person={person} ring={paused ? '#8C8577' : undefined} />
       </Pressable>
       {moving && (
         <Tag x={-26} y={21}>
@@ -148,8 +128,16 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
           <View style={styles.ago}><Text style={styles.agoText}>{spot.minutesAgo} МИН</Text></View>
         </Tag>
       )}
-    </Animated.View>
+    </View>
   );
+}
+
+export function TogetherPin({ people, onPress }: { people: Person[]; onPress: (id: string) => void }) {
+  const [index, setIndex] = useState(0);
+  return <Pressable onPress={() => { onPress(people[index % people.length].id); setIndex(index + 1); }} accessibilityRole="button" accessibilityLabel={`Рядом: ${people.map(p => p.name).join(', ')}`} style={styles.anchor}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>{people.slice(0, 3).map((p,i) => <View key={p.id} style={{ marginLeft: i ? -12 : 0 }}><MapAvatar person={p} size={42} /></View>)}</View>
+    <Tag x={0} y={28} align="center"><View style={styles.speed}><Text style={styles.speedText}>РЯДОМ · {people.length}</Text></View></Tag>
+  </Pressable>;
 }
 
 export function MePin({ onPress }: { onPress?: () => void }) {
@@ -197,13 +185,7 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
     <View style={styles.anchor} pointerEvents="none">
       <View style={{ position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(36,71,184,0.14)', borderWidth: 1, borderColor: 'rgba(36,71,184,0.3)' }} />
       <Pulse size={80} color={colors.friend} />
-      <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 6 }}>
-        {person.photo ? <Image source={photo(person.photo)} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: ring }} /> : (
-          <View style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: ring, backgroundColor: person.tint, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: fonts.body700, fontSize: 18, color: colors.ink }}>{person.initial}</Text>
-          </View>
-        )}
-      </View>
+      <MapAvatar person={person} size={60} ring={ring === colors.friend ? undefined : ring} />
       {speed && (
         <Tag x={-34} y={30}>
           <View style={[styles.speed, { height: 22, paddingHorizontal: 8 }]}>

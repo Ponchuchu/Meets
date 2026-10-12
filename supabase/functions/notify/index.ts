@@ -39,7 +39,7 @@ async function deliver(p: Push): Promise<string> {
   const { data: tokens } = await db.from('push_tokens').select('token').eq('user_id', p.userId);
   if (!tokens?.length) return 'no-token';
   const messages = tokens.map((t: any) => ({
-    to: t.token, title: p.title, body: p.body, data: p.data ?? {}, sound: verdict.silent ? null : 'default', priority: verdict.silent ? 'normal' : 'high',
+    to: t.token, title: p.title, body: p.body, data: p.data ?? {}, sound: verdict.silent ? null : 'default', priority: verdict.silent ? 'normal' : 'high', channelId: 'messages',
   }));
   const res = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
@@ -47,6 +47,9 @@ async function deliver(p: Push): Promise<string> {
     body: JSON.stringify(messages),
   });
   if (!res.ok) return `expo ${res.status}`;
+  const result = await res.json().catch(() => null);
+  const tickets = Array.isArray(result?.data) ? result.data : result?.data ? [result.data] : [];
+  if (!tickets.some((ticket: { status?: string }) => ticket.status === 'ok')) return 'expo-rejected';
   await db.from('notification_log').insert({ user_id: p.userId, kind: p.kind, about: p.about ?? null });
   return 'sent';
 }
@@ -75,13 +78,12 @@ async function reminders() {
   const now = Date.now();
   const from = new Date(now + 110 * 60e3).toISOString();
   const to = new Date(now + 130 * 60e3).toISOString();
-  const { data } = await db.from('attendance').select('user_id,event_id,events!inner(title,starts_at,venue_id)').eq('status', 'going')
-    .gte('events.starts_at', from).lt('events.starts_at', to);
+  const { data } = await db.rpc('due_event_reminders', { from_at: from, to_at: to });
   const users=[...new Set((data??[]).map((r:any)=>r.user_id))];
   const {data:settings}=users.length?await db.from('profile_settings').select('user_id,value').eq('key','muted_events').in('user_id',users):{data:[]};
   const muted=new Map<string,string[]>((settings??[]).map((r:any):[string,string[]]=>[r.user_id,Array.isArray(r.value)?r.value:[]]));
   return Promise.all((data ?? []).filter((r:any)=>!muted.get(r.user_id)?.includes(r.event_id)).map((r: any) => deliver({
-    userId: r.user_id, kind: 'reminder', about: r.event_id, title: 'Через 2 часа', body: r.events.title, data: { url: `/event/${r.event_id}` },
+    userId: r.user_id, kind: 'reminder', about: r.event_id, title: 'Через 2 часа', body: r.title, data: { url: `/event/${r.event_id}` },
   })));
 }
 

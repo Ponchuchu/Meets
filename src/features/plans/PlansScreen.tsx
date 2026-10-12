@@ -74,6 +74,7 @@ export default function PlansTab() {
   const today = dayIndex(now);
   const me = myId();
   const going = usePlans((s) => s.going);
+  const visits = usePlans(s => s.visits);
   const meetups = usePlans((s) => s.meetups);
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
@@ -84,7 +85,7 @@ export default function PlansTab() {
   const known = new Set(all.map((e) => e.id));
   const missing = [...new Set([...Object.keys(going), ...invites.map((i) => i.event_id ?? '')])].filter((id) => id && !known.has(id));
   const { data: extra = [] } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
-  const byId = (id: string) => all.find((e) => e.id === id) ?? extra.find((e) => e.id === id);
+  const byId = (id: string) => { const e = all.find(e => e.id === id) ?? extra.find(e => e.id === id); return e && visits[id] ? { ...e, startsAt: visits[id] } : e; };
 
   const incoming = invites.filter((i) => (!pick.length || (i.event_id && byId(i.event_id) && pick.includes(dayIndex(byId(i.event_id)!.startsAt)))) && i.to_id === me && !i.answer && i.event_id && byId(i.event_id) && endOf(byId(i.event_id)!) > now.getTime());
   const mine = Object.keys(going).map(byId).filter((e): e is EventItem => !!e);

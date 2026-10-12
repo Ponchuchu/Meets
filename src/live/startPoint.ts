@@ -15,11 +15,10 @@ async function lastKnown(): Promise<Camera | null> {
   return p ? { lat: p.coords.latitude, lon: p.coords.longitude, zoom: START_ZOOM } : null;
 }
 
-const timeout = new Promise<null>((r) => setTimeout(() => r(null), 1000));
 let pending: Promise<Camera> | null = null;
 
 /** Камера для первого кадра: я (zoom 14) или центр Алматы. */
 export function startCamera(): Promise<Camera> {
-  pending ??= Promise.race([lastKnown().catch(() => null), timeout]).then((c) => c ?? ALMATY_CAMERA);
+  pending ??= Promise.race([lastKnown().catch(() => null), new Promise<null>(resolve => setTimeout(() => resolve(null), 1000))]).then((c) => c ?? ALMATY_CAMERA);
   return pending;
 }

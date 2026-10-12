@@ -30,9 +30,9 @@ describe('навигация вдоль пути',()=>{
   expect(closestInstruction({lat:0,lon:0},[])).toBeNull();
  });
 });
-it('51 уникальный стикер открывается по уровням без отправки заблокированных',()=>{
- expect(STICKERS).toHaveLength(51);expect(new Set(STICKERS.map(s=>s.id)).size).toBe(51);expect(new Set(STICKERS.map(s=>s.label)).size).toBe(51);
- expect(STICKERS.filter(s=>stickerUnlocked(s,1))).toHaveLength(17);expect(STICKERS.filter(s=>stickerUnlocked(s,3))).toHaveLength(34);expect(STICKERS.every(s=>stickerUnlocked(s,7))).toBe(true);
+it('55 уникальных стикер открывается по уровням без отправки заблокированных',()=>{
+ expect(STICKERS).toHaveLength(55);expect(new Set(STICKERS.map(s=>s.id)).size).toBe(55);expect(new Set(STICKERS.map(s=>s.label)).size).toBe(55);
+ expect(STICKERS.filter(s=>stickerUnlocked(s,1))).toHaveLength(21);expect(STICKERS.filter(s=>stickerUnlocked(s,3))).toHaveLength(38);expect(STICKERS.every(s=>stickerUnlocked(s,7))).toBe(true);
 });
 
 it('QR открывает профиль только по ссылкам приложения',()=>{

@@ -1,5 +1,29 @@
 // Сгенерировано scripts/build-functions.mjs из src/server/shared.ts — не править руками.
 
+// src/event/series.ts
+function groupEventDates(events) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const e of events) {
+    let source = "";
+    try {
+      const u = new URL(e.sourceUrl ?? "");
+      for (const key2 of [...u.searchParams.keys()]) if (/^utm_|^(ref|fbclid|gclid)$/i.test(key2)) u.searchParams.delete(key2);
+      if (/^https?:$/.test(u.protocol) && u.pathname !== "/") source = `${u.host}${u.pathname}${u.search}`;
+    } catch {
+    }
+    const key = source && !e.meetup ? [source, e.title.trim().toLowerCase(), e.venueName?.trim().toLowerCase() ?? e.address.trim().toLowerCase(), e.category, e.priceMin, e.priceMax].join("|") : e.id;
+    const group = groups.get(key) ?? [];
+    if (!group.some((x) => x.id === e.id)) group.push(e);
+    groups.set(key, group);
+  }
+  return [...groups.values()].flatMap((group) => {
+    group.sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+    if (group.length < 2 || Date.parse(group.at(-1).startsAt) - Date.parse(group[0].startsAt) > 7 * 864e5) return group;
+    const first = group[0], last = group.at(-1);
+    return [{ ...first, isLong: true, endsAt: last.endsAt ?? last.startsAt, sessions: group.map((e) => ({ id: e.id, startsAt: e.startsAt, endsAt: e.endsAt })) }];
+  });
+}
+
 // src/lib/clock.ts
 var TZ_MIN = 5 * 60;
 function almaty(d) {
@@ -195,7 +219,7 @@ function scoreEvent(taste, e, ctx) {
 function buildDeck(taste, candidates, history, ctx, opts = {}) {
   const size = opts.size ?? 10;
   const every = opts.noveltyEvery ?? 8;
-  const pool = candidates.filter((e) => !history.decided.has(e.id) && phaseOf(e, ctx.now) !== "hidden" && !e.meetup).map((e) => ({ e, s: scoreEvent(taste, e, ctx) })).sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt) - Date.parse(b.e.startsAt));
+  const pool = groupEventDates(candidates).filter((e) => !history.decided.has(e.id) && !e.sessions?.some((s) => history.decided.has(s.id)) && phaseOf(e, ctx.now) !== "hidden" && !e.meetup).map((e) => ({ e, s: scoreEvent(taste, e, ctx) })).sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt) - Date.parse(b.e.startsAt));
   const deck = [];
   const used = /* @__PURE__ */ new Set();
   const calibrating = history.swipes < CALIBRATION;

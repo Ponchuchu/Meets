@@ -8,12 +8,12 @@ import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { create } from 'zustand';
 import { supabase } from '../data/client';
 import { coarse } from '../data/realtime';
 import { myId } from './auth';
-import { cellOf, isJump, sendInterval, statusOf, type Place, type Pt } from './geo';
+import { cellOf, distM, isJump, sendInterval, statusOf, type Place, type Pt } from './geo';
 
 export const BG_TASK = 'ryadom-location';
 
@@ -37,6 +37,7 @@ export const useMyFix = create<{ fix: Pt | null; set: (p: Pt) => void }>((set) =
 
 let last: Pt | null = null;
 let lastHistory = 0;
+let lastSent: Pt | null = null;
 let lastCell = '';
 let channel: RealtimeChannel | null = null;
 let channelFor = '';
@@ -57,6 +58,10 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
   last = p;
   useMyFix.getState().set(p);
   if (!me || hidden()) return;
+  const stationary = lastSent && distM(lastSent, p) < 15 && (p.speed ?? 0) < 1;
+  const interval = AppState.currentState === 'active' ? (stationary ? 30000 : 4000) : sendInterval(false, null, !stationary);
+  if (lastSent && at - lastSent.at < interval) return;
+  lastSent = p;
   const status = statusOf(p, share.places);
   const speed = c.speed != null && c.speed >= 0 ? c.speed : null;
   const heading = c.heading != null && c.heading >= 0 ? c.heading : null;
@@ -101,7 +106,7 @@ export async function startBackground(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const bg = await Location.getBackgroundPermissionsAsync();
   if (!bg.granted) return false;
-  const every = sendInterval(false, await battery());
+  const every = sendInterval(false, await battery(), true);
   await Location.startLocationUpdatesAsync(BG_TASK, {
     accuracy: Location.Accuracy.Balanced,
     timeInterval: every,

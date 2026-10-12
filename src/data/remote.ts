@@ -1,5 +1,7 @@
 // Люди, чаты, сообщения, друзья на карте — из Supabase (таблицы из миграции 20260928000002).
 // Работает только после входа: без сессии бросает NoSessionError, и слой данных показывает демо.
+import { mediaFormat } from '../chat/media';
+import { uid } from '../lib/uid';
 import { friendLine } from '../live/geo';
 import { almaty } from '../lib/clock';
 import { DEFAULT_PRIVACY } from '../people/visibility';
@@ -14,6 +16,8 @@ export interface ProfileRow {
   id: string;
   name: string;
   photo_url: string | null;
+  map_trail?: 'none' | 'dots' | 'comet';
+  map_frame?: string;
   handle: string | null;
   about?: string | null;
   instagram?: string | null;
@@ -24,6 +28,7 @@ export interface ProfileRow {
 }
 
 export interface MessageRow {
+  client_key?: string | null;
   id: string;
   chat_id: string;
   author_id: string | null;
@@ -49,7 +54,7 @@ export function mapProfile(r: ProfileRow, friends: Set<string>, at = new Date())
     id: r.id,
     name: r.name,
     age: ageFrom(r.birth_date, at),
-    photo: r.photo_url,
+    photo: r.photo_url, mapFrame: r.map_frame, mapTrail: r.map_trail,
     initial: r.name.slice(0, 1).toUpperCase(),
     tint: TINTS[n % TINTS.length],
     isFriend: friends.has(r.id),
@@ -67,7 +72,7 @@ const secs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, 
 export function mapMessage(r: MessageRow, me: string): Message {
   return {
     id: r.id,
-    chatId: r.chat_id,
+    chatId: r.chat_id, clientKey: r.client_key ?? undefined,
     authorId: r.author_id === me ? 'me' : (r.author_id ?? 'system'),
     kind: r.kind,
     text: r.body ?? '',
@@ -105,7 +110,7 @@ async function friendIds(me: string): Promise<Set<string>> {
 
 async function profiles(ids: string[]): Promise<ProfileRow[]> {
   if (!ids.length) return [];
-  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date').in('id', ids));
+  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date,map_frame,map_trail').in('id', ids));
   if (error) throw error;
   return data as ProfileRow[];
 }
@@ -156,19 +161,22 @@ export async function getChats(): Promise<Chat[]> {
   const rows = mine as unknown as Row[];
   const ids = rows.map((r) => r.chat_id);
   if (!ids.length) return [];
-  const [{ data: members }, { data: last }] = await Promise.all([
+  const [memberResult, lastResult] = await Promise.all([
     withTimeout(supabase().from('chat_members').select('chat_id,user_id').in('chat_id', ids)),
-    withTimeout(supabase().from('messages').select('chat_id,author_id,body,kind,created_at').in('chat_id', ids).order('created_at', { ascending: false }).limit(500)),
+    withTimeout(supabase().rpc('my_chat_summaries')),
   ]);
+  if (memberResult.error) throw memberResult.error;
+  if (lastResult.error) throw lastResult.error;
+  const members = memberResult.data, last = lastResult.data;
   const byChat = new Map<string, string[]>();
   (members as { chat_id: string; user_id: string }[] | null)?.forEach((m) => byChat.set(m.chat_id, [...(byChat.get(m.chat_id) ?? []), m.user_id]));
   const people = new Map((await profiles([...new Set([...byChat.values()].flat())])).map((p) => [p.id, p]));
-  const msgs = (last as MessageRow[] | null) ?? [];
+  const msgs = (last as (MessageRow & { unread: number })[] | null) ?? [];
   return rows.map((r) => {
     const others = (byChat.get(r.chat_id) ?? []).filter((u) => u !== me);
     const own = msgs.filter((m) => m.chat_id === r.chat_id);
     const top = own[0];
-    const unread = own.filter((m) => m.author_id !== me && (!r.last_read_at || m.created_at > r.last_read_at)).length;
+    const unread = Number(top?.unread ?? 0);
     const direct = r.chats.kind === 'direct';
     return {
       id: r.chat_id,
@@ -188,19 +196,26 @@ export async function getChats(): Promise<Chat[]> {
   });
 }
 
+const mediaLinks = new Map<string, { url: string; until: number }>();
+
 export async function getMessages(chatId: string): Promise<Message[]> {
   const me = await requireUser();
   const { data, error } = await withTimeout(
-    supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at').eq('chat_id', chatId).order('created_at').limit(300),
+    supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at,client_key').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(300),
   );
   if (error) throw error;
-  const rows = data as MessageRow[];
+  const rows = [...(data as MessageRow[])].reverse();
   // Путь в Storage — «<chat>/<файл>»; без «/» — ключ встроенного фото (демо-данные из seed).
   const paths = rows.map((r) => r.media_path).filter((x): x is string => !!x && x.includes('/'));
   const signed = new Map<string, string>();
-  if (paths.length) {
-    const { data: urls } = await supabase().storage.from('media').createSignedUrls(paths, 3600);
-    urls?.forEach((u) => u.path && u.signedUrl && signed.set(u.path, u.signedUrl));
+  const missingPaths = [...new Set(paths)].filter(path => {
+    const cached = mediaLinks.get(path);
+    if (cached && cached.until > Date.now()) { signed.set(path, cached.url); return false; }
+    return true;
+  });
+  if (missingPaths.length) {
+    const { data: urls } = await supabase().storage.from('media').createSignedUrls(missingPaths, 3600);
+    urls?.forEach(u => { if (u.path && u.signedUrl) { signed.set(u.path, u.signedUrl); mediaLinks.set(u.path, { url: u.signedUrl, until: Date.now() + 55 * 60000 }); } });
   }
   return rows.map((r) => mapMessage({ ...r, media_path: r.media_path ? (r.media_path.includes('/') ? (signed.get(r.media_path) ?? null) : r.media_path) : null }, me));
 }
@@ -234,9 +249,11 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
 
 // ——— Запись ———
 
-export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string): Promise<void> {
+export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string, clientKey?: string): Promise<void> {
   const me = await requireUser();
-  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
+  const { error } = await withTimeout(clientKey
+    ? supabase().rpc('send_chat_message', { chat: chatId, client: clientKey, message_body: body, message_kind: kind, media: mediaPath ?? null, duration: durationS ?? null, event: eventId ?? null })
+    : supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
   if (error) throw error;
 }
 
@@ -250,13 +267,12 @@ export async function openDirectChat(personId: string): Promise<string> {
 
 // ——— Медиа: приватный бакет media, путь «<chat_id>/<файл>», читать — по подписанной ссылке ———
 
-export async function uploadMedia(chatId: string, uri: string): Promise<string> {
+export async function uploadMedia(chatId: string, uri: string, kind: MessageKind = 'photo'): Promise<string> {
   const me = await requireUser();
   const response = await fetch(uri);
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  const { contentType, ext } = mediaFormat(uri, kind, response.headers.get('content-type'));
   const blob = await response.arrayBuffer();
-  const ext = (contentType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('quicktime', 'mov');
-  const path = `${chatId}/${me}-${Date.now()}.${ext}`;
+  const path = `${chatId}/${me}-${uid('media')}.${ext}`;
   const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType }), 60000);
   if (error) throw error;
   return path;

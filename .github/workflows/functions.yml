@@ -31,6 +31,19 @@ jobs:
         run: npm run db:migrate -- 20261006000018
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Обновления схемы 11–12 октября
+        run: |
+          npm run db:migrate -- 20261011000019
+          npm run db:migrate -- 20261011000020
+          npm run db:migrate -- 20261012000021
+          npm run db:migrate -- 20261012000022
+          npm run db:migrate -- 20261012000023
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Исправления по голосовым 12 октября
+        run: npm run db:migrate -- 20261012000024
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - uses: supabase/setup-cli@v1
         with:
           version: latest

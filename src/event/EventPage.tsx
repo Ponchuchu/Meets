@@ -1,10 +1,12 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
 import { track } from '../analytics';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { config } from '../lib/config';
-import { sendInvite } from '../live/api';
+import { chooseEventVisit, rescheduleMeetup, sendInvite } from '../live/api';
 import { router } from 'expo-router';
+import { myId } from '../live/auth';
+import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -42,7 +44,7 @@ import { plural, whenTitle } from './text';
 const LIVE = config.dataMode !== 'demo';
 
 
-type Sheet = null | 'company' | 'invite' | 'route' | 'share' | 'going';
+type Sheet = 'visit' | 'reschedule' | null | 'company' | 'invite' | 'route' | 'share' | 'going';
 
 export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { title: string; sub: string; faces: Person[] } | null {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -55,7 +57,7 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
+export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
   initialSheet?: Sheet;
   /** «✕» на открытой карточке: в Рекомендациях — «Мимо», на карте — просто закрыть. */
   onSkip?: () => void;
@@ -64,6 +66,12 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   onGo?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
+  const [updatedEvent, setUpdatedEvent] = useState<EventItem | null>(null);
+  const e = updatedEvent?.id === initialEvent.id ? updatedEvent : initialEvent;
+  const visitAt = usePlans(s => s.visits[e.id]);
+  const multiDay = !!e.endsAt && dayIndex(e.endsAt) > dayIndex(e.startsAt) && e.isLong;
+  const mine = LIVE ? e.createdBy === myId() : !!e.meetup;
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
   const sendingInvite=useRef(false);
   const [inviting,setInviting]=useState(false);
@@ -95,6 +103,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   };
 
   const toggleGo = () => {
+    if (e.sessions?.length) { show({ text: 'Выбери дату в карточке события' }); return; }
+    if (multiDay && !going && !visitAt) { setSheet('visit'); return; }
     if (onGo && !going) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
@@ -177,6 +187,9 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         <View style={styles.body}>
           <View style={styles.chips}>
             <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
+            {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
+            {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
+            {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
             {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
             {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
@@ -262,7 +275,30 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </View>
       )}
 
-      {sheet && (
+      {(sheet === 'visit' || sheet === 'reschedule') && <><Backdrop label="Закрыть выбор времени" onPress={() => setSheet(null)} /><BottomSheet label={sheet === 'visit' ? 'Когда пойти' : 'Перенести встречу'} onClose={() => setSheet(null)} scroll>
+        <ScheduleSheet e={e} now={now} reschedule={sheet === 'reschedule'} initial={visitAt} onSave={async at => {
+          if (sheet === 'reschedule') {
+            if (LIVE) await rescheduleMeetup(e.id, at);
+            const shift = Date.parse(at) - Date.parse(e.startsAt);
+            const changed = { ...e, startsAt: at, endsAt: e.endsAt ? new Date(Date.parse(e.endsAt) + shift).toISOString() : null };
+            setUpdatedEvent(changed);
+            usePlans.setState(s => ({ meetups: s.meetups.map(m => m.id === e.id ? changed : m), visits: s.visits[e.id] ? { ...s.visits, [e.id]: at } : s.visits }));
+            qc.setQueryData<EventItem[]>(['events'], old => old?.map(x => x.id === e.id ? changed : x));
+            void qc.invalidateQueries({ queryKey: ['events'] });
+            void qc.invalidateQueries({ queryKey: ['invites'] });
+            void qc.invalidateQueries({ queryKey: ['messages'] });
+            show({ text: 'Встреча перенесена. Друзья увидят новое время' });
+          } else {
+            if (LIVE) await chooseEventVisit(e.id, at);
+            usePlans.setState(s => ({ visits: { ...s.visits, [e.id]: at }, going: { ...s.going, [e.id]: at } }));
+            if (!going) addPlan();
+            void qc.invalidateQueries({ queryKey: ['me', 'attendance'] });
+            show({ text: 'Дата посещения сохранена в планах' });
+          }
+          setSheet(null);
+        }} />
+      </BottomSheet></>}
+      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
