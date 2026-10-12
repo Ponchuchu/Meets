@@ -67,6 +67,7 @@ export default function PlansTab() {
   const tab = 'soon';
   const [pick, setPick] = useState<number[]>([]);
   const [calendar, setCalendar] = useState(false);
+  const [calendarPick, setCalendarPick] = useState(false);
   const [actionError,setActionError]=useState('');
   const muted = usePlans((s) => s.muted);
   const toggleDay = (d: number) => setPick((p) => p.includes(d) ? p.filter((x) => x !== d) : [...p, d]);
@@ -110,7 +111,7 @@ export default function PlansTab() {
   // Действия строки — значки под ней при смахивании влево (как в Telegram), без окон.
   const rowActions = (e: EventItem): RowAction[] => [
     {
-      key: 'bell', label: muted[e.id] ? 'Включить' : 'Тише', color: '#8C8577',
+      key: 'bell', label: muted[e.id] ? 'Включить напоминание' : 'Выключить напоминание', color: '#8C8577',
       icon: muted[e.id] ? <Bell size={22} color="#FFFFFF" strokeWidth={1.9} /> : <BellOff size={22} color="#FFFFFF" strokeWidth={1.9} />,
       onPress: async () => {
         setActionError('');
@@ -131,8 +132,8 @@ export default function PlansTab() {
       </View>
 
       {tab === 'soon' && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.week}>
-          {week.map((d) => {
+        <View style={styles.week}>
+          {(calendarPick && pick.length ? week.slice(0, 2) : week).map((d) => {
             const a = almaty(new Date(now.getTime() + (d - today) * 86400e3));
             const on = pick.includes(d);
             return (
@@ -144,10 +145,11 @@ export default function PlansTab() {
               </Pressable>
             );
           })}
-          <Pressable onPress={() => setCalendar(true)} style={styles.day} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={22} color={colors.ink} /><Text style={styles.dayWd}>Месяц</Text></Pressable>
-        </ScrollView>
+          <Pressable onPress={() => setCalendar(true)} style={[styles.day, calendarPick && pick.length > 0 && styles.dayOn]} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={22} color={calendarPick && pick.length ? colors.paper : colors.ink} /></Pressable>
+          {calendarPick && pick.length > 0 && [...pick].sort((a,b) => a-b).slice(0, 4).map(d => { const date = almaty(new Date(now.getTime() + (d-today)*86400e3)); return <Pressable key={`picked-${d}`} onPress={() => toggleDay(d)} style={[styles.day, styles.dayOn]} accessibilityLabel={`Убрать ${date.getUTCDate()} ${MON[date.getUTCMonth()]}`}><Text style={[styles.dayN, {color:colors.paper}]}>{date.getUTCDate()}</Text><Text style={[styles.dayWd,{color:'#BDB8AD'}]}>{MON[date.getUTCMonth()]}</Text></Pressable>; })}
+        </View>
       )}
-      <Pressable onPress={() => setPick([])} accessibilityRole="button" accessibilityLabel="Показать все планы"><Text style={styles.sub}>{pick.length ? `Выбрано дат: ${pick.length} · показать все` : 'Все предстоящие планы'}</Text></Pressable>
+      <Pressable onPress={() => { setPick([]); setCalendarPick(false); }} accessibilityRole="button" accessibilityLabel="Показать все планы"><Text style={styles.sub}>{pick.length ? `Выбрано дат: ${pick.length} · показать все` : 'Все предстоящие планы'}</Text></Pressable>
       {!!actionError && <Text style={{ color: colors.accentText, fontFamily: fonts.body500 }}>{actionError}</Text>}
 
       {tab === 'soon' && incoming.length > 0 && (
@@ -188,7 +190,7 @@ export default function PlansTab() {
             const sent = sentFor(e.id);
             const looking = Math.max(e.lookingCount, e.lookers?.length ?? 0);
             return (
-              <SwipeRow key={e.id} actions={rowActions(e)} background="#EEE9DE" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+              <SwipeRow iconOnly key={e.id} actions={rowActions(e)} background="#EEE9DE" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <Tile e={e} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <View style={styles.titleRow}>
@@ -196,14 +198,14 @@ export default function PlansTab() {
                     <Text style={styles.time}>{hm(e.startsAt)}</Text>
                   </View>
                   {eventStatusLabel(e) && <Text style={[styles.sub, { color: colors.accentText }]}>{eventStatusLabel(e)}</Text>}
-                  <View style={styles.meta}>
+                  {(e.friendsGoing.length > 0 || looking > 0 || sent.length > 0) && <View style={styles.meta}>
                     <Faces ids={e.friendsGoing} people={people} />
                     {looking > 0 && <View style={styles.look}><Hand size={13} color={colors.accentText} strokeWidth={2} /><Text style={styles.lookText}>{looking}</Text></View>}
                     {sent.map((i) => {
                       const p = people.find((x) => x.id === i.to_id);
                       return <Text key={i.id} style={styles.ans} numberOfLines={1}>{p?.name ?? 'Друг'}: {i.answer === 'yes' ? 'идёт ✓' : i.answer === 'no' ? 'не сможет' : 'ждём ответ'}</Text>;
                     })}
-                  </View>
+                  </View>}
                 </View>
                 <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
               </Pressable></SwipeRow>
@@ -222,7 +224,7 @@ export default function PlansTab() {
         </View>
       )}
     </ScrollView>
-    {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => setCalendar(false)} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
+    {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => { setCalendarPick(pick.length > 0); setCalendar(false); }} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
     </View>
   );
 }
@@ -235,8 +237,8 @@ const styles = StyleSheet.create({
   segBtn: { height: 36, paddingHorizontal: 18, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.ink },
   segText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
-  week: { flexDirection: 'row', gap: 6 },
-  day: { width:48, height: 64, borderRadius: 14, backgroundColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center', gap: 1 },
+  week: { flexDirection: 'row', gap: 0, marginHorizontal: -12 },
+  day: { flex: 1, minWidth: 0, borderWidth: 2, borderColor: colors.paper, height: 60, borderRadius: 14, backgroundColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center', gap: 1 },
   dayOn: { backgroundColor: colors.ink },
   dayWd: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted },
   dayN: { fontFamily: fonts.body600, fontSize: 19, color: colors.ink },
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
   time: { fontFamily: fonts.mono600, fontSize: 13.5, color: colors.ink },
   sub: { fontFamily: fonts.mono500, fontSize: 12.5, color: colors.muted2 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 24 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 0 },
   ok: { position: 'absolute', right: -2, bottom: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.ok, borderWidth: 1.5, borderColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center' },
   look: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#F0C5AE' },
   lookText: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },

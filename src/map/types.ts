@@ -38,7 +38,7 @@ export interface MapCanvasProps {
   /** Линии маршрута (V6Route): путь [[lon, lat], …], цвет, толщина, пунктир. */
   lines?: { id: string; coords: [number, number][]; color: string; width?: number; dash?: boolean }[];
   /** Тап по пустой карте (не по точке) — закрыть шторку события. */
-  onPress?: () => void;
+  onPress?: (point?: { lat: number; lon: number }) => void;
   /** Поворот карты в градусах (0 — север вверх) — для стрелки компаса. */
   onBearing?: (deg: number) => void;
   /** Компас, второй тап: камера следует за мной и поворачивается по направлению телефона. */

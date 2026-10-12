@@ -37,5 +37,7 @@ export async function requireUser(): Promise<string> {
 
 /** Промис с таймаутом: сеть не должна подвешивать экран. */
 export function withTimeout<T>(p: PromiseLike<T>, ms = 6000): Promise<T> {
-  return Promise.race([Promise.resolve(p), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), ms); });
+  return Promise.race([Promise.resolve(p), timeout]).finally(() => clearTimeout(timer));
 }

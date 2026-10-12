@@ -1,4 +1,5 @@
 // Настоящая база для альфы v6 (ALPHA §0): только Supabase, без демо-подстановок. Ошибки уходят на экран.
+import { readPoint } from './point';
 import { supabase, withTimeout } from '../data/client';
 import { isLongEvent } from '../data/seed';
 import type { Category, EventItem } from '../data/types';
@@ -175,7 +176,7 @@ export function mapLive(r: LiveRow): EventItem {
   return {
     id: r.id, title: r.title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
-    venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
+    venueId: r.venue_id ?? undefined, venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
     lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null, noPoint: r.lat == null || r.lon == null,
     priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free, about: r.about ?? '', organizer: r.organizer,
     sourceUrl: r.source_url, cover: r.cover_url, visibility: r.visibility, status: r.status, origin: 'real',
@@ -243,11 +244,11 @@ export interface Mall { id: string; name: string; address: string | null; hours:
 
 export async function getMalls(): Promise<Mall[]> {
   const rows = await must(sb().from('venues').select('id,name,address,hours,cover_url,geog').eq('kind', 'mall').limit(100)) as
-    { id: string; name: string; address: string | null; hours: unknown; cover_url: string | null; geog: { coordinates?: [number, number] } | null }[];
-  return rows.filter((r) => r.geog?.coordinates).map((r) => ({
+    { id: string; name: string; address: string | null; hours: unknown; cover_url: string | null; geog: unknown }[];
+  return rows.map(r => ({ ...r, point: readPoint(r.geog) })).filter(r => r.point).map((r) => ({
     id: r.id, name: r.name, address: r.address, cover: r.cover_url,
     hours: typeof r.hours === 'string' ? r.hours : null,
-    lon: r.geog!.coordinates![0], lat: r.geog!.coordinates![1],
+    lon: r.point!.lon, lat: r.point!.lat,
   }));
 }
 

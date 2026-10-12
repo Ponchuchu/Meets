@@ -48,6 +48,7 @@ export default function ForYouScreen() {
   const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
@@ -75,8 +76,12 @@ export default function ForYouScreen() {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
       if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
     }
+    if (previewId && !decided[previewId]) {
+      const preview = events.find(x => x.id === previewId);
+      if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
+    }
     return d;
-  }, [taste, events, decided, history, now, enter]);
+  }, [taste, events, decided, history, now, enter, previewId]);
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
@@ -102,6 +107,7 @@ export default function ForYouScreen() {
   const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
     bump(e.id);
+    setPreviewId(null);
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
@@ -133,12 +139,13 @@ export default function ForYouScreen() {
   // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
   const p = useSharedValue(0);
   const openCard = (e: EventItem, interactive = false) => {
+    setPreviewId(e.id);
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
     setUndoBar(null);
     setOpen(e);
     if (interactive) return;
     p.value = 0;
-    p.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) });
+    p.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) });
   };
   const closeCard = (then?: () => void) => {
     p.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, () => {
@@ -174,7 +181,7 @@ export default function ForYouScreen() {
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
             expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
             onUndo={doUndo}
             drag={k === 0 ? drag : undefined}
           />

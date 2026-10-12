@@ -3,6 +3,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { EventItem } from '../../data/types';
+import { occurrenceKey } from '../../event/occurrences';
 import { almaty, dayIndex } from '../../lib/clock';
 import { formatPrice } from '../../lib/format';
 import { colors, fonts } from '../../theme';
@@ -25,7 +26,9 @@ const hm = (iso: string) => {
 export function StackSheet({ events, now, onPick }: { events: EventItem[]; now: Date; onPick: (e: EventItem) => void }) {
   const today = dayIndex(now);
   const place = events[0]?.venueName ?? events[0]?.address.split(',')[0] ?? '';
-  const list = [...events].sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt));
+  const variants = new Map<string, EventItem[]>();
+  [...events].sort((a,b) => Date.parse(a.startsAt)-Date.parse(b.startsAt)).forEach(e => { const key = occurrenceKey(e); variants.set(key, [...(variants.get(key) ?? []), e]); });
+  const list = [...variants.values()].map(group => group[0]);
   return (
     <View style={{ gap: 12 }}>
       <Text style={styles.h1} numberOfLines={1} accessibilityRole="header">{place}</Text>
@@ -35,7 +38,7 @@ export function StackSheet({ events, now, onPick }: { events: EventItem[]; now: 
           const iso = dayIndex(e.startsAt) < today ? now.toISOString() : e.startsAt;
           const d = almaty(iso);
           return (
-            <Animated.View key={e.id} entering={FadeInDown.delay(i * 40).duration(220)}>
+            <Animated.View key={e.id} entering={FadeInDown.delay(Math.min(i, 4) * 30).duration(220)}>
               <Pressable onPress={() => onPick(e)} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }] }]}
                 accessibilityRole="button" accessibilityLabel={`${e.title}, ${dayMonth(iso)}, ${e.isLong ? 'весь день' : hm(e.startsAt)}`}>
                 <View style={styles.date}>
@@ -44,7 +47,7 @@ export function StackSheet({ events, now, onPick }: { events: EventItem[]; now: 
                 </View>
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={styles.title} numberOfLines={2}>{e.title}</Text>
-                  <Text style={styles.sub}>{e.isLong ? 'весь день' : hm(e.startsAt)} · {formatPrice(e.priceMin, e.priceMax, e.isFree)}</Text>
+                  <Text style={styles.sub}>{(variants.get(occurrenceKey(e))?.length ?? 0) > 1 ? `${variants.get(occurrenceKey(e))!.length} дат / сеансов · от ${hm(e.startsAt)}` : e.isLong ? 'весь день' : hm(e.startsAt)} · {formatPrice(e.priceMin, e.priceMax, e.isFree)}</Text>
                 </View>
                 <View style={[styles.icon, { backgroundColor: CAT_COLOR[e.category] }]}><Ic d={CAT_ICON[e.category]} size={18} color={catFg(e.category)} w={2} /></View>
               </Pressable>

@@ -24,11 +24,13 @@ export function similarity(a: string, b: string): number {
 const dayOf = (iso: string) => new Date(new Date(iso).getTime() + 5 * 3600e3).toISOString().slice(0, 10);
 
 /** Дубль, если тот же день и название похоже; площадка, если известна у обоих, должна совпадать. */
-export function findDuplicate(e: { title: string; starts_at: string; venue_name: string | null }, known: KnownEvent[]): KnownEvent | null {
+export function findDuplicate(e: { title: string; starts_at: string; venue_name: string | null; is_long?: boolean }, known: KnownEvent[]): KnownEvent | null {
   const day = dayOf(e.starts_at);
   let best: { k: KnownEvent; s: number } | null = null;
   for (const k of known) {
     if (dayOf(k.starts_at) !== day) continue;
+    // Одинаковые названия не склеивают два разных сеанса. Длинная выставка остаётся одним событием.
+    if (!e.is_long && !k.is_long && Math.floor(Date.parse(e.starts_at) / 60000) !== Math.floor(Date.parse(k.starts_at) / 60000)) continue;
     if (e.venue_name && k.venue_name && similarity(e.venue_name, k.venue_name) < 0.3) continue;
     const s = similarity(e.title, k.title);
     if (s >= 0.5 && (!best || s > best.s)) best = { k, s };

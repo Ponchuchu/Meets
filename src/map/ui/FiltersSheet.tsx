@@ -1,6 +1,6 @@
 // Фильтры v6 — design/png/V6Filters.png, V6FiltersDate.png. По умолчанию — неделя; «Ближайшее время» (24 ч) тумблером или дни в календаре,
 // разделы лентой, цена ступенями, «Только бесплатное». Внизу — «Показать N событий».
-import { Bike, Clock, Dices, Drama, Image as ImageIcon, Mic, Mountain, Music, PartyPopper, Presentation, Utensils, type LucideIcon } from 'lucide-react-native';
+import { Bike, Film, Clock, Dices, Drama, Image as ImageIcon, Mic, Mountain, Music, PartyPopper, Presentation, Utensils, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
@@ -11,7 +11,7 @@ import { Toggle as Switch } from '../../ui/v6/Settings';
 import { FILTER_CATS, MAX_PRICE, occursOnDay, PRICE_STOPS, WEEK_TO, type FilterCat, type MapFilters } from '../filters';
 
 const ICON: Record<FilterCat, LucideIcon> = {
-  music: Music, standup: Mic, theatre: Drama, art: ImageIcon, hike: Mountain, party: PartyPopper, sport: Bike, games: Dices, food: Utensils, talks: Presentation,
+  music: Music, standup: Mic, theatre: Drama, movie: Film, art: ImageIcon, hike: Mountain, party: PartyPopper, sport: Bike, games: Dices, food: Utensils, talks: Presentation,
 };
 const STOP_LABEL = ['до 5 тыс', 'до 20 тыс', 'до 50 тыс', 'любая'];
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];

@@ -40,18 +40,18 @@ export function createDb(url: string, key: string): Db {
       const now = new Date().toISOString();
       // Долгие события пересекают окно; запреты и старые названия сохраняем независимо от даты.
       // Читаем по страницам: Supabase ограничивает размер одного ответа.
-      type Row = { id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; venues: { name: string } | null };
-      const out: { id: string; title: string; starts_at: string; venue_name: string | null }[] = [];
+      type Row = { id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; is_long?: boolean; venues: { name: string } | null };
+      const out: { id: string; title: string; starts_at: string; venue_name: string | null; is_long?: boolean }[] = [];
       let after: string | null = null;
       for (;;) {
         const rows: Row[] = await rest<Row[]>(
-          `events?select=id,title,orig_title,status,rejected,starts_at,venues(name)&visibility=eq.public&or=(starts_at.gte.${since},ends_at.gte.${now},rejected.eq.true,orig_title.not.is.null)&order=id.asc&limit=500${after ? `&id=gt.${after}` : ''}`,
+          `events?select=id,title,orig_title,status,rejected,starts_at,is_long,venues(name)&visibility=eq.public&or=(starts_at.gte.${since},ends_at.gte.${now},rejected.eq.true,orig_title.not.is.null)&order=id.asc&limit=500${after ? `&id=gt.${after}` : ''}`,
         );
         for (const r of rows) {
           const live = !r.rejected && (r.status === 'draft' || r.status === 'published');
           const venue_name = r.venues?.name ?? null;
-          out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name });
-          if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name });
+          out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
+          if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
         }
         if (rows.length < 500) break;
         after = rows[rows.length - 1].id;

@@ -77,5 +77,24 @@ try {
   assert.deepEqual((await db.query('select title,orig_title from events where id=$1', [uid(11)])).rows[0], { title: 'Новое имя', orig_title: 'Концерт' });
   await db.exec('reset role; set role anon');
   await assert.rejects(db.query('select * from events_for_plans'), /permission denied/);
+  await db.exec('reset role');
+  await db.exec(`create table public.sources(kind text,handle text,title text,trusted boolean,auto_publish boolean,enabled boolean,unique(kind,handle));`);
+  const cinema = await sqlFile('20261012000025_cinema_sources.sql');
+  await db.exec(cinema); await db.exec(cinema);
+  const sources = await db.query('select * from public.sources');
+  assert.equal(sources.rows.length, 7);
+  assert(sources.rows.every(s => !s.enabled && !s.trusted && !s.auto_publish));
+  await db.exec(`create table public.chat_members(chat_id uuid,user_id uuid,last_read_at timestamptz,primary key(chat_id,user_id)); alter table public.chat_members enable row level security; create policy member_self on public.chat_members for all using(user_id=auth.uid()) with check(user_id=auth.uid()); grant select,update on public.chat_members to authenticated; insert into public.chat_members values('${uid(50)}','${uid(2)}',null),('${uid(50)}','${uid(3)}',null);`);
+  await db.exec(await sqlFile('20261012000026_chat_read.sql'));
+  await user(2);
+  await db.query('select mark_chat_read($1,$2)', [uid(50),'2026-10-10T10:00:00Z']);
+  await db.query('select mark_chat_read($1,$2)', [uid(50),'2026-10-09T10:00:00Z']);
+  const read = await db.query('select last_read_at from public.chat_members');
+  assert.equal(new Date(read.rows[0].last_read_at).toISOString(), '2026-10-10T10:00:00.000Z');
+  await assert.rejects(db.query('select mark_chat_read($1,$2)', [uid(51),'2026-10-10T10:00:00Z']), /chat-not-found/);
+  await assert.rejects(db.query('update chat_members set chat_id=$1', [uid(51)]), /permission denied/);
+  await db.exec('reset role');
+  const otherRead = await db.query('select last_read_at from chat_members where user_id=$1', [uid(3)]);
+  assert.equal(otherRead.rows[0].last_read_at, null);
   console.log('SQL: планы участника сохранены, чужие планы и частные встречи закрыты, права переименования проверены.');
 } finally { await db.close(); }

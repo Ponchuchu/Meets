@@ -128,6 +128,7 @@ function eventTags(e) {
     games: "games",
     art: "art",
     theatre: "art",
+    movie: "art",
     food: "food",
     party: "party",
     talks: "talks",

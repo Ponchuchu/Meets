@@ -9,6 +9,8 @@ import { writeFileSync } from 'node:fs';
 import { CATEGORIES, type Category, type Extraction, type RawPost } from './types.ts';
 import { normalize, similarity } from './dedupe.ts';
 import { fetchSxodimFound } from './sites.ts';
+import { CINEMA_SITES, fetchCinemaFound } from './cinema.ts';
+import { robotLog, robotUpdate } from './robot.ts';
 import { fetchYandexFound } from './yandex.ts';
 import { isKimi, KIMI_DEFAULT_MODEL, kimiPost, type KimiMessage } from './kimi.ts';
 
@@ -304,6 +306,8 @@ const hasTime = (iso: string) => /T\d{2}:\d{2}/.test(iso);
 export function sameEvent(a: Found, b: Found): boolean {
   if (almatyDate(new Date(a.starts_at)) !== almatyDate(new Date(b.starts_at))) return false;
   if (a.venue_name && b.venue_name && similarity(a.venue_name, b.venue_name) < 0.3) return false;
+  const long = [a, b].some(x => x.ends_at && Date.parse(x.ends_at) - Date.parse(x.starts_at) > 6 * 3600e3);
+  if (!long && Math.floor(Date.parse(a.starts_at) / 60000) !== Math.floor(Date.parse(b.starts_at) / 60000)) return false;
   if (similarity(a.title, b.title) >= 0.5) return true;
   const sameTime = hasTime(a.starts_at) && hasTime(b.starts_at) && Math.abs(Date.parse(a.starts_at) - Date.parse(b.starts_at)) <= 30 * 60e3;
   if (!sameTime) return false;
@@ -389,7 +393,7 @@ export interface SearchReport {
 }
 export const newReport = (): SearchReport => ({ window: { from: '', to: '' }, sources: [], outside: 0, merged: 0, kept: 0, photo: 0, noPhoto: 0, siteGeo: 0, price: 0 });
 
-export const SITE_KEYS = ['yandex', 'sxodim'] as const;
+export const SITE_KEYS = ['yandex', 'sxodim', ...Object.keys(CINEMA_SITES)] as const;
 
 export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all', report: SearchReport = newReport(), sitesOn: readonly string[] = SITE_KEYS): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
@@ -399,25 +403,31 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
   //    Яндекс Афиша — первой: у неё есть координаты площадки; дубли между сайтами отсекает finalize и общий конвейер.
   let fromSites: Found[] = [];
   if (sources !== 'ai') {
+    let progress: Promise<void> = Promise.resolve();
+    const publishProgress = () => { progress = progress.catch(() => undefined).then(() => robotUpdate({ found: report.sources.reduce((n, s) => n + s.found, 0) })).catch(() => undefined); return progress; };
     const grab = async (name: string, run: () => Promise<Found[]>): Promise<Found[]> => {
       const t = Date.now();
       try {
         const list = (await run()).filter((f) => startsInWindow(f, from));
         console.error(`  ${name}: ${list.length} событий с ${from} (${((Date.now() - t) / 1000).toFixed(0)} с)`);
         report.sources.push({ name, found: list.length, ok: true });
+        await robotLog(`Источник · ${name} · найдено ${list.length}`, 'ok').catch(() => undefined);
+        await publishProgress();
         return list;
       } catch (err) {
         console.error(`  ✕ ${name}: ${(err as Error).message}`);
         report.sources.push({ name, found: 0, ok: false, error: (err as Error).message.slice(0, 120) });
+        await robotLog(`Источник · ${name} · ${(err as Error).message.slice(0, 120)}`, 'warn').catch(() => undefined);
         return [];
       }
     };
     // Какие сайты читать, решают переключатели «собирать» в панели (передаются из функции запуска).
-    const [ya, sx] = await Promise.all([
+    const lists = await Promise.all([
       sitesOn.includes('yandex') ? grab('Яндекс Афиша', () => fetchYandexFound(from)) : Promise.resolve([] as Found[]),
       sitesOn.includes('sxodim') ? grab('Sxodim', () => fetchSxodimFound()) : Promise.resolve([] as Found[]),
+      ...Object.entries(CINEMA_SITES).map(([site, config]) => sitesOn.includes(site) ? grab(config.name, () => fetchCinemaFound(site as keyof typeof CINEMA_SITES)) : Promise.resolve([] as Found[])),
     ]);
-    const all = [...ya, ...sx];
+    const all = lists.flat();
     const inside = all.filter((f) => inWindow(f, from, to));
     fromSites = finalize(inside, from, to);
     report.outside = all.length - inside.length;
@@ -483,7 +493,7 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
 // ——— В конвейер ———
 
 export function externalId(f: Found): string {
-  return 'g:' + createHash('sha1').update(`${f.url}|${f.title.trim().toLowerCase()}|${f.starts_at.slice(0, 10)}`).digest('hex').slice(0, 16);
+  return 'g:' + createHash('sha1').update(`${f.url}|${f.title.trim().toLowerCase()}|${new Date(f.starts_at).toISOString()}|${f.venue_name ?? f.address ?? ''}`).digest('hex').slice(0, 16);
 }
 
 /** Найденное событие → «пост» для конвейера + готовый разбор (второй раз ИИ не нужен). */

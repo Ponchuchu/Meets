@@ -16,8 +16,8 @@ const ARing = Animated.createAnimatedComponent(Circle);
 export interface CircleRecorderHandle { stop: (send: boolean) => void }
 
 export const CircleRecorder = forwardRef<CircleRecorderHandle, {
-  cancelling: boolean; onDone: (uri: string, seconds: number) => void; onCancel: () => void; onDenied: () => void;
-}>(function CircleRecorder({ cancelling, onDone, onCancel, onDenied }, ref) {
+  cancelling: boolean; onStart: () => void; onDone: (uri: string, seconds: number) => void; onCancel: () => void; onDenied: () => void;
+}>(function CircleRecorder({ cancelling, onStart, onDone, onCancel, onDenied }, ref) {
   const cam = useRef<CameraView>(null);
   const [camPerm, askCam] = useCameraPermissions();
   const [micPerm, askMic] = useMicrophonePermissions();
@@ -44,11 +44,12 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
     if (!ready || !cam.current || stopped.current) return;
     const camera=cam.current;
     started.current = Date.now();
+    onStart();
     p.set(withTiming(1, { duration: CIRCLE_MAX_S * 1000, easing: Easing.linear }));
-    const t = setInterval(() => setSec(Math.floor((Date.now() - started.current) / 1000)), 250);
+    const t = setInterval(() => setSec(Math.floor((Date.now() - started.current) / 1000)), 1000);
     camera.recordAsync({ maxDuration: CIRCLE_MAX_S }).then((res) => {
       if(!alive.current)return;
-      const s = Math.max(1, Math.round((Date.now() - started.current) / 1000));
+      const s = Math.max(0, Math.round((Date.now() - started.current) / 1000));
       if (res?.uri && sendOnStop.current && s >= 1) onDone(res.uri, s);
       else onCancel();
     }).catch(()=>{if(alive.current)onCancel();});
@@ -69,7 +70,7 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.veil} pointerEvents="none">
       <View style={styles.circle}>
         {camPerm?.granted && micPerm?.granted && (
-          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" onCameraReady={() => setReady(true)} />
+          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" videoBitrate={1000000} mirror animateShutter={false} onCameraReady={() => setReady(true)} />
         )}
       </View>
       <Svg width={SIZE + 8} height={SIZE + 8} style={styles.ring}>

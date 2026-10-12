@@ -1,4 +1,5 @@
 // Данные админки: команда (таблица staff) работает с настоящей очередью, остальные видят демо макета.
+import { readPoint } from '../live/point';
 import { requireUser, supabase, withTimeout } from '../data/client';
 import type {Category} from '../data/types';
 import { metaLine, sourceLabel, type QueueFlag, type QueueItem, type QueueStats, type SourceItem } from './model';
@@ -25,7 +26,7 @@ interface DraftRow {
   is_free: boolean;
   ai_confidence: number | null;
   flags: QueueFlag[];
-  venues: { name: string } | null;
+  venues: { name: string; geog: unknown } | null;
   sources: { kind: SourceItem['kind']; handle: string; title: string } | null;
   suggested_by: string | null;
   cover_url: string | null;
@@ -35,7 +36,7 @@ interface DraftRow {
 export async function loadQueue(): Promise<QueueItem[]> {
   const { data, error } = await withTimeout(
     supabase().from('events')
-      .select('id,title,starts_at,ends_at,address,about,price_min,price_max,is_free,ai_confidence,flags,venues(name),sources(kind,handle,title),suggested_by,cover_url,category')
+      .select('id,title,starts_at,ends_at,address,about,price_min,price_max,is_free,ai_confidence,flags,venues(name,geog),sources(kind,handle,title),suggested_by,cover_url,category')
       .eq('status', 'draft').eq('rejected', false).order('created_at').limit(100),
   );
   if (error) throw error;
@@ -61,6 +62,7 @@ export async function loadQueue(): Promise<QueueItem[]> {
     priceMin: r.price_min,
     priceMax: r.price_max,
     isFree: r.is_free,
+    point: readPoint(r.venues?.geog),
     coverUrl:r.cover_url,
     category:r.category,
   }));
@@ -77,7 +79,7 @@ export async function moderate(id: string, action: 'publish' | 'reject' | 'cance
   const { error } = await withTimeout(supabase().rpc('moderate_event', { ev: id, action, lat: point?.lat ?? null, lon: point?.lon ?? null }));
   if (error) throw error;
   // Одобрили — точка по адресу (FIX1 И2 п.8). Не нашлось — событие получит флаг «Поставь точку вручную».
-  if (action === 'publish') await supabase().functions.invoke('geocode', { body: { event_id: id } }).catch(() => undefined);
+  if (action === 'publish' && !point) void supabase().functions.invoke('geocode', { body: { event_id: id } }).catch(() => undefined);
 }
 
 export async function saveDraft(id: string, patch: { title: string; about: string; address: string | null; price_min: number | null; is_free: boolean; flags: QueueFlag[] }): Promise<void> {

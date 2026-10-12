@@ -6,7 +6,7 @@ import { config } from '../lib/config';
 import { usePlans } from '../state/plans';
 import { data, eventsSnapshot } from '../data';
 import { mergeServerPlans } from '../state/plansMerge';
-import {getSettings, getMyAttendance } from './api';
+import {getEventsByIds, getSettings, getMyAttendance } from './api';
 import { useAuth } from './auth';
 import { useReminders } from './reminders';
 
@@ -31,5 +31,7 @@ export function usePlansSync() {
   const muted = usePlans((s) => s.muted);
   const meetups = usePlans((s) => s.meetups);
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  useReminders([...events, ...meetups].filter((e, i, all) => going[e.id] && !muted[e.id] && all.findIndex((a) => a.id === e.id) === i));
+  const missing = Object.keys(going).filter(id => !events.some(e => e.id === id) && !meetups.some(e => e.id === id));
+  const { data: extra = [] } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: live && !!uid && missing.length > 0 });
+  useReminders([...events, ...meetups, ...extra].filter((e, i, all) => going[e.id] && !muted[e.id] && all.findIndex((a) => a.id === e.id) === i));
 }

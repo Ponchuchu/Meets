@@ -3,31 +3,42 @@
 // В демо-режиме и без входа ничего не подписывает.
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { supabase } from './client';
+import { resolveMessages, type MessageRow } from './remote';
+import { requireUser, supabase } from './client';
 import { isJump, type Pt } from '../live/geo';
 import { mapSpot } from './remote';
-import type { FriendSpot } from './types';
+import type { Message, FriendSpot } from './types';
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** id из базы (uuid), а не из демо-данных. */
 export const isRemoteId = (id: string | undefined) => !!id && UUID.test(id);
 
 /** Держит открытый чат свежим: новое сообщение в базе → перечитать сообщения и список чатов. */
-export function useLiveChat(chatId: string) {
+export function useLiveChat(chatId: string, focused = true) {
   const qc = useQueryClient();
   useEffect(() => {
-    if (!isRemoteId(chatId)) return;
+    if (!focused || !isRemoteId(chatId)) return;
+    let alive = true;
+    let refresh: ReturnType<typeof setTimeout> | undefined;
     const ch = supabase()
       .channel(`chat:${chatId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, () => {
-        void qc.invalidateQueries({ queryKey: ['messages', chatId] });
-        void qc.invalidateQueries({ queryKey: ['chats'] });
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, async payload => {
+        try {
+          const user = await requireUser();
+          const rows = await resolveMessages([payload.new as MessageRow], user);
+          if (!alive) return;
+          if (qc.getQueryData(['messages', chatId])) {
+            await qc.cancelQueries({ queryKey: ['messages', chatId], exact: true });
+            qc.setQueryData<Message[]>(['messages', chatId], (old = []) => [...old.filter(m => m.id !== rows[0].id), ...rows].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '')));
+          } else void qc.invalidateQueries({ queryKey: ['messages', chatId] });
+        } catch { if (alive) void qc.invalidateQueries({ queryKey: ['messages', chatId] }); }
+        if (!alive) return;
+        clearTimeout(refresh);
+        refresh = setTimeout(() => void qc.invalidateQueries({ queryKey: ['chats'] }), 350);
       })
-      .subscribe();
-    return () => {
-      void supabase().removeChannel(ch);
-    };
-  }, [chatId, qc]);
+      .subscribe(status => { if (status === 'SUBSCRIBED' && alive) { void qc.invalidateQueries({ queryKey: ['messages', chatId] }); void qc.invalidateQueries({ queryKey: ['chats'] }); } });
+    return () => { alive = false; clearTimeout(refresh); void supabase().removeChannel(ch); };
+  }, [chatId, qc, focused]);
 }
 
 /** Точки друзей: сервер отдаёт последнюю (friend_locations), дальше — Broadcast «locations:<друг>» (V6 §3.2).

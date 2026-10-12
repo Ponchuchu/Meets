@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
@@ -107,7 +107,7 @@ export default function MapScreen() {
   const [startCam, setStartCam] = useState<Camera | null>(null);
   // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
   const bearing = useSharedValue(0);
-  const heading = useHeading();
+  const heading = useHeading(focused);
   const [follow, setFollow] = useState(false);
   useEffect(() => { void startCamera().then(setStartCam); }, []);
   // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
@@ -117,7 +117,7 @@ export default function MapScreen() {
     if (!settled || !startCam || settledOnce.current) return;
     settledOnce.current = true;
     // Заставка закончилась: карта плавно приближается к тебе (центр экрана — это ты).
-    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, startCam.zoom + Math.log2(1.22), 800);
+    if (startCam !== ALMATY_CAMERA) mapRef.current?.flyTo(startCam.lat, startCam.lon, startCam.zoom, 0);
   }, [settled, startCam]);
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
@@ -201,7 +201,7 @@ export default function MapScreen() {
   useEffect(() => {
     if (!settled || !startCam || centeredOnMe.current || !myPos || distM(startCam, myPos) < 800) return;
     centeredOnMe.current = true;
-    mapRef.current?.flyTo(myPos.lat, myPos.lon, 15, 1400);
+    mapRef.current?.flyTo(myPos.lat, myPos.lon, 15, 250);
   }, [settled, startCam, myPos]);
   // Время идёт — точки живут: обновляем раз в минуту.
   useEffect(() => {
@@ -349,7 +349,7 @@ export default function MapScreen() {
     setOpen(e);
     if (interactive) return;
     ex.set(0);
-    ex.set(withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) }));
+    ex.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) }));
   };
   const closeEvent = () => {
     ex.set(withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, (done) => { if (done) scheduleOnRN(setOpen, null); }));
@@ -461,12 +461,12 @@ export default function MapScreen() {
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
           <EventSheet key={selected.id} e={selected} now={clock} people={people} going={going.has(selected.id)}
             expand={ex} onReveal={() => openEvent(selected, null, true)}
-            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeEvent(); }}
+            onRevealEnd={(commit) => { if (commit) ex.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) })); else closeEvent(); }}
             me={myPos ?? fix} onOpen={() => openEvent(selected)} onInvite={() => openEvent(selected, 'invite')} onHide={() => select(null)}
             onGo={() => {
               const p = usePlans.getState();
               if (going.has(selected.id)) { p.ungo(selected.id); useApp.getState().removePlan(); }
-              else { p.go(selected.id); useApp.getState().addPlan(); showToast({ text: 'Добавил в «Планы». Напомню за час', cta: 'Планы', onCta: () => router.navigate('/plans') }); }
+              else { p.go(selected.id); useApp.getState().addPlan(); showToast({ text: selected.category === 'movie' ? 'Сеанс в «Планах». Напомню о билетах за 3 часа' : 'Добавил в «Планы». Напомню за час', cta: 'Планы', onCta: () => router.navigate('/plans') }); }
             }} />
         </View>
       )}
@@ -508,8 +508,8 @@ export default function MapScreen() {
       )}
 
       {sheet === null && lens !== 'normal' && !focusId && (
-        <View style={[styles.lensInfo, { bottom: tabPad + 12 }]} pointerEvents="none">
-          {lens === 'explore' ? <ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
+        <View style={[styles.lensInfo, { bottom: tabPad + 12 }]} pointerEvents="box-none">
+          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
 

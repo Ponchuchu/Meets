@@ -3,15 +3,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../analytics';
 import * as ImagePicker from 'expo-image-picker';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import { router, useLocalSearchParams } from 'expo-router';
+import { mergeChatMessages } from '../../chat/messages';
+import { Camera } from 'expo-camera';
+import { usePlayback } from '../../chat/playback';
+import { randomUUID } from 'expo-crypto';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { AttachmentsSheet } from '../../chat/ui/AttachmentsSheet';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
 import { StickerPicker } from '../../stickers/StickerPicker';
-import { getMeStats } from '../../live/api';
-import { answerInvite, type Invite } from '../../live/api';
+import { getMeStats, answerInvite, getInvites } from '../../live/api';
 import { config } from '../../lib/config';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, type ListRenderItemInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../chat/rules';
@@ -19,7 +23,7 @@ import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
-import { openDirectChat, sendMessage, uploadMedia } from '../../data/remote';
+import { openDirectChat, sendMessage, uploadMedia, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
@@ -62,6 +66,10 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
   const now = clockNow();
+  const [focused, setFocused] = useState(true);
+  const stopOnBlur = useRef<() => void>(() => undefined);
+  useFocusEffect(useCallback(() => { setFocused(true); usePlayback.getState().focus(true); return () => { setFocused(false); stopOnBlur.current(); usePlayback.getState().focus(false); }; }, []));
+  const [atBottom, setAtBottom] = useState(true);
   const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
   const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
   const localGroups = useChat(s => s.groups);
@@ -80,8 +88,9 @@ export default function ChatScreen() {
       router.replace({ pathname: '/chat/[id]', params: { id: cid } });
     }).catch(() => undefined);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useLiveChat(id);
-  const { data: base = [] } = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
+  useLiveChat(id, focused);
+  const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
+  const base = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId });
@@ -105,18 +114,41 @@ export default function ChatScreen() {
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<FlatList<Message>>(null);
 
   const person = personId ? people.find((p) => p.id === personId) : undefined;
   const chatMeta = allChats.find((c) => c.id === id);
   const event = isEvent ? [...plans.meetups, ...events].find((e) => e.id === (chatMeta?.eventId ?? id.slice(3))) : undefined;
   const friend = person ? isFriendNow(person, social) : false;
-  const messages = useMemo(() => [...base, ...chat.sent.filter((m) => m.chatId === id)], [base, chat.sent, id]);
+  const [older, setOlder] = useState<{ chatId: string; rows: Message[] }>({ chatId: id, rows: [] });
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [endOfHistory, setEndOfHistory] = useState<string | null>(null);
+  const hasOlder = endOfHistory !== id;
+  const messages = useMemo(() => mergeChatMessages([...(older.chatId === id ? older.rows : []), ...base], chat.sent.filter(m => m.chatId === id)), [base, chat.sent, id, older]);
+  const loadOlder = async () => {
+    const first = messages.find(m => m.createdAt && !m.delivery);
+    if (loadingOlder || !hasOlder || !isRemoteId(id) || !first?.createdAt || base.length < 100 && older.rows.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      const rows = await getMessages(id, { at: first.createdAt, id: first.id });
+      setOlder(old => ({ chatId: id, rows: [...rows, ...(old.chatId === id ? old.rows : [])] }));
+      if (rows.length < 100) setEndOfHistory(id);
+    } catch { show({ text: 'Не получилось загрузить историю. Потяни список ещё раз' }); }
+    finally { setLoadingOlder(false); }
+  };
+  const listData = useMemo(() => [...messages].reverse(), [messages]);
+  const { data: invites = [] } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
   const byId = (pid: string) => people.find((p) => p.id === pid);
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
 
-  useEffect(() => { chat.markRead(id, chatMeta?.unread ?? 0); }, [id, chatMeta?.unread]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setTimeout(() => scroll.current?.scrollToEnd({ animated: false }), 50); }, [messages.length, tray]);
+  useEffect(() => {
+    if (!focused || !atBottom || recording) return;
+    chat.markRead(id, chatMeta?.unread ?? 0);
+    const at = base[base.length - 1]?.createdAt;
+    if (isRemoteId(id) && at) void markChatRead(id, at).then(() => {
+      qc.setQueryData<import('../../data/types').Chat[]>(['chats'], old => old?.map(c => c.id === id ? { ...c, unread: 0 } : c));
+    }).catch(() => undefined);
+  }, [id, base, focused, atBottom, recording]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Можно ли писать: друзья — всегда, незнакомые — только при общем событии и в пределах лимитов.
   const commonEvent = !!person && events.some((e) => (plans.going[e.id] || e.friendsGoing.length) && (e.lookers ?? []).some((l) => l.personId === person.id));
@@ -128,28 +160,36 @@ export default function ChatScreen() {
       blocked: !!(personId && chat.blocked[personId]), now,
     });
 
+  const sending = useRef(new Set<string>());
+  const sendPending = async (msg: Message) => {
+    if (sending.current.has(msg.id)) return;
+    sending.current.add(msg.id);
+    chat.updateMessage(msg.id, { delivery: 'sending' });
+    try {
+      const path = msg.uploadedPath ?? (msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? await uploadMedia(id, msg.media, msg.kind) : msg.media ?? undefined);
+      if (path) chat.updateMessage(msg.id, { uploadedPath: path });
+      await sendMessage(id, msg.text, msg.kind, path, msg.durationS, msg.eventId, msg.id);
+      qc.setQueryData<Message[]>(['messages', id], (old = []) => old.some(m => m.id === msg.id) ? old : [...old, { ...msg, delivery: undefined }]);
+      chat.unsend(msg.id);
+      void qc.invalidateQueries({ queryKey: ['chats'] });
+    } catch {
+      chat.updateMessage(msg.id, { delivery: 'failed' });
+      show({ text: 'Не отправилось. Нажми «Повторить» под сообщением' });
+    } finally { sending.current.delete(msg.id); }
+  };
   const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    const { durationS, ...rest } = m;
-    const msg: Message = { id: uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), ...rest };
+    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
     chat.send(msg);
     track('chat_sent');
-    // Чат из базы: пишем на сервер, Realtime принесёт сообщение обратно — тогда убираем локальную копию.
-    if (isRemoteId(id)) {
-      const media = msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? uploadMedia(id, msg.media) : Promise.resolve(msg.media ?? undefined);
-      media
-        .then((path) => sendMessage(id, msg.text, msg.kind, path, durationS, msg.eventId))
-        .then(() => qc.invalidateQueries({ queryKey: ['messages', id] }))
-        .then(() => chat.unsend(msg.id))
-        .catch(() => {chat.unsend(msg.id); show({text:'Сообщение не отправлено. Проверь связь и повтори'});});
-    }
+    if (isRemoteId(id)) void sendPending(msg);
   };
   const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); setInputH(44); } };
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
   // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 64000 });
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -158,52 +198,68 @@ export default function ChatScreen() {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!recording) return;
-    const timer = setInterval(() => setElapsed(Math.floor((nowMs()-rec.current.started)/1000)),200);
+    const timer = setInterval(() => setElapsed(rec.current.started ? Math.floor((nowMs()-rec.current.started)/1000) : 0),200);
     return () => clearInterval(timer);
   },[recording]);
   useEffect(() => () => { rec.current.active=false; circleRef.current?.stop(false); void recorder.stop().catch(()=>undefined); void setAudioModeAsync({allowsRecording:false}); },[recorder]);
+  const switchRecMode = async () => {
+    if (recMode === 'voice' && Platform.OS !== 'web') {
+      try { await Camera.requestCameraPermissionsAsync(); await Camera.requestMicrophonePermissionsAsync(); } catch { show({ text: 'Разреши камеру и микрофон' }); }
+    }
+    setRecMode(m => m === 'voice' ? 'circle' : 'voice');
+  };
+  useEffect(() => { usePlayback.getState().record(!!recording); return () => usePlayback.getState().record(false); }, [recording]);
+  const preparing = useRef(false);
+  const stopping = useRef(false);
   const startRec = async () => {
-    if(rec.current.active) return;
-    rec.current = {active:true,ready:false,mode:recMode,started:nowMs(),locked:false};
+    if(rec.current.active || preparing.current || stopping.current) return;
+    usePlayback.getState().play(null);
+    rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
     setLocked(false);setElapsed(0);setCancelling(false);
     if (recMode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
-      setRecording('circle'); return;
+      usePlayback.getState().record(true); setRecording('circle'); return;
     }
+    preparing.current = true;
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!rec.current.active) return;
       if (!perm.granted) {rec.current.active=false;show({text:'Разреши микрофон в настройках телефона'});return;}
+      usePlayback.getState().record(true);
       await setAudioModeAsync({allowsRecording:true,playsInSilentMode:true});
       await recorder.prepareToRecordAsync();
       // Отпустил во время диалога разрешений — запись не начинается и ничего не отправляется.
       if (!rec.current.active) {await recorder.stop().catch(()=>undefined);await setAudioModeAsync({allowsRecording:false});return;}
       rec.current.started=nowMs();recorder.record();rec.current.ready=true;setRecording('voice');
-    } catch {rec.current.active=false;setRecording(null);void setAudioModeAsync({allowsRecording:false});show({text:'Не получилось включить микрофон'});}
+    } catch {rec.current.active=false;setRecording(null);void setAudioModeAsync({allowsRecording:false});show({text:'Не получилось включить микрофон'});} finally { preparing.current = false; if (!rec.current.active) usePlayback.getState().record(false); }
   };
   const stopRec = async (send:boolean) => {
     if(!rec.current.active) return;
     const mode=rec.current.mode;
     const sec=Math.floor((nowMs()-rec.current.started)/1000);
     rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
-    if(mode==='circle') {if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
+    if(mode==='circle') {stopping.current = true;if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
     setRecording(null);
     if(!rec.current.ready)return;
+    stopping.current = true;
     try {
       await recorder.stop();await setAudioModeAsync({allowsRecording:false});
       if(send && recorder.uri && sec>=1) push({kind:'voice',media:recorder.uri,duration:dur(sec),durationS:sec});
-    } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});}
+    } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});} finally { stopping.current = false; usePlayback.getState().record(false); }
   };
+  useEffect(() => { stopOnBlur.current = () => { void stopRec(false); }; });
   // Эти обработчики читает Gesture Handler при касании; при рендере они не выполняются.
   /* eslint-disable react-hooks/refs */
-  const recGesture = Gesture.Exclusive(
+  const recHandlers = useRef({ startRec, stopRec, switchRecMode });
+  useEffect(() => { recHandlers.current = { startRec, stopRec, switchRecMode }; });
+  const recGesture = useMemo(() => Gesture.Exclusive(
     Gesture.Pan().activateAfterLongPress(250).runOnJS(true)
-      .onStart(()=>void startRec())
-      .onUpdate(e=>{setCancelling(e.translationX < -80);if(e.translationY < -70 && !rec.current.locked){rec.current.locked=true;setLocked(true);}})
-      .onEnd(e=>{if(!rec.current.locked)void stopRec(e.translationX>=-80);})
-      .onFinalize((_e,ok)=>{if(!ok && !rec.current.locked)void stopRec(false);}),
-    Gesture.Tap().runOnJS(true).onEnd(()=>setRecMode(m=>m==='voice'?'circle':'voice')),
-  );
+      .onStart(()=>void recHandlers.current.startRec())
+      .onUpdate(e=>{setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80);if(e.translationY < -70 && !rec.current.locked){rec.current.locked=true;setLocked(true);}})
+      .onEnd(e=>{if(!rec.current.locked)void recHandlers.current.stopRec(e.translationX>=-80);})
+      .onFinalize((_e,ok)=>{if(!ok && !rec.current.locked)void recHandlers.current.stopRec(false);}),
+    Gesture.Tap().runOnJS(true).onEnd(() => void recHandlers.current.switchRecMode()),
+  ), []);
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
@@ -249,6 +305,28 @@ export default function ChatScreen() {
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
   const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
+  const renderMessage = useCallback(({ item: m, index }: ListRenderItemInfo<Message>) => {
+          const mine = m.authorId === 'me';
+          const prev = listData[index + 1];
+          return (
+            <View><Bubble m={chat.answers[m.id] ? { ...m, answer: chat.answers[m.id] === 'yes' ? 'Иду' : 'Не смогу' } : m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
+              showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
+              revealed={!!chat.revealed[m.id]} onReveal={() => chat.reveal(m.id)}
+              voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
+              onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
+              onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
+              onInvite={!mine ? (a) => {
+                chat.answer(m.id, a);
+                if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); }
+                // Альфа: ответ уходит в приглашение (видно обоим в «Планах») и сообщением в чат.
+                const inv = invites.find((i) => i.event_id === m.eventId && i.from_id === m.authorId && !i.answer);
+                if (inv) void answerInvite(inv, a === 'yes').then(() => qc.invalidateQueries({ queryKey: ['invites'] })).catch(() => undefined);
+              } : undefined} />
+              {m.delivery && <Pressable disabled={m.delivery === 'sending'} onPress={() => void sendPending(m)} style={{ alignSelf: 'flex-end', minHeight: 36, paddingHorizontal: 8, justifyContent: 'center' }}><Text style={styles.status}>{m.delivery === 'sending' ? 'Отправляется…' : 'Не отправилось · Повторить'}</Text></Pressable>}
+            </View>
+          );
+  }, [listData, people, friend, isEvent, isGroup, chat.revealed, chat.votes, chat.answers, invites, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <KeyboardAvoidingView style={styles.root} behavior="padding">
       <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 6) }]}>
@@ -277,10 +355,7 @@ export default function ChatScreen() {
       </View>
 
       {/* Потянул ленту — клавиатура и вложения сворачиваются, как в Telegram. */}
-      <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 16, flexGrow: 1, justifyContent: 'flex-end' }}
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled" alwaysBounceVertical
-        onScrollBeginDrag={() => { if (tray) { setTray(false); setAlbumsOpen(false); } }}
-        onTouchEnd={() => { if (Platform.OS === 'web') return; Keyboard.dismiss(); }}>
+      <View style={{ flex: 1 }}>
         {banner && <View style={styles.banner}><Text style={styles.bannerText}>{banner}</Text></View>}
         {isEvent && chatMeta?.meetPoint && (
           <View style={styles.pin}>
@@ -295,27 +370,13 @@ export default function ChatScreen() {
             </Pressable>
           </View>
         )}
-        {messages.map((m, i) => {
-          const mine = m.authorId === 'me';
-          const prev = messages[i - 1];
-          return (
-            <Bubble key={m.id} m={m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
-              showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
-              revealed={!!chat.revealed[m.id]} onReveal={() => chat.reveal(m.id)}
-              voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
-              onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
-              onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
-              onInvite={!mine ? (a) => {
-                chat.answer(m.id, a);
-                if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); }
-                // Альфа: ответ уходит в приглашение (видно обоим в «Планах») и сообщением в чат.
-                const inv = qc.getQueryData<Invite[]>(['invites'])?.find((i) => i.event_id === m.eventId && i.from_id === m.authorId && !i.answer);
-                if (inv) void answerInvite(inv, a === 'yes').then(() => qc.invalidateQueries({ queryKey: ['invites'] })).catch(() => undefined);
-              } : undefined} />
-          );
-        })}
+        <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted
+          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={() => void loadOlder()} onEndReachedThreshold={0.3}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled"
+          onScroll={ev => setAtBottom(ev.nativeEvent.contentOffset.y < 80)} scrollEventThrottle={100}
+          onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
         {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}
-      </ScrollView>
+      </View>
 
       {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: tray ? 10 : 14 + insets.bottom }]}>
@@ -453,23 +514,12 @@ export default function ChatScreen() {
       )}
       {sheet==='events'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet label="Поделиться событием" onClose={()=>setSheet(null)}><Text style={styles.sheetTitle}>Поделиться событием</Text><ScrollView style={{maxHeight:400}}>{[...plans.meetups,...events].filter((e,i,all)=>all.findIndex(a=>a.id===e.id)===i).map(e=><Pressable key={e.id} style={styles.menuRow} onPress={()=>{push({kind:'invite',eventId:e.id,text:e.title});setSheet(null);}}><Text style={styles.menuText}>{e.title}</Text></Pressable>)}</ScrollView></BottomSheet></>}
       {sheet==='stickers'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Стикеры"><StickerPicker level={stats?.level??1} onSelect={s=>{push({kind:'sticker',text:s.label});setSheet(null);}}/></BottomSheet></>}
-      {sheet==='attachments'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Вложения" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
-        <Text style={styles.sheetTitle}>{title}</Text>
-        <View style={{flexDirection:'row',gap:16}}>
-          {person&&<Pressable onPress={()=>setSheet('person')}><Text style={styles.menuText}>Профиль</Text></Pressable>}
-          {event&&<Pressable onPress={()=>router.push({pathname:'/event/[id]',params:{id:event.id}})}><Text style={styles.menuText}>Событие</Text></Pressable>}
-        </View>
-        <Text style={styles.status}>Фото, видео, файлы и ссылки</Text>
-        <ScrollView style={{maxHeight:450}} contentContainerStyle={{gap:14}}>
-          {messages.filter(m=>['photo','video','circle','voice','invite'].includes(m.kind)||/https?:\/\//.test(m.text)).map(m=><Bubble key={m.id} m={m} mine={m.authorId==='me'} friendChat={friend||isGroup||isEvent} revealed={!!chat.revealed[m.id]} onReveal={()=>chat.reveal(m.id)} onOpenEvent={()=>m.eventId&&router.push({pathname:'/event/[id]',params:{id:m.eventId}})}/>)}
-          {!messages.some(m=>['photo','video','circle','voice','invite'].includes(m.kind)||/https?:\/\//.test(m.text))&&<Text style={styles.status}>Вложений пока нет</Text>}
-        </ScrollView>
-      </BottomSheet></>}
+      {sheet === 'attachments' && <AttachmentsSheet chatId={id} messages={messages} title={title} friend={friend || isGroup || isEvent} onClose={() => setSheet(null)} />}
       {recording === 'circle' && (
-        <CircleRecorder ref={circleRef} cancelling={cancelling}
-          onDone={(uri, sec) => { rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
-          onCancel={() => {rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null);}}
-          onDenied={() => { rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
+        <CircleRecorder ref={circleRef} cancelling={cancelling} onStart={() => { rec.current.started = nowMs(); rec.current.ready = true; }}
+          onDone={(uri, sec) => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
+          onCancel={() => {stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null);}}
+          onDenied={() => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
       )}
     </KeyboardAvoidingView>
   );

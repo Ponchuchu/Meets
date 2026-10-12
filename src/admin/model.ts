@@ -20,6 +20,7 @@ export interface QueueItem {
   priceMin: number | null;
   priceMax: number | null;
   isFree: boolean;
+  point?: { lat: number; lon: number } | null;
   coverUrl?: string | null;
   category?: Category;
 }

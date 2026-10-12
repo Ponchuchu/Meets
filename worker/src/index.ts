@@ -15,6 +15,7 @@ import { fillImages, parseGeminiOutput, toPost, type Found } from './search.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
 import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
+import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
 import { geocode, type VenueRow } from './venues.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -43,12 +44,18 @@ async function loadSearch(file: string, sourceId: string) {
 }
 
 /** Какой строке «Источников» принадлежит событие: «Яндекс Афиша» → сайт Яндекса, «Sxodim» → Sxodim, остальное — «Поиск». */
-function sourceKeyOf(f: Found): 'yandex' | 'sxodim' | 'search' {
+type SiteKey = CinemaSite | 'yandex' | 'sxodim' | 'search';
+function sourceKeyOf(f: Found): SiteKey {
   const n = (f.source_name ?? '').toLowerCase();
-  return n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
+  const cinema = Object.entries(CINEMA_SITES).find(([, c]) => c.name.toLowerCase() === n);
+  return cinema ? cinema[0] as CinemaSite : n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
 }
-const rowFor = (key: 'yandex' | 'sxodim' | 'search', sources: Source[], fallback: Source): Source =>
-  key === 'search' ? fallback : (sources.find((s) => s.kind === 'site' && s.handle.toLowerCase().includes(key)) ?? fallback);
+const rowFor = (key: SiteKey, sources: Source[], fallback: Source): Source => {
+  if (key === 'search') return fallback;
+  const cinema = key !== 'yandex' && key !== 'sxodim' ? CINEMA_SITES[key] : null;
+  const handle = cinema ? cinema.url.replace(/^https?:\/\/(?:www\.)?/, '').replace(/\/$/, '') : key;
+  return sources.find(s => s.kind === 'site' && (cinema ? s.handle.toLowerCase().replace(/^www\./, '').replace(/\/$/, '') === handle : s.handle.toLowerCase().includes(key) && !s.handle.includes('/cinema'))) ?? fallback;
+};
 
 function print(results: Outcome[]) {
   for (const r of results) {

@@ -39,7 +39,7 @@ export function EventCover({ cover, category, color, style, iconSize = 150, chil
         <Circle cx="8%" cy="92%" r="28%" fill={fg} opacity={0.08} />
       </Svg>
       {!src && <View style={styles.icon} pointerEvents="none"><Ic d={CAT_ICON[category]} size={iconSize} color={fg} w={0.9} /></View>}
-      {src && <Image source={src} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBrokenCover(cover ?? null)} />}
+      {src && <Image source={src} style={StyleSheet.absoluteFill} resizeMode="cover" resizeMethod="resize" onError={() => setBrokenCover(cover ?? null)} />}
       {children}
     </View>
   );

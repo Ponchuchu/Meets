@@ -2,16 +2,15 @@
 // Строки выкатываются снизу по очереди (delay), как в макете.
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import type { Category } from '../../data/types';
 import { colors, fonts } from '../../theme';
 import { EventCover } from '../../ui/EventCover';
 
-export function EventRow({ title, sub, tag, warn, cover, category, right, onPress, index = 0 }: {
+export function EventRow({ title, sub, tag, warn, cover, category, right, onPress }: {
   title: string; sub: string; /** Откуда событие: «ЯНДЕКС АФИША», «SXODIM», «TELEGRAM · @…». */ tag?: string; warn?: string; cover?: string | null; category?: Category; right?: ReactNode; onPress: () => void; index?: number;
 }) {
   return (
-    <Animated.View entering={FadeInDown.duration(260).delay(Math.min(index, 8) * 55)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(200)} style={styles.row}>
+    <View style={styles.row}>
       <Pressable onPress={onPress} style={styles.main} accessibilityRole="button" accessibilityLabel={`Открыть: ${title}`}>
         <EventCover cover={cover} category={category ?? 'meetup'} style={styles.thumb} iconSize={30} />
         <View style={styles.text}>
@@ -22,7 +21,7 @@ export function EventRow({ title, sub, tag, warn, cover, category, right, onPres
         </View>
       </Pressable>
       {right}
-    </Animated.View>
+    </View>
   );
 }
 

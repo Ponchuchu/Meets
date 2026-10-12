@@ -1,12 +1,15 @@
 // Модерация — design/png/Admin.png. Очередь черновиков: «Опубликовать / Править / Нет», неточный адрес — «Поставить точку».
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react-native';
 import { Image,Modal,Pressable,ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
+import { readPoint } from '../../live/point';
+import { MapCanvas } from '../../map/MapCanvas';
+import type { MapCanvasHandle } from '../../map/types';
 import { colors, fonts } from '../../theme';
 import type { ToastData } from '../../ui/Toast';
 import { loadQueue, moderate, saveDraft } from '../api';
@@ -54,18 +57,22 @@ export function Moderation({ live }: { live: boolean }) {
       .map((x) => ({ ...x, ...demo.edits[x.id] }));
   }, [suggestions, demo.done, demo.edits, myName]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const pendingRef = useRef(new Set<string>());
+  const [pending, setPending] = useState<string[]>([]);
+  const [completed, setCompleted] = useState<string[]>([]);
   const allItems = useMemo(() => (live ? (queueQ.data ?? []) : demoItems), [live, queueQ.data, demoItems]);
   const [qf, setQf] = useState<'all' | 'pin' | 'price'>('all');
-  const items = allItems.filter((x) => qf === 'all' || (qf === 'pin' ? x.flags.includes('needs_pin') : !x.isFree && x.priceMin == null));
+  const [shown, setShown] = useState(12);
+  const items = allItems.filter(x => !pending.includes(x.id) && !completed.includes(x.id)).filter((x) => qf === 'all' || (qf === 'pin' ? x.flags.includes('needs_pin') : !x.isFree && x.priceMin == null));
 
-  const reliable = useMemo(() => allItems.filter((x) => isReliable(x)), [allItems]);
+  const reliable = useMemo(() => allItems.filter((x) => !pending.includes(x.id) && !completed.includes(x.id) && isReliable(x) && (!live || !!x.point)), [allItems, live, pending, completed]);
   const [bulk, setBulk] = useState<'idle' | 'confirm' | 'busy'>('idle');
   const publishReliable = async () => {
     setBulk('busy');
     let n = 0;
     try {
       for (const x of reliable) {
-        if (live) await moderate(x.id, 'publish'); else demo.decide(x.id, 'publish');
+        if (live) await moderate(x.id, 'publish', x.point ?? undefined); else demo.decide(x.id, 'publish');
         n += 1;
       }
       say(`На карте: ${n}`);
@@ -82,23 +89,29 @@ export function Moderation({ live }: { live: boolean }) {
       if (!live) return;
       if (action === 'pin') {
         await moderate(item.id, 'pin', point);
-        await moderate(item.id, 'publish');
-      } else await moderate(item.id, action);
+        await moderate(item.id, 'publish', point);
+      } else await moderate(item.id, action, action === 'publish' ? item.point ?? undefined : undefined);
     },
+    onMutate: ({ item }) => { pendingRef.current.add(item.id); setPending([...pendingRef.current]); },
     onSuccess: (_data,{ item, action }) => {
+      setCompleted(old => [...old, item.id]);
       if (!live) demo.decide(item.id, action === 'reject' ? 'reject' : 'publish');
       say(action === 'reject' ? 'Убрали из очереди' : `«${item.title}» — на карте`);
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: ['admin'] });
-      void qc.invalidateQueries({ queryKey: ['events'] });
+    onSettled: (_data, _error, { item }) => {
+      pendingRef.current.delete(item.id); setPending([...pendingRef.current]);
+      if (pendingRef.current.size === 0) {
+        void qc.invalidateQueries({ queryKey: ['admin'] });
+        void qc.invalidateQueries({ queryKey: ['events'] });
+      }
     },
     onError: () => say('Не получилось — проверь связь и попробуй ещё раз'),
   });
 
   return (
     <View style={styles.root}>
-      {toast && <Banner tone="ok" text={toast.text} />}
+      {pending.length > 0 && <Banner tone="info" text={`Сохраняю ${pending.length} в фоне. Можно проверять следующие`} />}
+      {toast && <Banner tone={/не получилось|не удалось/i.test(toast.text) ? 'error' : 'ok'} text={toast.text} />}
       <View style={styles.filters}>
         {([['all', 'Любые'], ['pin', 'Нужна точка'], ['price', 'Без цены']] as const).map(([k, label]) => (
           <Pressable key={k} onPress={() => setQf(k)} accessibilityRole="button" accessibilityState={{ selected: qf === k }} style={[styles.fchip, qf === k && styles.fchipOn]}>
@@ -127,21 +140,22 @@ export function Moderation({ live }: { live: boolean }) {
           </View>
         </View>
       )}
-      {items.map((item, i) => {
-        const pin = item.flags.includes('needs_pin');
+      {items.slice(0, shown).map((item, i) => {
+        const pin = item.flags.includes('needs_pin') || (live && !item.point);
         return (
           <EventRow key={item.id} index={i} title={item.title} sub={item.meta} tag={item.source} cover={item.coverUrl} category={item.category}
             warn={item.flags[0] ? FLAG_TEXT[item.flags[0]] : undefined} onPress={() => setPreview(item)}
             right={(
               <View style={styles.rowActions}>
-                <RoundBtn label={`Не публиковать «${item.title}»`} onPress={() => act.mutate({ item, action: 'reject' })} disabled={act.isPending}><X size={18} color={colors.ink} strokeWidth={2.2} /></RoundBtn>
-                <RoundBtn solid label={pin ? `Поставить точку: «${item.title}»` : `Опубликовать «${item.title}»`} disabled={act.isPending}
+                <RoundBtn label={`Не публиковать «${item.title}»`} onPress={() => act.mutate({ item, action: 'reject' })} disabled={bulk === 'busy'}><X size={18} color={colors.ink} strokeWidth={2.2} /></RoundBtn>
+                <RoundBtn solid label={pin ? `Поставить точку: «${item.title}»` : `Опубликовать «${item.title}»`} disabled={bulk === 'busy'}
                   onPress={() => (pin ? setPinning(item) : act.mutate({ item, action: 'publish' }))}><Check size={18} color={colors.paper} strokeWidth={2.4} /></RoundBtn>
               </View>
             )} />
         );
       })}
 
+      {items.length > shown && <Pressable onPress={() => setShown(n => n + 12)} style={[styles.btn, {flex:0}]} accessibilityRole="button"><Text style={styles.btnText}>Показать ещё · {items.length - shown}</Text></Pressable>}
       {preview&&<Overlay label="Карточка события" onClose={()=>setPreview(null)}>
         {preview.coverUrl&&<Image source={{uri:preview.coverUrl}} style={{width:'100%',height:180,borderRadius:18}} resizeMode="cover"/>}
         <Text style={styles.source}>{preview.source}</Text><Text style={styles.sheetTitle}>{preview.title}</Text><Text style={styles.meta}>{preview.meta}</Text>
@@ -149,7 +163,7 @@ export function Moderation({ live }: { live: boolean }) {
         <Label text="Адрес"/><Text style={styles.meta}>{preview.address||'Нужно уточнить место'}</Text>
         {preview.flags.map(f=><Text key={f} style={styles.flagText}>{FLAG_TEXT[f]}</Text>)}
         <Pressable style={[styles.btn,{flex:0}]} onPress={()=>{setEditing(preview);setPreview(null);}}><Text style={styles.btnText}>Редактировать</Text></Pressable>
-        <Pressable style={[styles.btn,styles.primary,{flex:0}]} disabled={act.isPending} onPress={()=>{if(preview.flags.includes('needs_pin'))setPinning(preview);else act.mutate({item:preview,action:'publish'});setPreview(null);}}><Text style={[styles.btnText,{color:colors.paper}]}>Одобрить</Text></Pressable>
+        <Pressable style={[styles.btn,styles.primary,{flex:0}]} disabled={bulk === 'busy'} onPress={()=>{if(preview.flags.includes('needs_pin') || (live && !preview.point))setPinning(preview);else act.mutate({item:preview,action:'publish'});setPreview(null);}}><Text style={[styles.btnText,{color:colors.paper}]}>Одобрить</Text></Pressable>
       </Overlay>}
       {queueQ.isError&&<Text style={styles.flagText}>Не удалось загрузить очередь. Проверь связь.</Text>}
       {editing && (
@@ -205,17 +219,27 @@ function EditCard({ item, onClose, onSave }: { item: QueueItem; onClose: () => v
 /** Точка по адресу: Nominatim в рамке Алматы. Модератор проверяет найденное и публикует. */
 function PinCard({ item, onClose, onPin }: { item: QueueItem; onClose: () => void; onPin: (p: { lat: number; lon: number }) => void }) {
   const [q, setQ] = useState(item.address && item.address !== 'в центре' ? item.address : '');
-  const [hit, setHit] = useState<{ lat: number; lon: number; name: string } | null>(null);
+  const mapRef = useRef<MapCanvasHandle>(null);
+  const camera = useMemo(() => ({ lat: item.point?.lat ?? 43.2579, lon: item.point?.lon ?? 76.9458, zoom: item.point ? 14 : 12 }), [item.point]);
+  const [hit, setHit] = useState<{ lat: number; lon: number; name: string } | null>(item.point ? { ...item.point, name: 'Примерное место — проверь на карте' } : null);
   const [state, setState] = useState<'idle' | 'busy' | 'none'>('idle');
   const find = async () => {
     setState('busy');
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&accept-language=ru&bounded=1&viewbox=76.70,43.40,77.20,43.05&q=${encodeURIComponent(`${q}, Алматы`)}`;
-      const [r] = (await (await fetch(url)).json()) as { lat: string; lon: string; display_name: string }[];
-      if (r) {
-        setHit({ lat: Number(r.lat), lon: Number(r.lon), name: r.display_name.split(',').slice(0, 3).join(',') });
-        setState('idle');
-      } else setState('none');
+      const street = q.replace(/(?:,?\s+(?:дом\s*)?|,\s*)\d+[а-яa-z]?(?:[\/\-]\d+)?\s*$/i, '').trim();
+      const queries = street && street !== q.trim() ? [q, street] : [q];
+      for (let i = 0; i < queries.length; i++) {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&accept-language=ru&bounded=1&viewbox=76.70,43.40,77.20,43.05&q=${encodeURIComponent(`${queries[i]}, Алматы`)}`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!response.ok) throw new Error('Поиск недоступен');
+        const [r] = await response.json() as { lat: string; lon: string; display_name: string }[];
+        const point = r && readPoint({ coordinates: [Number(r.lon), Number(r.lat)] });
+        if (!point) continue;
+        setHit({ ...point, name: `${i ? 'Примерно · ' : ''}${r.display_name.split(',').slice(0, 3).join(',')}` });
+        mapRef.current?.flyTo(point.lat, point.lon, i ? 14 : 15, 0);
+        setState('idle'); return;
+      }
+      setState('none');
     } catch {
       setState('none');
     }
@@ -229,7 +253,11 @@ function PinCard({ item, onClose, onPin }: { item: QueueItem; onClose: () => voi
         <TextInput value={q} onChangeText={setQ} onSubmitEditing={find} style={[styles.input, { flex: 1 }]} placeholder="Например: Панфилова 110" placeholderTextColor={colors.muted3} accessibilityLabel="Адрес" />
         <Pressable onPress={find} disabled={!q.trim() || state === 'busy'} style={[styles.btn, { flex: 0, paddingHorizontal: 16 }]} accessibilityRole="button"><Text style={styles.btnText}>Найти</Text></Pressable>
       </View>
-      {state === 'none' && <Text style={[styles.meta, { color: colors.accentText }]}>Не нашли — уточни адрес</Text>}
+      {state === 'none' && <Text style={[styles.meta, { color: colors.accentText }]}>Точный адрес не найден. Выбери место на карте</Text>}
+      <Text style={styles.meta}>Найденное место может быть приблизительным. Нажми на карте там, где вход в площадку</Text>
+      <View style={{ height: 250, borderRadius: 18, overflow: 'hidden' }}>
+        <MapCanvas ref={mapRef} theme="paper" camera={camera} onPress={p => { if (p) setHit({ ...p, name: 'Выбрано вручную' }); }} markers={hit ? [{ id: 'chosen', lat: hit.lat, lon: hit.lon, node: <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.paper }} /> }] : []} />
+      </View>
       {hit && <Text style={styles.meta}>{hit.name} · {hit.lat.toFixed(5)}, {hit.lon.toFixed(5)}</Text>}
       <Pressable disabled={!hit} onPress={() => hit && onPin(hit)} style={[styles.btn, styles.primary, { flex: 0, marginTop: 14 }, !hit && { opacity: 0.4 }]} accessibilityRole="button">
         <Text style={[styles.btnText, { color: colors.paper }]}>Опубликовать с этой точкой</Text>
@@ -281,7 +309,7 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.line2, padding: 14, gap: 10 },
   confirmT: { fontFamily: fonts.body500, fontSize: 14, lineHeight: 20, color: colors.ink },
   rowActions: { flexDirection: 'row', gap: 6 },
-  btn: { flex: 1, height: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  btn: { flex: 1, height: 44, minHeight: 44, minWidth: 44, flexShrink: 0, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   primary: { flex: 2, backgroundColor: colors.ink, borderColor: colors.ink },
   btnText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   auto: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.2, borderStyle: 'dashed', borderColor: colors.line2, borderRadius: 16, padding: 14, marginTop: 4 },

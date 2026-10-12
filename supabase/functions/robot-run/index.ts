@@ -46,8 +46,15 @@ Deno.serve(async (req) => {
     for (const s of srcs ?? []) {
       const h = String(s.handle).toLowerCase();
       if (s.kind === 'telegram') telegram = true;
+      else if (h.includes('kinopark.kz')) sites.push('kinopark');
+      else if (h.includes('kinoafisha.info')) sites.push('kinoafisha');
+      else if (h.includes('lyubimiigorod.ru')) sites.push('lyubimiigorod');
+      else if (h.includes('yandex') && h.includes('/cinema')) sites.push('yandex-cinema');
       else if (h.includes('yandex')) sites.push('yandex');
       else if (h.includes('sxodim')) sites.push('sxodim');
+      else if (h.includes('chaplin')) sites.push('chaplin');
+      else if (h.includes('kino.kz')) sites.push('kino');
+      else if (h.includes('ticketon.kz') && h.includes('cinema')) sites.push('ticketon');
     }
     if ((body.sources ?? 'sites') !== 'ai' && !sites.length && !telegram) return json({ error: 'Включи хотя бы один источник: Настройки → Источники → «собирать»' }, 400);
   }

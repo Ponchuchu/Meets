@@ -62,7 +62,7 @@ describe('разбор без ИИ', () => {
 describe('дубли и площадки', () => {
   it('одно событие из разных каналов склеивается', () => {
     expect(similarity('Аниме-выставка «Токио в Алматы»', 'Токио в Алматы — аниме-выставка')).toBeGreaterThan(0.5);
-    const known = [{ id: 'a', title: 'Аниме-выставка «Токио в Алматы»', starts_at: '2026-10-03T11:00:00+05:00', venue_name: 'ТРЦ Mega' }];
+    const known = [{ id: 'a', title: 'Аниме-выставка «Токио в Алматы»', starts_at: '2026-10-03T11:00:00+05:00', venue_name: 'ТРЦ Mega', is_long: true }];
     expect(findDuplicate({ title: 'Токио в Алматы: аниме-выставка', starts_at: '2026-10-03T12:00:00+05:00', venue_name: null }, known)?.id).toBe('a');
     expect(findDuplicate({ title: 'Токио в Алматы: аниме-выставка', starts_at: '2026-10-10T12:00:00+05:00', venue_name: null }, known)).toBeNull();
     expect(findDuplicate({ title: 'Лекция о джазе', starts_at: '2026-10-03T12:00:00+05:00', venue_name: null }, known)).toBeNull();
@@ -162,7 +162,8 @@ describe('Поиск через Gemini', () => {
       { ...base, url: 'https://c.kz/3', title: 'Прошлое', starts_at: '2026-09-01T19:00:00+05:00' },
       { ...base, url: 'https://d.kz/4', title: 'Выставка', starts_at: '2026-09-01T10:00:00+05:00', ends_at: '2026-11-08T18:00:00+05:00' },
     ], '2026-10-05', '2026-10-12');
-    expect(list.map((f) => f.title)).toEqual(['Nazareth', 'Выставка']);
+    expect(list.map((f) => f.title)).toEqual(['Nazareth', 'NAZARETH', 'Выставка']);
+    expect(list[0].starts_at).not.toBe(list[1].starts_at);
   });
 
   it('разбирает ответ (обёртка CLI, массив в ```json) и отбрасывает событие без даты', () => {

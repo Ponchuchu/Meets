@@ -2,7 +2,7 @@
 
 export type Category =
   | 'music' | 'standup' | 'art' | 'hike' | 'games' | 'food' | 'sport' | 'talks'
-  | 'theatre' | 'lecture' | 'meetup' | 'party' | 'bike' | 'concert';
+  | 'movie' | 'theatre' | 'lecture' | 'meetup' | 'party' | 'bike' | 'concert';
 
 export type Visibility = 'public' | 'friends';
 
@@ -14,6 +14,7 @@ export interface EventItem {
   startsAt: string; // ISO
   endsAt: string | null;
   isLong: boolean;
+  venueId?: string;
   venueName: string | null;
   address: string;
   addressNote?: string;
@@ -97,6 +98,10 @@ export interface Message {
   kind: MessageKind;
   text: string;
   time: string; // «18:10»
+  createdAt?: string;
+  delivery?: 'sending' | 'failed';
+  durationS?: number;
+  uploadedPath?: string;
   media?: string | null;
   duration?: string;
   sub?: string;

@@ -1,6 +1,10 @@
 // Люди, чаты, сообщения, друзья на карте — из Supabase (таблицы из миграции 20260928000002).
 // Работает только после входа: без сессии бросает NoSessionError, и слой данных показывает демо.
+import { File } from 'expo-file-system';
+import { fetch as nativeFetch } from 'expo/fetch';
+import { Platform } from 'react-native';
 import { friendLine } from '../live/geo';
+import { config } from '../lib/config';
 import { almaty } from '../lib/clock';
 import { DEFAULT_PRIVACY } from '../people/visibility';
 import { colors } from '../theme';
@@ -72,10 +76,11 @@ export function mapMessage(r: MessageRow, me: string): Message {
     kind: r.kind,
     text: r.body ?? '',
     time: hhmm(r.created_at),
+    createdAt: r.created_at,
     media: r.media_path,
     duration: r.duration_s != null ? secs(r.duration_s) : undefined,
     eventId: r.event_id ?? undefined,
-    sub: r.kind === 'invite' ? 'Позвал(а) тебя · нажми, чтобы открыть' : undefined,
+    sub: r.kind === 'invite' ? r.author_id === me ? 'Ты пригласил · нажми, чтобы открыть' : 'Приглашает тебя · нажми, чтобы открыть' : undefined,
   };
 }
 
@@ -188,18 +193,26 @@ export async function getChats(): Promise<Chat[]> {
   });
 }
 
-export async function getMessages(chatId: string): Promise<Message[]> {
+export async function getMessages(chatId: string, before?: { at: string; id: string }, attachment?: 'media' | 'voice' | 'links'): Promise<Message[]> {
   const me = await requireUser();
-  const { data, error } = await withTimeout(
-    supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at').eq('chat_id', chatId).order('created_at').limit(300),
-  );
+  let query = supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100);
+  if (before) query = query.or(`created_at.lt.${before.at},and(created_at.eq.${before.at},id.lt.${before.id})`);
+  if (attachment === 'media') query = query.in('kind', ['photo', 'video', 'circle']);
+  if (attachment === 'voice') query = query.eq('kind', 'voice');
+  if (attachment === 'links') query = query.ilike('body', '%http%');
+  const { data, error } = await withTimeout(query);
   if (error) throw error;
-  const rows = data as MessageRow[];
+  const rows = (data as MessageRow[]).reverse();
+  return resolveMessages(rows, me);
+}
+
+export async function resolveMessages(rows: MessageRow[], me: string): Promise<Message[]> {
   // Путь в Storage — «<chat>/<файл>»; без «/» — ключ встроенного фото (демо-данные из seed).
   const paths = rows.map((r) => r.media_path).filter((x): x is string => !!x && x.includes('/'));
   const signed = new Map<string, string>();
   if (paths.length) {
-    const { data: urls } = await supabase().storage.from('media').createSignedUrls(paths, 3600);
+    const { data: urls, error } = await withTimeout(supabase().storage.from('media').createSignedUrls([...new Set(paths)], 3600));
+    if (error) throw error;
     urls?.forEach((u) => u.path && u.signedUrl && signed.set(u.path, u.signedUrl));
   }
   return rows.map((r) => mapMessage({ ...r, media_path: r.media_path ? (r.media_path.includes('/') ? (signed.get(r.media_path) ?? null) : r.media_path) : null }, me));
@@ -234,9 +247,19 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
 
 // ——— Запись ———
 
-export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string): Promise<void> {
+export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string, messageId?: string): Promise<void> {
   const me = await requireUser();
-  const { error } = await withTimeout(supabase().from('messages').insert({ chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
+  const { error } = await withTimeout(supabase().from('messages').insert({ ...(messageId ? { id: messageId } : {}), chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
+  if (error?.code === '23505' && messageId) {
+    const check = await withTimeout(supabase().from('messages').select('id').eq('id', messageId).eq('chat_id', chatId).eq('author_id', me).maybeSingle());
+    if (!check.error && check.data) return;
+  }
+  if (error) throw error;
+}
+
+export async function markChatRead(chatId: string, at: string): Promise<void> {
+  await requireUser();
+  const { error } = await withTimeout(supabase().rpc('mark_chat_read', { p_chat: chatId, p_seen: at }));
   if (error) throw error;
 }
 
@@ -250,15 +273,23 @@ export async function openDirectChat(personId: string): Promise<string> {
 
 // ——— Медиа: приватный бакет media, путь «<chat_id>/<файл>», читать — по подписанной ссылке ———
 
-export async function uploadMedia(chatId: string, uri: string): Promise<string> {
+export async function uploadMedia(chatId: string, uri: string, kind?: MessageKind): Promise<string> {
   const me = await requireUser();
-  const response = await fetch(uri);
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
-  const blob = await response.arrayBuffer();
-  const ext = (contentType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('quicktime', 'mov');
-  const path = `${chatId}/${me}-${Date.now()}.${ext}`;
-  const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType }), 60000);
-  if (error) throw error;
+  const ext = /\.(mp4|m4a|aac|mov|png|webp|jpg|jpeg)(?:[?#]|$)/i.exec(uri)?.[1]?.toLowerCase() ?? (kind === 'voice' ? 'm4a' : kind === 'video' || kind === 'circle' ? 'mp4' : 'jpg');
+  const contentType = ({ mp4: 'video/mp4', mov: 'video/quicktime', m4a: 'audio/mp4', aac: 'audio/aac', png: 'image/png', webp: 'image/webp', jpeg: 'image/jpeg', jpg: 'image/jpeg' } as Record<string, string>)[ext];
+  const path = `${chatId}/${me}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  if (Platform.OS !== 'web' && /^(file|content):/.test(uri)) {
+    const signed = await withTimeout(supabase().storage.from('media').createSignedUploadUrl(path));
+    if (signed.error || !signed.data) throw signed.error ?? new Error('upload-unavailable');
+    const { data: { session } } = await supabase().auth.getSession();
+    const response = await withTimeout(nativeFetch(signed.data.signedUrl, { method: 'PUT', headers: { 'Content-Type': contentType, apikey: config.supabaseKey, Authorization: `Bearer ${session?.access_token ?? config.supabaseKey}` }, body: new File(uri) }), 60000);
+    if (!response.ok) throw new Error('upload-failed');
+  } else {
+    const response = await fetch(uri);
+    const blob = await response.arrayBuffer();
+    const { error } = await withTimeout(supabase().storage.from('media').upload(path, blob, { contentType }), 60000);
+    if (error) throw error;
+  }
   return path;
 }
 

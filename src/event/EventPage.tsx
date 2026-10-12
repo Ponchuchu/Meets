@@ -8,12 +8,10 @@ import { router } from 'expo-router';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
 import type { EventItem, Person } from '../data/types';
-import { dayIndex } from '../lib/clock';
+import { almaty, dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
@@ -38,6 +36,7 @@ import { distM } from '../live/geo';
 import { kmText, stampOf } from '../map/ui/EventSheet';
 import { eventLink, shareText, shareUrl, type ShareTarget } from './share';
 import { plural, whenTitle } from './text';
+import { occurrencesOf } from './occurrences';
 import { eventStatusLabel } from './availability';
 
 const LIVE = config.dataMode !== 'demo';
@@ -56,7 +55,7 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
+export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
   initialSheet?: Sheet;
   /** «✕» на открытой карточке: в Рекомендациях — «Мимо», на карте — просто закрыть. */
   onSkip?: () => void;
@@ -65,6 +64,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   onGo?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const [selectedSession, setSelectedSession] = useState<{ initialId: string; event: EventItem } | null>(null);
+  const e = selectedSession?.initialId === initialEvent.id ? selectedSession.event : initialEvent;
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
   const sendingInvite=useRef(false);
   const [inviting,setInviting]=useState(false);
@@ -98,11 +99,11 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
 
   const toggleGo = () => {
     if (statusLabel && !going) return;
-    if (onGo && !going) { onGo(); return; }
+    if (onGo && !going && e.id === initialEvent.id) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
     addPlan();
-    show({ text: 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
+    show({ text: e.category === 'movie' ? 'Сеанс в «Планах». Напомню о билетах за 3 часа' : 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
   const goingInfo = goingLine(e, people, going);
@@ -132,25 +133,19 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     }
     Linking.openURL(shareUrl(t, text, link)).catch(() => {});
   };
-  // Жест «назад»: ведёшь пальцем от левого края вправо — возвращаешься (iOS и Android, на web — мышью).
-  const back = Gesture.Pan()
-    .activeOffsetX(30)
-    .hitSlop({ left: 0, width: 24 })
-    .failOffsetY([-14, 14])
-    .onEnd((ev) => { if (ev.translationX > 90 && ev.absoluteX - ev.translationX < 48) scheduleOnRN(onClose); });
-
   const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
+  const sessions = occurrencesOf(e, sameVenue, now);
+  const sessionTime = (x: EventItem) => { const at = almaty(x.startsAt); return `${at.getUTCDate()}.${String(at.getUTCMonth() + 1).padStart(2, '0')} · ${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`; };
   const moreHere = e.venueName ? sameVenue.filter((x) => x.id !== e.id && x.venueName === e.venueName).length : 0;
   const friendsGoing = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is Person => !!p && p.isFriend);
   const goingText = friendsGoing.length === 1 ? `${friendsGoing[0].name} идёт` : friendsGoing.length === 2 ? `${friendsGoing[0].name} и ${friendsGoing[1].name} идут`
     : friendsGoing.length > 2 ? `${friendsGoing[0].name}, ${friendsGoing[1].name} и ещё ${friendsGoing.length - 2} идут` : e.goingCount >= 3 ? `Идут ${e.goingCount}` : 'Пока никто из друзей';
 
   return (
-    <GestureDetector gesture={back}>
     <View style={styles.root}>
-      <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
@@ -199,6 +194,11 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
           </Pressable>
 
+          {sessions.length > 1 && <View style={{ gap: 8 }}>
+            <Text style={styles.itemTitle}>{e.category === 'movie' ? 'Выбери кинотеатр и сеанс' : 'Другие даты и время'}</Text>
+            <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
+          </View>}
           {!!e.about && <Text style={styles.about}>{e.about}</Text>}
 
           <View style={styles.list}>
@@ -263,7 +263,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </View>
       ) : (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
-          <Pressable onPress={onSkip ?? onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
+          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
             <X size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
           <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
@@ -305,7 +305,6 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </>
       )}
     </View>
-    </GestureDetector>
   );
 }
 

@@ -34,8 +34,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
 
   useImperativeHandle(ref, () => ({
     navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 16.5, bearing: heading, pitch: 35, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
-    flyTo: (lat, lon, zoom) => {
-      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 });
+    flyTo: (lat, lon, zoom, durationMs = 250) => {
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: 0, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -79,7 +79,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
       });
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
-      m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.(); });
+      m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.({ lat: ev.lngLat.lat, lon: ev.lngLat.lng }); });
       m.on('rotate', () => onBearing?.(m.getBearing()));
       map.current = m;
       setReady(true);
@@ -121,9 +121,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       }
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
-        const fogC = theme === 'night' ? '#0E0E10' : '#E8E3D7';
-        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.76, 'fill-antialias': false } });
-        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.76, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
+        const fogC = '#17161A';
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.7, 'fill-antialias': false } });
+        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.7, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
       }
     };
     // Стиль ещё грузится — применим, как только загрузится (и после каждой смены стиля).

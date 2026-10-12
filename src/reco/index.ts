@@ -31,7 +31,7 @@ const STREAK_PENALTY = 0.5;
 export function eventTags(e: Pick<EventItem, 'tags' | 'category' | 'isFree' | 'priceMin'>): string[] {
   const group: Partial<Record<Category, keyof typeof INTEREST_TAGS>> = {
     music: 'music', concert: 'music', standup: 'standup', hike: 'hike', sport: 'sport', bike: 'sport', meetup: 'people',
-    games: 'games', art: 'art', theatre: 'art', food: 'food', party: 'party', talks: 'talks', lecture: 'talks',
+    games: 'games', art: 'art', theatre: 'art', movie: 'art', food: 'food', party: 'party', talks: 'talks', lecture: 'talks',
   };
   const g = group[e.category];
   const base = g ? INTEREST_TAGS[g].slice(0, 2) : [];

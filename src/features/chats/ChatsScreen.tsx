@@ -173,7 +173,7 @@ export default function ChatsScreen() {
             const p = c.kind === 'direct' ? people.find((x) => x.id === c.personId) : undefined;
             const n = unread(c);
             const pin = !!chat.pinned[c.id];
-            const act = p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
+            const act = !c.l.text && p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
             return (
               <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
                 <Pressable onPress={() => open(c.id)}
