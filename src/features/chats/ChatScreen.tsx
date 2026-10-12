@@ -305,6 +305,30 @@ export default function ChatScreen() {
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
   const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
+  const answering = useRef(new Set<string>());
+  const answerMessage = async (m: Message, answer: 'yes' | 'no') => {
+    if (answering.current.has(m.id)) return;
+    const apply = (confirmed: 'yes' | 'no') => {
+      useChat.getState().answer(m.id, confirmed);
+      if (confirmed === 'yes' && m.eventId) { usePlans.getState().go(m.eventId); addPlan(); }
+    };
+    if (!isRemoteId(id)) { apply(answer); return; }
+    const candidates = invites.filter(inv => inv.event_id === m.eventId && inv.from_id === m.authorId);
+    const inv = candidates.find(inv => !inv.answer) ?? candidates[0];
+    if (!inv) { show({ text: 'Приглашение ещё загружается. Попробуй ответить ещё раз' }); void qc.invalidateQueries({ queryKey: ['invites'] }); return; }
+    answering.current.add(m.id);
+    show({ text: 'Сохраняю ответ…' });
+    try {
+      if (!inv.answer) await answerInvite(inv, answer === 'yes');
+      apply(inv.answer === 'yes' || inv.answer === 'no' ? inv.answer : answer);
+      show({ text: 'Ответ сохранён' });
+      void qc.invalidateQueries({ queryKey: ['invites'] });
+    } catch {
+      show({ text: 'Ответ не сохранился. Проверь связь и нажми ещё раз' });
+      void qc.invalidateQueries({ queryKey: ['invites'] });
+    } finally { answering.current.delete(m.id); }
+  };
+
   const renderMessage = useCallback(({ item: m, index }: ListRenderItemInfo<Message>) => {
           const mine = m.authorId === 'me';
           const prev = listData[index + 1];
@@ -315,13 +339,7 @@ export default function ChatScreen() {
               voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
               onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
               onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
-              onInvite={!mine ? (a) => {
-                chat.answer(m.id, a);
-                if (a === 'yes' && m.eventId) { plans.go(m.eventId); addPlan(); }
-                // Альфа: ответ уходит в приглашение (видно обоим в «Планах») и сообщением в чат.
-                const inv = invites.find((i) => i.event_id === m.eventId && i.from_id === m.authorId && !i.answer);
-                if (inv) void answerInvite(inv, a === 'yes').then(() => qc.invalidateQueries({ queryKey: ['invites'] })).catch(() => undefined);
-              } : undefined} />
+              onInvite={!mine ? a => { void answerMessage(m, a); } : undefined} />
               {m.delivery && <Pressable disabled={m.delivery === 'sending'} onPress={() => void sendPending(m)} style={{ alignSelf: 'flex-end', minHeight: 36, paddingHorizontal: 8, justifyContent: 'center' }}><Text style={styles.status}>{m.delivery === 'sending' ? 'Отправляется…' : 'Не отправилось · Повторить'}</Text></Pressable>}
             </View>
           );
