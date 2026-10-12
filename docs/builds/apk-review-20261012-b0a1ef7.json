@@ -1,0 +1,12 @@
+{
+  "kind": "apk",
+  "tag": "apk-review-20261012-b0a1ef7",
+  "source": "b0a1ef73e35b4954d6d299505c1223a77b5899e1",
+  "status": "success",
+  "job_status": "success",
+  "stage": "success",
+  "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/38183829780",
+  "apk_url": "https://expo.dev/artifacts/eas/lBxM7ynNToJmHRMrwTWTX3nq08bAvlhLzq9lrJCuSxo.apk",
+  "build_id": "4f61e8c9-3e52-47ba-b9d6-7578fac98750",
+  "pr_url": null
+}

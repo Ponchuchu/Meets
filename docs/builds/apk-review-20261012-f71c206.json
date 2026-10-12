@@ -1,0 +1,13 @@
+{
+  "kind": "apk",
+  "tag": "apk-review-20261012-f71c206",
+  "source": "f71c206b78a14c6ec701592840ed11355ab30add",
+  "status": "success",
+  "job_status": "success",
+  "stage": "success",
+  "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/38185330963",
+  "apk_url": "https://expo.dev/artifacts/eas/wZO3A989-0tXNxUDcSw37pqjcPmosDRq82o7B0GYYpw.apk",
+  "build_id": "485c3916-97cc-43ef-af08-6980614fec37",
+  "pr_url": null,
+  "pr_error": "pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)"
+}
