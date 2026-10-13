@@ -11,10 +11,10 @@ import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
 import { STICKERS } from '../../stickers/catalog';
-import { StickerView } from '../../stickers/StickerView';
 import { config } from '../../lib/config';
 import { registerPlayback, usePlayback } from '../playback';
 import { VideoPreview } from './VideoPreview';
+import { InteractiveSticker } from '../../stickers/InteractiveSticker';
 import { vote } from '../rules';
 
 const WAVE = [6, 10, 14, 9, 16, 12, 18, 8, 13, 17, 10, 6, 12, 15, 9, 11, 7, 13, 10, 6, 9, 5];
@@ -115,6 +115,14 @@ function VideoFile({uri}:{uri:string}) {
 function MediaBubble({m,mine,blurred,onReveal}:{m:Message;mine:boolean;blurred:boolean;onReveal:()=>void}) {
   const [ratio,setRatio]=useState(1);
   const [open,setOpen]=useState(false);
+  useEffect(() => {
+    let active = true;
+    const source = photo(m.media);
+    if (!source) return;
+    const asset = typeof Image.resolveAssetSource === 'function' ? Image.resolveAssetSource(source) : Array.isArray(source) ? source[0] : typeof source === 'object' ? source : null;
+    if (asset?.uri) Image.getSize(asset.uri, (w,h) => { if (active && w && h) setRatio(w/h); }, () => undefined);
+    return () => { active = false; };
+  }, [m.media]);
   return <>
     <Pressable onPress={() => { if (usePlayback.getState().recording) return; if (blurred) onReveal(); else setOpen(true); }} style={[styles.media,mine?styles.meBox:styles.themBox]} accessibilityRole="button" accessibilityLabel={blurred?'Показать медиа':'Открыть медиа'}>
       {m.kind==='video' && isFile(m.media) && !blurred ? <View style={{ height: 180, width: '100%' }}><VideoPreview id={m.id} uri={m.media!}/></View> : <View style={{aspectRatio:Math.max(0.55,Math.min(2,ratio)),width:'100%'}}>
@@ -166,7 +174,7 @@ export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAu
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
         <View style={{ alignItems: align, gap: 6 }}>
-          <StickerView st={st} size="lg"/>
+          <InteractiveSticker st={st} />
           <Text style={styles.cap}>СТИКЕР С КАРТЫ · {m.time}</Text>
         </View>
       );

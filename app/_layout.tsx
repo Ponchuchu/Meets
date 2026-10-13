@@ -8,7 +8,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import { useEffect, useSyncExternalStore } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Splash } from '../src/features/auth/Splash';
@@ -20,7 +21,12 @@ import { colors } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+const subscribeMount = () => () => undefined;
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
+
 export default function RootLayout() {
+  const mounted = useSyncExternalStore(subscribeMount, clientSnapshot, serverSnapshot);
   useNetWatch();
   useAuthWatch();
   const [loaded, error] = useFonts({
@@ -33,7 +39,7 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync().catch(() => {});
   }, [loaded, error]);
 
-  if (!loaded && !error) return null;
+  if ((Platform.OS === 'web' && !mounted) || (!loaded && !error)) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.paper }}>

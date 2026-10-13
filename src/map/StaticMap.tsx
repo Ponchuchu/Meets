@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { MapBase } from '../components/MapBase';
+import { fitCamera } from './fit';
 import { project, unproject } from './projection';
 import type { MapCanvasHandle, MapCanvasProps } from './types';
 
@@ -11,6 +12,7 @@ export const StaticMap = forwardRef<MapCanvasHandle, MapCanvasProps>(function St
   // Подложка тоже умеет «лететь»: сдвигаем камеру (пины пересчитываются, картинка остаётся фоном).
   const [camera, setCamera] = useState(initial);
   useImperativeHandle(ref, () => ({
+    fitBounds: (coords, padding) => { const c = fitCamera(coords, size.w, size.h, padding); if (c) setCamera(c); },
     navigateTo: (lat, lon) => { setCamera((c) => ({ ...c, lat, lon, zoom: 16.5 })); },
     flyTo: (lat, lon, zoom) => setCamera((c) => ({ lat, lon, zoom: zoom ?? c.zoom })),
     zoomBy: (d) => setCamera((c) => ({ ...c, zoom: Math.max(10, Math.min(18, c.zoom + d)) })),

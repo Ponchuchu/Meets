@@ -32,7 +32,9 @@ describe('геолокация альфы', () => {
   });
   it('частота отправки', () => {
     expect(sendInterval(true, 0.8)).toBe(4000);
-    expect(sendInterval(false, 0.8)).toBe(150000);
+    expect(sendInterval(false, 0.8)).toBe(300000);
+    expect(sendInterval(false, 0.8, true)).toBe(180000);
+    expect(sendInterval(false, 0.8, false)).toBe(900000);
     expect(sendInterval(false, 0.05)).toBe(300000);
   });
 });

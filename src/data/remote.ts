@@ -18,6 +18,8 @@ export interface ProfileRow {
   id: string;
   name: string;
   photo_url: string | null;
+  map_trail?: 'none' | 'dots' | 'comet';
+  map_frame?: string;
   handle: string | null;
   about?: string | null;
   instagram?: string | null;
@@ -28,6 +30,7 @@ export interface ProfileRow {
 }
 
 export interface MessageRow {
+  client_key?: string | null;
   id: string;
   chat_id: string;
   author_id: string | null;
@@ -53,7 +56,7 @@ export function mapProfile(r: ProfileRow, friends: Set<string>, at = new Date())
     id: r.id,
     name: r.name,
     age: ageFrom(r.birth_date, at),
-    photo: r.photo_url,
+    photo: r.photo_url, mapFrame: r.map_frame, mapTrail: r.map_trail,
     initial: r.name.slice(0, 1).toUpperCase(),
     tint: TINTS[n % TINTS.length],
     isFriend: friends.has(r.id),
@@ -71,7 +74,7 @@ const secs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, 
 export function mapMessage(r: MessageRow, me: string): Message {
   return {
     id: r.id,
-    chatId: r.chat_id,
+    chatId: r.chat_id, clientKey: r.client_key ?? undefined,
     authorId: r.author_id === me ? 'me' : (r.author_id ?? 'system'),
     kind: r.kind,
     text: r.body ?? '',
@@ -110,7 +113,7 @@ async function friendIds(me: string): Promise<Set<string>> {
 
 async function profiles(ids: string[]): Promise<ProfileRow[]> {
   if (!ids.length) return [];
-  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date').in('id', ids));
+  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date,map_frame,map_trail').in('id', ids));
   if (error) throw error;
   return data as ProfileRow[];
 }
@@ -161,19 +164,22 @@ export async function getChats(): Promise<Chat[]> {
   const rows = mine as unknown as Row[];
   const ids = rows.map((r) => r.chat_id);
   if (!ids.length) return [];
-  const [{ data: members }, { data: last }] = await Promise.all([
+  const [memberResult, lastResult] = await Promise.all([
     withTimeout(supabase().from('chat_members').select('chat_id,user_id').in('chat_id', ids)),
-    withTimeout(supabase().from('messages').select('chat_id,author_id,body,kind,created_at').in('chat_id', ids).order('created_at', { ascending: false }).limit(500)),
+    withTimeout(supabase().rpc('my_chat_summaries')),
   ]);
+  if (memberResult.error) throw memberResult.error;
+  if (lastResult.error) throw lastResult.error;
+  const members = memberResult.data, last = lastResult.data;
   const byChat = new Map<string, string[]>();
   (members as { chat_id: string; user_id: string }[] | null)?.forEach((m) => byChat.set(m.chat_id, [...(byChat.get(m.chat_id) ?? []), m.user_id]));
   const people = new Map((await profiles([...new Set([...byChat.values()].flat())])).map((p) => [p.id, p]));
-  const msgs = (last as MessageRow[] | null) ?? [];
+  const msgs = (last as (MessageRow & { unread: number })[] | null) ?? [];
   return rows.map((r) => {
     const others = (byChat.get(r.chat_id) ?? []).filter((u) => u !== me);
     const own = msgs.filter((m) => m.chat_id === r.chat_id);
     const top = own[0];
-    const unread = own.filter((m) => m.author_id !== me && (!r.last_read_at || m.created_at > r.last_read_at)).length;
+    const unread = Number(top?.unread ?? 0);
     const direct = r.chats.kind === 'direct';
     return {
       id: r.chat_id,

@@ -8,6 +8,7 @@ export interface VenueRow {
   id: string;
   name: string;
   aliases: string[];
+  address?: string | null;
   lat: number | null;
   lon: number | null;
 }
@@ -17,11 +18,15 @@ export function matchVenue(name: string | null, address: string | null, venues: 
   if (!probes.length) return null;
   let best: { v: VenueRow; s: number } | null = null;
   for (const v of venues) {
+    if (address && v.address) {
+      const a = splitQuery(address), b = splitQuery(v.address);
+      if (a.house && b.house && a.house.toLowerCase() !== b.house.toLowerCase()) continue;
+    }
     for (const label of [v.name, ...v.aliases]) {
       const l = normalize(label);
       for (const p of probes) {
-        const s = p === l ? 1 : p.includes(l) || l.includes(p) ? 0.8 : similarity(p, l);
-        if (s >= 0.6 && (!best || s > best.s)) best = { v, s };
+        const s = p === l ? 1 : p.includes(l) || l.includes(p) ? 0.9 : similarity(p, l);
+        if (s >= 0.85 && (!best || s > best.s)) best = { v, s };
       }
     }
   }

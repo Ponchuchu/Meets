@@ -28,10 +28,11 @@ try {
 const LOAD_TIMEOUT_MS = 8000;
 
 const PIN_BOX = 72;
+const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading } = props;
-  const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
+  const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
   const loaded = useRef(false);
@@ -44,7 +45,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const [followZoom, setFollowZoom] = useState(camera.zoom);
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
-    if (failed) return;
+    if (failed) { onMode?.('static'); return; }
     const t = setTimeout(() => {
       if (loaded.current) return;
       if (attempt === 0) { console.warn('[map] Mapbox не загрузился за 8 с — перезагружаю стиль'); setAttempt(1); return; }
@@ -62,6 +63,13 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   };
 
   useImperativeHandle(ref, () => ({
+    fitBounds: (coords, padding) => {
+      if (!coords.length) return;
+      moved.current = true;
+      const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+      if (cam.current) cam.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [padding.top, padding.right, padding.bottom, padding.left], 450);
+      else staticRef.current?.fitBounds?.(coords, padding);
+    },
     navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
@@ -89,7 +97,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       <M.MapView
         key={attempt}
         style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
-        styleJSON={JSON.stringify(mapStyle('paper'))}
+        styleJSON={PAPER_STYLE}
         surfaceView={false}
         rotateEnabled
         pitchEnabled={false}

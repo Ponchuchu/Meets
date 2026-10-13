@@ -32,11 +32,13 @@ export default function ForYouScreen() {
   const seenFeed = useApp((s) => s.seenFeed);
   useFocusEffect(useCallback(() => { seenFeed(); }, [seenFeed]));
 
-  const now = useMemo(() => clockNow(), []);
+  const [now, setNow] = useState(clockNow);
+  useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
   const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const goingIds = usePlans(s => s.going);
   const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
@@ -62,15 +64,8 @@ export default function ForYouScreen() {
   const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
   const deck = useMemo(() => {
     const swipes = history.length;
-    const dec = new Set(Object.keys(decided));
+    const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
     let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
-    // Нет дна: когда кандидаты кончились — возвращаем пропущенные (ослабляем фильтры).
-    // Только что пропущенную карточку не показываем сразу снова, если есть из чего выбрать.
-    const lastId = history[history.length - 1]?.eventId;
-    if (d.length < STACK) {
-      const more = buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x));
-      d = [...d, ...more.filter((x) => x.id !== lastId || more.length === 1)];
-    }
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
@@ -81,7 +76,7 @@ export default function ForYouScreen() {
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
     return d;
-  }, [taste, events, decided, history, now, enter, previewId]);
+  }, [taste, events, decided, goingIds, history, now, enter, previewId]);
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
@@ -108,6 +103,7 @@ export default function ForYouScreen() {
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
     bump(e.id);
     setPreviewId(null);
+    if (kind === 'go' && (e.sessions?.length || (e.isLong && e.endsAt && new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime() > 24 * 3600e3))) { openCard(e); return; }
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);

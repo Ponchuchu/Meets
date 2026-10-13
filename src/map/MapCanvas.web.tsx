@@ -33,6 +33,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   useEffect(() => { onPressRef.current = onPress; }, [onPress]);
 
   useImperativeHandle(ref, () => ({
+    fitBounds: (coords, padding) => {
+      if (!coords.length) return;
+      const lons=coords.map(c=>c[0]), lats=coords.map(c=>c[1]);
+      if (map.current) map.current.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], { padding, duration:450, maxZoom:18 });
+      else staticRef.current?.fitBounds?.(coords, padding);
+    },
     navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 16.5, bearing: heading, pitch: 35, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 250) => {
       if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: 0, duration: durationMs });

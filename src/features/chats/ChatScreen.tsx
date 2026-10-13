@@ -15,7 +15,7 @@ import { StickerPicker } from '../../stickers/StickerPicker';
 import { getMeStats, answerInvite, getInvites } from '../../live/api';
 import { config } from '../../lib/config';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, type ListRenderItemInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, type ListRenderItemInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../chat/rules';
@@ -28,7 +28,7 @@ import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
 import { cellOf } from '../../profile/city';
-import { useApp } from '../../state/app';
+import { useApp, useBackClose } from '../../state/app';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
 import { useMapState } from '../../state/map';
@@ -64,6 +64,7 @@ const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
   const now = clockNow();
   const [focused, setFocused] = useState(true);
@@ -298,7 +299,7 @@ export default function ChatScreen() {
   const title = isGroup ? chatMeta?.title ?? 'Группа' : isEvent ? chatMeta?.title ?? event?.title ?? 'Чат события' : person?.name ?? 'Чат';
   const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
-    : friend ? 'в друзьях · онлайн' : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
+    : friend ? (details?.online ? 'в друзьях · онлайн' : 'в друзьях') : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
   const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
@@ -344,6 +345,13 @@ export default function ChatScreen() {
             </View>
           );
   }, [listData, people, friend, isEvent, isGroup, chat.revealed, chat.votes, chat.answers, invites, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useBackClose(() => {
+    if (recording) void stopRec(false);
+    else if (sheet) setSheet(null);
+    else if (poll) setPoll(null);
+    else { setTray(false); setAlbumsOpen(false); }
+  }, !!recording || !!sheet || !!poll || tray);
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior="padding">
@@ -432,9 +440,10 @@ export default function ChatScreen() {
 
       {tray && check.ok && !poll && (
         <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
-        <SwipeDown onClose={() => { setTray(false); setAlbumsOpen(false); }} style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
-          <View style={styles.grab} />
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+          <SwipeDown onClose={() => { setTray(false); setAlbumsOpen(false); }}><View style={styles.grab} /></SwipeDown>
+          <ScrollView style={{ maxHeight: Math.max(96, winH - 240 - insets.bottom) }} contentContainerStyle={{ gap: 10 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
             <Pressable onPress={() => setAlbumsOpen(!albumsOpen)} style={styles.album} accessibilityRole="button" accessibilityLabel="Выбрать альбом" accessibilityState={{ expanded: albumsOpen }}>
               <Text style={styles.albumText}>{ALBUMS.find(([k]) => k === album)?.[1]}</Text>
               <Ic d={albumsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} size={16} color={colors.ink} w={2.2} />
@@ -448,7 +457,7 @@ export default function ChatScreen() {
             <Pressable onPress={() => { setTray(false); setAlbumsOpen(false); }} style={styles.trayClose} hitSlop={6} accessibilityRole="button" accessibilityLabel="Закрыть вложения">
               <Ic d={IC.close} size={15} color={colors.ink} w={2.3} />
             </Pressable>
-          </View>
+          </ScrollView>
           {albumsOpen && (
             <View style={styles.albums}>
               {ALBUMS.map(([k, label]) => (
@@ -459,7 +468,8 @@ export default function ChatScreen() {
               ))}
             </View>
           )}
-          <Pressable onPress={()=>void library()} style={styles.sendAll}><Text style={styles.sendAllText}>Выбрать из галереи телефона</Text></Pressable>
+          <Pressable onPress={()=>void library()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Выбрать из галереи телефона"><Text style={styles.sendAllText}>Выбрать из галереи телефона</Text></Pressable>
+          {config.dataMode!=='demo' && <Pressable onPress={()=>void camera()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Камера"><Text style={styles.sendAllText}>Снять фото</Text></Pressable>}
           {config.dataMode==='demo' && <View style={styles.grid}>
             <Pressable onPress={camera} style={[styles.thumb, styles.camTile]} accessibilityRole="button" accessibilityLabel="Камера">
               <View style={styles.camLens}><Ic d={CAM_IC} size={26} color={colors.paper} w={1.8} /></View>
@@ -477,17 +487,19 @@ export default function ChatScreen() {
               );
             })}
           </View>}
+          </ScrollView>
           {config.dataMode==='demo'&&<Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
           </Pressable>}
-        </SwipeDown>
+        </View>
         </Animated.View>
       )}
 
       {poll && (
         <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
-        <SwipeDown onClose={() => setPoll(null)} style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
-          <View style={styles.grab} />
+        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
+          <SwipeDown onClose={() => setPoll(null)}><View style={styles.grab} /></SwipeDown>
+          <ScrollView style={{ maxHeight: Math.max(96, winH - 240 - insets.bottom) }} contentContainerStyle={{ gap: 10 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.sheetTitle, { flex: 1, fontSize: 19 }]}>Опрос</Text>
             <Pressable onPress={() => setPoll(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Отменить опрос"><Ic d={IC.close} size={18} color={colors.ink} w={2.2} /></Pressable>
@@ -500,11 +512,12 @@ export default function ChatScreen() {
           {poll.options.length < 6 && (
             <Pressable onPress={() => setPoll({ ...poll, options: [...poll.options, ''] })} style={{ alignSelf: 'flex-start', paddingVertical: 4 }} accessibilityRole="button"><Text style={styles.addOption}>+ Вариант</Text></Pressable>
           )}
+          </ScrollView>
           <Pressable onPress={sendPoll} disabled={!poll.q.trim() || poll.options.filter((o) => o.trim()).length < 2}
             style={[styles.sendAll, (!poll.q.trim() || poll.options.filter((o) => o.trim()).length < 2) && { backgroundColor: colors.sand }]} accessibilityRole="button">
             <Text style={styles.sendAllText}>Отправить опрос</Text>
           </Pressable>
-        </SwipeDown>
+        </View>
         </Animated.View>
       )}
 
@@ -547,7 +560,9 @@ function PersonSheet({ p, friend, details, spot, requested, onClose, onProfile, 
   p: Person; friend: boolean; details?: import('../../data/types').PersonDetails; spot?: FriendSpot; requested: boolean;
   onClose: () => void; onProfile: () => void; onMap: () => void; onAdd: () => void;
 }) {
-  const sees = friend && details && canSee('friend', 'location', details.privacy) && (spot || details.now);
+  const sees = friend && (config.dataMode === 'demo'
+    ? !!details && canSee('friend', 'location', details.privacy) && !!(spot || details.now)
+    : !!spot); // В live доступ уже проверен сервером friend_locations.
   // Где он — берём с карты (точка друга), а не из профиля.
   const place = spot?.place ?? details?.now?.place;
   const her = p.name.endsWith('а') ? 'её' : 'его';
@@ -558,7 +573,7 @@ function PersonSheet({ p, friend, details, spot, requested, onClose, onProfile, 
         <Avatar p={p} size={60} radius={18} />
         <View style={{ flex: 1 }}>
           <Text style={styles.sheetTitle}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-          <Text style={styles.status}>{friend ? 'в друзьях · онлайн' : 'не в друзьях · общее событие'}</Text>
+          <Text style={styles.status}>{friend ? (details?.online ? 'в друзьях · онлайн' : 'в друзьях') : 'не в друзьях · общее событие'}</Text>
         </View>
         <Pressable onPress={onClose} style={styles.round} accessibilityRole="button" accessibilityLabel="Закрыть"><Ic d={IC.close} size={16} color={colors.ink} w={2.2} /></Pressable>
       </View>
@@ -636,13 +651,13 @@ const styles = StyleSheet.create({
   pollInput: { height: 46, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
   addOption: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  thumb: { width: '32.6%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' },
+  thumb: { width: '32%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' },
   thumbImg: { width: '100%', height: '100%' },
   mark: { position: 'absolute', right: 6, top: 6, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   markText: { fontFamily: fonts.mono600, fontSize: 11, color: colors.ink },
   vdur: { position: 'absolute', left: 6, bottom: 6, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(23,22,26,0.7)' },
   vdurText: { fontFamily: fonts.mono600, fontSize: 10, color: '#FFFFFF' },
-  sendAll: { height: 44, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  sendAll: { height: 44, minHeight: 44, flexShrink: 0, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   sendAllText: { fontFamily: fonts.body600, fontSize: 15, color: colors.paper },
   sheetTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink },
   nowCard: { borderRadius: 20, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },

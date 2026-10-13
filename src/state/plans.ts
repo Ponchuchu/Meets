@@ -32,6 +32,7 @@ export const MAX_MOODS = 4;
 
 interface PlansState {
   /** Чьи это планы (id аккаунта) — при входе другим аккаунтом всё стирается. */
+  visits: Record<string, string>;
   muted: Record<string, true>;
   toggleReminder: (eventId: string) => void;
   owner: string | null;
@@ -57,6 +58,7 @@ interface PlansState {
 export const usePlans = create<PlansState>()(
   persist(
     (set, get) => ({
+      visits: {},
       muted: {},
       toggleReminder: (id) => set((s) => { const muted = { ...s.muted }; if (muted[id]) delete muted[id]; else muted[id] = true; return { muted }; }),
       owner: null,
@@ -77,7 +79,8 @@ export const usePlans = create<PlansState>()(
         track('cancel_plan', id);
         const going = { ...s.going };
         delete going[id];
-        return { going };
+        const visits = { ...s.visits }; delete visits[id];
+        return { going, visits };
       }),
       toggleSave: (id) => set((s) => {
         const saved = { ...s.saved };

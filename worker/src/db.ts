@@ -34,7 +34,7 @@ export function createDb(url: string, key: string): Db {
 
   return {
     sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search)&select=*'),
-    venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,lat,lon'),
+    venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,address,lat,lon'),
     known: async () => {
       const since = new Date(Date.now() - 2 * 86400e3).toISOString();
       const now = new Date().toISOString();

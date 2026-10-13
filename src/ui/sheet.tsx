@@ -84,12 +84,12 @@ export function BottomSheet({ children, style, label, onClose, scroll = false }:
   return (
     <Animated.View entering={sheetIn} exiting={sheetOut} accessibilityViewIsModal accessibilityLabel={label} style={[styles.host, { bottom: lift }]}>
       <View ref={hostRef} collapsable={false}>
-        <Animated.View style={[styles.sheet, style, moving]}>
+        <Animated.View style={[styles.sheet, style, scroll && { maxHeight: Math.max(140, winH - lift - 40) }, moving]}>
           <GestureDetector gesture={pan}>
             <View style={{ height: 28, justifyContent: 'center' }} accessibilityLabel="Потяни вниз, чтобы закрыть"><View style={styles.handle} /></View>
           </GestureDetector>
           {scroll ? (
-            <ScrollView style={{ maxHeight: Math.max(240, winH - lift - 120) }} contentContainerStyle={{ gap: 16, paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled>
+            <ScrollView style={{ maxHeight: Math.max(100, winH - lift - 120), flexShrink: 1 }} contentContainerStyle={{ gap: 16, paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled>
               {children}
             </ScrollView>
           ) : children}

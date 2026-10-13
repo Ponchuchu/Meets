@@ -7,10 +7,10 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import Svg, { Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
 /** Направление телефона в градусах (0 — север), плавно и без прыжка через 360°. */
-export function useHeading(active = true): SharedValue<number> {
+export function useHeading(enabled = true): SharedValue<number> {
   const h = useSharedValue(Number.NaN);
   useEffect(() => {
-    if (Platform.OS === 'web' || !active) return;
+    if (!enabled || Platform.OS === 'web') return;
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
     void Location.watchHeadingAsync((e) => {
@@ -22,7 +22,7 @@ export function useHeading(active = true): SharedValue<number> {
       h.set(withTiming(cur + d, { duration: 150, easing: Easing.linear }));
     }).then((s) => { if (cancelled) s.remove(); else sub = s; }).catch(() => undefined);
     return () => { cancelled = true; sub?.remove(); };
-  }, [h, active]);
+  }, [h, enabled]);
   return h;
 }
 

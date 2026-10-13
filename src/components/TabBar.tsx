@@ -3,6 +3,7 @@
 // Бейджи: Планы (зовут + новые), Чаты (непрочитанные) — оранжевые, цифра прокручивается вверх при смене.
 // Повторный тап обрабатывают экраны (событие tabPress). Долгое нажатие — подсказка с названием вкладки.
 // Панель уезжает вниз (−130 px, 300 мс), когда открыта шторка, раскрытая карточка или клавиатура.
+import * as Haptics from 'expo-haptics';
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -168,7 +169,10 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               onLong={() => setHint(TABS[route.name].label)}
               onPress={() => {
                 const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!on && !e.defaultPrevented) navigation.navigate(route.name);
+                if (!on && !e.defaultPrevented) {
+                  void Haptics.selectionAsync().catch(() => undefined);
+                  navigation.navigate(route.name);
+                }
               }} />
           );
         })}

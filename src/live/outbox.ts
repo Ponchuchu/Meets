@@ -20,6 +20,7 @@ export const setOutboxSender = (fn: Sender) => { sender = fn; };
 
 interface OutboxState {
   items: OutItem[];
+  updatePayload: (id: string, patch: Record<string, unknown>) => void;
   add: (item: Omit<OutItem, 'tries' | 'at'>) => void;
   flush: () => Promise<void>;
 }
@@ -29,15 +30,17 @@ export const useOutbox = create<OutboxState>()(
   persist(
     (set, get) => ({
       items: [],
+      updatePayload: (id, patch) => set(s => ({ items: s.items.map(x => x.id === id ? { ...x, payload: { ...x.payload, ...patch } } : x) })),
       add: (item) => {
-        set((s) => ({ items: [...s.items, { ...item, tries: 0, at: new Date().toISOString() }] }));
+        set((s) => ({ items: [...s.items.filter(x => x.id !== item.id), { ...item, tries: 0, at: new Date().toISOString() }] }));
         void get().flush();
       },
       flush: async () => {
         if (flushing || !sender || !useNet.getState().online) return;
         flushing = true;
         try {
-          for (const it of [...get().items]) {
+          while (get().items.length) {
+            const it = get().items[0];
             try {
               await sender(it);
               set((s) => ({ items: s.items.filter((x) => x.id !== it.id) }));

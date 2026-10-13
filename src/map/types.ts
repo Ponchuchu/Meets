@@ -52,6 +52,7 @@ export interface MapCanvasProps {
 }
 
 export interface MapCanvasHandle {
+  fitBounds?: (coords: [number, number][], padding: { top: number; right: number; bottom: number; left: number }) => void;
   navigateTo: (lat: number, lon: number, heading: number) => void;
   flyTo: (lat: number, lon: number, zoom?: number, durationMs?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */

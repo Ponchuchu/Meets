@@ -64,8 +64,8 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
 
 const COLOR: Record<string, string> = { music: colors.accent, games: colors.softGreen, standup: colors.ink, art: colors.sand, food: colors.softYellow, hike: colors.ink, concert: colors.ink };
 
-export function InviteFriendSheet({ p, title, ideas, now, onOwn, onSend }: {
-  p: Person; title: string; ideas: InviteIdea[]; now: Date; onOwn: () => void; onSend: (eventId: string) => void;
+export function InviteFriendSheet({ p, title, ideas, now, onOwn, onSend, busy = false }: {
+  busy?: boolean; p: Person; title: string; ideas: InviteIdea[]; now: Date; onOwn: () => void; onSend: (eventId: string) => void;
 }) {
   const [pick, setPick] = useState(0);
   return (
@@ -103,8 +103,8 @@ export function InviteFriendSheet({ p, title, ideas, now, onOwn, onSend }: {
           </View>
         </Pressable>
       </View>
-      <Pressable onPress={() => ideas[pick] && onSend(ideas[pick].e.id)} style={styles.send} accessibilityRole="button">
-        <Text style={[styles.btnText, { color: colors.paper, fontSize: 16 }]}>{title}</Text>
+      <Pressable disabled={busy || !ideas[pick]} onPress={() => ideas[pick] && onSend(ideas[pick].e.id)} style={styles.send} accessibilityRole="button">
+        <Text style={[styles.btnText, { color: colors.paper, fontSize: 16 }]}>{busy ? 'Отправляю…' : title}</Text>
       </Pressable>
     </>
   );

@@ -3,7 +3,8 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { preparePushChannel } from '../../live/push';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
@@ -42,6 +43,7 @@ export default function Allow() {
 
   const askGeo = async () => {
     try {
+      if (geo === 'no') { await Linking.openSettings(); return; }
       const p = await Location.requestForegroundPermissionsAsync();
       setLocationAsked();
       if (p.granted) {
@@ -52,6 +54,8 @@ export default function Allow() {
   };
   const askPush = async () => {
     try {
+      if (push === 'no') { await Linking.openSettings(); return; }
+      await preparePushChannel();
       const p = await Notifications.requestPermissionsAsync();
       setPush(p.granted ? 'ok' : 'no');
     } catch { setPush('no'); }

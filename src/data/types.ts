@@ -8,6 +8,8 @@ export type Visibility = 'public' | 'friends';
 
 export interface EventItem {
   id: string;
+  sessions?: { id: string; startsAt: string; endsAt: string | null }[];
+  createdBy?: string;
   title: string;
   category: Category;
   tags: string[];
@@ -80,6 +82,8 @@ export interface Person {
   name: string;
   age?: number;
   photo: string | null; // ключ фото из assets
+  mapTrail?: 'none' | 'dots' | 'comet';
+  mapFrame?: string;
   initial: string;
   tint: string;
   isFriend: boolean;
@@ -92,6 +96,7 @@ export interface Person {
 export type MessageKind = 'text' | 'photo' | 'video' | 'voice' | 'circle' | 'sticker' | 'invite' | 'poll' | 'system';
 
 export interface Message {
+  clientKey?: string;
   id: string;
   chatId: string;
   authorId: string; // 'me' — это я

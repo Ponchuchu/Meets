@@ -14,7 +14,7 @@ import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { now as clockNow } from '../../lib/clock';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
@@ -46,18 +46,19 @@ export default function ChatsScreen() {
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const creating = useRef(false);
   const [busy, setBusy] = useState(false);
   const friends = people.filter(p => isFriendNow(p, social));
   const create = async () => {
-    if (busy || !groupTitle.trim() || members.length < 2) return;
-    setBusy(true); setError('');
+    if (creating.current || !groupTitle.trim() || members.length < 1) return;
+    creating.current = true; setBusy(true); setError('');
     try {
       const id = config.dataMode === 'demo' ? uid('group') : await createFriendGroup(groupTitle.trim(), members);
       if(config.dataMode === 'demo') chat.addGroup({id,kind:'group',title:groupTitle.trim(),members:members.length+1,memberIds:members,lastText:'Группа создана',lastTime:'',unread:0});
       await queryClient.invalidateQueries({queryKey:['chats']});
       setGroup(false); router.push({pathname:'/chat/[id]',params:{id}});
     } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
-    finally { setBusy(false); }
+    finally { creating.current = false; setBusy(false); }
   };
   const plans = usePlans();
   const addPlan = useApp((s) => s.addPlan);
@@ -92,7 +93,7 @@ export default function ChatsScreen() {
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
         <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
-        <Pressable onPress={() => {setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
+        <Pressable onPress={() => {setGroupTitle('');setMembers([]);setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
@@ -229,16 +230,16 @@ export default function ChatsScreen() {
       )}
       {list.length === 0 && lonely.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
     </ScrollView>
-    {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
+    {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
       <Text style={styles.h1}>Новая группа</Text>
       <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
-      <Text style={styles.sub}>Выбери минимум двух друзей</Text>
-      <ScrollView style={{maxHeight:300}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
+      <Text style={styles.sub}>Выбери хотя бы одного друга</Text>
+      <View style={{gap:4}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
         <Avatar p={p}/><Text style={[styles.name,{flex:1}]}>{p.name}</Text>{members.includes(p.id)&&<Ic d={IC.check} size={20} color={colors.accent}/>}
-      </Pressable>)}</ScrollView>
+      </Pressable>)}</View>
       {!friends.length&&<Text style={styles.sub}>Добавь друзей, чтобы собрать группу</Text>}
       {!!error&&<Text style={[styles.sub,{color:colors.accentText}]}>{error}</Text>}
-      <Pressable onPress={create} disabled={busy||members.length<2||!groupTitle.trim()} style={[styles.btn,{flex:0,height:48,backgroundColor:colors.ink,opacity:members.length<2?0.45:1}]}><Text style={[styles.btnText,{color:colors.paper}]}>{busy?'Создаю…':'Создать группу'}</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'Создаю группу' : 'Создать группу'} onPress={create} disabled={busy||members.length<1||!groupTitle.trim()} style={[styles.btn,{flexGrow:0,flexShrink:0,flexBasis:'auto',height:48,minHeight:48,backgroundColor:colors.ink,opacity:members.length<1?0.45:1}]}><Text style={[styles.btnText,{color:colors.paper}]}>{busy?'Создаю…':'Создать группу'}</Text></Pressable>
     </BottomSheet></>}
     </View>
   );
