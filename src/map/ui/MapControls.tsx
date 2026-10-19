@@ -14,8 +14,8 @@ export function MapControls({ top, bearing, follow, onCompass, onZoom, onMe, thr
   const needle = useAnimatedStyle(() => ({ transform: [{ rotate: `${-bearing.get()}deg` }] }));
   return (
     <View style={[styles.col, { top }]} pointerEvents="box-none">
-      {onThreeD && <Pressable onPress={onThreeD} disabled={threeDDisabled} style={[styles.round, glass, threeDDisabled && { opacity: 0.5 }]}
-        accessibilityRole="button" accessibilityLabel={threeDDisabled ? '3D-карта недоступна без подключения к картографическому сервису' : threeD ? 'Переключить карту в 2D' : 'Переключить карту в 3D'}>
+      {onThreeD && !threeDDisabled && <Pressable onPress={onThreeD} style={[styles.round, glass]}
+        accessibilityRole="button" accessibilityLabel={threeD ? 'Переключить карту в 2D' : 'Переключить карту в 3D'}>
         <Text style={{ fontSize: 16, fontWeight: '700', color: colors.ink }}>{threeD ? '2D' : '3D'}</Text>
       </Pressable>}
       <Pressable onPress={onCompass} style={({ pressed }) => [styles.round, glass, follow && styles.on, pressed && styles.pressed]}

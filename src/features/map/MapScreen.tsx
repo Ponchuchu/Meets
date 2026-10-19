@@ -458,7 +458,7 @@ export default function MapScreen() {
           <View style={styles.finding} accessibilityLiveRegion="polite"><Text style={styles.findingText}>Ищу тебя на карте…</Text></View>
         )}
         {mapMode === 'static' && <Pressable onPress={() => { setMapMode('loading'); setMapAttempt(n => n + 1); }} accessibilityRole="button" style={{ marginTop: 6, padding: 10, borderRadius: 14, backgroundColor: colors.paper }}>
-          <Text style={{ fontFamily: fonts.body500, color: colors.ink }}>Не удалось загрузить карту · Повторить</Text>
+          <Text style={{ fontFamily: fonts.body500, color: colors.ink }}>Показана схема · 3D недоступно · Повторить</Text>
         </Pressable>}
         {LIVE && (!net.online || net.serverDown) && (
           <View style={{ marginTop: 6 }}>

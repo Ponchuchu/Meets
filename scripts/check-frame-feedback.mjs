@@ -90,7 +90,11 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   for (const [path, name] of [['/', 'Map'], ['/foryou', 'Feed'], ['/chats', 'Chats'], ['/chat/dm-igor', 'Chat'], ['/plans', 'Plans']]) {
     await go(path);
-    if (path === '/') await page.waitForTimeout(8500); // Недоступные внешние тайлы: честное состояние fallback.
+    if (path === '/') {
+      await page.waitForTimeout(8500); // Недоступные внешние тайлы: честное состояние fallback.
+      assert.equal(await page.getByText('Показана схема · 3D недоступно · Повторить', { exact: true }).isVisible(), true);
+      assert.equal(await page.getByRole('button', { name: /Переключить карту в [23]D/ }).count(), 0);
+    }
     await shot(name);
   }
   assert.deepEqual(errors, []);
