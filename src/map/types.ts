@@ -49,6 +49,8 @@ export interface MapCanvasProps {
   me?: { lat: number; lon: number } | null;
   /** Куда смотрит телефон, градусы (0 — север). Нет значения — конус не рисуем. */
   meHeading?: SharedValue<number>;
+  /** 3D: камера наклоняется, дома поднимаются объёмом (кнопка «2D/3D»). По умолчанию — плоская карта. */
+  tilt?: boolean;
 }
 
 export interface MapCanvasHandle {
@@ -62,4 +64,11 @@ export interface MapCanvasHandle {
 }
 
 // Алматы: стартовая камера — центр так, чтобы джаз на Панфилова был посередине, как в макете.
+/** Наклон камеры в режиме 3D, градусы. */
+export const TILT_PITCH = 55;
+/** Дома объёмом — только с этого масштаба: на обзорном масштабе слой не нужен и тяжёл для слабых телефонов. */
+export const BUILDINGS_MIN_ZOOM = 14.5;
+/** Включили 3D на обзорном масштабе — камера подлетает сюда, чтобы дома было видно. */
+export const TILT_ZOOM = 15.8;
+
 export const ALMATY_CAMERA: Camera = { lat: 43.2579, lon: 76.9458, zoom: 13.4 };

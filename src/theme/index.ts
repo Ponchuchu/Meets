@@ -28,14 +28,17 @@ export const mapPalettes = {
   paper: {
     land: '#D9D4C6', street: '#E7E2D5', highway: '#EDE8DC', park: '#C6D0B6', water: '#AFC3CB',
     mountains: ['#D0CABC', '#C9C2B3', '#C1BAA9'], label: '#7C7568', district: '#9A9384',
+    building: '#CEC6B5', buildingEdge: '#BDB4A1', extrude: '#E3DBCB',
   },
   night: {
     land: '#1C1D21', street: '#222328', highway: '#2E3036', park: '#1F2924', water: '#1C2E36',
     mountains: ['#202125', '#24252A', '#28292E'], label: '#62656F', district: '#45474F',
+    building: '#26272C', buildingEdge: '#2F3036', extrude: '#2C2D33',
   },
   mono: {
     land: '#FAFAF8', street: '#F1F1ED', highway: '#FFFFFF', park: '#EEF0E9', water: '#E6ECEE',
     mountains: ['#F4F4F0', '#EEEEE9', '#E8E8E2'], label: '#A5A59E', district: '#C4C4BD',
+    building: '#EAEAE4', buildingEdge: '#DCDCD5', extrude: '#F3F3EE',
   },
 } as const;
 
@@ -61,3 +64,8 @@ export const shadows = {
   float: { shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   small: { shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 1.5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
 } as const;
+
+/** Радиусы: плашки и чипсы — sm, кнопки и поля — md, карточки — lg, шторки и плавающие панели — xl. */
+export const radii = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
+/** Шаг отступов: 4 · 8 · 12 · 16 · 24. Края экрана — 16, между карточками — 10–12. */
+export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24 } as const;

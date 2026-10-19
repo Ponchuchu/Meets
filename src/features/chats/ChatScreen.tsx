@@ -35,7 +35,9 @@ import { useMapState } from '../../state/map';
 import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
 import { isFriendNow, useSocial } from '../../state/social';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
+import { glass } from '../../ui/glass';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { Backdrop, BottomSheet, SwipeDown } from '../../ui/sheet';
@@ -110,6 +112,15 @@ export default function ChatScreen() {
   const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
   const [inputH, setInputH] = useState(44);
+  // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
+  const [composerH, setComposerH] = useState(72);
+  const [kb, setKb] = useState(false);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const a = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setKb(true));
+    const b = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setKb(false));
+    return () => { a.remove(); b.remove(); };
+  }, []);
   const [poll, setPoll] = useState<null | { q: string; options: string[] }>(null);
   const [picked, setPicked] = useState<string[]>(trayParam === '1' ? ['b', 'a'] : []);
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
@@ -397,15 +408,24 @@ export default function ChatScreen() {
           </View>
         )}
         <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted
-          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={() => void loadOlder()} onEndReachedThreshold={0.3}
+          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingTop: check.ok && !tray && !poll ? composerH + 8 : 16 }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={() => void loadOlder()} onEndReachedThreshold={0.3}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled"
           onScroll={ev => setAtBottom(ev.nativeEvent.contentOffset.y < 80)} scrollEventThrottle={100}
           onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
-        {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}
-      </View>
-
       {check.ok && !tray && !poll && (
-        <View style={[styles.composer, { paddingBottom: tray ? 10 : 14 + insets.bottom }]}>
+        <View style={[styles.composer, { paddingBottom: kb ? 8 : Math.max(10, insets.bottom + 4) }]} onLayout={(ev) => setComposerH(ev.nativeEvent.layout.height)} pointerEvents="box-none">
+          {/* Лента плавно уходит под капсулу: статичный градиент, без размытия. */}
+          <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+            <Defs>
+              <LinearGradient id="composerFade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={colors.paper} stopOpacity="0" />
+                <Stop offset="0.45" stopColor={colors.paper} stopOpacity="0.92" />
+                <Stop offset="1" stopColor={colors.paper} stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#composerFade)" />
+          </Svg>
+          <View style={[styles.capsule, glass]}>
           <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
           </Pressable>
@@ -435,8 +455,11 @@ export default function ChatScreen() {
               </View>
             </GestureDetector>
           )}
+          </View>
         </View>
       )}
+        {!check.ok && <View style={styles.closed}><Text style={styles.closedText}>{WRITE_REASONS[check.reason!]}</Text></View>}
+      </View>
 
       {tray && check.ok && !poll && (
         <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
@@ -521,7 +544,7 @@ export default function ChatScreen() {
         </Animated.View>
       )}
 
-      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 90 + insets.bottom }} />}
+      {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: composerH + 12 }} />}
 
       {(sheet==='person'||sheet==='menu') && person && (
         <>
@@ -631,10 +654,12 @@ const styles = StyleSheet.create({
   hereText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
   closed: { padding: 12, borderRadius: 14, backgroundColor: colors.sand },
   closedText: { textAlign: 'center', fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingTop: 10, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.paper },
-  iconBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minWidth: 0, height: 44, paddingHorizontal: 16, paddingTop: 11, paddingBottom: 11, borderRadius: 22, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
-  tray: { paddingHorizontal: 12, paddingTop: 10, gap: 10, backgroundColor: colors.paper },
+  composer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 18, paddingHorizontal: 10 },
+  // Капсула ввода: стекло с тонкой границей, внутри «скрепка», поле и «отправить / запись».
+  capsule: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, padding: 4, borderRadius: 26 },
+  iconBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'transparent', backgroundColor: 'rgba(23,22,26,0.05)', alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minWidth: 0, height: 44, paddingHorizontal: 10, paddingTop: 11, paddingBottom: 11, borderRadius: 22, textAlignVertical: 'top', backgroundColor: 'transparent', fontFamily: fonts.body400, fontSize: 16, lineHeight: 21, color: colors.ink },
+  tray: { paddingHorizontal: 12, paddingTop: 10, gap: 10, backgroundColor: colors.paper, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: 'rgba(23,22,26,0.09)' },
   recBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 0, paddingBottom: 0 },
   recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   recText: { fontFamily: fonts.body500, fontSize: 14, color: colors.accentText },

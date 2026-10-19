@@ -40,6 +40,12 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': c.highway, 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 1.5, 16, 14] },
       },
+      // Контуры домов (2D) с 15-го масштаба: город читается подробнее, на обзорном масштабе слоя нет — дёшево.
+      {
+        id: 'buildings', type: 'fill', source: 'streets', 'source-layer': 'building', minzoom: 15,
+        filter: ['!=', ['get', 'underground'], 'true'],
+        paint: { 'fill-color': c.building, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.6, 0.9], 'fill-outline-color': c.buildingEdge },
+      },
       {
         id: 'street-labels', type: 'symbol', source: 'streets', 'source-layer': 'road',
         filter: ['match', ['get', 'class'], ['primary', 'secondary', 'trunk'], true, false],

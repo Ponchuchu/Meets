@@ -1,6 +1,8 @@
 // «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
 // «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
 import { useQuery } from '@tanstack/react-query';
+import { useNet } from '../../live/net';
+import { StateView } from '../../ui/StateView';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -34,7 +36,9 @@ export default function ForYouScreen() {
 
   const [now, setNow] = useState(clockNow);
   useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const events = eventsQ.data ?? [];
+  const online = useNet((s) => s.online);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
   const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
@@ -192,7 +196,12 @@ export default function ForYouScreen() {
 
       {!top && (
         <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
-          {events.length === 0 ? <Text style={styles.emptySub}>Загружаю события…</Text> : (
+          {events.length === 0 ? (
+            !online ? <StateView kind="offline" text="Карточки появятся, как только вернётся связь." onAction={() => void eventsQ.refetch()} />
+            : eventsQ.isError ? <StateView kind="error" text="События не загрузились. Проверь связь и попробуй ещё раз." onAction={() => void eventsQ.refetch()} />
+            : eventsQ.isFetching ? <StateView kind="loading" title="Загружаю события…" />
+            : <StateView kind="empty" title="Событий пока нет" text="Новые появятся вечером. А пока — загляни на карту." action="Открыть карту" onAction={() => router.navigate('/')} />
+          ) : (
             <>
               <Text style={styles.emptyTitle}>Ты всё посмотрел</Text>
               <Text style={styles.emptySub}>Новые события появятся вечером. А пока — что на карте прямо сейчас.</Text>
@@ -227,7 +236,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
   head: { position: 'absolute', left: 16, right: 16, gap: 2 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
-  emptyBox: { position: 'absolute', left: 32, right: 32, alignItems: 'center', gap: 10, paddingTop: 220 },
+  emptyBox: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10, paddingTop: 160 },
   emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

@@ -1,4 +1,6 @@
-// Нижняя панель v6 (V6.md §1.1, design/screens/V6TabBar): пилюля 366×66, только иконки без подписей.
+// Нижняя панель v6 (V6.md §1.1, design/screens/V6TabBar): плавающая пилюля 366×64 в стиле iOS, только иконки без подписей.
+// Плашка: градиентная кромка, внутренний блик и мягкая тень (src/ui/glass.ts); под выбранной вкладкой — тёплая подложка,
+// она переезжает к новой вкладке (одна анимация transform — дёшево и на слабых телефонах).
 // Выбранная: заливка чернилами 420 мс + «пружина» 0.84 → 1.12 → 1 за 520 мс; у Профиля — кольцо вокруг аватарки.
 // Бейджи: Планы (зовут + новые), Чаты (непрочитанные) — оранжевые, цифра прокручивается вверх при смене.
 // Повторный тап обрабатывают экраны (событие tabPress). Долгое нажатие — подсказка с названием вкладки.
@@ -7,15 +9,18 @@ import * as Haptics from 'expo-haptics';
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Keyboard, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useApp } from '../state/app';
 import { useTabBadges } from '../state/tabBadges';
 import { colors, fonts } from '../theme';
+import { glass } from '../ui/glass';
 
-const BAR_H = 66;
+const BAR_H = 64;
+const PAD = 5;
+const GAP = 2;
 const POP = Easing.bezier(0.3, 1.4, 0.5, 1);
 const OFF = '#5F5B55';
 const ON_DETAIL = '#EEE9DE';
@@ -36,8 +41,8 @@ export const tabInset = (bottomInset: number) => BAR_H + tabGap(bottomInset) + 1
 /** Центр вкладки i (0 — Карта … 4 — Профиль) на экране шириной W и высотой H: сюда летят карточки и смотрит обучение. */
 export function tabCenter(i: number, W: number, H: number, bottomInset: number) {
   const bar = Math.min(366, W * 0.94);
-  const cell = (bar - 10 - 8) / 5;
-  return { x: (W - bar) / 2 + 5 + i * (cell + 2) + cell / 2, y: H - tabGap(bottomInset) - BAR_H / 2 };
+  const cell = (bar - PAD * 2 - GAP * 4) / 5;
+  return { x: (W - bar) / 2 + PAD + i * (cell + GAP) + cell / 2, y: H - tabGap(bottomInset) - BAR_H / 2 };
 }
 export function useTabInset() {
   return tabInset(useSafeAreaInsets().bottom);
@@ -94,7 +99,7 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   const avatar = useTabBadges((s) => s.avatar);
   const ring = useSharedValue(on ? 1 : 0);
   useEffect(() => { ring.set(withTiming(on ? 1 : 0, { duration: 420 })); }, [on, ring]);
-  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(23,22,26,${0.14 + 0.86 * ring.get()})` }));
+  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(${Math.round(23 + 217 * ring.get())},${Math.round(22 + 60 * ring.get())},${Math.round(26 + 5 * ring.get())},${0.16 + 0.84 * ring.get()})` }));
   return (
     <Animated.View style={[styles.meRing, st]}>
       {avatar.url ? <Image source={{ uri: avatar.url }} style={styles.meFace} /> : (
@@ -158,10 +163,17 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   const routes = state.routes.filter((r) => TABS[r.name]);
   const activeKey = state.routes[state.index]?.name;
+  const activeIdx = Math.max(0, routes.findIndex((r) => r.name === activeKey));
+  const [cell, setCell] = useState(0);
+  const slide = useSharedValue(activeIdx);
+  useEffect(() => { slide.set(withTiming(activeIdx, { duration: 320, easing: Easing.bezier(0.25, 1, 0.5, 1) })); }, [activeIdx, slide]);
+  const pill = useAnimatedStyle(() => ({ transform: [{ translateX: slide.get() * (cell + GAP) }] }));
+  const onBar = (e: LayoutChangeEvent) => setCell((e.nativeEvent.layout.width - PAD * 2 - GAP * 4) / 5);
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[styles.wrap, { bottom: tabGap(insets.bottom) }, wrap]}>
       {hint && <View style={styles.hint} pointerEvents="none"><Text style={styles.hintText}>{hint}</Text></View>}
-      <View style={styles.bar} accessibilityRole="tablist">
+      <View style={[styles.bar, glass]} accessibilityRole="tablist" onLayout={onBar}>
+        {cell > 0 && <Animated.View pointerEvents="none" style={[styles.pill, { width: cell }, pill]} />}
         {routes.map((route) => {
           const on = route.name === activeKey;
           return (
@@ -184,14 +196,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
-    width: 366, maxWidth: '94%', height: BAR_H, padding: 5, borderRadius: 33, flexDirection: 'row', gap: 2,
-    backgroundColor: '#EEE9DE', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)',
-    shadowColor: colors.ink, shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 10 }, elevation: 12,
+    width: 366, maxWidth: '94%', height: BAR_H, padding: PAD, borderRadius: BAR_H / 2, flexDirection: 'row', gap: GAP,
   },
+  pill: { position: 'absolute', top: PAD, left: PAD, bottom: PAD, borderRadius: (BAR_H - PAD * 2) / 2, backgroundColor: 'rgba(240,82,31,0.12)' },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: 6, left: '50%', marginLeft: 5, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#EEE9DE',
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FCFBF8',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },

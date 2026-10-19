@@ -1,6 +1,8 @@
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useQuery } from '@tanstack/react-query';
+import { useNet } from '../../live/net';
+import { StateView } from '../../ui/StateView';
 import { router } from 'expo-router';
 import { config } from '../../lib/config';
 import { createFriendGroup } from '../../live/api';
@@ -27,6 +29,7 @@ import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
+import { plate } from '../../ui/glass';
 
 type Filter = 'all' | 'events' | 'direct' | 'requests' | 'archive';
 
@@ -35,7 +38,9 @@ export default function ChatsScreen() {
   const tabPad = useTabInset() + 16;
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
-  const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const chatsQ = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const chats = chatsQ.data ?? [];
+  const online = useNet((s) => s.online);
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
@@ -165,7 +170,7 @@ export default function ChatsScreen() {
           })}
         </>
       )}
-      {filter === 'requests' && pending.length === 0 && <Text style={styles.sub}>Новых заявок нет.</Text>}
+      {filter === 'requests' && pending.length === 0 && <StateView kind="empty" compact title="Новых заявок нет" />}
 
       {list.length > 0 && filter !== 'requests' && (
         <View style={{ gap: 8 }}>
@@ -228,7 +233,13 @@ export default function ChatsScreen() {
           })}
         </View>
       )}
-      {list.length === 0 && lonely.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
+      {list.length === 0 && lonely.length === 0 && filter !== 'requests' && (
+        q ? <StateView kind="nothing-found" text="Попробуй другое имя или название." />
+        : !online && !chatsQ.data ? <StateView kind="offline" onAction={() => void chatsQ.refetch()} />
+        : chatsQ.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQ.refetch()} />
+        : chatsQ.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
+        : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
+      )}
     </ScrollView>
     {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
       <Text style={styles.h1}>Новая группа</Text>
@@ -261,7 +272,7 @@ const styles = StyleSheet.create({
   reqTitle: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink },
   reqRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
-  request: { padding: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 12 },
+  request: { padding: 14, borderRadius: 20, ...plate, gap: 12 },
   name: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
   quote: { fontFamily: fonts.body400, fontSize: 14, color: colors.ink, marginTop: 2 },
@@ -269,7 +280,7 @@ const styles = StyleSheet.create({
   btnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14 },
-  card: { borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  card: { borderRadius: 20, ...plate },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#F0C5AE' },
   actText: { flexShrink: 1, fontFamily: fonts.body600, fontSize: 11.5, color: colors.accentText },

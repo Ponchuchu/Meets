@@ -8,10 +8,10 @@ import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
-import { colors } from '../theme';
+import { colors, mapPalettes } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
-import type { MapCanvasHandle, MapCanvasProps } from './types';
+import { BUILDINGS_MIN_ZOOM, TILT_PITCH, TILT_ZOOM, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
 let Mapbox: RNMapbox['default'] | null = null;
@@ -31,7 +31,8 @@ const PIN_BOX = 72;
 const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading } = props;
+  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, tilt = false } = props;
+  const pitch = useRef(tilt ? TILT_PITCH : 0);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -74,7 +75,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
       if (zoom != null) z.current = zoom;
-      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: 0, animationDuration: Math.min(350, durationMs) });
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: pitch.current, animationDuration: Math.min(350, durationMs) });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -85,6 +86,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
+  useEffect(() => {
+    pitch.current = tilt ? TILT_PITCH : 0;
+    // Дома объёмом видны только вблизи: при включении 3D на обзорном масштабе подлетаем ближе.
+    if (tilt && z.current < BUILDINGS_MIN_ZOOM + 1) z.current = TILT_ZOOM;
+    cam.current?.setCamera({ pitch: pitch.current, zoomLevel: z.current, animationDuration: 600 });
+  }, [tilt]);
 
   if (failed || !Mapbox) {
     const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
@@ -100,11 +107,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         styleJSON={PAPER_STYLE}
         surfaceView={false}
         rotateEnabled
-        pitchEnabled={false}
+        pitchEnabled={tilt}
         scaleBarEnabled={false}
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
-        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: false, simultaneousRotateAndPinchZoomEnabled: true }}
+        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: tilt, simultaneousRotateAndPinchZoomEnabled: true }}
         // В предрелизной сборке скрыто; включается EXPO_PUBLIC_MAP_ATTRIBUTION=true.
         logoEnabled={config.mapAttribution}
         logoPosition={{ bottom: bottomInset + 6, left: 10 }}
@@ -150,6 +157,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
           </M.ShapeSource>
         ))}
+        {tilt && (
+          <M.FillExtrusionLayer id="buildings-3d" sourceID="streets" sourceLayerID="building" minZoomLevel={BUILDINGS_MIN_ZOOM} maxZoomLevel={22} belowLayerID="street-labels"
+            filter={['==', ['get', 'extrude'], 'true']}
+            style={{ fillExtrusionColor: mapPalettes.paper.extrude, fillExtrusionHeight: ['get', 'height'], fillExtrusionBase: ['get', 'min_height'], fillExtrusionOpacity: 0.92, fillExtrusionVerticalGradient: true }} />
+        )}
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
         {me && <UserLayers M={M} me={me} heading={meHeading} />}

@@ -19,9 +19,11 @@ import { MonthCalendar } from '../../event/ui/pickers';
 import { eventStatusLabel } from '../../event/availability';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
+import { StateView } from '../../ui/StateView';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
+import { plate } from '../../ui/glass';
 
 const LIVE = config.dataMode !== 'demo';
 const WD = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -216,13 +218,10 @@ export default function PlansTab() {
       ))}
 
       {!groups.length && !(tab === 'soon' && incoming.length) && (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>{tab === 'soon' ? (!pick.length ? 'Пока пусто' : 'В этот день ничего') : 'Пока нигде не был'}</Text>
-          <Text style={styles.emptySub}>{tab === 'soon' ? 'Смахни карточку вправо в «Рекомендациях» — она прилетит сюда.' : 'Здесь появятся события, на которых ты был.'}</Text>
-          {tab === 'soon' && (
-            <Pressable onPress={() => router.navigate('/foryou')} style={styles.emptyBtn} accessibilityRole="button"><Text style={styles.emptyBtnText}>Открыть рекомендации</Text></Pressable>
-          )}
-        </View>
+        <StateView kind="empty" style={{ paddingTop: 48 }}
+          title={tab === 'soon' ? (!pick.length ? 'Пока пусто' : 'В этот день ничего') : 'Пока нигде не был'}
+          text={tab === 'soon' ? 'Смахни карточку вправо в «Рекомендациях» — она прилетит сюда.' : 'Здесь появятся события, на которых ты был.'}
+          action={tab === 'soon' ? 'Открыть рекомендации' : undefined} onAction={tab === 'soon' ? () => router.navigate('/foryou') : undefined} />
       )}
     </ScrollView>
     {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => { setCalendarPick(pick.length > 0); setCalendar(false); }} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
@@ -249,7 +248,7 @@ const styles = StyleSheet.create({
   count: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   countText: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.ink },
   cap: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted, marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: '#EEE9DE', borderWidth: 1, borderColor: '#CFC9BB' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, ...plate },
   inviteRow: { borderColor: colors.accent, gap: 8 },
   rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   tile: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
@@ -264,9 +263,6 @@ const styles = StyleSheet.create({
   lookText: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },
   ans: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  empty: { alignItems: 'center', gap: 8, paddingTop: 60, paddingHorizontal: 20 },
-  emptyTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink },
-  emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 8, height: 48, paddingHorizontal: 22, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
   emptyBtnText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },
 });

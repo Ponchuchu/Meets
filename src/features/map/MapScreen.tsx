@@ -49,7 +49,7 @@ import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { MallPin, VenueSheet } from '../../map/ui/VenueSheet';
+import { MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
@@ -65,6 +65,9 @@ import { LensSheet } from '../../map/ui/LensSheet';
 import { BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
 import { useSmoothSpots } from '../../map/useSmooth';
 import { queryClient } from '../../live/query';
+
+/** Демо (тесты и web-скриншоты): один настоящий ТРЦ в центре, чтобы видеть карточку места. */
+const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. Абылай хана, 62', hours: '10:00–22:00', cover: null, lat: 43.2622, lon: 76.9447 }];
 
 type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue';
 const LIVE = config.dataMode !== 'demo';
@@ -99,6 +102,9 @@ export default function MapScreen() {
   useCoverTabBar(!!open);
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [mapMode, setMapMode] = useState<'mapbox' | 'static' | null>(null);
+  const tilt = useMapState((s) => s.tilt);
+  const setTilt = useMapState((s) => s.setTilt);
   const [clock, setClock] = useState(clockNow);
   const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState();
   const inviteSending = useRef(false);
@@ -241,7 +247,8 @@ export default function MapScreen() {
     queryKey: ['me', 'cells'], enabled: LIVE && lens === 'explore',
     queryFn: async () => ((await supabase().from('explore_cells').select('h3').eq('user_id', myId() ?? '')).data ?? []).map((r: { h3: string }) => r.h3),
   });
-  const { data: malls = [] } = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
+  const mallsQ = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
+  const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   const [mall, setMall] = useState<Mall | null>(null);
   const fog = useMemo(() => (lens === 'explore' ? fogPolygon(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
@@ -419,7 +426,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={(m) => { setMapMode(m); useIntro.getState().ready(); }} tilt={tilt} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -446,8 +453,15 @@ export default function MapScreen() {
       </View>
 
 
+      {mapMode === 'mapbox' && !config.mapAttribution && sheet === null && !selected && !focusId && (
+        <View pointerEvents="none" style={[styles.attr, { bottom: tabPad + 6 }]}><Text style={styles.attrText} maxFontSizeMultiplier={1.3}>© Mapbox © OpenStreetMap</Text></View>
+      )}
+
       {!focusId && sheet === null && (
-        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 105)} bearing={bearing} follow={follow}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 132)} bearing={bearing} follow={follow}
+          tilt={tilt} onTilt={mapMode === 'mapbox' ? () => {
+            setTilt(!tilt);
+          } : undefined}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
@@ -508,12 +522,9 @@ export default function MapScreen() {
       )}
 
       {sheet === 'venue' && mall && (
-        <>
-          <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet onClose={() => setSheet(null)} label={mall.name}>
-            <VenueSheet m={mall} events={upcoming} onEvent={(e) => { setSheet(null); openEvent(e); }} />
-          </BottomSheet>
-        </>
+        <View style={[styles.card, { bottom: tabPad }]}>
+          <PlaceCard key={mall.id} m={mall} events={upcoming} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} />
+        </View>
       )}
 
       {sheet === 'lens' && (
@@ -593,6 +604,9 @@ const styles = StyleSheet.create({
   calendar: { position: 'absolute', left: 12, right: 12 },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   lensInfo: { position: 'absolute', left: 16 },
+  // Подпись источников карты (лицензия OpenStreetMap): мелко, но читаемо, не мешает пальцу.
+  attr: { position: 'absolute', right: 16, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: 'rgba(252,251,248,0.8)', justifyContent: 'center' },
+  attrText: { fontFamily: fonts.body500, fontSize: 10.5, color: colors.muted2 },
   finding: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 30, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
   findingText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },

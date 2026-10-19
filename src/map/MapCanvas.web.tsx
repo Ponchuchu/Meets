@@ -8,7 +8,8 @@ import { StyleSheet, View } from 'react-native';
 import { config } from '../lib/config';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
-import type { MapCanvasHandle, MapCanvasProps } from './types';
+import { mapPalettes } from '../theme';
+import { BUILDINGS_MIN_ZOOM, TILT_PITCH, TILT_ZOOM, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 function webglOk(): boolean {
   try {
@@ -30,6 +31,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const [ready, setReady] = useState(false);
   const gl = useRef<typeof mapboxgl | null>(null);
   const onPressRef = useRef(onPress);
+  const tilt = props.tilt ?? false;
+  const tiltRef = useRef(tilt);
   useEffect(() => { onPressRef.current = onPress; }, [onPress]);
 
   useImperativeHandle(ref, () => ({
@@ -41,7 +44,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 16.5, bearing: heading, pitch: 35, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 250) => {
-      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: 0, duration: durationMs });
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: tiltRef.current ? TILT_PITCH : 0, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -137,6 +140,27 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     m.on('style.load', apply);
     return () => { m.off('style.load', apply); m.off('load', apply); };
   }, [traffic, fog, lines, theme, ready]);
+
+  // 3D: наклон камеры и дома объёмом; после смены стиля слой добавляем заново.
+  useEffect(() => {
+    const m = map.current;
+    tiltRef.current = tilt;
+    if (!m || !ready) return;
+    const apply = () => {
+      if (m.getLayer('buildings-3d')) m.removeLayer('buildings-3d');
+      if (!tilt) return;
+      m.addLayer({ id: 'buildings-3d', type: 'fill-extrusion', source: 'streets', 'source-layer': 'building', minzoom: BUILDINGS_MIN_ZOOM,
+        filter: ['==', ['get', 'extrude'], 'true'],
+        paint: { 'fill-extrusion-color': mapPalettes.paper.extrude, 'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-base': ['get', 'min_height'], 'fill-extrusion-opacity': 0.92 } },
+      m.getLayer('street-labels') ? 'street-labels' : undefined);
+    };
+    if (m.isStyleLoaded()) apply(); else m.once('load', apply);
+    m.on('style.load', apply);
+    if (tilt) m.touchPitch.enable(); else m.touchPitch.disable();
+    // Дома объёмом видны только вблизи: при включении 3D на обзорном масштабе подлетаем ближе.
+    m.easeTo({ pitch: tilt ? TILT_PITCH : 0, ...(tilt && m.getZoom() < BUILDINGS_MIN_ZOOM + 1 ? { zoom: TILT_ZOOM } : {}), duration: 600 });
+    return () => { m.off('style.load', apply); m.off('load', apply); };
+  }, [tilt, ready]);
 
   useEffect(() => {
     host.current?.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right')

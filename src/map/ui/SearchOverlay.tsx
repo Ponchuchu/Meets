@@ -1,4 +1,5 @@
 // Поиск по событиям: название, место, адрес, теги. Тап — событие на карте.
+import { Search, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -6,7 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBackClose } from '../../state/app';
 import type { EventItem } from '../../data/types';
 import { formatPrice } from '../../lib/format';
-import { colors, fonts } from '../../theme';
+import { colors, fonts, radii } from '../../theme';
+import { glass } from '../../ui/glass';
+import { StateView } from '../../ui/StateView';
 import { BackButton } from '../../ui/kit';
 import { CAT_LABEL } from '../icons';
 
@@ -31,6 +34,8 @@ export function SearchOverlay({ events, whenOf, onPick, onClose }: {
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={[StyleSheet.absoluteFill, styles.root, { paddingTop: Math.max(50, insets.top + 12) }]}>
       <View style={styles.bar}>
         <BackButton onPress={onClose} size={52} label="Закрыть поиск" />
+        <View style={[styles.field, glass]}>
+        <Search size={19} color={colors.muted2} strokeWidth={1.9} />
         <TextInput
           value={q}
           onChangeText={setQ}
@@ -41,13 +46,19 @@ export function SearchOverlay({ events, whenOf, onPick, onClose }: {
           accessibilityLabel="Поиск по событиям и местам"
           style={styles.input}
         />
+        {q.length > 0 && (
+          <Pressable onPress={() => setQ('')} hitSlop={10} style={styles.clear} accessibilityRole="button" accessibilityLabel="Очистить поиск">
+            <X size={16} color={colors.paper} strokeWidth={2.2} />
+          </Pressable>
+        )}
+        </View>
       </View>
       <FlatList
         data={found}
         keyExtractor={(e) => e.id}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 }}
-        ListEmptyComponent={q.trim() ? <Text style={styles.empty}>Ничего не нашлось. Попробуй другое слово.</Text> : <Text style={styles.empty}>Ищи по названию, месту или адресу.</Text>}
+        ListEmptyComponent={q.trim() ? <StateView kind="nothing-found" text="Попробуй другое слово или район." /> : <Text style={styles.empty}>Ищи по названию, месту или адресу.</Text>}
         renderItem={({ item: e }) => (
           <Pressable onPress={() => onPick(e)} style={styles.row} accessibilityRole="button">
             <Text style={styles.meta}>{CAT_LABEL[e.category]} · {whenOf(e)} · {formatPrice(e.priceMin, e.priceMax, e.isFree)}</Text>
@@ -63,8 +74,10 @@ export function SearchOverlay({ events, whenOf, onPick, onClose }: {
 const styles = StyleSheet.create({
   root: { backgroundColor: colors.paper, paddingHorizontal: 16 },
   bar: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 },
-  input: { flex: 1, height: 52, borderRadius: 26, paddingHorizontal: 18, backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.line2, fontFamily: fonts.body400, fontSize: 16, color: colors.ink },
-  row: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line, gap: 3 },
+  field: { flex: 1, minWidth: 0, height: 52, borderRadius: 26, paddingLeft: 16, paddingRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, minWidth: 0, height: 52, fontFamily: fonts.body400, fontSize: 16, color: colors.ink },
+  clear: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.muted3, alignItems: 'center', justifyContent: 'center' },
+  row: { paddingVertical: 12, paddingHorizontal: 14, marginBottom: 8, borderRadius: radii.lg, backgroundColor: colors.card, gap: 3 },
   meta: { fontFamily: fonts.mono500, fontSize: 10.5, letterSpacing: 0.6, color: colors.muted },
   title: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   address: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
