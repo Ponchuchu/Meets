@@ -65,7 +65,7 @@ export function useRobotCommand(live: boolean, runId?: string) {
         const problem = searchProblem(cfg);
         if (problem) throw new Error(problem);
       }
-      const body = { action, run_id: runId, model: cfg.model, days: cfg.days, limit: cfg.limit, topics: cfg.topics, sources: cfg.sources, find_images: cfg.findImages };
+      const body = { action, run_id: runId, model: cfg.sources === 'sites' ? 'gemini-2.5-flash' : cfg.model, days: cfg.days, limit: cfg.limit, topics: cfg.sources === 'sites' ? [] : cfg.topics, sources: cfg.sources, find_images: cfg.findImages };
       const r = await withTimeout(supabase().functions.invoke('robot-run', { body }), 20000);
       if (r.error || r.data?.error) throw new Error(r.data?.error || r.error?.message || 'Не получилось');
       return action === 'check' ? 'Связь с GitHub работает' : action === 'stop' ? 'Останавливаю: текущий шаг дойдёт до конца' : 'Поиск запущен. Обычно 1–2 минуты';

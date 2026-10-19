@@ -13,6 +13,8 @@ import { Banner, Btn } from './kit';
 export interface AdminEvent {
   id: string; title: string; category: Category; startsAt: string | null; venue: string | null; address: string | null;
   priceMin: number | null; priceMax: number | null; isFree: boolean; cover: string | null; source: string | null;
+  /** Откуда событие в виде подписи («ЯНДЕКС АФИША»). */
+  from?: string;
 }
 
 export function EventSheet({ ev, busy, error, note, onClose, onRename, onPhoto, onUnpublish, onDelete }: {
@@ -51,6 +53,7 @@ export function EventSheet({ ev, busy, error, note, onClose, onRename, onPhoto, 
             ) : (
               <Text style={styles.title}>{ev.title}</Text>
             )}
+            {!!ev.from && <Text style={styles.count}>{ev.from}</Text>}
             <View style={{ gap: 6 }}>
               <Fact k="Когда" v={f.when} bad={f.whenMissing || f.when.includes('время не указано')} />
               <Fact k="Где" v={f.place} bad={f.placeMissing} />

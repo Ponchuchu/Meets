@@ -4,8 +4,8 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { ALMATY_CAMERA, type Camera } from '../map/types';
 
-// Шире, чем итоговый (15,2): после заставки карта плавно приближается к тебе.
-export const START_ZOOM = 12.8;
+// После заставки карта плавно приближается в 1,22 раза.
+export const START_ZOOM = 14.9;
 
 async function lastKnown(): Promise<Camera | null> {
   if (Platform.OS === 'web') return null;
@@ -15,11 +15,10 @@ async function lastKnown(): Promise<Camera | null> {
   return p ? { lat: p.coords.latitude, lon: p.coords.longitude, zoom: START_ZOOM } : null;
 }
 
-const timeout = new Promise<null>((r) => setTimeout(() => r(null), 1000));
 let pending: Promise<Camera> | null = null;
 
-/** Камера для первого кадра: я (zoom 14) или центр Алматы. */
+/** Камера для первого кадра: я или центр Алматы. */
 export function startCamera(): Promise<Camera> {
-  pending ??= Promise.race([lastKnown().catch(() => null), timeout]).then((c) => c ?? ALMATY_CAMERA);
+  pending ??= Promise.race([lastKnown().catch(() => null), new Promise<null>(resolve => setTimeout(() => resolve(null), 1000))]).then((c) => c ?? ALMATY_CAMERA);
   return pending;
 }

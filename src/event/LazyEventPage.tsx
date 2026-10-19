@@ -39,7 +39,7 @@ export function LazyEventPage({ progress, ...props }: ComponentProps<typeof Even
   const [ready, setReady] = useState(false);
   useAnimatedReaction(
     () => progress.get() >= 0.97,
-    (on, prev) => { if (on !== prev) scheduleOnRN(setReady, on); },
+    (on, prev) => { if (on && on !== prev) scheduleOnRN(setReady, true); },
   );
   return ready ? <EventPage {...props} /> : <Hero e={props.e} now={props.now} />;
 }

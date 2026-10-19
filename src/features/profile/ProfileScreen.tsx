@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronRight, Code2, Footprints, Home, Lock, Moon, QrCode, Settings, UserPlus, Zap, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, Code2, Footprints, Home, Lock, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,15 +14,13 @@ import { getMeStats, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
 import { useSession } from '../../state/session';
 import { useMapState } from '../../state/map';
-import { colors, fonts } from '../../theme';
+import { colors, fonts, radii } from '../../theme';
+import { badgeIcon } from '../../profile/badges';
+import { BadgeMedal } from '../../ui/BadgeMedal';
+import { Medallion } from '../../ui/Medallion';
 import { OrangeBg } from '../../ui/v6/OrangeBg';
+import { plate } from '../../ui/glass';
 
-const BADGE: Record<string, { Icon: LucideIcon; bg: string; fg: string }> = {
-  walker: { Icon: Footprints, bg: '#2F8F5B', fg: '#FFFFFF' },
-  'night-city': { Icon: Moon, bg: colors.ink, fg: '#F7A47E' },
-  'call-friend': { Icon: UserPlus, bg: colors.accent, fg: colors.ink },
-  'first-bump': { Icon: Zap, bg: '#C98A1B', fg: '#FFFFFF' },
-};
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
 
 function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
@@ -81,10 +79,12 @@ export default function ProfileScreen() {
       </View>
       <View style={styles.sheet}>
         <View style={styles.head}>
-          <Pressable onPress={() => void pickPhoto()} style={styles.avatarWrap} accessibilityRole="button" accessibilityLabel="Сменить фото">
-            {p?.photo_url || draft.photo?.includes(':') ? <Image source={{ uri: p?.photo_url ?? draft.photo! }} style={styles.avatar} /> : (
-              <View style={[styles.avatar, styles.avatarEmpty]}><Text style={styles.letter}>{(name[0] ?? '·').toUpperCase()}</Text></View>
-            )}
+          <Pressable onPress={() => void pickPhoto()} style={({ pressed }) => [styles.avatarWrap, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка уровня ${s?.level ?? 1}`}>
+            <Medallion size={118} level={s?.level ?? 1}>
+              {p?.photo_url || draft.photo?.includes(':') ? <Image source={{ uri: p?.photo_url ?? draft.photo! }} style={styles.avatar} /> : (
+                <View style={[styles.avatar, styles.avatarEmpty]}><Text style={styles.letter}>{(name[0] ?? '·').toUpperCase()}</Text></View>
+              )}
+            </Medallion>
             <View style={styles.homeBadge}><Home size={15} color={colors.ink} strokeWidth={2} /></View>
           </Pressable>
           <View style={{ flex: 1, paddingBottom: 6 }}>
@@ -145,15 +145,12 @@ export default function ProfileScreen() {
             <Text style={styles.cardSub}>{got} из {s?.badges.length ?? 0}</Text>
           </View>
           <View style={styles.badges}>
-            {(s?.badges ?? []).slice(0, 4).map((b) => {
-              const B = BADGE[b.id] ?? { Icon: Zap, bg: '#D5CFC1', fg: colors.ink };
-              return (
-                <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#D9D3C5' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
-                  <B.Icon size={24} color={b.got ? B.fg : '#A8A296'} strokeWidth={1.9} />
-                </Pressable>
-              );
-            })}
-            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, { backgroundColor: '#D9D3C5' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></Pressable>
+            {(s?.badges ?? []).slice(0, 4).map((b) => (
+              <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={styles.badge} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
+                <BadgeMedal id={b.id} icon={badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={56} />
+              </Pressable>
+            ))}
+            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, styles.more]} accessibilityRole="button" accessibilityLabel="Все значки"><Lock size={20} color={colors.muted3} strokeWidth={1.9} /></Pressable>
           </View>
         </View>
 
@@ -181,37 +178,38 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   hero: { overflow: 'hidden' },
   topBtns: { position: 'absolute', right: 16, flexDirection: 'row', gap: 8 },
-  topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(251,250,246,0.35)', alignItems: 'center', justifyContent: 'center' },
+  topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(251,250,246,0.42)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', alignItems: 'center', justifyContent: 'center' },
   sheet: { marginTop: -40, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: colors.paper, paddingHorizontal: 16, gap: 10 },
-  head: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: -54, marginBottom: 4 },
-  avatarWrap: { width: 108, height: 108, borderRadius: 54, borderWidth: 4, borderColor: colors.paper, backgroundColor: colors.paper },
-  avatar: { flex: 1, borderRadius: 50 },
+  head: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: -62, marginBottom: 6 },
+  avatarWrap: { width: 118, height: 124 },
+  avatar: { width: '100%', height: '100%' },
   avatarEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   letter: { fontFamily: fonts.body700, fontSize: 42, lineHeight: 58, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
-  homeBadge: { position: 'absolute', right: -2, bottom: 6, width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE9DE', borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  homeBadge: { position: 'absolute', right: 0, bottom: 14, width: 32, height: 32, borderRadius: 16, backgroundColor: '#EEE9DE', borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.7, color: colors.ink },
   handle: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
   dev: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, paddingHorizontal: 16, borderRadius: 18, backgroundColor: colors.ink },
   devText: { flex: 1, fontFamily: fonts.body700, fontSize: 15.5, color: '#EEE9DE' },
   devNew: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.6, color: '#F7A47E' },
   nums: { flexDirection: 'row', gap: 8 },
-  num: { flex: 1, borderRadius: 18, backgroundColor: '#EEE9DE', padding: 12, gap: 2 },
+  num: { flex: 1, borderRadius: radii.lg, ...plate, padding: 12, gap: 2 },
   numN: { fontFamily: fonts.display800, fontSize: 24, color: colors.ink },
   numL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18, backgroundColor: '#EEE9DE' },
-  tileDark: { backgroundColor: colors.ink },
+  tile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radii.lg, ...plate },
+  tileDark: { backgroundColor: colors.ink, borderTopColor: 'rgba(255,255,255,0.18)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.4)' },
   ringBox: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
   ringText: { position: 'absolute', fontFamily: fonts.body700, fontSize: 11, color: colors.ink },
   tileTitle: { fontFamily: fonts.display700, fontSize: 15, color: colors.ink },
   tileSub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted2 },
-  card: { borderRadius: 20, backgroundColor: '#EEE9DE', padding: 14, gap: 12 },
+  card: { borderRadius: radii.lg, ...plate, padding: 14, gap: 12 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   cardSub: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted },
   badges: { flexDirection: 'row', gap: 10 },
-  badge: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  list: { borderRadius: 20, backgroundColor: '#EEE9DE', overflow: 'hidden' },
+  badge: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  more: { borderRadius: 28, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2 },
+  list: { borderRadius: radii.lg, ...plate, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56, paddingHorizontal: 16 },
   rowSep: { borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },
   rowTitle: { flex: 1, fontFamily: fonts.body700, fontSize: 15.5, color: colors.ink },

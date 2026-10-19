@@ -1,0 +1,21 @@
+NON_STAFF staff_rename_event: staff-only
+NON_STAFF staff_event_action: staff-only
+NON_STAFF cover insert: new row violates row-level security policy for table "objects"
+PRIVATE_EVENT_AFTER_RENAME: [ { title: 'Чужую встречу переименовали', visibility: 'friends' } ]
+DELETED_EVENT_RAW: [ { title: 'Концерт', status: 'archived' } ]
+PLAN_FETCH_EVENTS_LIVE: []
+ACTIVE_DRAFT_ACTUALLY_DELETED: 1
+REMOVED_ONGOING_EXHIBITION: {"knownBefore":0,"outcome":"draft","query":"https://local.example/rest/v1/events?select=id,title,orig_title,status,rejected,starts_at,venues(name)&starts_at=gte.2026-10-10T10:00:00.000Z&visibility=eq.public&limit=3000"}
+PURGE_QUERY: {
+  url: 'https://local.example/rest/v1/events?status=eq.draft&or=(ends_at.lt.2026-10-12T10:00:00.000Z,and(ends_at.is.null,starts_at.lt.2026-10-12T10:00:00.000Z))&select=id',
+  method: 'DELETE'
+}
+PURGE_ACTIVE_DRAFT_MATCH: {"starts_at":"2026-10-12T09:00:00Z","ends_at":null,"now":"2026-10-12T10:00:00.000Z","deleted":true,"pipelineAcceptsUntil":"2026-10-12T12:00:00Z"}
+UNMOUNT_WHILE_SUBSCRIBING: remove_calls=0 (expected 1)
+  Sxodim: 1 событий с 2026-10-12 (1 с)
+Сайты: после отсева дублей и дат 1 событий в окне 2026-10-12…2026-10-19 (1 с, токенов 0).
+ALL_WITHOUT_AI_KEY: {"sites":[{"name":"Sxodim","found":1,"ok":true}],"error":"Нет GEMINI_API_KEY"}
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+PHOTO_AFTER_REPLACING_BROKEN_URL: 0 (expected 1)
+COLD_START_WITHOUT_MAP_READY: [["settle",5200],["end",5750]]
+UNRESOLVED_HOUSE_FALLBACK: { lat: 43.2389, lon: 76.8897 } [ '999 Абая', 'Абая' ]

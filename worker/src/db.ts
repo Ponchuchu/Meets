@@ -13,7 +13,7 @@ export interface Db {
   cancel(eventId: string, sure: boolean): Promise<void>;
   touchSource(id: string, cursor: string | null): Promise<void>;
   notifyStaff(): Promise<void>;
-  /** Черновики, которые уже закончились: ждать их одобрения незачем — удаляем. Возвращает число. */
+  /** Закончившиеся черновики убираем в архив, сохраняя защиту от повторного поиска. */
   purgeExpiredDrafts(): Promise<number>;
 }
 
@@ -34,20 +34,27 @@ export function createDb(url: string, key: string): Db {
 
   return {
     sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search)&select=*'),
-    venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,lat,lon'),
+    venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,address,lat,lon'),
     known: async () => {
       const since = new Date(Date.now() - 2 * 86400e3).toISOString();
-      // Берём все события окна, и скрытые тоже: удалённое или отклонённое в панели поиск не должен вернуть.
-      // У скрытых и переименованных id с «new:», чтобы отмена и ссылки на базу их не трогали.
-      const rows = await rest<{ id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; venues: { name: string } | null }[]>(
-        `events?select=id,title,orig_title,status,rejected,starts_at,venues(name)&starts_at=gte.${since}&visibility=eq.public&limit=3000`,
-      );
-      const out: { id: string; title: string; starts_at: string; venue_name: string | null }[] = [];
-      for (const r of rows) {
-        const live = !r.rejected && (r.status === 'draft' || r.status === 'published');
-        const venue_name = r.venues?.name ?? null;
-        out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name });
-        if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name });
+      const now = new Date().toISOString();
+      // Долгие события пересекают окно; запреты и старые названия сохраняем независимо от даты.
+      // Читаем по страницам: Supabase ограничивает размер одного ответа.
+      type Row = { id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; is_long?: boolean; venues: { name: string } | null };
+      const out: { id: string; title: string; starts_at: string; venue_name: string | null; is_long?: boolean }[] = [];
+      let after: string | null = null;
+      for (;;) {
+        const rows: Row[] = await rest<Row[]>(
+          `events?select=id,title,orig_title,status,rejected,starts_at,is_long,venues(name)&visibility=eq.public&or=(starts_at.gte.${since},ends_at.gte.${now},rejected.eq.true,orig_title.not.is.null)&order=id.asc&limit=500${after ? `&id=gt.${after}` : ''}`,
+        );
+        for (const r of rows) {
+          const live = !r.rejected && (r.status === 'draft' || r.status === 'published');
+          const venue_name = r.venues?.name ?? null;
+          out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
+          if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
+        }
+        if (rows.length < 500) break;
+        after = rows[rows.length - 1].id;
       }
       return out;
     },
@@ -88,9 +95,10 @@ export function createDb(url: string, key: string): Db {
     },
     purgeExpiredDrafts: async () => {
       const now = new Date().toISOString();
+      const cutoff = new Date(Date.now() - 3 * 3600e3).toISOString();
       const gone = await rest<{ id: string }[]>(
-        `events?status=eq.draft&or=(ends_at.lt.${now},and(ends_at.is.null,starts_at.lt.${now}))&select=id`,
-        { method: 'DELETE', headers: { Prefer: 'return=representation' } },
+        `events?visibility=eq.public&status=eq.draft&or=(ends_at.lt.${now},and(ends_at.is.null,starts_at.lt.${cutoff}))&select=id`,
+        { method: 'PATCH', body: JSON.stringify({ status: 'archived', rejected: true, updated_at: now }), headers: { Prefer: 'return=representation' } },
       );
       return gone?.length ?? 0;
     },

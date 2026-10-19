@@ -11,6 +11,7 @@ import { now as clockNow } from '../../lib/clock';
 import { CAT_ICON } from '../../map/icons';
 import { canSee, distanceM } from '../../people/visibility';
 import { BADGES } from '../../profile/badges';
+import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
 import { useSession } from '../../state/session';
@@ -184,7 +185,7 @@ export default function PersonScreen() {
               <View style={styles.rowBetween}><Text style={styles.h2}>Достижения</Text>{d.badgeLine && <Text style={styles.badgeLine}>{d.badgeLine}</Text>}</View>
               <View style={{ flexDirection: 'row' }}>
                 {badges.slice(0, 4).map((b) => (
-                  <View key={b!.id} style={styles.badge}><View style={styles.disc}><Ic d={b!.icon} size={22} color={colors.accent} /></View><Text style={styles.badgeName}>{b!.name}</Text></View>
+                  <View key={b!.id} style={styles.badge}><BadgeMedal id={b!.id} icon={b!.icon} got size={52} /><Text style={styles.badgeName}>{b!.name}</Text></View>
                 ))}
               </View>
             </>
@@ -283,7 +284,6 @@ const styles = StyleSheet.create({
   about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 22.5, color: colors.muted2 },
   badgeLine: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.5, color: colors.ink },
   badge: { flex: 1, alignItems: 'center', gap: 6 },
-  disc: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   badgeName: { textAlign: 'center', fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: 28, paddingVertical: 12 },
   footText: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted },

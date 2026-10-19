@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Platform,Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { data, type EventItem } from '../../data';
 import { APP_URL, config } from '../../lib/config';
-import { getEventsByIds, getMeStats, getMyAttendance, getProfile } from '../../live/api';
+import { getEventsByIds, getMeStats, getMyAttendance, getProfile, saveProfile } from '../../live/api';
 import { useSession } from '../../state/session';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
@@ -13,10 +13,19 @@ import { StickerPicker } from '../../stickers/StickerPicker';
 import { StickerView } from '../../stickers/StickerView';
 import type {Sticker} from '../../stickers/catalog';
 import {useState} from 'react';
-import { BADGES } from '../../profile/badges';
+import { MapAvatar, MAP_FRAMES } from '../../map/MapAvatar';
+import { StepsCard } from './StepsCard';
+import { BADGES, badgeIcon } from '../../profile/badges';
+import { BadgeMedal } from '../../ui/BadgeMedal';
+import { plate } from '../../ui/glass';
 
 export default function ProfileDetail() {
   const { page } = useLocalSearchParams<{ page: string }>();
+  const qc = useQueryClient();
+  const [frameBusy, setFrameBusy] = useState(false);
+  const [frameError, setFrameError] = useState('');
+  const [previewTrail, setPreviewTrail] = useState<'none'|'dots'|'comet'>('dots');
+  const [previewFrame, setPreviewFrame] = useState('classic');
   const [badge,setBadge]=useState<string|null>(null);
   const [sticker,setSticker]=useState<Sticker|null>(null);
   const live = config.dataMode !== 'demo';
@@ -44,9 +53,38 @@ export default function ProfileDetail() {
   const level = stats.data?.level ?? 1;
   const badges = stats.data?.badges ?? [];
   return <SettingsPage title="Уровень и награды" sub={`Уровень ${level} · ${points} очков`}>
+    <StepsCard />
+    <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.card, gap: 16 }}>
+      <Text style={{ fontFamily: fonts.display700, fontSize: 22, color: colors.ink }}>Твой значок на карте</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>{MAP_FRAMES.map(f => <Pressable disabled={frameBusy || level < f.level} key={f.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_frame : previewFrame) === f.id, disabled: level < f.level }} onPress={async () => {
+        if (frameBusy) return; setFrameBusy(true); setFrameError('');
+        try { if (live) { await saveProfile({ map_frame: f.id }); await qc.invalidateQueries({ queryKey: ['me', 'profile'] }); } else setPreviewFrame(f.id); }
+        catch { setFrameError('Не удалось сохранить рамку. Проверь связь'); } finally { setFrameBusy(false); }
+      }} style={{ alignItems: 'center', gap: 8, opacity: level >= f.level ? 1 : 0.4 }}>
+        <MapAvatar person={{ id: 'preview', name: draft.name, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', photo: profile.data?.photo_url ?? draft.photo, isFriend: true, mapFrame: f.id }} size={64} />
+        <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>{f.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted }}>{level < f.level ? `Уровень ${f.level}` : (live ? profile.data?.map_frame : previewFrame) === f.id ? 'Выбрано' : 'Выбрать'}</Text>
+      </Pressable>)}</View>
+      <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>След движения</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{([{ id: 'none', name: 'Без следа', level: 1 }, { id: 'dots', name: 'Точки', level: 1 }, { id: 'comet', name: 'Комета', level: 3 }] as const).map(t => <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_trail : previewTrail) === t.id, disabled: level < t.level || frameBusy }} disabled={level < t.level || frameBusy} onPress={async () => {
+        setFrameBusy(true); setFrameError('');
+        try { if (live) { await saveProfile({ map_trail: t.id }); await qc.invalidateQueries({ queryKey: ['me', 'profile'] }); } else setPreviewTrail(t.id); }
+        catch { setFrameError('Не удалось сохранить след. Проверь связь'); } finally { setFrameBusy(false); }
+      }} style={{ minHeight: 44, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', backgroundColor: (live ? profile.data?.map_trail : previewTrail) === t.id ? colors.ink : colors.sand, opacity: level >= t.level ? 1 : .4 }}><Text style={{ fontFamily: fonts.body600, color: (live ? profile.data?.map_trail : previewTrail) === t.id ? colors.paper : colors.ink }}>{t.name}{level < t.level ? ` · ур. ${t.level}` : ''}</Text></Pressable>)}</View>
+      {!!frameError && <Text accessibilityRole="alert" style={{ color: colors.accentText }}>{frameError}</Text>}
+    </View>
     <Group><Row title="Новые места" sub="Открывай клетки города — 5 очков за каждую" /><Row title="Я на месте" sub="Отметься на событии — 30 очков" /><Row title="Друзья рядом" sub="Встречайтесь и знакомьтесь — очки начисляются за новые знакомства" /></Group>
     <Note>Значки открываются за выполненные задания. Нажми на значок в списке, чтобы увидеть условие.</Note>
-    <Group>{(badges.length ? badges : BADGES.map((b) => ({ ...b, progress: 0, got: false }))).map((b) => <Row onPress={()=>setBadge(b.id)} key={b.id} title={b.name} sub={('how' in b ? b.how : undefined) ?? BADGES.find((x) => x.id === b.id)?.how ?? `${b.progress} из ${b.goal}`} value={b.got ? 'Открыт' : `${Math.min(b.progress,b.goal)} / ${b.goal}`} />)}</Group>
+    <View style={{ gap: 12 }}>{(badges.length ? badges : BADGES.map(b => ({ ...b, progress: 0, got: false }))).map(b => {
+      const def = BADGES.find(x => x.id === b.id);
+      return <Pressable onPress={() => setBadge(b.id)} key={b.id} accessibilityRole="button" accessibilityLabel={`${b.name}, ${b.progress} из ${b.goal}`} style={{ padding: 16, borderRadius: 22, ...plate, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <BadgeMedal id={b.id} icon={def?.icon ?? badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={60} />
+          <View style={{ flex: 1, gap: 4 }}><Text style={{ fontFamily: fonts.display700, fontSize: 17, color: colors.ink }}>{b.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted, lineHeight: 18 }}>{b.how ?? def?.how ?? 'Выполни задание'}</Text></View>
+        </View>
+        <View style={{ height: 5, backgroundColor: colors.sand, borderRadius: 3, overflow: 'hidden' }}><View style={{ height: 5, width: `${Math.min(100, b.progress / Math.max(1, b.goal) * 100)}%`, backgroundColor: colors.accent }} /></View>
+        <Text style={{ fontFamily: fonts.mono600, color: colors.muted }}>{b.got ? 'Открыт' : `${Math.min(b.progress, b.goal)} / ${b.goal}`}</Text>
+      </Pressable>;
+    })}</View>
     {badge&&<Note>{`${badges.find(b=>b.id===badge)?.name??''} · ${badges.find(b=>b.id===badge)?.how??BADGES.find(b=>b.id===badge)?.how??''}`}</Note>}
     {sticker&&<View style={{alignItems:'center',padding:12,backgroundColor:colors.card,borderRadius:24}}><StickerView st={sticker} size="lg"/><Text style={{fontFamily:fonts.body400,color:colors.muted}}>Отправь этот стикер другу в чате</Text></View>}
     <StickerPicker level={level} onSelect={setSticker}/>

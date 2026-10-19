@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { Bus, Car, Copy, Footprints, Navigation } from 'lucide-react-native';
+import { Copy, MapPin } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
 import { getRoute } from '../../live/api';
@@ -12,12 +13,12 @@ import { kmText } from '../../map/ui/EventSheet';
 import { busFor } from '../../transit/almaty';
 import { colors, fonts } from '../../theme';
 
-export function useTrip(e: EventItem, me: { lat: number; lon: number } | null) {
+export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, mode: 'walk' | 'car' | 'bus' = 'walk') {
   // Место «примерно» (needsPin) — точного маршрута не строим, только оценка по прямой.
-  const enabled = !!me && !e.needsPin;
+  const enabled = mode !== 'bus' && !!me && !e.needsPin && !e.noPoint;
   const q = useQuery({ queryKey: ['route', e.id, me ? `${me.lat.toFixed(3)},${me.lon.toFixed(3)}` : ''], queryFn: () => getRoute(me!, e), enabled, staleTime: 10 * 60e3, retry: 0, placeholderData:(previous,query)=>query?.queryKey[1]===e.id?previous:undefined });
   const loading = enabled && q.isPending;
-  const bus = me && !e.needsPin && !e.noPoint ? busFor(me, e, new Date()) : null;
+  const bus = useMemo(() => mode === 'bus' && me && !e.needsPin && !e.noPoint ? busFor(me, e, new Date()) : null, [e, me?.lat, me?.lon, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Без сети или без ответа — по прямой × 1,3, с пометкой «примерно».
   const straight = me ? distM(me, e) * 1.3 : 0;
   const walkMin = q.data?.walk?.min ?? (me && !e.noPoint && !loading ? Math.round(straight / 75) : null);
@@ -26,34 +27,16 @@ export function useTrip(e: EventItem, me: { lat: number; lon: number } | null) {
 }
 
 export function WhereSheet({ e, me, onCopied }: { e: EventItem; me: { lat: number; lon: number } | null; onCopied: () => void }) {
-  const t = useTrip(e, me);
-  const go = (mode: 'walk' | 'car' | 'bus') => router.push({ pathname: '/route', params: { id: e.id, mode } });
-  const tiles = [
-    { mode: 'walk' as const, Icon: Footprints, min: t.walkMin, label: 'Пешком' },
-    { mode: 'car' as const, Icon: Car, min: t.carMin, label: 'На машине' },
-    ...(t.bus ? [{ mode: 'bus' as const, Icon: Bus, min: t.bus.total, label: `Автобус ${t.bus.ref}` }] : []),
-  ];
   return (
     <View style={{ gap: 12 }}>
       <View>
         <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>{e.venueName ?? e.title}</Text>
         <Text style={styles.sub}>{[e.address, me && !e.needsPin ? `${kmText(distM(me, e))} от тебя` : null].filter(Boolean).join(' · ')}</Text>
       </View>
-      {!e.needsPin && (
-        <View style={styles.here}>
-          <View style={styles.hereHead}><Navigation size={18} color={colors.accent} strokeWidth={2} /><Text style={styles.hereTitle}>Маршрут здесь, в Meets</Text></View>
-          {me ? (
-            <View style={styles.tiles}>
-              {tiles.map(({ mode, Icon, min, label }) => (
-                <Pressable key={mode} onPress={() => go(mode)} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityLabel={`${label}: ${min ?? '…'} минут`}>
-                  <Icon size={18} color="#EEE9DE" strokeWidth={1.9} />
-                  <Text style={styles.tileText}>{min != null ? `${t.rough && mode !== 'bus' ? '~' : ''}${min} мин` : '…'}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : <Text style={styles.hereSub}>Включи геолокацию — посчитаем время пешком, на машине и на автобусе.</Text>}
-        </View>
-      )}
+      <Pressable onPress={() => router.push({ pathname: '/route', params: { id: e.id } })} style={styles.here} accessibilityRole="button" accessibilityLabel="Показать место на карте">
+        <View style={styles.hereHead}><MapPin size={20} color={colors.accent} /><Text style={styles.hereTitle}>Показать на карте</Text></View>
+        <Text style={styles.hereSub}>Сначала место, затем пешком, на машине или автобусе</Text>
+      </Pressable>
       <Pressable onPress={() => { void Clipboard.setStringAsync(e.address || e.title).then(onCopied); }} style={styles.copy} accessibilityRole="button">
         <Copy size={17} color={colors.muted2} strokeWidth={1.9} />
         <Text style={styles.copyText}>Скопировать адрес</Text>

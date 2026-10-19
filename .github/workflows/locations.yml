@@ -1,0 +1,42 @@
+name: Проверить адреса событий
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Сохранить уверенно найденные координаты
+        type: boolean
+        default: false
+      all:
+        description: Проверить также карточки, у которых уже есть точка
+        type: boolean
+        default: false
+      limit:
+        description: Сколько карточек проверить (1–100)
+        default: '40'
+permissions:
+  contents: read
+concurrency:
+  group: repair-event-locations
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Проверить адреса
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GEOCODE_LIMIT: ${{ inputs.limit }}
+          APPLY_POINTS: ${{ inputs.apply }}
+          CHECK_ALL_POINTS: ${{ inputs.all }}
+        run: |
+          args=()
+          if [ "$APPLY_POINTS" = "true" ]; then args+=(--apply); fi
+          if [ "$CHECK_ALL_POINTS" = "true" ]; then args+=(--all); fi
+          NODE_USE_ENV_PROXY=1 node worker/src/repair-locations.ts "${args[@]}"

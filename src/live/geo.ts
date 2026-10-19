@@ -71,10 +71,10 @@ export function exploredPct(cells: string[]): string {
 }
 
 /** Как часто слать точку: открыто — 4 с, закрыто — 2,5 мин; батарея < 10 % — реже. */
-export function sendInterval(foreground: boolean, battery: number | null): number {
+export function sendInterval(foreground: boolean, battery: number | null, moving: boolean | null = null): number {
   const low = battery != null && battery >= 0 && battery < 0.1;
   if (foreground) return low ? 15000 : 4000;
-  return low ? 300000 : 150000;
+  return low ? (moving === false ? 1800000 : 300000) : moving === false ? 900000 : moving === true ? 180000 : 300000;
 }
 
 /** Контуры открытых мест: клетки склеены в общие пятна (общие стороны соседей убраны), без внутренних швов.

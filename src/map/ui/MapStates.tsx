@@ -57,7 +57,7 @@ export function TrafficChip({ hasKey, score, toName, toMin }: { hasKey: boolean;
     return (
       <View style={styles.chip} accessibilityLabel={text}>
         <View style={[styles.score, { backgroundColor: bg }]}><Text style={styles.scoreText}>{score}</Text></View>
-        <Text style={styles.chipText}>{text}</Text>
+        <Text style={styles.chipText}>{score} {plural(score, 'балл', 'балла', 'баллов')}</Text>
       </View>
     );
   }

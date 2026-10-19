@@ -5,7 +5,6 @@ import type { RawPost } from './types.ts';
 import type { Found } from './search.ts';
 
 const UA = { 'User-Agent': 'ryadom-worker/0.1 (+https://ryadom.app)', 'Accept-Language': 'ru' };
-const MAX_PER_RUN = 25;
 
 interface LdEvent {
   '@type'?: string; name?: string; url?: string; description?: string; startDate?: string; endDate?: string;
@@ -54,23 +53,6 @@ export function parseSxodimEvent(html: string, url: string, sourceId: string): R
     images: images.slice(0, 1),
     postedAt: article?.datePublished ?? null,
   };
-}
-
-/** Новые события с сайта. seen — slug'и, которые уже читали (база и так отсекает дубли). */
-export async function fetchSite(handle: string, sourceId: string, seen: Set<string> = new Set()): Promise<RawPost[]> {
-  if (!handle.startsWith('sxodim.com')) throw new Error(`Сайт ${handle} пока не поддерживается`);
-  const res = await fetch(`https://${handle}`, { headers: UA });
-  if (!res.ok) throw new Error(`${handle}: ${res.status}`);
-  const links = parseSxodimList(await res.text()).filter((u) => !seen.has(u.split('/').pop() ?? '')).slice(0, MAX_PER_RUN);
-  const out: RawPost[] = [];
-  for (const url of links) {
-    const page = await fetch(url, { headers: UA });
-    if (!page.ok) continue;
-    const post = parseSxodimEvent(await page.text(), url, sourceId);
-    if (post) out.push(post);
-    await new Promise((r) => setTimeout(r, 400)); // вежливо: не чаще ~2 запросов в секунду
-  }
-  return out;
 }
 
 /** Категория по ключевым словам (без ИИ). Вечеринка — только по названию: слово «клуб» часто стоит в названии площадки. */

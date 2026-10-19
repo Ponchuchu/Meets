@@ -1,5 +1,5 @@
 // Сообщения чата по DirectChat / EventChat: текст, фото, видео, кружок, голосовое, стикер, приглашение, опрос, системное.
-import { useEffect, useState, type ReactNode } from 'react';
+import { memo, useEffect, useId, useState, type ReactNode } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +11,10 @@ import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
 import { STICKERS } from '../../stickers/catalog';
-import { StickerView } from '../../stickers/StickerView';
+import { config } from '../../lib/config';
+import { registerPlayback, usePlayback } from '../playback';
+import { VideoPreview } from './VideoPreview';
+import { InteractiveSticker } from '../../stickers/InteractiveSticker';
 import { vote } from '../rules';
 
 const WAVE = [6, 10, 14, 9, 16, 12, 18, 8, 13, 17, 10, 6, 12, 15, 9, 11, 7, 13, 10, 6, 9, 5];
@@ -27,15 +30,19 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).
 
 /** Настоящее голосовое: файл из Storage (подписанная ссылка) или только что записанный. */
 function VoiceFile({ m, mine }: { m: Message; mine: boolean }) {
+  const playbackId = useId();
   const player = useAudioPlayer(m.media!);
   const st = useAudioPlayerStatus(player);
+  useEffect(() => registerPlayback(playbackId, () => player.pause()), [playbackId, player]);
+  const active = usePlayback(s => s.active === playbackId);
+  useEffect(() => { if (active) player.play(); else player.pause(); }, [active, player]);
   const total = st.duration || secs(m.duration);
   const part = total ? Math.min(1, st.currentTime / total) : 0;
   const fg = mine ? colors.paper : colors.ink;
   const toggle = () => {
-    if (st.playing) { player.pause(); return; }
+    if (active) { usePlayback.getState().play(null); return; }
     if (st.didJustFinish || part >= 0.99) void player.seekTo(0);
-    player.play();
+    usePlayback.getState().play(playbackId);
   };
   return (
     <View style={[styles.voice, mine ? styles.meBox : styles.themBox]}>
@@ -52,31 +59,24 @@ function VoiceFile({ m, mine }: { m: Message; mine: boolean }) {
   );
 }
 
-/** Настоящий кружок: видео в круге, само крутится без звука; тап — со звуком с начала, ещё тап — пауза. */
+function CirclePlayer({ uri, id }: { uri: string; id: string }) {
+  const player = useVideoPlayer(uri, p => { p.loop = true; p.muted = false; p.play(); });
+  useEffect(() => registerPlayback(id, () => player.pause()), [id, player]);
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" surfaceType="textureView" nativeControls={false} />;
+}
+
+/** Текстурный слой Android обрезается кругом; декодер создаётся только после нажатия. */
 function CircleVideo({ m, blurred, onReveal }: { m: Message; blurred: boolean; onReveal: () => void }) {
-  const player = useVideoPlayer(m.media!, (p) => { p.loop = true; p.muted = true; p.play(); });
-  const [sound, setSound] = useState(false);
-  // У плеера expo-video звук и позиция меняются присваиванием — так устроен его API.
-  /* eslint-disable react-hooks/immutability */
-  const tap = () => {
-    if (blurred) { onReveal(); return; }
-    if (!sound) { player.muted = false; player.currentTime = 0; player.play(); setSound(true); }
-    else { player.muted = true; setSound(false); }
-  };
-  /* eslint-enable react-hooks/immutability */
-  return (
-    <Pressable onPress={tap} style={styles.circleWrap} accessibilityRole="button" accessibilityLabel={`Кружок, ${m.duration ?? ''}. ${sound ? 'Выключить звук' : 'Включить звук'}`}>
-      <Svg width={176} height={176} style={StyleSheet.absoluteFill}>
-        <Circle cx={88} cy={88} r={86} stroke={sound ? colors.accent : colors.ink} strokeWidth={3} fill="none" />
-      </Svg>
-      <View style={[styles.circle, { overflow: 'hidden' }]}>
-        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} />
-        {blurred && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(23,22,26,0.85)' }]} />}
-      </View>
-      <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
-      <View style={[styles.pill, { right: 10 }]}><Text style={styles.durText}>{m.time}</Text></View>
-    </Pressable>
-  );
+  const playing = usePlayback(s => s.active === m.id);
+  const tap = () => { if (blurred) onReveal(); else usePlayback.getState().play(playing ? null : m.id, !playing); };
+  return <Pressable onPress={tap} style={styles.circleWrap} accessibilityRole="button" accessibilityLabel={`Кружок, ${m.duration ?? ''}. ${playing ? 'Пауза' : 'Воспроизвести'}`}>
+    <Svg width={176} height={176} style={StyleSheet.absoluteFill}><Circle cx={88} cy={88} r={86} stroke={playing ? colors.accent : colors.ink} strokeWidth={3} fill="none" /></Svg>
+    <View style={[styles.circle, { overflow: 'hidden' }]}>
+      {blurred ? <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.ink }]} /> : playing ? <CirclePlayer uri={m.media!} id={m.id} /> : <VideoPreview id={m.id} uri={m.media!} />}
+    </View>
+    <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
+    <View style={[styles.pill, { right: 10 }]}><Text style={styles.durText}>{m.time}</Text></View>
+  </Pressable>;
 }
 
 function Voice({ m, mine }: { m: Message; mine: boolean }) {
@@ -109,15 +109,24 @@ function Voice({ m, mine }: { m: Message; mine: boolean }) {
 
 function VideoFile({uri}:{uri:string}) {
   const player=useVideoPlayer(uri);
-  return <VideoView player={player} style={{width:'100%',height:250}} contentFit="contain" nativeControls fullscreenOptions={{enable:true}}/>;
+  useEffect(() => { const id = `video:${uri}`; usePlayback.getState().play(id, true); const unregister = registerPlayback(id, () => player.pause()); return () => { unregister(); if (usePlayback.getState().active === id) usePlayback.getState().play(null); }; }, [uri, player]);
+  return <VideoView player={player} style={{width:'100%',height:250}} contentFit="contain" surfaceType="textureView" nativeControls fullscreenOptions={{enable:true}}/>;
 }
 function MediaBubble({m,mine,blurred,onReveal}:{m:Message;mine:boolean;blurred:boolean;onReveal:()=>void}) {
   const [ratio,setRatio]=useState(1);
   const [open,setOpen]=useState(false);
+  useEffect(() => {
+    let active = true;
+    const source = photo(m.media);
+    if (!source) return;
+    const asset = typeof Image.resolveAssetSource === 'function' ? Image.resolveAssetSource(source) : Array.isArray(source) ? source[0] : typeof source === 'object' ? source : null;
+    if (asset?.uri) Image.getSize(asset.uri, (w,h) => { if (active && w && h) setRatio(w/h); }, () => undefined);
+    return () => { active = false; };
+  }, [m.media]);
   return <>
-    <Pressable onPress={()=>blurred?onReveal():setOpen(true)} style={[styles.media,mine?styles.meBox:styles.themBox]} accessibilityRole="button" accessibilityLabel={blurred?'Показать медиа':'Открыть медиа'}>
-      {m.kind==='video' && isFile(m.media) && !blurred ? <VideoFile uri={m.media!}/> : <View style={{aspectRatio:Math.max(0.55,Math.min(2,ratio)),width:'100%'}}>
-        <Image source={photo(m.media)} style={{width:'100%',height:'100%'}} resizeMode="contain" blurRadius={blurred?30:0} onLoad={e=>{const {width,height}=e.nativeEvent.source;if(width&&height)setRatio(width/height);}}/>
+    <Pressable onPress={() => { if (usePlayback.getState().recording) return; if (blurred) onReveal(); else setOpen(true); }} style={[styles.media,mine?styles.meBox:styles.themBox]} accessibilityRole="button" accessibilityLabel={blurred?'Показать медиа':'Открыть медиа'}>
+      {m.kind==='video' && isFile(m.media) && !blurred ? <View style={{ height: 180, width: '100%' }}><VideoPreview id={m.id} uri={m.media!}/></View> : <View style={{aspectRatio:Math.max(0.55,Math.min(2,ratio)),width:'100%'}}>
+        <Image source={photo(m.media)} style={{width:'100%',height:'100%'}} resizeMode="contain" blurRadius={blurred?30:0} onLoad={e=>{const {width,height}=e.nativeEvent.source ?? {};if(width&&height)setRatio(width/height);}}/>
         {blurred&&<View style={styles.blur}><Text style={styles.blurText}>Нажми, чтобы показать</Text></View>}
         {!m.text&&<View style={[styles.pill,{bottom:8,right:8}]}><Text style={styles.durText}>{m.time}</Text></View>}
       </View>}
@@ -132,7 +141,7 @@ function MediaBubble({m,mine,blurred,onReveal}:{m:Message;mine:boolean;blurred:b
   </>;
 }
 
-export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onReveal, onInvite, voteState, onVote, onOpenEvent, onAvatar }: {
+export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onReveal, onInvite, voteState, onVote, onOpenEvent, onAvatar }: {
   m: Message; author?: Person; mine: boolean; friendChat: boolean; showAuthor?: boolean;
   revealed: boolean; onReveal: () => void;
   onInvite?: (a: 'yes' | 'no') => void; voteState?: number; onVote?: (i: number) => void; onOpenEvent?: () => void; onAvatar?: () => void;
@@ -147,6 +156,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
   );
   const authorLine = showAuthor && !mine && author ? <Text style={[styles.author, { color: author.isFriend ? colors.accentText : colors.friend }]}>{author.name}</Text> : null;
 
+  if (!m.media && config.dataMode !== 'demo' && ['voice', 'circle', 'photo', 'video'].includes(m.kind)) return wrap(<View style={styles.themBox}><Text style={[styles.text, { padding: 14 }]}>Вложение не загрузилось. Обнови чат</Text></View>);
   switch (m.kind) {
     case 'system':
       return <View style={styles.system}><Text style={styles.systemText}>{m.text}</Text></View>;
@@ -164,7 +174,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
         <View style={{ alignItems: align, gap: 6 }}>
-          <StickerView st={st} size="lg"/>
+          <InteractiveSticker st={st} />
           <Text style={styles.cap}>СТИКЕР С КАРТЫ · {m.time}</Text>
         </View>
       );
@@ -194,7 +204,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
             <View style={styles.inviteHead}><Ic d="M9 18V5l11-2v13M6 21a3 3 0 100-6 3 3 0 000 6zM17 19a3 3 0 100-6 3 3 0 000 6z" size={16} color={colors.ink} w={2} /><Text style={styles.inviteCap}>ПРИГЛАШЕНИЕ</Text></View>
             <Pressable onPress={onOpenEvent} style={{ padding: 14, gap: 4 }} accessibilityRole="button">
               <Text style={styles.inviteTitle}>{m.text}</Text>
-              <Text style={styles.sub}>{m.sub}</Text>
+              <Text style={styles.sub}>{m.sub ?? (mine ? 'Ты пригласил · нажми, чтобы открыть' : 'Приглашает тебя · нажми, чтобы открыть')}</Text>
               {m.answer && <View style={styles.answer}><Ic d="M5 12l5 5 9-10" size={14} color={colors.ok} w={2.4} /><Text style={styles.answerText}>{m.answer}</Text></View>}
               {!m.answer && onInvite && (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
@@ -229,7 +239,7 @@ export function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onRe
     default:
       return null;
   }
-}
+});
 
 const styles = StyleSheet.create({
   line: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },

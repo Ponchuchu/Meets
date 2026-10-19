@@ -5,7 +5,7 @@ import { INTEREST_TAGS, type Interest, type Taste } from '../reco/startTaste';
 
 const CAT_WORD: Partial<Record<EventItem['category'], string>> = {
   music: 'ДЖАЗ И ЖИВУЮ МУЗЫКУ', concert: 'КОНЦЕРТЫ', standup: 'СТЕНДАП', games: 'НАСТОЛКИ', hike: 'ГОРЫ', art: 'ВЫСТАВКИ',
-  food: 'ЕДУ И МАРКЕТЫ', sport: 'СПОРТ', bike: 'ВЕЛО', talks: 'ЛЕКЦИИ', lecture: 'ЛЕКЦИИ', party: 'ВЕЧЕРИНКИ', theatre: 'ТЕАТР',
+  food: 'ЕДУ И МАРКЕТЫ', sport: 'СПОРТ', bike: 'ВЕЛО', talks: 'ЛЕКЦИИ', lecture: 'ЛЕКЦИИ', party: 'ВЕЧЕРИНКИ', theatre: 'ТЕАТР', movie: 'КИНО',
 };
 
 export interface InviteIdea {

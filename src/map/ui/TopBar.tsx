@@ -46,12 +46,12 @@ export function TopBar({ weather, weatherNow, active, dark, lensOn, onSearch, on
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  pill: { flex: 1, minWidth: 0, height: 48, paddingHorizontal: 16, borderRadius: 24, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ph: { fontFamily: fonts.body500, fontSize: 15.5, color: colors.muted, flexShrink: 1 },
-  round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  plus: { backgroundColor: colors.ink },
+  pill: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: 16, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ph: { fontFamily: fonts.body500, fontSize: 15.5, color: colors.muted2, flexShrink: 1 },
+  round: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  plus: { backgroundColor: colors.ink, borderColor: colors.ink, boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), 0 10px 22px -8px rgba(23,22,26,0.45)' },
   pressed: { transform: [{ scale: 0.92 }] },
-  dot: { position: 'absolute', right: 9, top: 9, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#EEE9DE', backgroundColor: colors.accent },
+  dot: { position: 'absolute', right: 9, top: 9, width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#FCFBF8', backgroundColor: colors.accent },
   wx: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 10, height: 26 },
   temp: { fontFamily: fonts.body700, fontSize: 16 },
 });

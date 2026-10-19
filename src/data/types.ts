@@ -2,18 +2,21 @@
 
 export type Category =
   | 'music' | 'standup' | 'art' | 'hike' | 'games' | 'food' | 'sport' | 'talks'
-  | 'theatre' | 'lecture' | 'meetup' | 'party' | 'bike' | 'concert';
+  | 'movie' | 'theatre' | 'lecture' | 'meetup' | 'party' | 'bike' | 'concert';
 
 export type Visibility = 'public' | 'friends';
 
 export interface EventItem {
   id: string;
+  sessions?: { id: string; startsAt: string; endsAt: string | null }[];
+  createdBy?: string;
   title: string;
   category: Category;
   tags: string[];
   startsAt: string; // ISO
   endsAt: string | null;
   isLong: boolean;
+  venueId?: string;
   venueName: string | null;
   address: string;
   addressNote?: string;
@@ -43,6 +46,8 @@ export interface EventItem {
   /** Встреча, которую создал я (CreateEvent). */
   meetup?: { kind: string; plusOne: boolean; invited: string[]; items: MeetupItem[] };
   visibility: Visibility;
+  /** В планах сохраняются и события, которые команда сняла с карты. */
+  status?: 'draft' | 'published' | 'cancelled' | 'archived';
   /** Откуда пришло: настоящее событие из афиши или демо-событие макета. */
   origin: 'real' | 'demo';
   /** id друзей, которые идут (только для демо; в supabase считается из attendance). */
@@ -77,6 +82,8 @@ export interface Person {
   name: string;
   age?: number;
   photo: string | null; // ключ фото из assets
+  mapTrail?: 'none' | 'dots' | 'comet';
+  mapFrame?: string;
   initial: string;
   tint: string;
   isFriend: boolean;
@@ -89,12 +96,17 @@ export interface Person {
 export type MessageKind = 'text' | 'photo' | 'video' | 'voice' | 'circle' | 'sticker' | 'invite' | 'poll' | 'system';
 
 export interface Message {
+  clientKey?: string;
   id: string;
   chatId: string;
   authorId: string; // 'me' — это я
   kind: MessageKind;
   text: string;
   time: string; // «18:10»
+  createdAt?: string;
+  delivery?: 'sending' | 'failed';
+  durationS?: number;
+  uploadedPath?: string;
   media?: string | null;
   duration?: string;
   sub?: string;

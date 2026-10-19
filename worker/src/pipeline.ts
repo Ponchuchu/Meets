@@ -44,7 +44,7 @@ export async function processPosts(posts: RawPost[], source: Source, deps: Deps)
       out.push({ post, kind: 'unclear', reason: 'уже прошло' });
       continue;
     }
-    const dup = findDuplicate({ title: x.title, starts_at: x.starts_at, venue_name: x.venue_name }, deps.known);
+    const dup = findDuplicate({ title: x.title, starts_at: x.starts_at, venue_name: x.venue_name, is_long: x.is_long }, deps.known);
     if (dup) {
       out.push({ post, kind: 'duplicate', of: dup });
       continue;
@@ -54,7 +54,7 @@ export async function processPosts(posts: RawPost[], source: Source, deps: Deps)
       out.push({ post, kind: 'unclear', reason: 'не собрался черновик' });
       continue;
     }
-    deps.known.push({ id: `new:${post.externalId}`, title: draft.title, starts_at: draft.starts_at, venue_name: draft.venue_name });
+    deps.known.push({ id: `new:${post.externalId}`, title: draft.title, starts_at: draft.starts_at, venue_name: draft.venue_name, is_long: draft.is_long });
     out.push({ post, kind: 'draft', draft, by: x.by });
   }
   return out;

@@ -25,6 +25,7 @@ interface ChatState {
   togglePin: (chatId: string) => void;
   send: (m: Message) => void;
   unsend: (id: string) => void;
+  updateMessage: (id: string, patch: Partial<Message>) => void;
   vote: (messageId: string, i: number) => void;
   answer: (messageId: string, a: 'yes' | 'no') => void;
   reveal: (messageId: string) => void;
@@ -36,7 +37,7 @@ interface ChatState {
 
 export const useChat = create<ChatState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sent: [], votes: {}, answers: {}, revealed: {}, blocked: {}, reported: {}, read: {}, requests: {}, pinned: {}, archived: {}, hidden: {}, groups: [],
       archive: (id, on) => set(s => { const archived = {...s.archived}; if(on) archived[id] = true; else delete archived[id]; return {archived}; }),
       hide: id => set(s => ({hidden:{...s.hidden,[id]:true}})),
@@ -48,13 +49,14 @@ export const useChat = create<ChatState>()(
         return { pinned };
       }),
       send: (m) => set((s) => ({ sent: [...s.sent, m] })),
+      updateMessage: (id, patch) => set(s => ({ sent: s.sent.map(m => m.id === id ? { ...m, ...patch } : m) })),
       unsend: (id) => set((s) => ({ sent: s.sent.filter((m) => m.id !== id) })),
       vote: (id, i) => set((s) => ({ votes: { ...s.votes, [id]: i } })),
       answer: (id, a) => set((s) => ({ answers: { ...s.answers, [id]: a } })),
       reveal: (id) => set((s) => ({ revealed: { ...s.revealed, [id]: true } })),
       block: (id) => set((s) => ({ blocked: { ...s.blocked, [id]: true } })),
       report: (id) => set((s) => ({ reported: { ...s.reported, [id]: true } })),
-      markRead: (id, n) => set((s) => ({ read: { ...s.read, [id]: n } })),
+      markRead: (id, n) => { if (get().read[id] !== n) set(s => ({ read: { ...s.read, [id]: n } })); },
       answerRequest: (id, a) => set((s) => ({ requests: { ...s.requests, [id]: a } })),
     }),
     { name: 'ryadom-chat', storage: deviceStorage() },

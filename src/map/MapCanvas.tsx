@@ -3,15 +3,16 @@
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useAnimatedReaction } from 'react-native-reanimated';
+import { StyleSheet, Text, View } from 'react-native';
+import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
-import { meFeatures } from './meLayers';
+import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
-import type { MapCanvasHandle, MapCanvasProps } from './types';
+import { NO_PLACES, placesGeo } from './placesGeo';
+import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
 let Mapbox: RNMapbox['default'] | null = null;
@@ -28,10 +29,12 @@ try {
 const LOAD_TIMEOUT_MS = 8000;
 
 const PIN_BOX = 72;
+const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading } = props;
-  const cam = useRef<{ setCamera: (o: object) => void } | null>(null);
+  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
+  const placeShape = useMemo(() => placesGeo(places), [places]);
+  const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
   const loaded = useRef(false);
@@ -40,19 +43,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lastStep = useRef(Math.round(camera.zoom * 2) / 2);
   const [attempt, setAttempt] = useState(0);
   // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
-  const [zoomNow, setZoomNow] = useState(camera.zoom);
-  const [hd, setHd] = useState<number | null>(null);
-  const hdRef = useRef<number | null>(null);
-  useAnimatedReaction(
-    () => (meHeading ? Math.round(meHeading.get() / 4) * 4 : null),
-    (v, prev) => { if (v !== null && v !== prev) scheduleOnRN(setHd, ((v % 360) + 360) % 360); },
-  );
-  hdRef.current = hd;
-  const meShape = useMemo(() => (me ? meFeatures(me.lat, me.lon, hd, zoomNow) : null), [me?.lat, me?.lon, hd, zoomNow]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const [ready, setReady] = useState(false);
+  const [followZoom, setFollowZoom] = useState(camera.zoom);
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
-    if (failed) return;
+    if (failed) { onMode?.('static'); return; }
     const t = setTimeout(() => {
       if (loaded.current) return;
       if (attempt === 0) { console.warn('[map] Mapbox не загрузился за 8 с — перезагружаю стиль'); setAttempt(1); return; }
@@ -63,25 +58,25 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     return () => clearTimeout(t);
   }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toStart = () => {
-    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, animationDuration: 0 });
+    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH, animationDuration: 0 });
   };
-  // Первый запуск: Android иногда оставляет камеру в точке (0, 0) — пустой голубой океан. Пока человек не трогал карту,
-  // повторно ставим стартовую точку после загрузки стиля, а потом проверяем центр на каждом «покое» карты.
-  useEffect(() => {
-    if (failed) return;
-    const ts = [250, 700, 1400, 2600, 4500].map((ms) => setTimeout(toStart, ms));
-    return () => ts.forEach(clearTimeout);
-  }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const checkCenter = (lat: number, lon: number) => {
     if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
   };
 
   useImperativeHandle(ref, () => ({
-    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    fitBounds: (coords, padding) => {
+      if (!coords.length) return;
+      moved.current = true;
+      const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+      if (cam.current) cam.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [padding.top, padding.right, padding.bottom, padding.left], 450);
+      else staticRef.current?.fitBounds?.(coords, padding);
+    },
+    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 17, heading, pitch: 60, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
       if (zoom != null) z.current = zoom;
-      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, animationDuration: durationMs });
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: TILT_PITCH, animationDuration: Math.min(350, durationMs) });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -99,18 +94,19 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   }
   const M = Mapbox;
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#DDD8CB' }]}>
+      {!ready && <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: colors.muted2 }}>Загружаю карту…</Text></View>}
       <M.MapView
         key={attempt}
-        style={StyleSheet.absoluteFill}
-        styleJSON={JSON.stringify(mapStyle('paper'))}
+        style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
+        styleJSON={PAPER_STYLE}
         surfaceView={false}
         rotateEnabled
-        pitchEnabled={false}
+        pitchEnabled
         scaleBarEnabled={false}
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
-        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: false, simultaneousRotateAndPinchZoomEnabled: true }}
+        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: true, simultaneousRotateAndPinchZoomEnabled: true }}
         // В предрелизной сборке скрыто; включается EXPO_PUBLIC_MAP_ATTRIBUTION=true.
         logoEnabled={config.mapAttribution}
         logoPosition={{ bottom: bottomInset + 6, left: 10 }}
@@ -120,23 +116,24 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           if (st.gestures?.isGestureActive) moved.current = true;
           // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
+          if (!Number.isFinite(st.properties.zoom)) return;
           z.current = st.properties.zoom;
           const step = Math.round(st.properties.zoom * 2) / 2;
-          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); setZoomNow(step); }
+          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); setFollowZoom(step); }
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
-        onPress={() => onPress?.()}
+        onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
         onMapIdle={(st: { properties: { center: number[] } }) => { onCenter?.(st.properties.center[1], st.properties.center[0]); checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
-        onDidFinishLoadingMap={() => { loaded.current = true; toStart(); onMode?.('mapbox'); }}
+        onDidFinishLoadingMap={() => { loaded.current = true; toStart(); setReady(true); onMode?.('mapbox'); }}
         onMapLoadingError={() => {
           if (loaded.current) { console.warn('[map] ошибка тайлов после загрузки — карта остаётся'); return; }
           setFailed(true);
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom }} animationMode="none"
-          followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, z.current)}
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH }} animationMode="none"
+          followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
           <M.RasterSource id="traffic" tileUrlTemplates={[traffic]} tileSize={256}>
@@ -145,31 +142,26 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         )}
         {fog && (
           <M.ShapeSource id="fog" shape={fog as never}>
-            <M.FillLayer id="fog-layer" style={{ fillColor: theme === 'night' ? '#0E0E10' : '#E8E3D7', fillOpacity: 0.76, fillAntialias: false }} />
+            <M.FillLayer id="fog-layer" style={{ fillColor: '#17161A', fillOpacity: 0.70, fillAntialias: false }} />
             {/* Мягкий край открытых мест: размытая линия того же цвета, что туман (FIX1 И2 п.14). */}
-            <M.LineLayer id="fog-edge" style={{ lineColor: theme === 'night' ? '#0E0E10' : '#E8E3D7', lineOpacity: 0.76, lineWidth: 18, lineBlur: 12, lineJoin: 'round' }} />
+            <M.LineLayer id="fog-edge" style={{ lineColor: '#17161A', lineOpacity: 0.70, lineWidth: 26, lineBlur: 18, lineJoin: 'round' }} />
           </M.ShapeSource>
         )}
-        {lines.filter(l=>l.coords.length>=2).map((l) => (
+        {lines.filter(l => l.coords.length >= 2 && l.coords.every(p => p?.length === 2 && p.every(Number.isFinite))).map((l) => (
           <M.ShapeSource key={l.id} id={`line-${l.id}`} shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } as never}>
             <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
           </M.ShapeSource>
         ))}
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
-        {meShape && (
-          <M.ShapeSource id="me-src" shape={meShape.point as never}>
-            <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16, circlePitchAlignment: 'map' }} />
-            <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
-            <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
+        {places.length > 0 && (
+          <M.ShapeSource id="places" shape={placeShape as never} onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === "string") onPlace?.(id); }} hitbox={{ width: 24, height: 24 }}>
+            <M.CircleLayer id="places-dot" minZoomLevel={15} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 15, 3.5, 17, 6], circleColor: ['get', 'color'], circleStrokeColor: '#FCFBF8', circleStrokeWidth: 1.5, circlePitchAlignment: 'map' }} />
+            <M.SymbolLayer id="places-name" minZoomLevel={16.5} style={{ textField: ['get', 'name'], textSize: 11, textColor: '#3A3833', textHaloColor: '#FCFBF8', textHaloWidth: 1.2, textOffset: [0, 1.1], textAnchor: 'top', textMaxWidth: 8, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOptional: true }} />
           </M.ShapeSource>
         )}
-        {meShape?.cone && (
-          <M.ShapeSource id="me-cone-src" shape={meShape.cone as never}>
-            <M.FillLayer id="me-cone" belowLayerID="me-halo" style={{ fillColor: '#F0521F', fillOpacity: ['get', 'o'] as never, fillAntialias: true }} />
-          </M.ShapeSource>
-        )}
-        {[...markers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
+        {me && <UserLayers M={M} me={me} heading={meHeading} arrow={meArrow} />}
+        {markers.filter(m => Number.isFinite(m.lat) && Number.isFinite(m.lon)).slice().sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>
             <View collapsable={false} pointerEvents="box-none" style={styles.pin}>{mk.node}</View>
           </M.MarkerView>
@@ -178,6 +170,32 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     </View>
   );
 });
+
+function UserLayers({ M, me, heading, arrow }: { M: RNMapbox['default']; me: { lat: number; lon: number }; heading?: import('react-native-reanimated').SharedValue<number>; arrow: boolean }) {
+  const [direction, setDirection] = useState<number | null>(null);
+  const last = useSharedValue(0);
+  const sent = useSharedValue<number | null>(null);
+  const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png'), 'me-arrow': require('../../assets/map/arrow.png') }), []);
+  useFrameCallback(frame => {
+    const value = heading ? Math.round(heading.get() / 4) * 4 : null;
+    if (value != null && Number.isFinite(value) && value !== sent.get() && (sent.get() == null || frame.timestamp - last.get() >= 100)) {
+      last.set(frame.timestamp); sent.set(value); scheduleOnRN(setDirection, ((value % 360) + 360) % 360);
+    }
+  });
+  const shape = useMemo(() => ({ type: 'Feature' as const, properties: { heading: direction ?? 0 }, geometry: { type: 'Point' as const, coordinates: [me.lon, me.lat] } }), [me.lon, me.lat, direction]);
+  if (!Number.isFinite(me.lat) || !Number.isFinite(me.lon)) return null;
+  return <>
+    {/* Картинка имеет постоянный экранный размер: при масштабировании луч не скачет. */}
+    <M.Images images={images} />
+    <M.ShapeSource id="me-src" shape={shape}>
+      <M.SymbolLayer id="me-beam-layer" style={{ iconImage: 'me-beam', iconSize: 0.5, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: direction == null || arrow ? 0 : 1 }} />
+      <M.CircleLayer id="me-halo" style={{ circleRadius: arrow ? 28 : 24, circleColor: '#F0521F', circleOpacity: arrow ? 0.1 : 0.16, circlePitchAlignment: 'map' }} />
+      <M.CircleLayer id="me-ring" style={{ circleOpacity: arrow ? 0 : 1, circleStrokeOpacity: arrow ? 0 : 1, circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
+      <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F', circleOpacity: arrow ? 0 : 1 }} />
+      <M.SymbolLayer id="me-arrow-layer" style={{ iconImage: 'me-arrow', iconSize: 0.26, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'map', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: arrow ? 1 : 0 }} />
+    </M.ShapeSource>
+  </>;
+}
 
 const styles = StyleSheet.create({
   pin: { width: PIN_BOX, height: PIN_BOX, alignItems: 'center', justifyContent: 'center' },

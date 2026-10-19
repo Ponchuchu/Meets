@@ -90,7 +90,9 @@ export function describeRun(s: RunStats | null | undefined): RunView | null {
   const sub = q
     ? added > 0
       ? q.published ? `Из них сразу на карте: ${q.published}. Остальные ждут проверки.` : 'Ждут проверки в разделе «Новые».'
-      : q.duplicates ? `Всё найденное уже есть в базе (${q.duplicates}).` : 'Попробуй больший период или другой источник.'
+      : q.duplicates ? `Всё найденное уже есть в базе (${q.duplicates}).`
+        : (s.kept ?? 0) > 0 ? `Все ${s.kept} найденных уже были в базе или в прошлых запусках.`
+        : 'Попробуй больший период или другой источник.'
     : '';
   return { headline, sub, tiles, steps, tips, telegram };
 }

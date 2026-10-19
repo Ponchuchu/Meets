@@ -1,5 +1,6 @@
 // Модуль рекомендаций «Для тебя» (docs/RECOMMENDATIONS.md). Чистые функции без UI и БД:
 // тот же код потом крутится в Edge Function `deck`. Пользователь механику не видит нигде.
+import { groupEventDates } from '../event/series';
 import type { Category, EventItem } from '../data/types';
 import { almaty, dayIndex } from '../lib/clock';
 import { phaseOf } from '../map/lifecycle';
@@ -31,7 +32,7 @@ const STREAK_PENALTY = 0.5;
 export function eventTags(e: Pick<EventItem, 'tags' | 'category' | 'isFree' | 'priceMin'>): string[] {
   const group: Partial<Record<Category, keyof typeof INTEREST_TAGS>> = {
     music: 'music', concert: 'music', standup: 'standup', hike: 'hike', sport: 'sport', bike: 'sport', meetup: 'people',
-    games: 'games', art: 'art', theatre: 'art', food: 'food', party: 'party', talks: 'talks', lecture: 'talks',
+    games: 'games', art: 'art', theatre: 'art', movie: 'art', food: 'food', party: 'party', talks: 'talks', lecture: 'talks',
   };
   const g = group[e.category];
   const base = g ? INTEREST_TAGS[g].slice(0, 2) : [];
@@ -137,8 +138,8 @@ export interface DeckOptions {
 export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHistory, ctx: ScoreContext, opts: DeckOptions = {}): EventItem[] {
   const size = opts.size ?? 10;
   const every = opts.noveltyEvery ?? 8;
-  const pool = candidates
-    .filter((e) => !history.decided.has(e.id) && phaseOf(e, ctx.now) !== 'hidden' && !e.meetup)
+  const pool = groupEventDates(candidates)
+    .filter((e) => !history.decided.has(e.id) && !e.sessions?.some(s => history.decided.has(s.id)) && phaseOf(e, ctx.now) !== 'hidden' && !e.meetup)
     .map((e) => ({ e, s: scoreEvent(taste, e, ctx) }))
     .sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt)-Date.parse(b.e.startsAt));
   const deck: EventItem[] = [];

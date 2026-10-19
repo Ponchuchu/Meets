@@ -8,7 +8,7 @@ import { cancelled, robotLog, robotUpdate } from './robot.ts';
 
 const CAT_RU: Record<Category, string> = {
   music: 'живая музыка', standup: 'стендап-вечер', art: 'выставка', hike: 'поход в горы', games: 'вечер настольных игр',
-  food: 'гастрономическое событие', sport: 'спортивное событие', talks: 'встреча и разговор', theatre: 'театр',
+  food: 'гастрономическое событие', sport: 'спортивное событие', talks: 'встреча и разговор', theatre: 'театр', movie: 'кино',
   lecture: 'лекция', meetup: 'городская встреча', party: 'вечеринка', bike: 'велопрогулка', concert: 'концерт',
 };
 

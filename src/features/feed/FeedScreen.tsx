@@ -1,6 +1,8 @@
 // «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
 // «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
 import { useQuery } from '@tanstack/react-query';
+import { useNet } from '../../live/net';
+import { StateView } from '../../ui/StateView';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -32,11 +34,15 @@ export default function ForYouScreen() {
   const seenFeed = useApp((s) => s.seenFeed);
   useFocusEffect(useCallback(() => { seenFeed(); }, [seenFeed]));
 
-  const now = useMemo(() => clockNow(), []);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const [now, setNow] = useState(clockNow);
+  useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
+  const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const events = eventsQ.data ?? [];
+  const online = useNet((s) => s.online);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
   const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const goingIds = usePlans(s => s.going);
   const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
   const addPlan = useApp((s) => s.addPlan);
@@ -48,6 +54,7 @@ export default function ForYouScreen() {
   const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
@@ -61,22 +68,19 @@ export default function ForYouScreen() {
   const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
   const deck = useMemo(() => {
     const swipes = history.length;
-    const dec = new Set(Object.keys(decided));
+    const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
     let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
-    // Нет дна: когда кандидаты кончились — возвращаем пропущенные (ослабляем фильтры).
-    // Только что пропущенную карточку не показываем сразу снова, если есть из чего выбрать.
-    const lastId = history[history.length - 1]?.eventId;
-    if (d.length < STACK) {
-      const more = buildDeck(taste, events, { decided: new Set(Object.keys(decided).filter((id) => decided[id] === 'go')), swipes }, { now }, { size: 10 }).filter((x) => !d.includes(x));
-      d = [...d, ...more.filter((x) => x.id !== lastId || more.length === 1)];
-    }
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
       if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
     }
+    if (previewId && !decided[previewId]) {
+      const preview = events.find(x => x.id === previewId);
+      if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
+    }
     return d;
-  }, [taste, events, decided, history, now, enter]);
+  }, [taste, events, decided, goingIds, history, now, enter, previewId]);
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
@@ -102,6 +106,8 @@ export default function ForYouScreen() {
   const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
     bump(e.id);
+    setPreviewId(null);
+    if (kind === 'go' && (e.sessions?.length || (e.isLong && e.endsAt && new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime() > 24 * 3600e3))) { openCard(e); return; }
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
@@ -133,12 +139,13 @@ export default function ForYouScreen() {
   // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
   const p = useSharedValue(0);
   const openCard = (e: EventItem, interactive = false) => {
+    setPreviewId(e.id);
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
     setUndoBar(null);
     setOpen(e);
     if (interactive) return;
     p.value = 0;
-    p.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.poly(4)) });
+    p.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) });
   };
   const closeCard = (then?: () => void) => {
     p.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, () => {
@@ -174,7 +181,7 @@ export default function ForYouScreen() {
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
             expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 520, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
             onUndo={doUndo}
             drag={k === 0 ? drag : undefined}
           />
@@ -189,7 +196,12 @@ export default function ForYouScreen() {
 
       {!top && (
         <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
-          {events.length === 0 ? <Text style={styles.emptySub}>Загружаю события…</Text> : (
+          {events.length === 0 ? (
+            !online ? <StateView kind="offline" text="Карточки появятся, как только вернётся связь." onAction={() => void eventsQ.refetch()} />
+            : eventsQ.isError ? <StateView kind="error" text="События не загрузились. Проверь связь и попробуй ещё раз." onAction={() => void eventsQ.refetch()} />
+            : eventsQ.isFetching ? <StateView kind="loading" title="Загружаю события…" />
+            : <StateView kind="empty" title="Событий пока нет" text="Новые появятся вечером. А пока — загляни на карту." action="Открыть карту" onAction={() => router.navigate('/')} />
+          ) : (
             <>
               <Text style={styles.emptyTitle}>Ты всё посмотрел</Text>
               <Text style={styles.emptySub}>Новые события появятся вечером. А пока — что на карте прямо сейчас.</Text>
@@ -224,7 +236,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
   head: { position: 'absolute', left: 16, right: 16, gap: 2 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
-  emptyBox: { position: 'absolute', left: 32, right: 32, alignItems: 'center', gap: 10, paddingTop: 220 },
+  emptyBox: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10, paddingTop: 160 },
   emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

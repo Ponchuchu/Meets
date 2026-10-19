@@ -30,12 +30,13 @@ function release(close: () => void) {
   if (registry.open === close) registry.open = null;
 }
 
-export function SwipeRow({ children, actions, background = colors.paper, radius = 0 }: {
-  children: ReactNode; actions: RowAction[]; background?: string; radius?: number;
+export function SwipeRow({ children, actions, background = colors.paper, radius = 20, iconOnly = false }: {
+  children: ReactNode; actions: RowAction[]; background?: string; radius?: number; iconOnly?: boolean;
 }) {
   const x = useSharedValue(0);
   const start = useSharedValue(0);
-  const full = actions.length * BTN;
+  const buttonWidth = iconOnly ? 58 : BTN;
+  const full = actions.length * buttonWidth;
   const close = useCallback(() => { x.set(withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) })); }, [x]);
   useEffect(() => () => release(close), [close]);
   const opened = () => claim(close);
@@ -60,9 +61,9 @@ export function SwipeRow({ children, actions, background = colors.paper, radius 
     <View style={[styles.wrap, { borderRadius: radius }]}>
       <Animated.View style={[styles.rail, { width: full }, rail]} pointerEvents="box-none">
         {actions.map((a) => (
-          <Pressable key={a.key} onPress={() => { close(); a.onPress(); }} style={[styles.btn, { backgroundColor: a.color }]} accessibilityRole="button" accessibilityLabel={a.label}>
+          <Pressable key={a.key} onPress={() => { close(); a.onPress(); }} style={[styles.btn, { width: buttonWidth, backgroundColor: a.color, borderRadius: iconOnly ? 18 : 0, marginVertical: iconOnly ? 5 : 0, borderWidth: iconOnly ? 3 : 0, borderColor: background }]} accessibilityRole="button" accessibilityLabel={a.label}>
             {a.icon}
-            <Text style={[styles.label, a.fg ? { color: a.fg } : null]} numberOfLines={1}>{a.label}</Text>
+            {!iconOnly && <Text style={[styles.label, a.fg ? { color: a.fg } : null]} numberOfLines={1}>{a.label}</Text>}
           </Pressable>
         ))}
       </Animated.View>

@@ -1,28 +1,27 @@
-// Живая заставка (V6.md §2.1, переделана 11 октября): один раз за холодный запуск, ≤ 3,3 с, тап — пропустить.
-// 0–0,8 с улицы · 0,2–1,5 с «Meets» пишется · 1,5–1,95 с точка падает в конец названия ·
-// затем ждём, пока карта под заставкой реально загрузится (не дольше 4,5 с), и она раскрывается кругом из этой точки (0,7 с) ·
-// потом карта плавно приближается к тебе (MapScreen слушает settled) · заставка уходит. Сразу после «Добро пожаловать» не показываем — флаг skipSplash().
+// Холодный запуск ≤ 3,2 с: слово, короткий отскок точки, раскрытие карты из неё.
+// До входа не ждём карту. На карте ожидание ограничено; тап пропускает заставку.
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
-  Easing, FadeOut, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming,
+  Easing, interpolate, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Defs, Mask, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Mask, Path, Rect } from 'react-native-svg';
 import { create } from 'zustand';
 import { WORD_DOT, WORD_GLYPH, WORD_VIEWBOX } from './splashWord';
+import { REVEAL_MS, startIntroReveal } from './introTiming';
 
 let played = false;
 export const skipSplash = () => { played = true; useIntro.getState().set(false); useIntro.getState().settle(); };
 
 /** splash — идёт ли заставка (обучение ждёт её конца); settled — пора приблизить камеру к тебе. */
-export const useIntro = create<{ splash: boolean; settled: boolean; mapReady: boolean; set: (v: boolean) => void; settle: () => void; ready: () => void }>((set) => ({
-  splash: !played, settled: played, mapReady: played, set: (splash) => set({ splash }), settle: () => set({ settled: true }), ready: () => set({ mapReady: true }),
+export const useIntro = create<{ splash: boolean; settled: boolean; mapActive: boolean; mapReady: boolean; set: (v: boolean) => void; settle: () => void; ready: () => void; map: (v: boolean) => void }>((set) => ({
+  splash: !played, settled: played, mapActive: false, mapReady: played, set: (splash) => set({ splash }), settle: () => set({ settled: true }), ready: () => set({ mapReady: true }), map: (mapActive) => set({ mapActive }),
 }));
 
-const B = 1400; // толщина «рамки» вокруг растущего круга
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const WORD_W = 300;
 const SCALE = WORD_W / WORD_VIEWBOX.w;
 const WORD_H = WORD_VIEWBOX.h * SCALE;
@@ -54,7 +53,7 @@ export function Splash() {
     const { width: w, height: h } = e.nativeEvent.layout;
     if (w > 0 && (w !== size?.width || h !== size?.height)) setSize({ width: w, height: h });
   };
-  const [on, setOn] = useState(!played);
+  const on = useIntro((s) => s.splash);
   const t = useSharedValue(reduce ? 1450 : 0); // улицы
   const write = useSharedValue(reduce ? 1 : 0); // «письмо» слева направо
   const drop = useSharedValue(reduce ? 0 : -170); // точка падает в конец слова
@@ -63,31 +62,27 @@ export function Splash() {
   const hole = useSharedValue(0); // карта раскрывается из точки
   const word = useSharedValue(1);
 
-  const end = () => { played = true; setOn(false); useIntro.getState().set(false); useIntro.getState().settle(); };
+  const end = () => { played = true; useIntro.getState().set(false); useIntro.getState().settle(); };
 
   useEffect(() => {
     if (!on) return;
     if (reduce) { const r = setTimeout(end, 700); return () => clearTimeout(r); }
-    const t0 = Date.now();
     t.set(withTiming(1450, { duration: 1450, easing: Easing.linear }));
-    write.set(withDelay(200, withTiming(1, { duration: 1300, easing: Easing.bezier(0.45, 0, 0.35, 1) })));
-    dotOpacity.set(withDelay(1480, withTiming(1, { duration: 80 })));
-    drop.set(withDelay(1500, withTiming(0, { duration: 460, easing: Easing.bounce })));
-    ring.set(withDelay(1930, withTiming(1, { duration: 520, easing: Easing.out(Easing.quad) })));
-    // Раскрытие — только когда слово дописано, точка упала и карта загрузилась; иначе под заставкой была бы пустая подложка.
-    let opened = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const open = () => {
-      if (opened) return;
-      opened = true;
-      hole.set(withTiming(1, { duration: 700, easing: Easing.bezier(0.6, 0, 0.2, 1) }));
-      word.set(withDelay(100, withTiming(0, { duration: 260 })));
-      timers.push(setTimeout(() => useIntro.getState().settle(), 700), setTimeout(end, 1250));
-    };
-    const tryOpen = () => { if (Date.now() - t0 >= 2050 && useIntro.getState().mapReady) timers.push(setTimeout(open, 250)); };
-    timers.push(setTimeout(tryOpen, 2050), setTimeout(open, 4500));
-    const unsub = useIntro.subscribe(tryOpen);
-    return () => { timers.forEach(clearTimeout); unsub(); };
+    write.set(withDelay(200, withTiming(1, { duration: 1150, easing: Easing.bezier(0.45, 0, 0.35, 1) })));
+    dotOpacity.set(withDelay(1330, withTiming(1, { duration: 80 })));
+    drop.set(withDelay(1350, withSequence(
+      withTiming(5, { duration: 350, easing: Easing.out(Easing.cubic) }),
+      withTiming(-3, { duration: 90, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 120, easing: Easing.inOut(Easing.quad) }),
+    )));
+    ring.set(withDelay(1710, withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) })));
+    return startIntroReveal({
+      map: useIntro.getState, subscribe: useIntro.subscribe, end,
+      open: () => {
+        hole.set(withTiming(1, { duration: REVEAL_MS, easing: Easing.bezier(0.55, 0, 0.2, 1) }));
+        word.set(withTiming(0, { duration: 220 }));
+      },
+    });
   }, [on]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bg = '#F8613B';
@@ -100,14 +95,9 @@ export function Splash() {
   const cx = wordLeft + DOT_X;
   const cy = wordTop + DOT_Y;
   const maxR = Math.max(Math.hypot(cx, cy), Math.hypot(width - cx, cy), Math.hypot(cx, height - cy), Math.hypot(width - cx, height - cy)) + 20;
-  const frame = useAnimatedStyle(() => {
-    const r = hole.get() * maxR;
-    const s = 2 * (r + B);
-    return { width: s, height: s, borderRadius: s / 2, left: cx - s / 2, top: cy - s / 2 };
-  });
-  const fill = useAnimatedStyle(() => ({ opacity: hole.get() > 0 ? 0 : 1 }));
+  const reveal = useAnimatedProps(() => ({ r: hole.get() > 0 ? DOT_D / 2 + hole.get() * maxR : 0 }));
   const dot = useAnimatedStyle(() => ({
-    opacity: dotOpacity.get() * (1 - hole.get()),
+    opacity: dotOpacity.get() * (1 - Math.min(1, hole.get() * 8)),
     transform: [{ translateY: drop.get() }],
   }));
   const ringSt = useAnimatedStyle(() => ({ opacity: ring.get() > 0 ? (1 - ring.get()) * 0.8 : 0, transform: [{ scale: 0.3 + ring.get() * 3.1 }] }));
@@ -116,15 +106,23 @@ export function Splash() {
 
   if (!on) return null;
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 90, elevation: 25 }]} exiting={FadeOut.duration(300)} onLayout={onLayout}>
+    <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 90, elevation: 25 }]} onLayout={onLayout}>
       <Pressable style={StyleSheet.absoluteFill} onPress={end} accessibilityRole="button" accessibilityLabel="Пропустить заставку">
-        {/* До раскрытия — сплошной фон; потом его заменяет рамка с растущей дыркой. */}
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: bg }, fill]} />
-        <Animated.View style={[styles.frame, { borderColor: bg }, frame]} />
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <Mask id="splashReveal" maskUnits="userSpaceOnUse" x={0} y={0} width={width} height={height}>
+              <Rect width={width} height={height} fill="#fff" />
+              <AnimatedCircle cx={cx} cy={cy} fill="#000" animatedProps={reveal} />
+            </Mask>
+          </Defs>
+          <G mask="url(#splashReveal)">
+            <Rect width={width} height={height} fill={bg} />
+            <G transform={`scale(${width / 390})`}>
+              {STREETS.map(([d, w]) => <Street key={d} d={d} w={w} color={line} t={t} />)}
+            </G>
+          </G>
+        </Svg>
         <Animated.View style={[StyleSheet.absoluteFill, wordSt]} pointerEvents="none">
-          <Svg width={width} height={height} viewBox={`0 0 390 ${(390 * height) / width}`} preserveAspectRatio="xMidYMid slice">
-            {STREETS.map(([d, w]) => <Street key={d} d={d} w={w} color={line} t={t} />)}
-          </Svg>
           <View style={[styles.word, { left: wordLeft, top: wordTop }]} accessibilityRole="header" accessibilityLabel="Meets">
             <Svg width={WORD_W} height={WORD_H} viewBox={`${WORD_VIEWBOX.x} ${WORD_VIEWBOX.y} ${WORD_VIEWBOX.w} ${WORD_VIEWBOX.h}`}>
               <Defs>
@@ -146,7 +144,6 @@ export function Splash() {
 }
 
 const styles = StyleSheet.create({
-  frame: { position: 'absolute', borderWidth: B },
   word: { position: 'absolute', width: WORD_W, height: WORD_H },
   dotWrap: { position: 'absolute', width: DOT_D, height: DOT_D, alignItems: 'center', justifyContent: 'center' },
   dot: { width: DOT_D, height: DOT_D, borderRadius: DOT_D / 2 },

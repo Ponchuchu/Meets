@@ -4,15 +4,15 @@ import { dayIndex } from '../lib/clock';
 import type { Category, EventItem } from '../data/types';
 import { endOf, phaseOf } from './lifecycle';
 
-export type FilterCat = 'music' | 'standup' | 'theatre' | 'art' | 'hike' | 'party' | 'sport' | 'games' | 'food' | 'talks';
+export type FilterCat = 'music' | 'standup' | 'movie' | 'theatre' | 'art' | 'hike' | 'party' | 'sport' | 'games' | 'food' | 'talks';
 
 export const FILTER_CATS: [FilterCat, string][] = [
-  ['music', 'Концерты'], ['standup', 'Стендап'], ['theatre', 'Театр'], ['art', 'Выставки'], ['hike', 'Горы'],
+  ['music', 'Концерты'], ['standup', 'Стендап'], ['theatre', 'Театр'], ['movie', 'Кино'], ['art', 'Выставки'], ['hike', 'Горы'],
   ['party', 'Вечеринки'], ['sport', 'Спорт'], ['games', 'Настолки'], ['food', 'Еда'], ['talks', 'Лекции'],
 ];
 
 const CAT_GROUP: Record<Category, FilterCat | null> = {
-  music: 'music', concert: 'music', party: 'party', standup: 'standup', hike: 'hike', art: 'art', theatre: 'theatre',
+  music: 'music', concert: 'music', party: 'party', standup: 'standup', hike: 'hike', art: 'art', theatre: 'theatre', movie: 'movie',
   games: 'games', food: 'food', sport: 'sport', bike: 'sport', talks: 'talks', lecture: 'talks', meetup: 'talks',
 };
 

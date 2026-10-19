@@ -5,7 +5,10 @@
     "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon/icon.png",
-    "scheme": ["meets", "ryadom"],
+    "scheme": [
+      "meets",
+      "ryadom"
+    ],
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
@@ -44,7 +47,8 @@
         "FOREGROUND_SERVICE_LOCATION",
         "CAMERA",
         "RECORD_AUDIO",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.ACTIVITY_RECOGNITION"
       ]
     },
     "web": {
@@ -102,6 +106,12 @@
           "cameraPermission": "Чтобы снять кружок или фото для чата.",
           "microphonePermission": "Чтобы записать голосовое или кружок для чата.",
           "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Шаги нужны, чтобы показывать твой прогресс прогулок и открывать награды."
         }
       ]
     ],

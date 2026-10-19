@@ -31,7 +31,7 @@ function Bar({ reduce }: { reduce: boolean }) {
   return <View style={styles.track}><Animated.View style={[styles.fill, st]} /></View>;
 }
 
-export function SearchRadar({ since, sources, line }: { since: string; sources: string[]; line?: string }) {
+export function SearchRadar({ since, sources, line, found = 0, queued = 0, logs = [] }: { since: string; sources: string[]; line?: string; found?: number; queued?: number; logs?: { text: string; level: string }[] }) {
   const reduce = useReducedMotion();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
@@ -42,6 +42,9 @@ export function SearchRadar({ since, sources, line }: { since: string; sources: 
         <View style={styles.lens}><Search size={22} color={colors.paper} strokeWidth={2} /></View>
       </View>
       <Bar reduce={reduce} />
+      <View style={{ flexDirection: 'row', gap: 20 }}><View><Text style={{ fontFamily: fonts.display700, fontSize: 28, color: colors.ink }}>{found}</Text><Text style={styles.sub}>найдено</Text></View><View><Text style={{ fontFamily: fonts.display700, fontSize: 28, color: colors.accentText }}>{queued}</Text><Text style={styles.sub}>в очереди</Text></View></View>
+      {sources.map(source => { const done = logs.find(l => l.text.toLowerCase().includes(source.toLowerCase()) && (l.text.startsWith('Источник · ') || /готов|найден|прочитан|событ|ошиб|нет новых/i.test(l.text))); return <Text key={source} style={styles.sub}>{done ? done.text : `${source} · ждём ответ`}</Text>; })}
+      {found === 0 && <Text style={styles.sub}>Пока новых находок нет. Счётчик обновляется по ответам источников</Text>}
       <Text style={styles.now}>Читаю: {sources.join(' · ')}</Text>
       <Text style={styles.sub}>{elapsed(since, now)}{line ? ` · ${line}` : ''}</Text>
       {now - Date.parse(since) > STUCK_MS && <View style={{ alignSelf: 'stretch' }}><Banner tone="warn" title="Поиск идёт дольше обычного" hint="Нажми «Стоп» и запусти снова. Если повторится — смотри журнал." /></View>}

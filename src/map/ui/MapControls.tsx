@@ -39,12 +39,13 @@ export function MapControls({ top, bearing, follow, onCompass, onZoom, onMe }: {
 }
 
 const styles = StyleSheet.create({
+  // Скруглённые квадраты 50×50 (референс «Айналма»): крупная цель для пальца, одна колонка с ровным шагом.
   col: { position: 'absolute', right: 16, gap: 10, alignItems: 'center' },
-  round: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   on: { backgroundColor: colors.ink },
   pressed: { transform: [{ scale: 0.92 }] },
-  pill: { width: 46, borderRadius: 23, overflow: 'hidden' },
-  half: { height: 46, alignItems: 'center', justifyContent: 'center' },
+  pill: { width: 50, borderRadius: 17, overflow: 'hidden' },
+  half: { height: 48, alignItems: 'center', justifyContent: 'center' },
   pressedBg: { backgroundColor: 'rgba(23,22,26,0.06)' },
   sep: { height: 1, marginHorizontal: 10, backgroundColor: '#E6E1D6' },
 });

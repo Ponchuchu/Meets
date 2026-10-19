@@ -14,11 +14,13 @@ export interface QueueItem {
   meta: string; // «сб–вс, 11:00–21:00 · ТРЦ · 2 500 ₸»
   flags: QueueFlag[];
   startsAt: string;
+  endsAt?: string | null;
   address: string | null;
   about: string;
   priceMin: number | null;
   priceMax: number | null;
   isFree: boolean;
+  point?: { lat: number; lon: number } | null;
   coverUrl?: string | null;
   category?: Category;
 }
@@ -63,7 +65,9 @@ export function sourceLabel(kind: SourceItem['kind'], handle: string, title: str
   if (kind === 'user') return `ПРЕДЛОЖИЛ ПОЛЬЗОВАТЕЛЬ${suggestedBy ? ` · ${suggestedBy}` : ''}`.toUpperCase();
   if (kind === 'telegram') return `TELEGRAM · @${handle}`.toUpperCase();
   if (kind === 'threads') return `THREADS · @${handle}`.toUpperCase();
-  return title.toUpperCase();
+  // Сайты и поиск: название источника без города («Яндекс Афиша · Алматы» → «ЯНДЕКС АФИША»), поиск ИИ — «ИИ-ПОИСК».
+  if (kind === 'search') return 'ИИ-ПОИСК';
+  return title.replace(/\s*·\s*Алматы\s*$/i, '').toUpperCase();
 }
 
 const MONTHS = ['январ', 'феврал', 'март', 'апрел', 'ма', 'июн', 'июл', 'август', 'сентябр', 'октябр', 'ноябр', 'декабр'];

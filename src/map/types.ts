@@ -16,6 +16,15 @@ export interface Camera {
   zoom: number;
 }
 
+/** Место из справочника (Overture): рисуется слоем карты, а не отдельным элементом — дёшево и при сотне точек. */
+export interface MapPlace { id: string; lat: number; lon: number; kind: string; name: string }
+
+/** Цвет точки места по виду — те же тона, что у категорий событий. */
+export const PLACE_COLORS: Record<string, string> = {
+  cafe: '#B5651D', food: '#D9822B', bar: '#7A3E9D', cinema: '#2447B8', culture: '#5B5BD6', park: '#2F8F5B',
+  sport: '#1F9AA8', sight: '#C98A1B', fun: '#E0457B', mall: '#2447B8',
+};
+
 export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
@@ -38,7 +47,7 @@ export interface MapCanvasProps {
   /** Линии маршрута (V6Route): путь [[lon, lat], …], цвет, толщина, пунктир. */
   lines?: { id: string; coords: [number, number][]; color: string; width?: number; dash?: boolean }[];
   /** Тап по пустой карте (не по точке) — закрыть шторку события. */
-  onPress?: () => void;
+  onPress?: (point?: { lat: number; lon: number }) => void;
   /** Поворот карты в градусах (0 — север вверх) — для стрелки компаса. */
   onBearing?: (deg: number) => void;
   /** Компас, второй тап: камера следует за мной и поворачивается по направлению телефона. */
@@ -49,9 +58,15 @@ export interface MapCanvasProps {
   me?: { lat: number; lon: number } | null;
   /** Куда смотрит телефон, градусы (0 — север). Нет значения — конус не рисуем. */
   meHeading?: SharedValue<number>;
+  /** «В путь»: моя точка — стрелка навигатора, лежит на карте и смотрит по ходу движения. */
+  meArrow?: boolean;
+  /** Места в кадре (с 15-го масштаба) и тап по месту. */
+  places?: MapPlace[];
+  onPlace?: (id: string) => void;
 }
 
 export interface MapCanvasHandle {
+  fitBounds?: (coords: [number, number][], padding: { top: number; right: number; bottom: number; left: number }) => void;
   navigateTo: (lat: number, lon: number, heading: number) => void;
   flyTo: (lat: number, lon: number, zoom?: number, durationMs?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
@@ -61,4 +76,7 @@ export interface MapCanvasHandle {
 }
 
 // Алматы: стартовая камера — центр так, чтобы джаз на Панфилова был посередине, как в макете.
+/** Карта всегда объёмная: наклон камеры, градусы (дома и горы — в стиле, src/map/style.ts). */
+export const TILT_PITCH = 50;
+
 export const ALMATY_CAMERA: Camera = { lat: 43.2579, lon: 76.9458, zoom: 13.4 };

@@ -13,6 +13,7 @@ import { distM } from '../../live/geo';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { EventCover } from '../../ui/EventCover';
+import { glass } from '../../ui/glass';
 import { socialLine } from '../social';
 
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
@@ -101,7 +102,7 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
 }
 
 const styles = StyleSheet.create({
-  sheet: { borderRadius: 28, backgroundColor: '#EEE9DE', overflow: 'hidden', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  sheet: { borderRadius: 28, ...glass, backgroundColor: '#F1ECE2', overflow: 'hidden' },
   cover: { height: 178, justifyContent: 'flex-end' },
   grab: { position: 'absolute', top: 8, alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.75)' },
   coverText: { padding: 16, gap: 8 },

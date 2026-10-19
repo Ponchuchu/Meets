@@ -8,7 +8,8 @@ import { StyleSheet, View } from 'react-native';
 import { config } from '../lib/config';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
-import type { MapCanvasHandle, MapCanvasProps } from './types';
+import { NO_PLACES, placesGeo } from './placesGeo';
+import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 function webglOk(): boolean {
   try {
@@ -30,12 +31,22 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const [ready, setReady] = useState(false);
   const gl = useRef<typeof mapboxgl | null>(null);
   const onPressRef = useRef(onPress);
+  const places = props.places ?? NO_PLACES;
+  const onPlaceRef = useRef(props.onPlace);
+  useEffect(() => { onPlaceRef.current = props.onPlace; }, [props.onPlace]);
+
   useEffect(() => { onPressRef.current = onPress; }, [onPress]);
 
   useImperativeHandle(ref, () => ({
-    navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 16.5, bearing: heading, pitch: 35, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
-    flyTo: (lat, lon, zoom) => {
-      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), duration: 600 });
+    fitBounds: (coords, padding) => {
+      if (!coords.length) return;
+      const lons=coords.map(c=>c[0]), lats=coords.map(c=>c[1]);
+      if (map.current) map.current.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], { padding, duration:450, maxZoom:18 });
+      else staticRef.current?.fitBounds?.(coords, padding);
+    },
+    navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 17, bearing: heading, pitch: 60, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    flyTo: (lat, lon, zoom, durationMs = 250) => {
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: TILT_PITCH, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -60,6 +71,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           style: mapStyle('paper') as unknown as mapboxgl.Style,
           center: [camera.lon, camera.lat],
           zoom: camera.zoom,
+          pitch: TILT_PITCH,
           attributionControl: false,
           logoPosition: config.mapAttribution ? 'bottom-left' : undefined,
           pitchWithRotate: false,
@@ -79,8 +91,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
       });
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
-      m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.(); });
+      m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.({ lat: ev.lngLat.lat, lon: ev.lngLat.lng }); });
       m.on('rotate', () => onBearing?.(m.getBearing()));
+      m.on('click', 'places-dot', (ev) => { const id = ev.features?.[0]?.properties?.id; if (id) onPlaceRef.current?.(String(id)); });
       map.current = m;
       setReady(true);
       const els = elements.current;
@@ -108,8 +121,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       const style = m.getStyle();
       for (const l of style?.layers ?? []) if (l.id.startsWith('line-')) m.removeLayer(l.id);
       for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
-      for (const id of ['traffic-layer', 'fog-edge', 'fog-layer']) if (m.getLayer(id)) m.removeLayer(id);
-      for (const id of ['traffic', 'fog']) if (m.getSource(id)) m.removeSource(id);
+      for (const id of ['traffic-layer', 'fog-edge', 'fog-layer', 'places-dot', 'places-name']) if (m.getLayer(id)) m.removeLayer(id);
+      for (const id of ['traffic', 'fog', 'places']) if (m.getSource(id)) m.removeSource(id);
       for (const l of (lines ?? []).filter(l=>l.coords.length>=2)) {
         m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
         m.addLayer({ id: `line-${l.id}-layer`, type: 'line', source: `line-${l.id}`, layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -121,16 +134,21 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       }
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
-        const fogC = theme === 'night' ? '#0E0E10' : '#E8E3D7';
-        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.76, 'fill-antialias': false } });
-        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.76, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
+        const fogC = '#17161A';
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.7, 'fill-antialias': false } });
+        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.7, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
+      }
+      if (places.length) {
+        m.addSource('places', { type: 'geojson', data: placesGeo(places) as never });
+        m.addLayer({ id: 'places-dot', type: 'circle', source: 'places', minzoom: 15, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 3.5, 17, 6], 'circle-color': ['get', 'color'], 'circle-stroke-color': '#FCFBF8', 'circle-stroke-width': 1.5, 'circle-pitch-alignment': 'map' } });
+        m.addLayer({ id: 'places-name', type: 'symbol', source: 'places', minzoom: 16.5, layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-max-width': 8, 'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'], 'text-optional': true }, paint: { 'text-color': '#3A3833', 'text-halo-color': '#FCFBF8', 'text-halo-width': 1.2 } });
       }
     };
     // Стиль ещё грузится — применим, как только загрузится (и после каждой смены стиля).
     if (m.isStyleLoaded()) apply(); else m.once('load', apply);
     m.on('style.load', apply);
     return () => { m.off('style.load', apply); m.off('load', apply); };
-  }, [traffic, fog, lines, theme, ready]);
+  }, [traffic, fog, lines, theme, ready, places]);
 
   useEffect(() => {
     host.current?.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right')

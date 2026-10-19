@@ -1,6 +1,8 @@
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useQuery } from '@tanstack/react-query';
+import { useNet } from '../../live/net';
+import { StateView } from '../../ui/StateView';
 import { router } from 'expo-router';
 import { config } from '../../lib/config';
 import { createFriendGroup } from '../../live/api';
@@ -14,7 +16,7 @@ import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { now as clockNow } from '../../lib/clock';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
@@ -27,6 +29,7 @@ import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
+import { plate } from '../../ui/glass';
 
 type Filter = 'all' | 'events' | 'direct' | 'requests' | 'archive';
 
@@ -35,7 +38,9 @@ export default function ChatsScreen() {
   const tabPad = useTabInset() + 16;
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
-  const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const chatsQ = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const chats = chatsQ.data ?? [];
+  const online = useNet((s) => s.online);
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
@@ -46,18 +51,19 @@ export default function ChatsScreen() {
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const creating = useRef(false);
   const [busy, setBusy] = useState(false);
   const friends = people.filter(p => isFriendNow(p, social));
   const create = async () => {
-    if (busy || !groupTitle.trim() || members.length < 2) return;
-    setBusy(true); setError('');
+    if (creating.current || !groupTitle.trim() || members.length < 1) return;
+    creating.current = true; setBusy(true); setError('');
     try {
       const id = config.dataMode === 'demo' ? uid('group') : await createFriendGroup(groupTitle.trim(), members);
       if(config.dataMode === 'demo') chat.addGroup({id,kind:'group',title:groupTitle.trim(),members:members.length+1,memberIds:members,lastText:'Группа создана',lastTime:'',unread:0});
       await queryClient.invalidateQueries({queryKey:['chats']});
       setGroup(false); router.push({pathname:'/chat/[id]',params:{id}});
     } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
-    finally { setBusy(false); }
+    finally { creating.current = false; setBusy(false); }
   };
   const plans = usePlans();
   const addPlan = useApp((s) => s.addPlan);
@@ -92,7 +98,7 @@ export default function ChatsScreen() {
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
         <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
-        <Pressable onPress={() => {setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
+        <Pressable onPress={() => {setGroupTitle('');setMembers([]);setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
@@ -164,7 +170,7 @@ export default function ChatsScreen() {
           })}
         </>
       )}
-      {filter === 'requests' && pending.length === 0 && <Text style={styles.sub}>Новых заявок нет.</Text>}
+      {filter === 'requests' && pending.length === 0 && <StateView kind="empty" compact title="Новых заявок нет" />}
 
       {list.length > 0 && filter !== 'requests' && (
         <View style={{ gap: 8 }}>
@@ -173,7 +179,7 @@ export default function ChatsScreen() {
             const p = c.kind === 'direct' ? people.find((x) => x.id === c.personId) : undefined;
             const n = unread(c);
             const pin = !!chat.pinned[c.id];
-            const act = p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
+            const act = !c.l.text && p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
             return (
               <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
                 <Pressable onPress={() => open(c.id)}
@@ -227,18 +233,24 @@ export default function ChatsScreen() {
           })}
         </View>
       )}
-      {list.length === 0 && lonely.length === 0 && filter !== 'requests' && <Text style={styles.sub}>{q ? 'Ничего не нашли.' : 'Пока нет чатов.'}</Text>}
+      {list.length === 0 && lonely.length === 0 && filter !== 'requests' && (
+        q ? <StateView kind="nothing-found" text="Попробуй другое имя или название." />
+        : !online && !chatsQ.data ? <StateView kind="offline" onAction={() => void chatsQ.refetch()} />
+        : chatsQ.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQ.refetch()} />
+        : chatsQ.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
+        : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
+      )}
     </ScrollView>
-    {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" style={{maxHeight:'85%',paddingBottom:24+insets.bottom}}>
+    {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
       <Text style={styles.h1}>Новая группа</Text>
       <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
-      <Text style={styles.sub}>Выбери минимум двух друзей</Text>
-      <ScrollView style={{maxHeight:300}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
+      <Text style={styles.sub}>Выбери хотя бы одного друга</Text>
+      <View style={{gap:4}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
         <Avatar p={p}/><Text style={[styles.name,{flex:1}]}>{p.name}</Text>{members.includes(p.id)&&<Ic d={IC.check} size={20} color={colors.accent}/>}
-      </Pressable>)}</ScrollView>
+      </Pressable>)}</View>
       {!friends.length&&<Text style={styles.sub}>Добавь друзей, чтобы собрать группу</Text>}
       {!!error&&<Text style={[styles.sub,{color:colors.accentText}]}>{error}</Text>}
-      <Pressable onPress={create} disabled={busy||members.length<2||!groupTitle.trim()} style={[styles.btn,{flex:0,height:48,backgroundColor:colors.ink,opacity:members.length<2?0.45:1}]}><Text style={[styles.btnText,{color:colors.paper}]}>{busy?'Создаю…':'Создать группу'}</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'Создаю группу' : 'Создать группу'} onPress={create} disabled={busy||members.length<1||!groupTitle.trim()} style={[styles.btn,{flexGrow:0,flexShrink:0,flexBasis:'auto',height:48,minHeight:48,backgroundColor:colors.ink,opacity:members.length<1?0.45:1}]}><Text style={[styles.btnText,{color:colors.paper}]}>{busy?'Создаю…':'Создать группу'}</Text></Pressable>
     </BottomSheet></>}
     </View>
   );
@@ -260,7 +272,7 @@ const styles = StyleSheet.create({
   reqTitle: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink },
   reqRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
-  request: { padding: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 12 },
+  request: { padding: 14, borderRadius: 20, ...plate, gap: 12 },
   name: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
   quote: { fontFamily: fonts.body400, fontSize: 14, color: colors.ink, marginTop: 2 },
@@ -268,7 +280,7 @@ const styles = StyleSheet.create({
   btnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14 },
-  card: { borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  card: { borderRadius: 20, ...plate },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#F0C5AE' },
   actText: { flexShrink: 1, fontFamily: fonts.body600, fontSize: 11.5, color: colors.accentText },

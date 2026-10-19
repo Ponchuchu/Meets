@@ -52,7 +52,7 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
 
       {running && startedAt ? (
         <>
-          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model, live && siteNames.length ? siteNames : undefined, tgOn)} line={view.line} />
+          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model, live && siteNames.length ? siteNames : undefined, tgOn)} line={view.line} found={view.run?.found} queued={view.run?.queued} logs={view.logs} />
         </>
       ) : (
         <>

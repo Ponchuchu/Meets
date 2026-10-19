@@ -1,0 +1,13 @@
+{
+  "kind": "apk",
+  "tag": "apk-review-phone-20261012-a2d85dc",
+  "source": "a2d85dcc061b1a701be73daf31192bd4671bf63a",
+  "status": "success",
+  "job_status": "success",
+  "stage": "success",
+  "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/38196461644",
+  "apk_url": "https://expo.dev/artifacts/eas/tHlQw-FngfGvVUIL_-149v1eWIeVrZ7-DOeHwrb_Ebo.apk",
+  "build_id": "59c8b4dd-5d08-49b8-bb8b-e54871fa3311",
+  "pr_url": null,
+  "pr_error": "pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)"
+}

@@ -2,32 +2,44 @@
 // Направление — компас телефона (watchHeadingAsync), сглаживание 150 мс; конус учитывает поворот карты.
 import * as Location from 'expo-location';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
 /** Направление телефона в градусах (0 — север), плавно и без прыжка через 360°. */
-export function useHeading(): SharedValue<number> {
-  const h = useSharedValue(0);
+export function useHeading(enabled = true): SharedValue<number> {
+  const h = useSharedValue(Number.NaN);
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (!enabled || Platform.OS === 'web') return;
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
     void Location.watchHeadingAsync((e) => {
       const deg = e.trueHeading >= 0 ? e.trueHeading : e.magHeading;
-      const cur = h.get();
+      if (!Number.isFinite(deg) || deg < 0) return;
+      const current = h.get();
+      const cur = Number.isFinite(current) ? current : deg;
       const d = ((deg - (cur % 360) + 540) % 360) - 180; // кратчайший поворот
       h.set(withTiming(cur + d, { duration: 150, easing: Easing.linear }));
     }).then((s) => { if (cancelled) s.remove(); else sub = s; }).catch(() => undefined);
     return () => { cancelled = true; sub?.remove(); };
-  }, [h]);
+  }, [h, enabled]);
   return h;
+}
+
+/** «В путь»: стрелка навигатора вместо точки (web и подложка; на телефоне её рисует сама карта). */
+export function MeArrow({ heading, bearing }: { heading?: SharedValue<number>; bearing?: SharedValue<number> }) {
+  const rot = useAnimatedStyle(() => { const h = heading?.get(); return { transform: [{ rotate: `${Number.isFinite(h) ? h! - (bearing?.get() ?? 0) : 0}deg` }] }; });
+  return (
+    <View style={styles.anchor} pointerEvents="none" accessibilityLabel="Это ты">
+      <Animated.View style={rot}><Image source={require('../../assets/map/arrow.png')} style={{ width: 60, height: 60 }} /></Animated.View>
+    </View>
+  );
 }
 
 export function MeDot({ heading, bearing, dim }: { heading?: SharedValue<number>; bearing?: SharedValue<number>; dim?: boolean }) {
   const pulse = useSharedValue(0);
   useEffect(() => { pulse.set(withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), -1, false)); }, [pulse]);
-  const cone = useAnimatedStyle(() => ({ transform: [{ rotate: `${(heading?.get() ?? 0) - (bearing?.get() ?? 0)}deg` }] }));
+  const cone = useAnimatedStyle(() => { const h = heading?.get(); return { opacity: h != null && Number.isFinite(h) ? 1 : 0, transform: [{ rotate: `${Number.isFinite(h) ? h! - (bearing?.get() ?? 0) : 0}deg` }] }; });
   const ring = useAnimatedStyle(() => ({ opacity: 0.35 * (1 - pulse.get()), transform: [{ scale: 0.6 + pulse.get() * 1.6 }] }));
   return (
     <View style={[styles.anchor, dim && { opacity: 0.35 }]} pointerEvents="none" accessibilityLabel="Это ты">

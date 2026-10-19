@@ -6,6 +6,9 @@ import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
 import { useAuth } from '../../src/live/auth';
+import { useLiveChats } from '../../src/data/realtime';
+import { useStepTracking } from '../../src/live/steps';
+import { usePushRegistration } from '../../src/live/push';
 import { useLiveLocation } from '../../src/live/useLiveLocation';
 import { usePlansSync } from '../../src/live/usePlansSync';
 import { useInvites } from '../../src/live/useInvites';
@@ -41,6 +44,9 @@ function ServerOnboarded() {
 
 function Shell() {
   const demo = config.dataMode === 'demo';
+  useLiveChats();
+  useStepTracking();
+  usePushRegistration();
   useLiveLocation();
   usePlansSync();
   useInvites();

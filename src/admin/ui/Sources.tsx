@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tLabel: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   input: { flex: 1, height: 36, fontFamily: fonts.body500, fontSize: 14.5, color: colors.ink },
-  addBtn: { height: 34, borderRadius: 10, backgroundColor: colors.ink, paddingHorizontal: 14, justifyContent: 'center' },
+  addBtn: { height: 44, borderRadius: 10, backgroundColor: colors.ink, paddingHorizontal: 14, justifyContent: 'center' },
   addText: { fontFamily: fonts.body700, fontSize: 13, color: colors.paper },
 });

@@ -1,19 +1,19 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
 import { track } from '../analytics';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { config } from '../lib/config';
-import { sendInvite } from '../live/api';
+import { chooseEventVisit, rescheduleMeetup, sendInvite } from '../live/api';
 import { router } from 'expo-router';
+import { myId } from '../live/auth';
+import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
 import type { EventItem, Person } from '../data/types';
-import { dayIndex } from '../lib/clock';
+import { almaty, dayIndex } from '../lib/clock';
 import { formatPrice } from '../lib/format';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
@@ -38,11 +38,13 @@ import { distM } from '../live/geo';
 import { kmText, stampOf } from '../map/ui/EventSheet';
 import { eventLink, shareText, shareUrl, type ShareTarget } from './share';
 import { plural, whenTitle } from './text';
+import { occurrencesOf } from './occurrences';
+import { eventStatusLabel } from './availability';
 
 const LIVE = config.dataMode !== 'demo';
 
 
-type Sheet = null | 'company' | 'invite' | 'route' | 'share' | 'going';
+type Sheet = 'visit' | 'reschedule' | null | 'company' | 'invite' | 'route' | 'share' | 'going';
 
 export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { title: string; sub: string; faces: Person[] } | null {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -55,7 +57,7 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
+export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
   initialSheet?: Sheet;
   /** «✕» на открытой карточке: в Рекомендациях — «Мимо», на карте — просто закрыть. */
   onSkip?: () => void;
@@ -64,6 +66,14 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   onGo?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
+  const [selectedSession, setSelectedSession] = useState<{ initialId: string; event: EventItem } | null>(null);
+  const [updatedEvent, setUpdatedEvent] = useState<EventItem | null>(null);
+  const base = selectedSession?.initialId === initialEvent.id ? selectedSession.event : initialEvent;
+  const e = updatedEvent?.id === base.id ? updatedEvent : base;
+  const visitAt = usePlans(s => s.visits[e.id]);
+  const multiDay = !!e.endsAt && dayIndex(e.endsAt) > dayIndex(e.startsAt) && e.isLong;
+  const mine = LIVE ? e.createdBy === myId() : !!e.meetup;
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
   const sendingInvite=useRef(false);
   const [inviting,setInviting]=useState(false);
@@ -83,7 +93,8 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
-  const canArrive = going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
+  const statusLabel = eventStatusLabel(e);
+  const canArrive = !statusLabel && going && now.getTime() >= startMs - 30 * 60000 && now.getTime() <= endMs;
   // Прошедшее (открыли из хроники): вместо кнопок — «Было · с кем».
   const past = endMs < now.getTime();
   const was = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
@@ -95,11 +106,14 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
   };
 
   const toggleGo = () => {
-    if (onGo && !going) { onGo(); return; }
+    if (statusLabel && !going) return;
+    if (e.sessions?.length) { show({ text: 'Выбери дату в карточке события' }); return; }
+    if (multiDay && !going && !visitAt) { setSheet('visit'); return; }
+    if (onGo && !going && e.id === initialEvent.id) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
     addPlan();
-    show({ text: 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
+    show({ text: e.category === 'movie' ? 'Сеанс в «Планах». Напомню о билетах за 3 часа' : 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
   const goingInfo = goingLine(e, people, going);
@@ -129,25 +143,19 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
     }
     Linking.openURL(shareUrl(t, text, link)).catch(() => {});
   };
-  // Жест «назад»: ведёшь пальцем от левого края вправо — возвращаешься (iOS и Android, на web — мышью).
-  const back = Gesture.Pan()
-    .activeOffsetX(30)
-    .hitSlop({ left: 0, width: 24 })
-    .failOffsetY([-14, 14])
-    .onEnd((ev) => { if (ev.translationX > 90 && ev.absoluteX - ev.translationX < 48) scheduleOnRN(onClose); });
-
   const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
+  const sessions = occurrencesOf(e, sameVenue, now);
+  const sessionTime = (x: EventItem) => { const at = almaty(x.startsAt); return `${at.getUTCDate()}.${String(at.getUTCMonth() + 1).padStart(2, '0')} · ${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`; };
   const moreHere = e.venueName ? sameVenue.filter((x) => x.id !== e.id && x.venueName === e.venueName).length : 0;
   const friendsGoing = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is Person => !!p && p.isFriend);
   const goingText = friendsGoing.length === 1 ? `${friendsGoing[0].name} идёт` : friendsGoing.length === 2 ? `${friendsGoing[0].name} и ${friendsGoing[1].name} идут`
     : friendsGoing.length > 2 ? `${friendsGoing[0].name}, ${friendsGoing[1].name} и ещё ${friendsGoing.length - 2} идут` : e.goingCount >= 3 ? `Идут ${e.goingCount}` : 'Пока никто из друзей';
 
   return (
-    <GestureDetector gesture={back}>
     <View style={styles.root}>
-      <ScrollView style={{ flex: 1 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
@@ -177,6 +185,9 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         <View style={styles.body}>
           <View style={styles.chips}>
             <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
+            {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
+            {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
+            {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
             {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
             {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
@@ -196,6 +207,11 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
             <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
           </Pressable>
 
+          {sessions.length > 1 && <View style={{ gap: 8 }}>
+            <Text style={styles.itemTitle}>{e.category === 'movie' ? 'Выбери кинотеатр и сеанс' : 'Другие даты и время'}</Text>
+            <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
+          </View>}
           {!!e.about && <Text style={styles.about}>{e.about}</Text>}
 
           <View style={styles.list}>
@@ -240,7 +256,17 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 100 + insets.bottom }} />}
 
-      {past ? (
+      {statusLabel ? (
+        <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pastTitle}>{statusLabel}</Text>
+            <Text style={styles.pastSub}>Твой план и переписка сохранены</Text>
+          </View>
+          <Pressable onPress={going ? toggleGo : onClose} style={styles.inviteBtn} accessibilityRole="button">
+            <Text style={styles.inviteText}>{going ? 'Убрать' : 'Закрыть'}</Text>
+          </Pressable>
+        </View>
+      ) : past ? (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
           {was.length > 0 && <View style={{ flexDirection: 'row' }}>{was.slice(0, 4).map((p, i) => <Avatar key={p.id} p={p} size={36} ring={colors.friend} style={{ marginLeft: i ? -10 : 0 }} />)}</View>}
           <View style={{ flex: 1 }}>
@@ -250,7 +276,7 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </View>
       ) : (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
-          <Pressable onPress={onSkip ?? onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
+          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
             <X size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
           <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
@@ -262,13 +288,37 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </View>
       )}
 
-      {sheet && (
+      {(sheet === 'visit' || sheet === 'reschedule') && <><Backdrop label="Закрыть выбор времени" onPress={() => setSheet(null)} /><BottomSheet label={sheet === 'visit' ? 'Когда пойти' : 'Перенести встречу'} onClose={() => setSheet(null)} scroll>
+        <ScheduleSheet e={e} now={now} reschedule={sheet === 'reschedule'} initial={visitAt} onSave={async at => {
+          if (sheet === 'reschedule') {
+            if (LIVE) await rescheduleMeetup(e.id, at);
+            const shift = Date.parse(at) - Date.parse(e.startsAt);
+            const changed = { ...e, startsAt: at, endsAt: e.endsAt ? new Date(Date.parse(e.endsAt) + shift).toISOString() : null };
+            setUpdatedEvent(changed);
+            usePlans.setState(s => ({ meetups: s.meetups.map(m => m.id === e.id ? changed : m), visits: s.visits[e.id] ? { ...s.visits, [e.id]: at } : s.visits }));
+            qc.setQueryData<EventItem[]>(['events'], old => old?.map(x => x.id === e.id ? changed : x));
+            void qc.invalidateQueries({ queryKey: ['events'] });
+            void qc.invalidateQueries({ queryKey: ['invites'] });
+            void qc.invalidateQueries({ queryKey: ['messages'] });
+            show({ text: 'Встреча перенесена. Друзья увидят новое время' });
+          } else {
+            if (LIVE) await chooseEventVisit(e.id, at);
+            usePlans.setState(s => ({ visits: { ...s.visits, [e.id]: at }, going: { ...s.going, [e.id]: at } }));
+            if (!going) addPlan();
+            void qc.invalidateQueries({ queryKey: ['me', 'attendance'] });
+            show({ text: 'Дата посещения сохранена в планах' });
+          }
+          setSheet(null);
+        }} />
+      </BottomSheet></>}
+      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'company' && <CompanySheet e={e} when={whenTitle(e, now).toLowerCase()} now={now} people={people} onClose={() => setSheet(null)} onWrite={write} />}
             {sheet === 'invite' && (
               <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} busy={inviting} onSend={async(ids) => {
+                if (statusLabel) { setSheet(null); show({ text: statusLabel }); return; }
                 if(sendingInvite.current)return;
                 sendingInvite.current=true;setInviting(true);
                 try{
@@ -291,7 +341,6 @@ export function EventPage({ e, now, onClose, closeLabel = 'Свернуть', on
         </>
       )}
     </View>
-    </GestureDetector>
   );
 }
 

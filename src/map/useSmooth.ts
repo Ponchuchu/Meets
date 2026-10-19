@@ -1,5 +1,5 @@
 // Плавное движение друзей (V6 §3.2): новая точка не прыгает, а доезжает за ~1,2 с (≈15 кадров в секунду).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FriendSpot } from '../data/types';
 
 const MS = 1200;
@@ -25,8 +25,14 @@ export function useSmoothSpots(spots: FriendSpot[]): FriendSpot[] {
       setShown(next);
       return t >= 1;
     };
-    const id = setInterval(() => { if (tick()) clearInterval(id); }, STEP);
+    const moving = spots.some(s => { const a = from.get(s.personId); return a && (a.lat !== s.lat || a.lon !== s.lon) && Math.abs(a.lat-s.lat)+Math.abs(a.lon-s.lon)<=.03; });
+    if (!moving) { shownRef.current = spots; return; }
+    const id = setInterval(() => { if (tick()) { clearInterval(id); } }, STEP);
     return () => clearInterval(id);
   }, [spots]);
-  return shown;
+  return useMemo(() => spots.map(s => {
+    const a = shown.find(x => x.personId === s.personId);
+    if (!a || Math.abs(a.lat-s.lat)+Math.abs(a.lon-s.lon)>.03) return s;
+    return a.lat === s.lat && a.lon === s.lon ? s : { ...s, lat: a.lat, lon: a.lon };
+  }), [spots, shown]);
 }

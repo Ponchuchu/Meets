@@ -4,6 +4,7 @@
 // Состояние сессии: @fresh (не вошёл), @google (вошёл через Google), @onboarded (по умолчанию для вкладок).
 // Альфа (live): @live — настоящая сессия тестера (номер и код — только в переменных SHOTS_PHONE и SHOTS_CODE,
 // в репозиторий не пишем), @livenew — вошёл, но анкета не пройдена, @livetut — анкета есть, обучение ещё нет.
+import { Buffer } from 'node:buffer';
 import { createServer } from 'node:http';
 import { readFile, mkdir, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -43,7 +44,8 @@ const PRESETS = {
 
 /** Настоящая сессия Supabase для live-скриншотов — через alpha-login, как в приложении. */
 async function liveSession() {
-  const { SHOTS_PHONE: phone, SHOTS_CODE: code } = process.env;
+  const phone = process.env.SHOTS_PHONE;
+  const code = process.env.SHOTS_CODE;
   if (!phone || !code) return null;
   const keys = JSON.parse(await readFile(join(root, 'config/public-keys.json'), 'utf8'));
   const url = keys.supabase?.url ?? keys.supabaseUrl;
@@ -82,7 +84,7 @@ const port = server.address().port;
 const out = join(root, 'docs/progress', stage);
 await mkdir(out, { recursive: true });
 // В облачной среде Chromium лежит в /opt/pw-browsers/chromium; локально Playwright найдёт свой.
-const preinstalled = '/opt/pw-browsers/chromium';
+const preinstalled = process.env.SHOTS_CHROMIUM || '/opt/pw-browsers/chromium';
 // WebGL для Mapbox в headless-режиме — программный рендер SwiftShader.
 const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 const browser = await chromium.launch({ args, ...(existsSync(preinstalled) && (await stat(preinstalled)).isFile() ? { executablePath: preinstalled } : {}) });

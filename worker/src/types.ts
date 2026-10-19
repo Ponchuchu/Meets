@@ -25,7 +25,7 @@ export interface RawPost {
 
 export type PostClass = 'event' | 'ad' | 'meme' | 'not_almaty' | 'cancel';
 
-export const CATEGORIES = ['music', 'standup', 'art', 'hike', 'games', 'food', 'sport', 'talks', 'theatre', 'lecture', 'meetup', 'party', 'bike', 'concert'] as const;
+export const CATEGORIES = ['music', 'standup', 'art', 'hike', 'games', 'food', 'sport', 'talks', 'movie', 'theatre', 'lecture', 'meetup', 'party', 'bike', 'concert'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 /** Черновик карточки — structured output ИИ (или эвристики в демо-режиме). */
@@ -89,6 +89,7 @@ export interface Draft {
 
 /** Известное событие для поиска дублей (из базы или из этого же запуска). */
 export interface KnownEvent {
+  is_long?: boolean;
   id: string;
   title: string;
   starts_at: string;

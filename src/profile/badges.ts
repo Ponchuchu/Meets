@@ -7,7 +7,7 @@ export interface BadgeDef {
   how: string;
 }
 
-const I = {
+export const BADGE_ICONS = {
   compass: 'M12 3a9 9 0 100 18 9 9 0 000-18zM15.5 8.5l-2 5-5 2 2-5z',
   peak: 'M3 20l6-10 4 6 3-4 5 8z',
   home: 'M4 11l8-7 8 7v9H4zM10 20v-5h4v5',
@@ -35,6 +35,12 @@ const I = {
   spark: 'M4 20l5-14 9 9zM14 4l1 2M19 7l2-1M18 3l-1 2',
   cam: 'M4 8h3l2-3h6l2 3h3v11H4zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z',
 };
+
+const I = BADGE_ICONS;
+
+/** Иконка значка по id: из списка BADGES или для значков сервера (шаги, ночной город, позвать друга, первая встреча). */
+export const badgeIcon = (id: string): string => BADGES.find((b) => b.id === id)?.icon
+  ?? ({ walker: I.boot, 'night-city': I.moon, 'call-friend': I.people, 'first-bump': I.spark } as Record<string, string>)[id] ?? I.star;
 
 export const BADGES: BadgeDef[] = [
   { id: 'opener', name: 'Открыватель', icon: I.compass, goal: 1, how: 'Первым из друзей отметился на новом месте' },
