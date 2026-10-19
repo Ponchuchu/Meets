@@ -1,0 +1,13 @@
+{
+  "kind": "apk",
+  "tag": "apk-review-20261020-map-state",
+  "source": "6c3e288bbacce9955d89959f7d99e53b523431b4",
+  "status": "in_progress",
+  "job_status": "in_progress",
+  "stage": "checks",
+  "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/39340642122",
+  "apk_url": null,
+  "build_id": null,
+  "pr_url": null,
+  "pr_error": null
+}
