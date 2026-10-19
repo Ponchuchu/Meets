@@ -2,12 +2,12 @@
   "kind": "apk",
   "tag": "apk-review-20261020-quality-frames",
   "source": "09c277dbc2da2556a7378499a7d9f7449be46bde",
-  "status": "in_progress",
-  "job_status": "in_progress",
-  "stage": "checks",
+  "status": "success",
+  "job_status": "success",
+  "stage": "success",
   "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/39339710148",
-  "apk_url": null,
-  "build_id": null,
+  "apk_url": "https://expo.dev/artifacts/eas/I6-WTV0Spe6Wy85SzRm-w0lfTin_smk1K5PZJbTNcuM.apk",
+  "build_id": "cd4535b8-89c2-414a-b096-2ba5519b842a",
   "pr_url": null,
   "pr_error": null
 }
