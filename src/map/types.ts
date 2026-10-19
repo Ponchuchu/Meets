@@ -29,6 +29,7 @@ export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
   markers: MapMarker[];
+  threeD?: boolean;
   /** Сообщает, получилось ли показать настоящую карту (false — работает подложка). */
   onMode?: (mode: 'mapbox' | 'static') => void;
   /** Отступ снизу для кнопки атрибуции Mapbox — чтобы её не закрывала карточка. */

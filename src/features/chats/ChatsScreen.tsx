@@ -1,3 +1,4 @@
+import { QueryNotice } from '../../ui/QueryNotice';
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useQuery } from '@tanstack/react-query';
@@ -38,8 +39,8 @@ export default function ChatsScreen() {
   const tabPad = useTabInset() + 16;
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
-  const chatsQ = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
-  const chats = chatsQ.data ?? [];
+  const chatsQuery = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const { data: chats = [] } = chatsQuery;
   const online = useNet((s) => s.online);
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
@@ -103,6 +104,7 @@ export default function ChatsScreen() {
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
       </View>
+      <QueryNotice pending={false} error={chats.length > 0 && chatsQuery.isError} onRetry={() => { void chatsQuery.refetch(); }} />
       {search != null && <TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Найти чат или сообщение" placeholderTextColor={colors.muted3} style={styles.search} accessibilityLabel="Поиск по чатам" />}
       {filter === 'requests' ? (
         <Pressable onPress={() => setFilter('all')} style={styles.reqHead} accessibilityRole="button" accessibilityLabel="Назад к чатам">
@@ -235,9 +237,9 @@ export default function ChatsScreen() {
       )}
       {list.length === 0 && lonely.length === 0 && filter !== 'requests' && (
         q ? <StateView kind="nothing-found" text="Попробуй другое имя или название." />
-        : !online && !chatsQ.data ? <StateView kind="offline" onAction={() => void chatsQ.refetch()} />
-        : chatsQ.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQ.refetch()} />
-        : chatsQ.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
+        : !online && !chatsQuery.data ? <StateView kind="offline" onAction={() => void chatsQuery.refetch()} />
+        : chatsQuery.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQuery.refetch()} />
+        : chatsQuery.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
         : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
       )}
     </ScrollView>

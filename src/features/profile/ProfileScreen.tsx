@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { ChevronRight, Code2, Footprints, Home, Lock, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
@@ -17,7 +17,8 @@ import { useMapState } from '../../state/map';
 import { colors, fonts, radii } from '../../theme';
 import { badgeIcon } from '../../profile/badges';
 import { BadgeMedal } from '../../ui/BadgeMedal';
-import { Medallion } from '../../ui/Medallion';
+import { AvatarFrame, frameById } from '../../profile/frames';
+import { useProfile } from '../../state/profile';
 import { OrangeBg } from '../../ui/v6/OrangeBg';
 import { plate } from '../../ui/glass';
 
@@ -39,6 +40,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
+  const demoFrame = useProfile(s => s.mapFrame);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const live = config.dataMode !== 'demo';
@@ -79,13 +81,9 @@ export default function ProfileScreen() {
       </View>
       <View style={styles.sheet}>
         <View style={styles.head}>
-          <Pressable onPress={() => void pickPhoto()} style={({ pressed }) => [styles.avatarWrap, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка уровня ${s?.level ?? 1}`}>
-            <Medallion size={118} level={s?.level ?? 1}>
-              {p?.photo_url || draft.photo?.includes(':') ? <Image source={{ uri: p?.photo_url ?? draft.photo! }} style={styles.avatar} /> : (
-                <View style={[styles.avatar, styles.avatarEmpty]}><Text style={styles.letter}>{(name[0] ?? '·').toUpperCase()}</Text></View>
-              )}
-            </Medallion>
-            <View style={styles.homeBadge}><Home size={15} color={colors.ink} strokeWidth={2} /></View>
+          <Pressable onPress={() => void pickPhoto()} style={({ pressed }) => [styles.avatarWrap, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка «${frameById(live ? p?.map_frame : demoFrame).name}»`}>
+            <AvatarFrame frameId={live ? p?.map_frame : demoFrame} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={118} />
+            <View style={styles.homeBadge}><Text accessibilityLabel={`Уровень ${s?.level ?? 1}`} style={{ fontFamily: fonts.mono600, fontSize: 12, color: colors.ink }}>{s?.level ?? 1}</Text></View>
           </Pressable>
           <View style={{ flex: 1, paddingBottom: 6 }}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>

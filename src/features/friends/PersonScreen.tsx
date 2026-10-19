@@ -1,3 +1,4 @@
+import { useSocialActions } from '../../live/socialActions';
 // Профиль человека: не в друзьях (Person) и друг (PersonFriend). Что видно — по правилам «Кто что видит».
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -15,7 +16,7 @@ import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
 import { useSession } from '../../state/session';
-import { isFriendNow, useSocial } from '../../state/social';
+import { isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
@@ -36,7 +37,7 @@ export default function PersonScreen() {
   const { data: d } = useQuery({ queryKey: ['person', id], queryFn: () => data.getPersonDetails(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
-  const social = useSocial();
+  const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
   const myPhoto = useSession((s) => s.draft.photo);
   const p = people.find((x) => x.id === id);
@@ -223,7 +224,7 @@ export default function PersonScreen() {
               <>
                 <Text style={styles.h2}>Убрать {p.name === 'Айнура' ? 'Айнуру' : `${genitive}`} из друзей?</Text>
                 <Text style={styles.sub}>Вы перестанете видеть планы и геолокацию друг друга. Чат останется.</Text>
-                <Pressable onPress={() => { social.removeFriend(id); setSheet(null); }} style={[styles.btn, { backgroundColor: colors.accentText, flex: 0, height: 52 }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Убрать</Text></Pressable>
+                <Pressable onPress={() => { void social.removeFriend(id).then(ok => { if (ok) setSheet(null); }); }} style={[styles.btn, { backgroundColor: colors.accentText, flex: 0, height: 52 }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Убрать</Text></Pressable>
               </>
             )}
           </BottomSheet>

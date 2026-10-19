@@ -2,8 +2,8 @@
 import keys from '../../config/public-keys.json';
 
 export const config = {
-  // Внутренние сборки до релиза; в production выставить EXPO_PUBLIC_MAP_ATTRIBUTION=true.
-  mapAttribution: process.env.EXPO_PUBLIC_MAP_ATTRIBUTION === 'true',
+  // Атрибуция включена по умолчанию; проверь переменные выпуска.
+  mapAttribution: process.env.EXPO_PUBLIC_MAP_ATTRIBUTION !== 'false',
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || keys.supabaseUrl,
   supabaseKey: process.env.EXPO_PUBLIC_SUPABASE_KEY || keys.supabasePublishableKey,
   mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN || keys.mapboxPublicToken,

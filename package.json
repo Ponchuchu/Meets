@@ -55,10 +55,11 @@
     "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.15",
+    "expo-image-manipulator": "~57.0.20"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite": "^0.5.10",
     "@react-native/jest-preset": "^0.86.3",
     "@types/jest": "29.5.14",
     "@types/mapbox-gl": "^2.7.21",
@@ -98,7 +99,9 @@
     "perf": "NODE_USE_ENV_PROXY=1 node scripts/perf.mjs",
     "db:bundle": "node scripts/bundle-sql.mjs",
     "icons": "node scripts/icons.mjs",
-    "check:feedback": "NODE_USE_ENV_PROXY=1 node scripts/check-phone-feedback.mjs"
+    "check:feedback": "NODE_USE_ENV_PROXY=1 node scripts/check-phone-feedback.mjs",
+    "test:db": "node scripts/test-reliability-sql.mjs && node scripts/test-frame-sql.mjs",
+    "diagnose:backend": "NODE_USE_ENV_PROXY=1 node scripts/diagnose-backend.mjs"
   },
   "private": true,
   "jest": {

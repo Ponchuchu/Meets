@@ -84,13 +84,16 @@ export function useLiveChats() {
   const userId = useAuth(s => s.session?.user.id);
   useEffect(() => {
     if (!userId || config.dataMode === 'demo') return;
-    const refresh = () => { void qc.invalidateQueries({ queryKey: ['chats'] }); void qc.invalidateQueries({ queryKey: ['people'] }); };
+    const refresh = () => { for (const key of ['chats', 'people', 'friendRequests']) void qc.invalidateQueries({ queryKey: [key] }); };
     const channel = supabase().channel(`inbox:${userId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => void qc.invalidateQueries({ queryKey: ['chats'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_members' }, refresh)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => void qc.invalidateQueries({ queryKey: ['people'] }))
       .subscribe(status => { if (status === 'SUBSCRIBED') refresh(); });
     const app = AppState.addEventListener('change', s => { if (s === 'active') { refresh(); void qc.invalidateQueries({ queryKey: ['friendSpots'] }); } });
-    return () => { app.remove(); void supabase().removeChannel(channel); };
+    const timer = setInterval(() => { if (AppState.currentState === 'active') refresh(); }, 60000);
+    return () => { clearInterval(timer); app.remove(); void supabase().removeChannel(channel); };
   }, [userId, qc]);
 }

@@ -140,12 +140,12 @@ export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: 
     if (q.trim().length < 3) return;
     const t = setTimeout(() => {
       setSearching(true);
-      searchAddresses(q, ac.signal, value.point).then((r) => { if (!ac.signal.aborted) setHits(r); })
+      searchAddresses(q, ac.signal, camera).then((r) => { if (!ac.signal.aborted) setHits(r); })
         .catch(() => { if (!ac.signal.aborted) setSearchError('Нет связи с поиском. Выбери точку на карте или введи адрес'); })
         .finally(() => { if (!ac.signal.aborted) setSearching(false); });
     }, 300);
     return () => { clearTimeout(t); ac.abort(); };
-  }, [q]);
+  }, [q, camera]);
   useEffect(() => () => { revision.current++; if (reverse.current) clearTimeout(reverse.current); }, []);
   const map = useRef<MapCanvasHandle>(null);
 

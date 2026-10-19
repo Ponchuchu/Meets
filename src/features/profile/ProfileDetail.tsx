@@ -13,7 +13,7 @@ import { StickerPicker } from '../../stickers/StickerPicker';
 import { StickerView } from '../../stickers/StickerView';
 import type {Sticker} from '../../stickers/catalog';
 import {useState} from 'react';
-import { MapAvatar, MAP_FRAMES } from '../../map/MapAvatar';
+import { FramePicker } from './FramePicker';
 import { StepsCard } from './StepsCard';
 import { BADGES, badgeIcon } from '../../profile/badges';
 import { BadgeMedal } from '../../ui/BadgeMedal';
@@ -25,7 +25,7 @@ export default function ProfileDetail() {
   const [frameBusy, setFrameBusy] = useState(false);
   const [frameError, setFrameError] = useState('');
   const [previewTrail, setPreviewTrail] = useState<'none'|'dots'|'comet'>('dots');
-  const [previewFrame, setPreviewFrame] = useState('classic');
+  const previewFrame = useProfile(s => s.mapFrame);
   const [badge,setBadge]=useState<string|null>(null);
   const [sticker,setSticker]=useState<Sticker|null>(null);
   const live = config.dataMode !== 'demo';
@@ -55,15 +55,24 @@ export default function ProfileDetail() {
   return <SettingsPage title="Уровень и награды" sub={`Уровень ${level} · ${points} очков`}>
     <StepsCard />
     <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.card, gap: 16 }}>
-      <Text style={{ fontFamily: fonts.display700, fontSize: 22, color: colors.ink }}>Твой значок на карте</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>{MAP_FRAMES.map(f => <Pressable disabled={frameBusy || level < f.level} key={f.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_frame : previewFrame) === f.id, disabled: level < f.level }} onPress={async () => {
-        if (frameBusy) return; setFrameBusy(true); setFrameError('');
-        try { if (live) { await saveProfile({ map_frame: f.id }); await qc.invalidateQueries({ queryKey: ['me', 'profile'] }); } else setPreviewFrame(f.id); }
-        catch { setFrameError('Не удалось сохранить рамку. Проверь связь'); } finally { setFrameBusy(false); }
-      }} style={{ alignItems: 'center', gap: 8, opacity: level >= f.level ? 1 : 0.4 }}>
-        <MapAvatar person={{ id: 'preview', name: draft.name, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', photo: profile.data?.photo_url ?? draft.photo, isFriend: true, mapFrame: f.id }} size={64} />
-        <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>{f.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted }}>{level < f.level ? `Уровень ${f.level}` : (live ? profile.data?.map_frame : previewFrame) === f.id ? 'Выбрано' : 'Выбрать'}</Text>
-      </Pressable>)}</View>
+      <FramePicker selected={(live ? profile.data?.map_frame : previewFrame) ?? 'classic'} level={level} image={profile.data?.photo_url ?? draft.photo} initial={(draft.name?.[0] ?? 'Я').toUpperCase()} busy={frameBusy} error={frameError}
+        onSelect={async id => {
+          if (frameBusy) return;
+          setFrameBusy(true); setFrameError('');
+          try {
+            if (live) {
+              await saveProfile({ map_frame: id });
+              await Promise.all([qc.invalidateQueries({ queryKey: ['me', 'profile'] }), qc.invalidateQueries({ queryKey: ['people'] })]);
+            } else useProfile.getState().setMapFrame(id);
+          } catch (e) {
+            const error = e as { code?: string; message?: string };
+            setFrameError(error.code === '23514' && error.message?.includes('map_frame')
+              ? 'Новая коллекция пока недоступна. Выбери классическую рамку.'
+              : error.message?.includes('frame-locked') ? 'Эта рамка пока закрыта. Обнови страницу с уровнем.'
+              : 'Не удалось сохранить рамку. Попробуй ещё раз.');
+          }
+          finally { setFrameBusy(false); }
+        }} />
       <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>След движения</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{([{ id: 'none', name: 'Без следа', level: 1 }, { id: 'dots', name: 'Точки', level: 1 }, { id: 'comet', name: 'Комета', level: 3 }] as const).map(t => <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_trail : previewTrail) === t.id, disabled: level < t.level || frameBusy }} disabled={level < t.level || frameBusy} onPress={async () => {
         setFrameBusy(true); setFrameError('');

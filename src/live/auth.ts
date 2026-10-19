@@ -2,6 +2,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { AppState, Platform } from 'react-native';
+import { queryClient } from './query';
 import { supabase, withTimeout } from '../data/client';
 import { config } from '../lib/config';
 
@@ -50,8 +52,21 @@ export function useAuthWatch() {
   useEffect(() => {
     const sb = supabase();
     sb.auth.getSession().then(({ data }) => useAuth.getState().set(data.session)).catch(() => useAuth.getState().set(null));
-    const { data } = sb.auth.onAuthStateChange((_e, session) => useAuth.getState().set(session));
-    return () => data.subscription.unsubscribe();
+    const { data } = sb.auth.onAuthStateChange((_e, session) => {
+      const previous = useAuth.getState().session?.user.id;
+      useAuth.getState().set(session);
+      if (session && previous !== session.user.id) {
+        // Запросы, запущенные до восстановления сессии, повторяем после входа.
+        setTimeout(() => { void queryClient.invalidateQueries(); }, 0);
+      }
+    });
+    if (Platform.OS === 'web') return () => data.subscription.unsubscribe();
+    if (AppState.currentState === 'active') sb.auth.startAutoRefresh();
+    const app = AppState.addEventListener('change', state => {
+      if (state === 'active') sb.auth.startAutoRefresh();
+      else sb.auth.stopAutoRefresh();
+    });
+    return () => { data.subscription.unsubscribe(); app.remove(); sb.auth.stopAutoRefresh(); };
   }, []);
 }
 

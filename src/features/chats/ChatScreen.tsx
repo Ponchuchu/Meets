@@ -1,3 +1,7 @@
+import { preparePhoto } from '../../chat/media';
+import { useSocialActions } from '../../live/socialActions';
+import { useOutbox } from '../../live/outbox';
+import { myId } from '../../live/auth';
 // Чат: личный (DirectChat, ChatAttach, ChatSheets) и чат события (EventChat).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../analytics';
@@ -23,7 +27,7 @@ import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
-import { openDirectChat, sendMessage, uploadMedia, markChatRead, getMessages } from '../../data/remote';
+import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
@@ -34,7 +38,7 @@ import { uid } from '../../lib/uid';
 import { useMapState } from '../../state/map';
 import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
-import { isFriendNow, useSocial } from '../../state/social';
+import { isFriendNow } from '../../state/social';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
 import { glass } from '../../ui/glass';
@@ -100,7 +104,6 @@ export default function ChatScreen() {
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const spot = spots.find((x) => x.personId === personId);
   const chat = useChat();
-  const social = useSocial();
   const plans = usePlans();
   const arrive = useProfile((s) => s.arrive);
   const arrived = useProfile((s) => s.arrivals);
@@ -126,7 +129,11 @@ export default function ChatScreen() {
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const social = useSocialActions(text => setToast({ text }));
   const scroll = useRef<FlatList<Message>>(null);
+  const listMetrics = useRef({ height: 0, offset: 0 });
+  const historyAnchor = useRef<{ height: number; offset: number } | null>(null);
+  const initialScrollFor = useRef<string | null>(null);
 
   const person = personId ? people.find((p) => p.id === personId) : undefined;
   const chatMeta = allChats.find((c) => c.id === id);
@@ -143,12 +150,13 @@ export default function ChatScreen() {
     setLoadingOlder(true);
     try {
       const rows = await getMessages(id, { at: first.createdAt, id: first.id });
+      if (Platform.OS === 'web') historyAnchor.current = { ...listMetrics.current };
       setOlder(old => ({ chatId: id, rows: [...rows, ...(old.chatId === id ? old.rows : [])] }));
       if (rows.length < 100) setEndOfHistory(id);
     } catch { show({ text: 'Не получилось загрузить историю. Потяни список ещё раз' }); }
     finally { setLoadingOlder(false); }
   };
-  const listData = useMemo(() => [...messages].reverse(), [messages]);
+  const listData = useMemo(() => Platform.OS === 'web' ? messages : [...messages].reverse(), [messages]);
   const { data: invites = [] } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
   const byId = (pid: string) => people.find((p) => p.id === pid);
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
@@ -172,27 +180,21 @@ export default function ChatScreen() {
       blocked: !!(personId && chat.blocked[personId]), now,
     });
 
-  const sending = useRef(new Set<string>());
   const sendPending = async (msg: Message) => {
-    if (sending.current.has(msg.id)) return;
-    sending.current.add(msg.id);
+    const ownerId = myId();
+    if (!ownerId || msg.ownerId && msg.ownerId !== ownerId) { show({ text: 'Войди в аккаунт отправителя' }); return; }
     chat.updateMessage(msg.id, { delivery: 'sending' });
-    try {
-      const path = msg.uploadedPath ?? (msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? await uploadMedia(id, msg.media, msg.kind) : msg.media ?? undefined);
-      if (path) chat.updateMessage(msg.id, { uploadedPath: path });
-      await sendMessage(id, msg.text, msg.kind, path, msg.durationS, msg.eventId, msg.id);
-      qc.setQueryData<Message[]>(['messages', id], (old = []) => old.some(m => m.id === msg.id) ? old : [...old, { ...msg, delivery: undefined }]);
-      chat.unsend(msg.id);
-      void qc.invalidateQueries({ queryKey: ['chats'] });
-    } catch {
-      chat.updateMessage(msg.id, { delivery: 'failed' });
-      show({ text: 'Не отправилось. Нажми «Повторить» под сообщением' });
-    } finally { sending.current.delete(msg.id); }
+    const local = !msg.uploadedPath && msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':');
+    useOutbox.getState().add({ id: msg.id, kind: 'message', chatId: msg.chatId, ownerId, payload: {
+      kind: msg.kind, body: msg.text, media_path: msg.uploadedPath ?? (local ? null : msg.media ?? null),
+      ...(local ? { local_uri: msg.media } : {}), duration_s: msg.durationS ?? null, event_id: msg.eventId ?? null,
+    } });
   };
   const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
+    if (isRemoteId(id) && !myId()) { show({ text: 'Войди снова, чтобы отправить сообщение' }); return; }
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
+    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, ownerId: myId() ?? undefined, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
     chat.send(msg);
     track('chat_sent');
     if (isRemoteId(id)) void sendPending(msg);
@@ -293,8 +295,8 @@ export default function ChatScreen() {
     const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();
     if(!permission.granted){show({text:'Разреши доступ к фотографиям'});return;}
     try {
-      const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsMultipleSelection:true,selectionLimit:10,quality:0.9});
-      if(!r.canceled)for(const a of r.assets)push({kind:a.type==='video'?'video':'photo',media:a.uri,durationS:a.duration?Math.round(a.duration/1000):undefined});
+      const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsMultipleSelection:true,selectionLimit:10,quality:0.78,videoExportPreset:ImagePicker.VideoExportPreset.H264_1280x720});
+      if(!r.canceled)for(const a of r.assets)push({kind:a.type==='video'?'video':'photo',media:a.type==='video'?a.uri:await preparePhoto(a.uri,a.width,a.height),durationS:a.duration?Math.round(a.duration/1000):undefined});
       setTray(false);
     }catch{show({text:'Не удалось открыть галерею'});}
   };
@@ -303,7 +305,7 @@ export default function ChatScreen() {
       const permission=await ImagePicker.requestCameraPermissionsAsync();
       if(!permission.granted){show({text:'Разреши доступ к камере'});return;}
       const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-      if (!res.canceled && res.assets[0]) push({ kind: 'photo', media: res.assets[0].uri, text: '' });
+      if (!res.canceled && res.assets[0]) { const a = res.assets[0]; push({ kind: 'photo', media: await preparePhoto(a.uri, a.width, a.height), text: '' }); }
     } catch { show({ text: 'Камера доступна в приложении на телефоне' }); }
   };
 
@@ -343,7 +345,7 @@ export default function ChatScreen() {
 
   const renderMessage = useCallback(({ item: m, index }: ListRenderItemInfo<Message>) => {
           const mine = m.authorId === 'me';
-          const prev = listData[index + 1];
+          const prev = listData[Platform.OS === 'web' ? index - 1 : index + 1];
           return (
             <View><Bubble m={chat.answers[m.id] ? { ...m, answer: chat.answers[m.id] === 'yes' ? 'Иду' : 'Не смогу' } : m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
               showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
@@ -407,10 +409,27 @@ export default function ChatScreen() {
             </Pressable>
           </View>
         )}
-        <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted
-          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingTop: check.ok && !tray && !poll ? composerH + 8 : 16 }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={() => void loadOlder()} onEndReachedThreshold={0.3}
+        <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted={Platform.OS !== 'web'}
+          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, ...(check.ok && !tray && !poll ? Platform.OS === 'web' ? { paddingBottom: composerH + 8 } : { paddingTop: composerH + 8 } : {}) }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={Platform.OS !== 'web' ? () => void loadOlder() : undefined} onEndReachedThreshold={0.3}
+          onStartReached={Platform.OS === 'web' ? () => void loadOlder() : undefined} onStartReachedThreshold={0.3}
+          onContentSizeChange={(_, height) => {
+            listMetrics.current.height = height;
+            if (Platform.OS !== 'web') return;
+            const anchor = historyAnchor.current;
+            if (anchor) {
+              historyAnchor.current = null;
+              scroll.current?.scrollToOffset({ offset: anchor.offset + height - anchor.height, animated: false });
+            } else if (initialScrollFor.current !== id || atBottom) {
+              initialScrollFor.current = id;
+              requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: false }));
+            }
+          }}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled"
-          onScroll={ev => setAtBottom(ev.nativeEvent.contentOffset.y < 80)} scrollEventThrottle={100}
+          onScroll={ev => {
+            const { contentOffset, contentSize, layoutMeasurement } = ev.nativeEvent;
+            listMetrics.current.offset = contentOffset.y;
+            setAtBottom(Platform.OS === 'web' ? contentSize.height - layoutMeasurement.height - contentOffset.y < 80 : contentOffset.y < 80);
+          }} scrollEventThrottle={100}
           onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
       {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: kb ? 8 : Math.max(10, insets.bottom + 4) }]} onLayout={(ev) => setComposerH(ev.nativeEvent.layout.height)} pointerEvents="box-none">

@@ -1,17 +1,20 @@
+import { useChat } from '../state/chat';
 // Настоящая база для альфы v6 (ALPHA §0): только Supabase, без демо-подстановок. Ошибки уходят на экран.
 import { readPoint } from './point';
 import { supabase, withTimeout } from '../data/client';
 import { isLongEvent } from '../data/seed';
-import type { Category, EventItem } from '../data/types';
+import type { Category, EventItem, Message, MessageKind } from '../data/types';
 import { myId } from './auth';
-import { setOutboxSender } from './outbox';
+import { setOutboxSender, useOutbox } from './outbox';
+import { uploadMedia, sendMessage } from '../data/remote';
+import { queryClient } from './query';
 import { reportDb } from './net';
 
 const sb = () => supabase();
 
 async function must<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>, ms = 8000): Promise<T> {
   const { data, error } = await withTimeout(p, ms);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return data as T;
 }
 
@@ -124,12 +127,16 @@ export async function findByHandle(q: string): Promise<Profile[]> {
 /** Заявка в друзья. Встречная заявка уже есть — дружба сразу (триггер в базе). */
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function requestFriend(to: string, note?: string): Promise<void> {
-  await must(sb().from('friend_requests').upsert({ from_id: me(), to_id: to, note: note ?? null, status: 'pending' }));
+  await must(sb().rpc('send_friend_request', { other: to, request_note: note ?? null }));
+}
+
+export async function cancelFriendRequest(to: string): Promise<void> {
+  await must(sb().from('friend_requests').delete().eq('from_id', me()).eq('to_id', to).eq('status', 'pending'));
 }
 
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function answerFriend(from: string, accept: boolean): Promise<void> {
-  await must(sb().from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('from_id', from).eq('to_id', me()));
+  await must(sb().from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('from_id', from).eq('to_id', me()).select('from_id').single());
 }
 
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
@@ -235,24 +242,24 @@ export async function setAttendance(eventId: string, status: PlanStatus | null):
 
 // ——— Очередь отправок: сообщения уходят, когда появится сеть ———
 setOutboxSender(async (it) => {
-  if (it.kind !== 'message') return;
-  const p = it.payload;
-  if (p.owner && p.owner !== me()) throw new Error('auth: очередь другого аккаунта');
-  const { sendMessage, uploadMedia } = await import('../data/remote');
-  const { useOutbox } = await import('./outbox');
-  const { useChat } = await import('../state/chat');
-  const { queryClient } = await import('./query');
-  let path = typeof p.media_path === 'string' ? p.media_path : undefined;
-  if (!path && typeof p.local_media === 'string') {
-    path = await uploadMedia(it.chatId, p.local_media, (p.kind ?? 'photo') as import('../data/types').MessageKind);
-    useOutbox.getState().updatePayload(it.id, { media_path: path });
+  if (it.kind === 'message') {
+    const owner = me();
+    if (owner !== (it.ownerId ?? it.payload.owner)) throw new Error('auth: очередь другого аккаунта');
+    const { local_uri: localUri, local_media, owner: _owner, ...payload } = it.payload;
+    const local_uri = localUri ?? local_media;
+    if (!payload.media_path && typeof local_uri === 'string') {
+      payload.media_path = await uploadMedia(it.chatId, local_uri, payload.kind as MessageKind);
+      useChat.getState().updateMessage(it.id, { uploadedPath: String(payload.media_path) });
+      useOutbox.getState().updatePayload(it.id, payload);
+    }
+    if (me() !== owner) throw new Error('auth: аккаунт изменился');
+    await sendMessage(it.chatId, String(payload.body ?? ''), payload.kind as MessageKind, payload.media_path as string | undefined, payload.duration_s as number | undefined, payload.event_id as string | undefined, it.id);
+    const local = useChat.getState().sent.find(m => m.id === it.id);
+    if (local) queryClient.setQueryData<Message[]>(['messages', it.chatId], (old = []) => old.some(m => m.id === it.id) ? old : [...old, { ...local, delivery: undefined }]);
+    useChat.getState().unsend(it.id);
+    void queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] });
+    void queryClient.invalidateQueries({ queryKey: ['chats'] });
   }
-  if (p.owner && p.owner !== me()) throw new Error('auth: аккаунт изменился');
-  await sendMessage(it.chatId, String(p.body ?? ''), (p.kind ?? 'text') as import('../data/types').MessageKind, path, typeof p.duration_s === 'number' ? p.duration_s : undefined, typeof p.event_id === 'string' ? p.event_id : undefined, it.id);
-  await queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] });
-  void queryClient.invalidateQueries({ queryKey: ['chats'] });
-  useChat.getState().unsend(it.id);
-
 });
 
 // ——— ТРЦ (V6Venue): пины из venues.kind = 'mall', сеансы кино — если есть в базе ———
@@ -414,9 +421,14 @@ export async function getMeStats(): Promise<MeStats> {
 
 /** «Повторить» на плашке «Нет связи с сервером»: лёгкий запрос к базе (select 1). */
 export async function pingDb(): Promise<boolean> {
-  const { error } = await sb().from('events_live').select('id').limit(1);
-  reportDb(!error);
-  return !error;
+  try {
+    const { error } = await withTimeout(sb().from('events_live').select('id').limit(1));
+    if (error) throw error;
+    reportDb(true);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ——— Балл пробок (функция traffic-score раз в 10 минут) ———

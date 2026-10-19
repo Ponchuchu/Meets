@@ -129,13 +129,15 @@ export async function getPeople(): Promise<Person[]> {
   const me = await requireUser();
   const friends = await friendIds(me);
   // Друзья + все, с кем есть общий чат или заявка.
-  const [{ data: members }, { data: reqs }] = await Promise.all([
+  const [{ data: members, error: membersError }, { data: reqs, error: requestsError }] = await Promise.all([
     withTimeout(supabase().from('chat_members').select('user_id').neq('user_id', me)),
-    withTimeout(supabase().from('friend_requests').select('from_id').eq('to_id', me).eq('status', 'pending')),
+    withTimeout(supabase().from('friend_requests').select('from_id,to_id').or(`from_id.eq.${me},to_id.eq.${me}`).eq('status', 'pending')),
   ]);
+  if (membersError) throw membersError;
+  if (requestsError) throw requestsError;
   const ids = new Set<string>(friends);
   (members as { user_id: string }[] | null)?.forEach((m) => ids.add(m.user_id));
-  (reqs as { from_id: string }[] | null)?.forEach((r) => ids.add(r.from_id));
+  (reqs as { from_id: string; to_id: string }[] | null)?.forEach((r) => ids.add(r.from_id === me ? r.to_id : r.from_id));
   return (await profiles([...ids])).map((r) => mapProfile(r, friends));
 }
 
@@ -279,7 +281,14 @@ export async function openDirectChat(personId: string): Promise<string> {
 
 // ——— Медиа: приватный бакет media, путь «<chat_id>/<файл>», читать — по подписанной ссылке ———
 
-export async function uploadMedia(chatId: string, uri: string, kind?: MessageKind): Promise<string> {
+let uploadQueue: Promise<unknown> = Promise.resolve();
+export function uploadMedia(chatId: string, uri: string, kind?: MessageKind): Promise<string> {
+  const result = uploadQueue.then(() => uploadOneMedia(chatId, uri, kind));
+  uploadQueue = result.catch(() => undefined);
+  return result;
+}
+
+async function uploadOneMedia(chatId: string, uri: string, kind?: MessageKind): Promise<string> {
   const me = await requireUser();
   const ext = /\.(mp4|m4a|aac|mov|png|webp|jpg|jpeg)(?:[?#]|$)/i.exec(uri)?.[1]?.toLowerCase() ?? (kind === 'voice' ? 'm4a' : kind === 'video' || kind === 'circle' ? 'mp4' : 'jpg');
   const contentType = ({ mp4: 'video/mp4', mov: 'video/quicktime', m4a: 'audio/mp4', aac: 'audio/aac', png: 'image/png', webp: 'image/webp', jpeg: 'image/jpeg', jpg: 'image/jpeg' } as Record<string, string>)[ext];

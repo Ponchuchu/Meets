@@ -84,7 +84,7 @@ const port = server.address().port;
 const out = join(root, 'docs/progress', stage);
 await mkdir(out, { recursive: true });
 // В облачной среде Chromium лежит в /opt/pw-browsers/chromium; локально Playwright найдёт свой.
-const preinstalled = process.env.SHOTS_CHROMIUM || '/opt/pw-browsers/chromium';
+const preinstalled = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || process.env.SHOTS_CHROMIUM || '/opt/pw-browsers/chromium';
 // WebGL для Mapbox в headless-режиме — программный рендер SwiftShader.
 const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 const browser = await chromium.launch({ args, ...(existsSync(preinstalled) && (await stat(preinstalled)).isFile() ? { executablePath: preinstalled } : {}) });

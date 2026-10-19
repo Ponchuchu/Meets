@@ -110,6 +110,9 @@ export default function MapScreen() {
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
+  const [threeD, setThreeD] = useState(true);
+  const [mapMode, setMapMode] = useState<'loading' | 'static' | 'mapbox'>('loading');
+  const [mapAttempt, setMapAttempt] = useState(0);
   // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
   const [startCam, setStartCam] = useState<Camera | null>(null);
   // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
@@ -433,7 +436,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)}
         places={places} onPlace={(id) => { const p = places.find((x) => x.id === id); if (p) { select(null); setMall(p); setSheet('venue'); } }}
         onCenter={(lat, lon) => setView({ lat, lon })} />}
@@ -454,6 +457,9 @@ export default function MapScreen() {
         {geo === 'granted' && !(fix ?? myPos) && (
           <View style={styles.finding} accessibilityLiveRegion="polite"><Text style={styles.findingText}>Ищу тебя на карте…</Text></View>
         )}
+        {mapMode === 'static' && <Pressable onPress={() => { setMapMode('loading'); setMapAttempt(n => n + 1); }} accessibilityRole="button" style={{ marginTop: 6, padding: 10, borderRadius: 14, backgroundColor: colors.paper }}>
+          <Text style={{ fontFamily: fonts.body500, color: colors.ink }}>Не удалось загрузить карту · Повторить</Text>
+        </Pressable>}
         {LIVE && (!net.online || net.serverDown) && (
           <View style={{ marginTop: 6 }}>
             <NetPill kind={net.online ? 'server' : 'offline'} onRetry={() => { void pingDb().then((ok) => { if (ok) void queryClient.invalidateQueries(); }); }} />
@@ -463,7 +469,7 @@ export default function MapScreen() {
 
 
       {!focusId && sheet === null && (
-        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 105)} bearing={bearing} follow={follow}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 125)} bearing={bearing} follow={follow} threeD={threeD} onThreeD={() => setThreeD(v => !v)} threeDDisabled={mapMode !== 'mapbox'}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();

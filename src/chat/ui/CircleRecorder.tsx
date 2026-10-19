@@ -70,7 +70,7 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.veil} pointerEvents="none">
       <View style={styles.circle}>
         {camPerm?.granted && micPerm?.granted && (
-          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" videoBitrate={1000000} mirror animateShutter={false} onCameraReady={() => setReady(true)} />
+          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="720p" videoBitrate={2000000} mirror animateShutter={false} onCameraReady={() => setReady(true)} />
         )}
       </View>
       <Svg width={SIZE + 8} height={SIZE + 8} style={styles.ring}>

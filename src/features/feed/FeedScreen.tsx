@@ -37,11 +37,11 @@ export default function ForYouScreen() {
   const [now, setNow] = useState(clockNow);
   useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
   const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const events = eventsQ.data ?? [];
+  const events = useMemo(() => eventsQ.data ?? [], [eventsQ.data]);
   const online = useNet((s) => s.online);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, decided, history, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const { signals, decided, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
   const goingIds = usePlans(s => s.going);
   const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
@@ -67,7 +67,7 @@ export default function ForYouScreen() {
   const answers = { interests: draft.interests ?? INITIAL_DRAFT.interests, times: draft.times ?? INITIAL_DRAFT.times, withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' };
   const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
   const deck = useMemo(() => {
-    const swipes = history.length;
+    const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
     const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
     let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
     // «Вернуть»: возвращённая карточка снова первая.
@@ -80,7 +80,7 @@ export default function ForYouScreen() {
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
     return d;
-  }, [taste, events, decided, goingIds, history, now, enter, previewId]);
+  }, [taste, events, decided, goingIds, signals, now, enter, previewId]);
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);

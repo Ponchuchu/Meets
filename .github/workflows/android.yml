@@ -9,7 +9,6 @@ on:
     tags: ['apk-review-*']
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   build:
@@ -20,9 +19,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Сохранить ссылку на запуск
+        if: startsWith(github.ref, 'refs/tags/apk-review-')
+        env:
+          RESULT_STATUS: in_progress
+          RESULT_STAGE: checks
+        run: |
+          node scripts/report-action.mjs
+          git checkout --detach "$GITHUB_SHA"
       - run: npm ci
       - name: Проверить код перед сборкой
-        run: npm run typecheck && npm run lint && npm run knip && npm test -- --ci --runInBand && npm run test:sql
+        run: npm run typecheck && npm run lint && npm run knip && npm test -- --ci --runInBand && npm run test:sql && npm run test:db
       - name: Проверить токен Expo
         id: expo-token
         env:
@@ -63,20 +70,6 @@ jobs:
           console.log(`APK: ${url}`);
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Meets для Android\n\n[Скачать APK](${url})\n`);
           JS
-      - name: Открыть изменения для проверки
-        if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current=$(gh pr list --head review/dev-panel-polish --base main --state open --json url --jq '.[0].url // empty' 2> /tmp/meets-pr-error.txt)
-          if [ -n "$current" ]; then echo "$current" > /tmp/meets-pr-url.txt; exit 0; fi
-          cat > /tmp/meets-pr.txt <<'BODY'
-          Исправлены десять ошибок проверки 11–12 октября: удалённые события не возвращаются из поиска, планы участников сохраняются, права переименования ограничены публичной афишей, неточные адреса требуют проверки, подписка карты останавливается, фото заменяется после ошибки, запуск длится до 3,2 секунды.
-
-          Добавлены проверки повторного появления событий, прав базы, сохранения планов, геолокации, фото и заставки. Сборка APK — профиль preview с настоящей базой. Состояние применения миграции 24 и APK фиксируется в docs/builds на ветках build-results.
-          BODY
-          gh pr create --head review/dev-panel-polish --base main --title "Meets: исправления проверки и короткая заставка" --body-file /tmp/meets-pr.txt > /tmp/meets-pr-url.txt 2> /tmp/meets-pr-error.txt
       - name: Сохранить результат сборки
         if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
         env:

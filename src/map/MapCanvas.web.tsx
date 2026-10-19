@@ -22,6 +22,7 @@ function webglOk(): boolean {
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
+  const threeD = props.threeD !== false;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -46,7 +47,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 17, bearing: heading, pitch: 60, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 250) => {
-      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: TILT_PITCH, duration: durationMs });
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: threeD ? TILT_PITCH : 0, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -68,10 +69,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       try {
         m = new lib.Map({
           container: host.current,
-          style: mapStyle('paper') as unknown as mapboxgl.Style,
+          style: mapStyle(theme, threeD) as unknown as mapboxgl.Style,
           center: [camera.lon, camera.lat],
           zoom: camera.zoom,
-          pitch: TILT_PITCH,
+          pitch: threeD ? TILT_PITCH : 0,
           attributionControl: false,
           logoPosition: config.mapAttribution ? 'bottom-left' : undefined,
           pitchWithRotate: false,
@@ -97,12 +98,21 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       map.current = m;
       setReady(true);
       const els = elements.current;
-      // Нет сети или токен не пустили: через 8 с без загруженного стиля — подложка.
-      const t = setTimeout(() => { if (!m.isStyleLoaded()) setFailed(true); }, 8000);
-      m.on('load', () => { clearTimeout(t); onMode?.('mapbox'); });
-      m.on('error', (e: { error?: unknown }) => {
+      // Локальный style JSON может загрузиться даже при недоступных тайлах.
+      // Успешным запуском считаем получение самой карты, иначе остаётся пустой фон с пинами.
+      let receivedTile = false;
+      const t = setTimeout(() => { if (!receivedTile) setFailed(true); }, 8000);
+      m.on('sourcedata', e => {
+        if (!receivedTile && e.sourceId === 'streets' && e.sourceDataType === 'content' && e.tile) {
+          receivedTile = true;
+          clearTimeout(t);
+          onMode?.('mapbox');
+        }
+      });
+      m.on('error', (e: { error?: unknown; sourceId?: string }) => {
         const status = (e.error as { status?: number } | undefined)?.status;
-        if (status === 401 || status === 403) setFailed(true);
+        // Отказ необязательного DEM не должен выключать доступную базовую карту.
+        if (!receivedTile && e.sourceId === 'streets' && (status === 401 || status === 403)) setFailed(true);
       });
       cleanup = () => { clearTimeout(t); m.remove(); map.current = null; els.clear(); };
     }).catch(() => { if (!cancelled) setFailed(true); });
@@ -111,7 +121,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failed]);
 
-  useEffect(() => { map.current?.setStyle(mapStyle('paper') as unknown as mapboxgl.Style); }, [theme]);
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    m.setStyle(mapStyle(theme, threeD) as unknown as mapboxgl.Style);
+    m.easeTo({ pitch: threeD ? TILT_PITCH : 0, duration: 450 });
+  }, [theme, threeD]);
 
   // Линзы: пробки (растровые плитки) и туман «Где я был». После смены стиля слои добавляем заново.
   useEffect(() => {

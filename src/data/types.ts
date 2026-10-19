@@ -97,6 +97,7 @@ export type MessageKind = 'text' | 'photo' | 'video' | 'voice' | 'circle' | 'sti
 
 export interface Message {
   clientKey?: string;
+  ownerId?: string;
   id: string;
   chatId: string;
   authorId: string; // 'me' — это я

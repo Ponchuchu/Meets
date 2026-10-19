@@ -1,3 +1,4 @@
+import { config } from '../lib/config';
 // Люди и связи на устройстве: заявки в друзья, стикеры, приглашения, скрытые и жалобы.
 // В Supabase (friendships, friend_requests, blocks, reports, invites) — этап 8.
 import { create } from 'zustand';
@@ -58,6 +59,7 @@ export const useSocial = create<SocialState>()(
 
 /** Друг ли человек сейчас: из данных + принятые заявки − убранные. */
 export function isFriendNow(p: { id: string; isFriend: boolean }, s: Pick<SocialState, 'answered' | 'removed'>): boolean {
+  if (config.dataMode === 'live') return p.isFriend;
   if (s.removed[p.id]) return false;
   return p.isFriend || s.answered[p.id] === 'accepted';
 }

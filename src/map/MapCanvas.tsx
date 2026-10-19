@@ -1,3 +1,4 @@
+import { useLowPowerMode } from 'expo-battery';
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
 // Android: пины и своя точка в рамке 72×72 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
@@ -29,9 +30,11 @@ try {
 const LOAD_TIMEOUT_MS = 8000;
 
 const PIN_BOX = 72;
-const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
+  const lowPower = useLowPowerMode();
+  const threeD = props.threeD !== false && !lowPower;
+  const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD)), [props.theme, threeD]);
   const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
@@ -58,7 +61,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     return () => clearTimeout(t);
   }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toStart = () => {
-    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH, animationDuration: 0 });
+    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 });
   };
   const checkCenter = (lat: number, lon: number) => {
     if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
@@ -76,7 +79,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
       if (zoom != null) z.current = zoom;
-      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: TILT_PITCH, animationDuration: Math.min(350, durationMs) });
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: Math.min(350, durationMs) });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -87,6 +90,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
+
+  useEffect(() => { cam.current?.setCamera({ pitch: threeD ? TILT_PITCH : 0, animationDuration: 450 }); }, [threeD, failed]);
 
   if (failed || !Mapbox) {
     const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
@@ -99,14 +104,15 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       <M.MapView
         key={attempt}
         style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
-        styleJSON={PAPER_STYLE}
+        styleJSON={styleJSON}
+        preferredFramesPerSecond={lowPower ? 30 : 60}
         surfaceView={false}
         rotateEnabled
-        pitchEnabled
+        pitchEnabled={threeD}
         scaleBarEnabled={false}
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
-        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: true, simultaneousRotateAndPinchZoomEnabled: true }}
+        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: threeD, simultaneousRotateAndPinchZoomEnabled: true }}
         // В предрелизной сборке скрыто; включается EXPO_PUBLIC_MAP_ATTRIBUTION=true.
         logoEnabled={config.mapAttribution}
         logoPosition={{ bottom: bottomInset + 6, left: 10 }}
@@ -132,7 +138,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH }} animationMode="none"
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: threeD ? TILT_PITCH : 0 }} animationMode="none"
           followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
