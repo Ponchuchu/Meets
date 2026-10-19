@@ -32,5 +32,12 @@
   "phone_feedback_browser": "7 groups passed; route fixture, demo data",
   "live_supabase": "not accessed; migrations prepared, not applied",
   "native_device_test": "not performed",
-  "apk": "launch pending"
+  "apk": {
+    "status": "workflow in_progress; initial stage checks",
+    "source": "09c277dbc2da2556a7378499a7d9f7449be46bde",
+    "tag": "apk-review-20261020-quality-frames",
+    "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/39339710148",
+    "result_branch": "build-results/apk-review-20261020-quality-frames",
+    "apk_url": null
+  }
 }

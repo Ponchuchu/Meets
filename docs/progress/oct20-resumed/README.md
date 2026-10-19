@@ -36,3 +36,5 @@
 ## APK
 
 Профиль `preview` собирает установочный APK с настоящей базой (`live`); новый модуль обработки фото требует новой нативной сборки. В workflow `Android APK` добавлены SQL-проверки. Удалён устаревший шаг, который пытался открыть PR от другой ветки с описанием старого обновления. Сборка запускается публикацией метки `apk-review-*`; результат и URL пишутся в `docs/builds/<метка>.json` на ветке `build-results/<метка>`. Фактический запуск и результат фиксируются отдельно после публикации.
+
+Запуск подтверждён: [Android APK, run 39339710148](https://github.com/Ponchuchu/ryadom/actions/runs/39339710148), исходный коммит `09c277dbc2da2556a7378499a7d9f7449be46bde`, метка `apk-review-20261020-quality-frames`. Первый отчёт — `in_progress / checks`; это запуск workflow, готового APK на момент фиксации ещё нет. [Обновляемый результат](https://github.com/Ponchuchu/ryadom/blob/build-results/apk-review-20261020-quality-frames/docs/builds/apk-review-20261020-quality-frames.json) содержит окончательный статус и URL при успешной сборке.
