@@ -4,7 +4,7 @@ import { Platform, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollVie
 import { almaty, dayIndex, dayStart } from '../../lib/clock';
 import { MapCanvas } from '../../map/MapCanvas';
 import type { MapCanvasHandle } from '../../map/types';
-import { searchAddresses, type AddressHit } from '../../live/addresses';
+import { nearestAddress, searchAddresses, type AddressHit } from '../../live/addresses';
 import { colors, fonts } from '../../theme';
 import { Ic, IC } from '../../ui/Ic';
 
@@ -140,7 +140,7 @@ export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: 
     if (q.trim().length < 3) return;
     const t = setTimeout(() => {
       setSearching(true);
-      searchAddresses(q, ac.signal).then((r) => { if (!ac.signal.aborted) setHits(r); })
+      searchAddresses(q, ac.signal, value.point).then((r) => { if (!ac.signal.aborted) setHits(r); })
         .catch(() => { if (!ac.signal.aborted) setSearchError('Нет связи с поиском. Выбери точку на карте или введи адрес'); })
         .finally(() => { if (!ac.signal.aborted) setSearching(false); });
     }, 300);
@@ -155,6 +155,9 @@ export function PlacePicker({ value, onDone }: { value: PlaceValue; onDone: (v: 
     if (reverse.current) clearTimeout(reverse.current);
     reverse.current = setTimeout(async () => {
       try {
+        // Сначала свой справочник адресов, потом OpenStreetMap.
+        const own = await nearestAddress(lat, lon).catch(() => null);
+        if (own) { if (revision.current === rev) setV((s) => ({ ...s, address: own })); return; }
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=ru&zoom=18&lat=${lat}&lon=${lon}`);
         const j = (await r.json()) as { address?: { road?: string; house_number?: string } };
         const a = [j.address?.road, j.address?.house_number].filter(Boolean).join(' ');

@@ -20,13 +20,14 @@ import { getEventsByIds } from '../../live/api';
 import { useMyFix, useMyPos } from '../../live/location';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { MapCanvas } from '../../map/MapCanvas';
-import { MeDot, useHeading } from '../../map/MeDot';
+import { MeArrow, MeDot, useHeading } from '../../map/MeDot';
 import type { MapCanvasHandle, MapMarker } from '../../map/types';
 import { MapControls } from '../../map/ui/MapControls';
 import { useBackClose } from '../../state/app';
 import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
 import { Ic } from '../../ui/Ic';
+import { glass } from '../../ui/glass';
 
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
 const km1 = (v: number) => v.toFixed(1).replace('.', ',');
@@ -117,7 +118,7 @@ export default function RouteScreen() {
   const markers: MapMarker[] = [
     { id: 'to', lat: e.lat, lon: e.lon, z: 20, node: <View style={[styles.dest, { backgroundColor: CAT_COLOR[e.category] }]}><Ic d={CAT_ICON[e.category]} size={18} color={catFg(e.category)} w={2} /></View> },
     // На телефоне моя точка — слои карты (prop me); маркер нужен только в web.
-    ...(me && Platform.OS === 'web' ? [{ id: 'me', lat: me.lat, lon: me.lon, z: 30, node: <MeDot heading={heading} bearing={bearing} /> }] : []),
+    ...(me && Platform.OS === 'web' ? [{ id: 'me', lat: me.lat, lon: me.lon, z: 30, node: follow ? <MeArrow heading={heading} bearing={bearing} /> : <MeDot heading={heading} bearing={bearing} /> }] : []),
     ...(mode === 'bus' && trip.bus ? trip.bus.path.map(([lon, lat], i) => ({ id: `s${i}`, lat, lon, z: 10, node: <View style={styles.stop} /> })) : []),
   ];
   const cam = me ? { lat: (me.lat + e.lat) / 2 - 0.004, lon: (me.lon + e.lon) / 2, zoom: Math.max(9, Math.min(15, Math.log2(360 / (Math.max(Math.abs(e.lon - me.lon), Math.abs(e.lat - me.lat) * 1.8, 0.005) * 2.6)))) } : { lat: e.lat, lon: e.lon, zoom: 14 };
@@ -165,10 +166,10 @@ export default function RouteScreen() {
   return (
     <View style={styles.root} onLayout={(ev) => setSize((s) => ({ ...s, h: ev.nativeEvent.layout.height }))}>
       <MapCanvas ref={mapRef} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
-        me={me} meHeading={heading} bottomInset={size.sheet + 8} topInset={headTop + 80} />
+        me={me} meHeading={heading} meArrow={follow} bottomInset={size.sheet + 8} topInset={headTop + 80} />
 
       {!follow ? (
-        <View style={[styles.top, { top: headTop }]}>
+        <View style={[styles.top, glass, { top: headTop }]}>
           <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад"><ChevronLeft size={24} color={colors.ink} strokeWidth={2} /></Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.topSub} numberOfLines={1}>до {to}{e.address ? ` · ${e.address.split(',').slice(0, 2).join(',')}` : ''}</Text>
@@ -205,13 +206,13 @@ export default function RouteScreen() {
       )}
 
       {follow && mode === 'car' && speed != null && (
-        <View style={[styles.speed, { bottom: size.sheet + 14 }]} accessibilityLabel={`Скорость ${speed} километров в час`}>
+        <View style={[styles.speed, glass, { bottom: size.sheet + Math.max(10, insets.bottom) + 12 }]} accessibilityLabel={`Скорость ${speed} километров в час`}>
           <Text style={styles.speedN}>{speed}</Text>
           <Text style={styles.speedU}>км/ч</Text>
         </View>
       )}
 
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]} onLayout={(ev) => setSize((s) => ({ ...s, sheet: ev.nativeEvent.layout.height }))}>
+      <View style={[styles.sheet, glass, { bottom: Math.max(10, insets.bottom) }]} onLayout={(ev) => setSize((s) => ({ ...s, sheet: ev.nativeEvent.layout.height }))}>
         {follow ? (
           <View style={styles.navBar}>
             <View style={styles.navStat}>
@@ -260,12 +261,13 @@ export default function RouteScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#DDD8CB' },
-  top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingRight: 16, borderRadius: 24, backgroundColor: '#EEE9DE', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingRight: 16, borderRadius: 24 },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   topSub: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   topTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
-  nav: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 24, backgroundColor: colors.ink, shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
-  navIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#2A292E', alignItems: 'center', justifyContent: 'center' },
+  // Подсказка манёвра: тёмная плашка с тонкой светлой кромкой, крупная стрелка на оранжевом — читается на ходу.
+  nav: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 26, backgroundColor: colors.ink, borderWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.5)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.12), 0 14px 30px -10px rgba(23,22,26,0.55)' },
+  navIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   navDist: { fontFamily: fonts.display800, fontSize: 28, lineHeight: 32, color: colors.paper },
   navMsg: { fontFamily: fonts.body600, fontSize: 15.5, lineHeight: 20, color: '#E8E4DA' },
   navSub: { fontFamily: fonts.body400, fontSize: 13.5, color: '#BDB8AD' },
@@ -276,13 +278,14 @@ const styles = StyleSheet.create({
   navSub2: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   finish: { height: 52, paddingHorizontal: 20, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   finishText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.ink },
-  speed: { position: 'absolute', left: 14, width: 64, height: 64, borderRadius: 32, backgroundColor: '#EEE9DE', borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  speed: { position: 'absolute', left: 14, width: 66, height: 66, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   speedN: { fontFamily: fonts.display800, fontSize: 22, lineHeight: 24, color: colors.ink },
   speedU: { fontFamily: fonts.mono600, fontSize: 9, color: colors.muted2 },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: '#EEE9DE', padding: 16, gap: 12, shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: -4 }, elevation: 10 },
+  // Плавающая шторка маршрута над краем экрана (как нижняя панель).
+  sheet: { position: 'absolute', left: 10, right: 10, borderRadius: 28, padding: 16, gap: 12 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, minHeight: 78, borderRadius: 16, backgroundColor: '#D9D3C5', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4 },
-  tileOn: { backgroundColor: colors.ink },
+  tile: { flex: 1, minHeight: 78, borderRadius: 18, backgroundColor: '#EDE8DD', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4 },
+  tileOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   tileText: { fontFamily: fonts.body700, fontSize: 16, color: colors.ink },
   tileSub: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted2 },
   best: { position: 'absolute', top: -8, paddingHorizontal: 7, height: 16, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
@@ -294,8 +297,8 @@ const styles = StyleSheet.create({
   stepTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
   stepSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   osm: { fontFamily: fonts.body400, fontSize: 11, color: colors.muted },
-  go: { height: 54, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  goText: { fontFamily: fonts.body700, fontSize: 16.5, color: colors.paper },
+  go: { height: 56, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.35), 0 10px 22px -10px rgba(240,82,31,0.7)' },
+  goText: { fontFamily: fonts.body700, fontSize: 17, color: colors.ink },
   dest: { width: 36, height: 36, borderRadius: 12, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   stop: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: colors.friend },
 });

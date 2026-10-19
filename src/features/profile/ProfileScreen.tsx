@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronRight, Code2, Footprints, Home, Lock, Moon, QrCode, Settings, UserPlus, Zap, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, Code2, Footprints, Home, Lock, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,16 +15,12 @@ import { exploredPct, ALMATY_CELLS } from '../../live/geo';
 import { useSession } from '../../state/session';
 import { useMapState } from '../../state/map';
 import { colors, fonts, radii } from '../../theme';
+import { badgeIcon } from '../../profile/badges';
+import { BadgeMedal } from '../../ui/BadgeMedal';
 import { Medallion } from '../../ui/Medallion';
 import { OrangeBg } from '../../ui/v6/OrangeBg';
 import { plate } from '../../ui/glass';
 
-const BADGE: Record<string, { Icon: LucideIcon; bg: string; fg: string }> = {
-  walker: { Icon: Footprints, bg: '#2F8F5B', fg: '#FFFFFF' },
-  'night-city': { Icon: Moon, bg: colors.ink, fg: '#F7A47E' },
-  'call-friend': { Icon: UserPlus, bg: colors.accent, fg: colors.ink },
-  'first-bump': { Icon: Zap, bg: '#C98A1B', fg: '#FFFFFF' },
-};
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
 
 function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
@@ -149,15 +145,12 @@ export default function ProfileScreen() {
             <Text style={styles.cardSub}>{got} из {s?.badges.length ?? 0}</Text>
           </View>
           <View style={styles.badges}>
-            {(s?.badges ?? []).slice(0, 4).map((b) => {
-              const B = BADGE[b.id] ?? { Icon: Zap, bg: '#D5CFC1', fg: colors.ink };
-              return (
-                <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={[styles.badge, { backgroundColor: b.got ? B.bg : '#D9D3C5' }]} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
-                  <B.Icon size={24} color={b.got ? B.fg : '#A8A296'} strokeWidth={1.9} />
-                </Pressable>
-              );
-            })}
-            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, { backgroundColor: '#D9D3C5' }]}><Lock size={22} color="#BDB6A8" strokeWidth={1.9} /></Pressable>
+            {(s?.badges ?? []).slice(0, 4).map((b) => (
+              <Pressable onPress={() => router.push('/profile/achievements')} accessibilityRole="button" key={b.id} style={styles.badge} accessibilityLabel={`${b.name}${b.got ? ', получен' : `, ${b.progress} из ${b.goal}`}`}>
+                <BadgeMedal id={b.id} icon={badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={56} />
+              </Pressable>
+            ))}
+            <Pressable onPress={() => router.push('/profile/achievements')} style={[styles.badge, styles.more]} accessibilityRole="button" accessibilityLabel="Все значки"><Lock size={20} color={colors.muted3} strokeWidth={1.9} /></Pressable>
           </View>
         </View>
 
@@ -214,7 +207,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   cardSub: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted },
   badges: { flexDirection: 'row', gap: 10 },
-  badge: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  badge: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  more: { borderRadius: 28, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2 },
   list: { borderRadius: radii.lg, ...plate, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56, paddingHorizontal: 16 },
   rowSep: { borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },

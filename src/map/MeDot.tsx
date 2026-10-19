@@ -2,7 +2,7 @@
 // Направление — компас телефона (watchHeadingAsync), сглаживание 150 мс; конус учитывает поворот карты.
 import * as Location from 'expo-location';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
@@ -24,6 +24,16 @@ export function useHeading(enabled = true): SharedValue<number> {
     return () => { cancelled = true; sub?.remove(); };
   }, [h, enabled]);
   return h;
+}
+
+/** «В путь»: стрелка навигатора вместо точки (web и подложка; на телефоне её рисует сама карта). */
+export function MeArrow({ heading, bearing }: { heading?: SharedValue<number>; bearing?: SharedValue<number> }) {
+  const rot = useAnimatedStyle(() => { const h = heading?.get(); return { transform: [{ rotate: `${Number.isFinite(h) ? h! - (bearing?.get() ?? 0) : 0}deg` }] }; });
+  return (
+    <View style={styles.anchor} pointerEvents="none" accessibilityLabel="Это ты">
+      <Animated.View style={rot}><Image source={require('../../assets/map/arrow.png')} style={{ width: 60, height: 60 }} /></Animated.View>
+    </View>
+  );
 }
 
 export function MeDot({ heading, bearing, dim }: { heading?: SharedValue<number>; bearing?: SharedValue<number>; dim?: boolean }) {

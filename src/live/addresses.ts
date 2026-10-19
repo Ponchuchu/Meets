@@ -67,11 +67,42 @@ async function knownVenues(q: string, signal?: AbortSignal): Promise<AddressHit[
   return results.flatMap(r => (r.data ?? []).map(v => ({ id: `venue-${v.id}`, label: [v.name, v.address].filter(Boolean).join(', '), lat: Number(v.lat), lon: Number(v.lon) }))).filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lon));
 }
 
-/** Поиск адреса в Алматы: Mapbox + OpenStreetMap параллельно. Ошибка — только если не ответил ни один. */
-export async function searchAddresses(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
+type Row = { label: string; lat: number; lon: number };
+type PlaceRow = { id: string; name: string; address: string | null; lat: number; lon: number };
+
+/** Свой справочник адресов Алматы (OpenStreetMap + Overture, docs/MAP-DATA.md): «Жандосов көшесі 1/1» = «ул. Жандосова, 1/1». */
+async function registry(q: string, near?: { lat: number; lon: number }, signal?: AbortSignal): Promise<AddressHit[]> {
+  const r = supabase().rpc('suggest_address', { q, near_lat: near?.lat ?? null, near_lon: near?.lon ?? null, lim: 5 });
+  if (signal) r.abortSignal(signal);
+  const { data, error } = await r;
+  if (error) throw error;
+  return ((data ?? []) as Row[]).map((a) => ({ id: `addr-${a.label}`, label: a.label, lat: a.lat, lon: a.lon }));
+}
+
+/** Места из Overture по названию: «Есентай», «Кофеманию на Абая». */
+async function places(q: string, signal?: AbortSignal): Promise<AddressHit[]> {
+  const r = supabase().rpc('search_places', { q, lim: 4 });
+  if (signal) r.abortSignal(signal);
+  const { data, error } = await r;
+  if (error) throw error;
+  return ((data ?? []) as PlaceRow[]).map((p) => ({ id: `place-${p.id}`, label: [p.name, p.address].filter(Boolean).join(', '), lat: p.lat, lon: p.lon }));
+}
+
+/**
+ * Поиск адреса в Алматы: свой справочник и места первыми, затем Mapbox и OpenStreetMap — всё параллельно.
+ * Ошибка — только если не ответил ни один источник.
+ */
+export async function searchAddresses(q: string, signal?: AbortSignal, near?: { lat: number; lon: number }): Promise<AddressHit[]> {
   const text = q.trim();
   if (text.length < 3) return [];
-  const [a, b, c] = await Promise.allSettled([mapbox(text, signal), osm(text, signal), knownVenues(text, signal)]);
-  if (a.status === 'rejected' && b.status === 'rejected' && (c.status === 'rejected' || !c.value.length)) throw new Error('Не удалось найти адрес. Выбери точку на карте');
-  return mergeHits(c.status === 'fulfilled' ? c.value : [], a.status === 'fulfilled' ? a.value : [], b.status === 'fulfilled' ? b.value : []);
+  const all = await Promise.allSettled([registry(text, near, signal), places(text, signal), knownVenues(text, signal), mapbox(text, signal), osm(text, signal)]);
+  const ok = all.map((x) => (x.status === 'fulfilled' ? x.value : null));
+  if (all.every((x) => x.status === 'rejected')) throw new Error('Не удалось найти адрес. Выбери точку на карте');
+  return mergeHits(...ok.map((x) => x ?? []));
+}
+
+/** Адрес под точкой карты: ближайший дом из своего справочника (до 60 м), иначе null. */
+export async function nearestAddress(lat: number, lon: number): Promise<string | null> {
+  const { data } = await supabase().rpc('nearest_address', { lat, lon });
+  return ((data ?? []) as { label: string }[])[0]?.label ?? null;
 }

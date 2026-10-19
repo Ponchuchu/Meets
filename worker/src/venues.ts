@@ -94,15 +94,32 @@ async function mapbox(q: string, house?: string): Promise<Point | null> {
 }
 
 /**
- * Координаты события. 1) улица + дом в OpenStreetMap (для Алматы точнее всего), 2) название площадки,
+ * Свой справочник адресов Алматы (public.addresses: OpenStreetMap + Overture, docs/MAP-DATA.md):
+ * «Жандосов көшесі 1/1» и «ул. Жандосова, 1/1» находят одну точку. Только уверенное совпадение с тем же домом.
+ */
+async function registry(street: string, house: string): Promise<Point | null> {
+  const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) return null;
+  try {
+    const h: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
+    if (key.split('.').length === 3) h.Authorization = `Bearer ${key}`;
+    const r = await fetch(`${url}/rest/v1/rpc/match_address`, { method: 'POST', headers: h, body: JSON.stringify({ q: `${street} ${house}` }) });
+    if (!r.ok) return null;
+    const [m] = await r.json() as { lat: number; lon: number }[];
+    return m && Number.isFinite(m.lat) && Number.isFinite(m.lon) ? { lat: m.lat, lon: m.lon } : null;
+  } catch { return null; }
+}
+
+/**
+ * Координаты события. 0) свой справочник адресов, 1) улица + дом в OpenStreetMap, 2) название площадки,
  * 3) Mapbox, только уверенные совпадения. Результаты запоминаем: одна площадка — один запрос.
  */
 export async function geocode(query: string): Promise<Point | null> {
   const key = query.toLowerCase().replace(/\s+/g, ' ').trim();
   if (cache.has(key)) return cache.get(key) ?? null;
   const { venue, street, house } = splitQuery(query);
-  let p: Point | null = null;
-  if (street && house) p = await nominatim({ street: `${house} ${street}`, city: 'Алматы' }, house);
+  let p: Point | null = street && house ? await registry(street, house) : null;
+  if (!p && street && house) p = await nominatim({ street: `${house} ${street}`, city: 'Алматы' }, house);
   // Если указан дом, не подменяем его точкой улицы или приблизительным совпадением площадки.
   if (!p && venue && !house) p = await nominatim({ q: `${venue} Алматы` });
   if (!p) p = await mapbox([venue, street && `${street} ${house ?? ''}`.trim()].filter(Boolean).join(', ') || query, house ?? undefined);

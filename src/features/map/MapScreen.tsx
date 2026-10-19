@@ -48,7 +48,7 @@ import { colors, fonts } from '../../theme';
 import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
-import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
+import { getProfile, sendInvite, getMalls, getPlacesInView, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
@@ -102,9 +102,6 @@ export default function MapScreen() {
   useCoverTabBar(!!open);
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [mapMode, setMapMode] = useState<'mapbox' | 'static' | null>(null);
-  const tilt = useMapState((s) => s.tilt);
-  const setTilt = useMapState((s) => s.setTilt);
   const [clock, setClock] = useState(clockNow);
   const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState();
   const inviteSending = useRef(false);
@@ -249,6 +246,16 @@ export default function MapScreen() {
   });
   const mallsQ = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
+  // Места справочника — с 15-го масштаба, по кадру (центр округляем, чтобы не спрашивать сервер на каждый сдвиг).
+  const [view, setView] = useState<{ lat: number; lon: number } | null>(null);
+  const placesBox = useMemo(() => {
+    if (!view || zoom < 15) return null;
+    const half = (W / 2) * 360 / (256 * 2 ** zoom) * 1.6;
+    const r = (x: number) => Math.round(x * 400) / 400;
+    return { w: r(view.lon - half), e: r(view.lon + half), s: r(view.lat - half * 1.4), n: r(view.lat + half * 1.4) };
+  }, [view, zoom, W]);
+  const placesQ = useQuery({ queryKey: ['places', placesBox], queryFn: () => getPlacesInView(placesBox!.w, placesBox!.s, placesBox!.e, placesBox!.n), enabled: LIVE && !!placesBox, staleTime: 600e3, placeholderData: (p) => p });
+  const places = useMemo(() => (placesBox ? placesQ.data ?? [] : []), [placesBox, placesQ.data]);
   const [mall, setMall] = useState<Mall | null>(null);
   const fog = useMemo(() => (lens === 'explore' ? fogPolygon(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
@@ -426,8 +433,10 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={(m) => { setMapMode(m); useIntro.getState().ready(); }} tilt={tilt} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
-        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
+      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)}
+        places={places} onPlace={(id) => { const p = places.find((x) => x.id === id); if (p) { select(null); setMall(p); setSheet('venue'); } }}
+        onCenter={(lat, lon) => setView({ lat, lon })} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       <View style={[styles.top, { top: topY }]}>
@@ -453,15 +462,8 @@ export default function MapScreen() {
       </View>
 
 
-      {mapMode === 'mapbox' && !config.mapAttribution && sheet === null && !selected && !focusId && (
-        <View pointerEvents="none" style={[styles.attr, { bottom: tabPad + 6 }]}><Text style={styles.attrText} maxFontSizeMultiplier={1.3}>© Mapbox © OpenStreetMap</Text></View>
-      )}
-
       {!focusId && sheet === null && (
-        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 132)} bearing={bearing} follow={follow}
-          tilt={tilt} onTilt={mapMode === 'mapbox' ? () => {
-            setTilt(!tilt);
-          } : undefined}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 105)} bearing={bearing} follow={follow}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
@@ -604,9 +606,6 @@ const styles = StyleSheet.create({
   calendar: { position: 'absolute', left: 12, right: 12 },
   card: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   lensInfo: { position: 'absolute', left: 16 },
-  // Подпись источников карты (лицензия OpenStreetMap): мелко, но читаемо, не мешает пальцу.
-  attr: { position: 'absolute', right: 16, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: 'rgba(252,251,248,0.8)', justifyContent: 'center' },
-  attrText: { fontFamily: fonts.body500, fontSize: 10.5, color: colors.muted2 },
   finding: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 30, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
   findingText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },

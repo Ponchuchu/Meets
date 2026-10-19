@@ -5,9 +5,6 @@ import { DEFAULT_FILTERS, type MapFilters } from '../map/filters';
 interface MapState {
   lens: 'normal' | 'traffic' | 'explore';
   setLens: (lens: 'normal' | 'traffic' | 'explore') => void;
-  /** Кнопка «2D/3D»: наклон камеры и дома объёмом. */
-  tilt: boolean;
-  setTilt: (v: boolean) => void;
   filters: MapFilters;
   selectedId: string | null;
   /** Фокус на друге (MapFocus): карта сдвигается к нему, остальное бледнеет. */
@@ -24,8 +21,6 @@ interface MapState {
 export const useMapState = create<MapState>((set) => ({
   lens: 'normal',
   setLens: (lens) => set({ lens }),
-  tilt: false,
-  setTilt: (tilt) => set({ tilt }),
   filters: DEFAULT_FILTERS,
   selectedId: null,
   focusId: null,

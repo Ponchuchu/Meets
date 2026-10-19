@@ -16,6 +16,15 @@ export interface Camera {
   zoom: number;
 }
 
+/** Место из справочника (Overture): рисуется слоем карты, а не отдельным элементом — дёшево и при сотне точек. */
+export interface MapPlace { id: string; lat: number; lon: number; kind: string; name: string }
+
+/** Цвет точки места по виду — те же тона, что у категорий событий. */
+export const PLACE_COLORS: Record<string, string> = {
+  cafe: '#B5651D', food: '#D9822B', bar: '#7A3E9D', cinema: '#2447B8', culture: '#5B5BD6', park: '#2F8F5B',
+  sport: '#1F9AA8', sight: '#C98A1B', fun: '#E0457B', mall: '#2447B8',
+};
+
 export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
@@ -49,8 +58,11 @@ export interface MapCanvasProps {
   me?: { lat: number; lon: number } | null;
   /** Куда смотрит телефон, градусы (0 — север). Нет значения — конус не рисуем. */
   meHeading?: SharedValue<number>;
-  /** 3D: камера наклоняется, дома поднимаются объёмом (кнопка «2D/3D»). По умолчанию — плоская карта. */
-  tilt?: boolean;
+  /** «В путь»: моя точка — стрелка навигатора, лежит на карте и смотрит по ходу движения. */
+  meArrow?: boolean;
+  /** Места в кадре (с 15-го масштаба) и тап по месту. */
+  places?: MapPlace[];
+  onPlace?: (id: string) => void;
 }
 
 export interface MapCanvasHandle {
@@ -64,11 +76,7 @@ export interface MapCanvasHandle {
 }
 
 // Алматы: стартовая камера — центр так, чтобы джаз на Панфилова был посередине, как в макете.
-/** Наклон камеры в режиме 3D, градусы. */
-export const TILT_PITCH = 55;
-/** Дома объёмом — только с этого масштаба: на обзорном масштабе слой не нужен и тяжёл для слабых телефонов. */
-export const BUILDINGS_MIN_ZOOM = 14.5;
-/** Включили 3D на обзорном масштабе — камера подлетает сюда, чтобы дома было видно. */
-export const TILT_ZOOM = 15.8;
+/** Карта всегда объёмная: наклон камеры, градусы (дома и горы — в стиле, src/map/style.ts). */
+export const TILT_PITCH = 50;
 
 export const ALMATY_CAMERA: Camera = { lat: 43.2579, lon: 76.9458, zoom: 13.4 };

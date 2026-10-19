@@ -15,8 +15,9 @@ import type {Sticker} from '../../stickers/catalog';
 import {useState} from 'react';
 import { MapAvatar, MAP_FRAMES } from '../../map/MapAvatar';
 import { StepsCard } from './StepsCard';
-import { Ic } from '../../ui/Ic';
-import { BADGES } from '../../profile/badges';
+import { BADGES, badgeIcon } from '../../profile/badges';
+import { BadgeMedal } from '../../ui/BadgeMedal';
+import { plate } from '../../ui/glass';
 
 export default function ProfileDetail() {
   const { page } = useLocalSearchParams<{ page: string }>();
@@ -75,9 +76,9 @@ export default function ProfileDetail() {
     <Note>Значки открываются за выполненные задания. Нажми на значок в списке, чтобы увидеть условие.</Note>
     <View style={{ gap: 12 }}>{(badges.length ? badges : BADGES.map(b => ({ ...b, progress: 0, got: false }))).map(b => {
       const def = BADGES.find(x => x.id === b.id);
-      return <Pressable onPress={() => setBadge(b.id)} key={b.id} accessibilityRole="button" accessibilityLabel={`${b.name}, ${b.progress} из ${b.goal}`} style={{ padding: 16, borderRadius: 22, backgroundColor: colors.card, gap: 12 }}>
+      return <Pressable onPress={() => setBadge(b.id)} key={b.id} accessibilityRole="button" accessibilityLabel={`${b.name}, ${b.progress} из ${b.goal}`} style={{ padding: 16, borderRadius: 22, ...plate, gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: b.got ? '#F5D9C7' : colors.sand, alignItems: 'center', justifyContent: 'center' }}><Ic d={def?.icon ?? 'M12 3l3 6 6 1-4 4 1 7-6-3-6 3 1-7-4-4 6-1z'} size={30} color={b.got ? colors.accentText : colors.muted} /></View>
+          <BadgeMedal id={b.id} icon={def?.icon ?? badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={60} />
           <View style={{ flex: 1, gap: 4 }}><Text style={{ fontFamily: fonts.display700, fontSize: 17, color: colors.ink }}>{b.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted, lineHeight: 18 }}>{b.how ?? def?.how ?? 'Выполни задание'}</Text></View>
         </View>
         <View style={{ height: 5, backgroundColor: colors.sand, borderRadius: 3, overflow: 'hidden' }}><View style={{ height: 5, width: `${Math.min(100, b.progress / Math.max(1, b.goal) * 100)}%`, backgroundColor: colors.accent }} /></View>

@@ -1,0 +1,22 @@
+# Рельеф Алматы (Copernicus DEM, data/terrain) → Storage «terrain». Запуск вручную, один раз и после пересборки тайлов.
+name: terrain
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['data/terrain/**']
+concurrency: terrain
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Загрузить тайлы рельефа
+        run: node worker/src/terrain-upload.ts
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

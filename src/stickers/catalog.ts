@@ -1,10 +1,10 @@
 export type StickerPack = 'nearby' | 'city' | 'afterhours' | 'reactions';
 export interface Sticker { effect?: 'punch' | 'squeak' | 'heart' | 'confetti'; id: string; label: string; pack: StickerPack; level: number; bg: string; fg: string; rot: number; pose: number; look: 'solid' | 'outline' | 'tape' | 'big' }
 export const PACKS = [
-  {id:'reactions' as const,title:'Реакции',level:1,bg:'#E7DFF4'},
-  {id:'nearby' as const,title:'Рядом',level:1,bg:'#F5D9C7'},
-  {id:'city' as const,title:'Город',level:3,bg:'#DDE8D9'},
-  {id:'afterhours' as const,title:'После заката',level:7,bg:'#E7DFF4'},
+  {id:'reactions' as const,title:'Реакции',level:1,bg:'#D9C7F2'},
+  {id:'nearby' as const,title:'Рядом',level:1,bg:'#FFC9A8'},
+  {id:'city' as const,title:'Город',level:3,bg:'#BFE3B4'},
+  {id:'afterhours' as const,title:'После заката',level:7,bg:'#C9C2F5'},
 ];
 const LABELS = [
   ['ГО?','ТЫ ГДЕ?','ВЫХОДИ','КОФЕ?','ЖДУ','ОПАЗДЫВАЮ','Я ТУТ','ЕДУ','БАЗА','КРИНЖ','ХАЙП','АЛЛО??','ШАШЛЫК?','ТАНЦУЕМ','СКУЧАЮ','ПРИВЕТ','РЯДОМ!'],
@@ -19,4 +19,4 @@ const POSES=[
 export const STICKERS: Sticker[] = PACKS.filter(p => p.id !== 'reactions').flatMap((p,j)=>LABELS[j].map((label,i)=>({id:`${p.id}-${i}`,label,pack:p.id,level:p.level,bg:p.bg,fg:'#17161A',rot:[-4,3,-2,4][i%4],pose:POSES[j][i],look:'solid' as const})));
 export const stickerUnlocked = (s: Pick<Sticker,'level'>,level:number) => level >= s.level;
 
-STICKERS.push(...(['punch', 'squeak', 'heart', 'confetti'] as const).map((effect, i) => ({ id: `reaction-${effect}`, label: ['БОКС!', 'БАКЛАЖАН', 'ОБНЯЛ', 'САЛЮТ!'][i], pack: 'reactions' as const, level: 1, effect, bg: '#E7DFF4', fg: '#17161A', rot: 0, pose: 0, look: 'big' as const })));
+STICKERS.push(...(['punch', 'squeak', 'heart', 'confetti'] as const).map((effect, i) => ({ id: `reaction-${effect}`, label: ['БОКС!', 'БАКЛАЖАН', 'ОБНЯЛ', 'САЛЮТ!'][i], pack: 'reactions' as const, level: 1, effect, bg: '#D9C7F2', fg: '#17161A', rot: 0, pose: 0, look: 'big' as const })));

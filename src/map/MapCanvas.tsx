@@ -8,10 +8,11 @@ import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
-import { colors, mapPalettes } from '../theme';
+import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
-import { BUILDINGS_MIN_ZOOM, TILT_PITCH, TILT_ZOOM, type MapCanvasHandle, type MapCanvasProps } from './types';
+import { NO_PLACES, placesGeo } from './placesGeo';
+import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
 let Mapbox: RNMapbox['default'] | null = null;
@@ -31,8 +32,8 @@ const PIN_BOX = 72;
 const PAPER_STYLE = JSON.stringify(mapStyle('paper'));
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, tilt = false } = props;
-  const pitch = useRef(tilt ? TILT_PITCH : 0);
+  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
+  const placeShape = useMemo(() => placesGeo(places), [places]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
@@ -57,7 +58,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     return () => clearTimeout(t);
   }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toStart = () => {
-    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: 0, animationDuration: 0 });
+    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH, animationDuration: 0 });
   };
   const checkCenter = (lat: number, lon: number) => {
     if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
@@ -71,11 +72,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (cam.current) cam.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [padding.top, padding.right, padding.bottom, padding.left], 450);
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 16.5, heading, pitch: 35, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 17, heading, pitch: 60, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       moved.current = true;
       if (zoom != null) z.current = zoom;
-      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: pitch.current, animationDuration: Math.min(350, durationMs) });
+      if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: TILT_PITCH, animationDuration: Math.min(350, durationMs) });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -86,12 +87,6 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
-  useEffect(() => {
-    pitch.current = tilt ? TILT_PITCH : 0;
-    // Дома объёмом видны только вблизи: при включении 3D на обзорном масштабе подлетаем ближе.
-    if (tilt && z.current < BUILDINGS_MIN_ZOOM + 1) z.current = TILT_ZOOM;
-    cam.current?.setCamera({ pitch: pitch.current, zoomLevel: z.current, animationDuration: 600 });
-  }, [tilt]);
 
   if (failed || !Mapbox) {
     const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
@@ -107,11 +102,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         styleJSON={PAPER_STYLE}
         surfaceView={false}
         rotateEnabled
-        pitchEnabled={tilt}
+        pitchEnabled
         scaleBarEnabled={false}
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
-        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: tilt, simultaneousRotateAndPinchZoomEnabled: true }}
+        gestureSettings={{ pinchZoomEnabled: true, doubleTapToZoomInEnabled: true, doubleTouchToZoomOutEnabled: true, quickZoomEnabled: true, rotateEnabled: true, pitchEnabled: true, simultaneousRotateAndPinchZoomEnabled: true }}
         // В предрелизной сборке скрыто; включается EXPO_PUBLIC_MAP_ATTRIBUTION=true.
         logoEnabled={config.mapAttribution}
         logoPosition={{ bottom: bottomInset + 6, left: 10 }}
@@ -137,7 +132,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: 0 }} animationMode="none"
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: TILT_PITCH }} animationMode="none"
           followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
@@ -157,14 +152,15 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
           </M.ShapeSource>
         ))}
-        {tilt && (
-          <M.FillExtrusionLayer id="buildings-3d" sourceID="streets" sourceLayerID="building" minZoomLevel={BUILDINGS_MIN_ZOOM} maxZoomLevel={22} belowLayerID="street-labels"
-            filter={['==', ['get', 'extrude'], 'true']}
-            style={{ fillExtrusionColor: mapPalettes.paper.extrude, fillExtrusionHeight: ['get', 'height'], fillExtrusionBase: ['get', 'min_height'], fillExtrusionOpacity: 0.92, fillExtrusionVerticalGradient: true }} />
-        )}
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
-        {me && <UserLayers M={M} me={me} heading={meHeading} />}
+        {places.length > 0 && (
+          <M.ShapeSource id="places" shape={placeShape as never} onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === "string") onPlace?.(id); }} hitbox={{ width: 24, height: 24 }}>
+            <M.CircleLayer id="places-dot" minZoomLevel={15} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 15, 3.5, 17, 6], circleColor: ['get', 'color'], circleStrokeColor: '#FCFBF8', circleStrokeWidth: 1.5, circlePitchAlignment: 'map' }} />
+            <M.SymbolLayer id="places-name" minZoomLevel={16.5} style={{ textField: ['get', 'name'], textSize: 11, textColor: '#3A3833', textHaloColor: '#FCFBF8', textHaloWidth: 1.2, textOffset: [0, 1.1], textAnchor: 'top', textMaxWidth: 8, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOptional: true }} />
+          </M.ShapeSource>
+        )}
+        {me && <UserLayers M={M} me={me} heading={meHeading} arrow={meArrow} />}
         {markers.filter(m => Number.isFinite(m.lat) && Number.isFinite(m.lon)).slice().sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>
             <View collapsable={false} pointerEvents="box-none" style={styles.pin}>{mk.node}</View>
@@ -175,11 +171,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   );
 });
 
-function UserLayers({ M, me, heading }: { M: RNMapbox['default']; me: { lat: number; lon: number }; heading?: import('react-native-reanimated').SharedValue<number> }) {
+function UserLayers({ M, me, heading, arrow }: { M: RNMapbox['default']; me: { lat: number; lon: number }; heading?: import('react-native-reanimated').SharedValue<number>; arrow: boolean }) {
   const [direction, setDirection] = useState<number | null>(null);
   const last = useSharedValue(0);
   const sent = useSharedValue<number | null>(null);
-  const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png') }), []);
+  const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png'), 'me-arrow': require('../../assets/map/arrow.png') }), []);
   useFrameCallback(frame => {
     const value = heading ? Math.round(heading.get() / 4) * 4 : null;
     if (value != null && Number.isFinite(value) && value !== sent.get() && (sent.get() == null || frame.timestamp - last.get() >= 100)) {
@@ -192,10 +188,11 @@ function UserLayers({ M, me, heading }: { M: RNMapbox['default']; me: { lat: num
     {/* Картинка имеет постоянный экранный размер: при масштабировании луч не скачет. */}
     <M.Images images={images} />
     <M.ShapeSource id="me-src" shape={shape}>
-      <M.SymbolLayer id="me-beam-layer" style={{ iconImage: 'me-beam', iconSize: 0.5, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: direction == null ? 0 : 1 }} />
-      <M.CircleLayer id="me-halo" style={{ circleRadius: 24, circleColor: '#F0521F', circleOpacity: 0.16 }} />
-      <M.CircleLayer id="me-ring" style={{ circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
-      <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F' }} />
+      <M.SymbolLayer id="me-beam-layer" style={{ iconImage: 'me-beam', iconSize: 0.5, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: direction == null || arrow ? 0 : 1 }} />
+      <M.CircleLayer id="me-halo" style={{ circleRadius: arrow ? 28 : 24, circleColor: '#F0521F', circleOpacity: arrow ? 0.1 : 0.16, circlePitchAlignment: 'map' }} />
+      <M.CircleLayer id="me-ring" style={{ circleOpacity: arrow ? 0 : 1, circleStrokeOpacity: arrow ? 0 : 1, circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
+      <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F', circleOpacity: arrow ? 0 : 1 }} />
+      <M.SymbolLayer id="me-arrow-layer" style={{ iconImage: 'me-arrow', iconSize: 0.26, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'map', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: arrow ? 1 : 0 }} />
     </M.ShapeSource>
   </>;
 }
