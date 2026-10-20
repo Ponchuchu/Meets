@@ -29,6 +29,7 @@ export default function ProfileDetail() {
   const [frameError, setFrameError] = useState('');
   const [previewTrail, setPreviewTrail] = useState<'none'|'dots'|'comet'>('dots');
   const previewFrame = useProfile(s => s.mapFrame);
+  const previewShape = useProfile(s => s.mapShape);
   const [badge,setBadge]=useState<string|null>(null);
   const [sticker,setSticker]=useState<Sticker|null>(null);
   const live = config.dataMode !== 'demo';
@@ -60,7 +61,16 @@ export default function ProfileDetail() {
   return <SettingsPage title={`Уровень ${level}`} sub={`${points.toLocaleString('ru-RU')} из ${nextAt.toLocaleString('ru-RU')} очков до ${level + 1}-го. Уровень открывает рамки, след и стикеры.`}>
     <View style={{ height: 10, borderRadius: 5, backgroundColor: colors.sand, overflow: 'hidden' }}><View style={{ height: 10, width: `${Math.min(100, (points / nextAt) * 100)}%`, backgroundColor: colors.accent }} /></View>
     <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.card, gap: 16 }}>
-      <FramePicker selected={(live ? profile.data?.map_frame : previewFrame) ?? 'classic'} level={level} image={profile.data?.photo_url ?? draft.photo} initial={(draft.name?.[0] ?? 'Я').toUpperCase()} busy={frameBusy} error={frameError}
+      <FramePicker shape={(live ? profile.data?.map_shape : previewShape) ?? 'auto'} onShape={async id => {
+          if (frameBusy) return;
+          setFrameBusy(true); setFrameError('');
+          try {
+            if (live) { await saveProfile({ map_shape: id }); await Promise.all([qc.invalidateQueries({ queryKey: ['me', 'profile'] }), qc.invalidateQueries({ queryKey: ['people'] })]); }
+            else useProfile.getState().setMapShape(id);
+          } catch { setFrameError('Не удалось сохранить форму. Проверь связь'); }
+          finally { setFrameBusy(false); }
+        }}
+        selected={(live ? profile.data?.map_frame : previewFrame) ?? 'classic'} level={level} image={profile.data?.photo_url ?? draft.photo} initial={(draft.name?.[0] ?? 'Я').toUpperCase()} busy={frameBusy} error={frameError}
         onSelect={async id => {
           if (frameBusy) return;
           setFrameBusy(true); setFrameError('');

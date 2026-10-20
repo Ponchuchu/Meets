@@ -44,6 +44,8 @@ interface ProfileState {
   arrivals: { eventId: string; cell: string; at: string }[];
   mapFrame: string;
   setMapFrame: (id: string) => void;
+  mapShape: string;
+  setMapShape: (id: string) => void;
   marker: MarkerSettings;
   settings: Settings;
   suggestions: Suggestion[];
@@ -69,6 +71,8 @@ export const useProfile = create<ProfileState>()(
       arrivals: [],
       mapFrame: 'classic',
       setMapFrame: (mapFrame) => set({ mapFrame }),
+      mapShape: 'auto',
+      setMapShape: (mapShape) => set({ mapShape }),
       marker: DEFAULT_MARKER,
       settings: DEFAULT_SETTINGS,
       suggestions: [],

@@ -70,6 +70,7 @@ export default function ProfileScreen() {
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
   const demoFrame = useProfile(s => s.mapFrame);
+  const demoShape = useProfile(s => s.mapShape);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.head}>
           <Pressable onPress={() => void pickPhoto()} onLongPress={() => router.push('/profile/level')} style={({ pressed }) => [pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка «${frame.name}»`}>
-            <AvatarFrame frameId={frameId} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={128} />
+            <AvatarFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={128} />
           </Pressable>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>

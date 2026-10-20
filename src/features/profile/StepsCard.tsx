@@ -1,5 +1,8 @@
 // Шаги (FIX3 Ф7): кольцо на 10 000 за сегодня, неделя столбиками, награды за шаги. Считаются всегда — кнопки «стоп» нет.
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getProfileExtras, saveProfileExtras } from '../../live/profileExtras';
+import { Group, ToggleRow } from '../../ui/v6/Settings';
+import { StepsChallenges, StepsLeaderboard } from './StepsSocial';
 import { Footprints } from 'lucide-react-native';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -19,6 +22,8 @@ export function StepsCard() {
   const live = config.dataMode !== 'demo';
   const steps = useSteps(s => (live ? stepsToday(s) : 6240));
   const { status, source } = useSteps();
+  const qc = useQueryClient();
+  const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const history = useQuery({ queryKey: ['me', 'steps'], queryFn: stepHistory, enabled: live, staleTime: 60e3 });
   const days = live ? history.data ?? [] : demoHistory();
   const week = lastWeek(days, todayKey(), steps);
@@ -73,6 +78,9 @@ export function StepsCard() {
         </View>
       </View>
 
+      <StepsLeaderboard />
+      <StepsChallenges />
+
       <View style={styles.card}>
         <Text style={styles.title}>Награды за шаги</Text>
         {awards.map(a => (
@@ -88,6 +96,10 @@ export function StepsCard() {
         ))}
       </View>
 
+      <Group>
+        <ToggleRow title="Показывать мои шаги друзьям" sub="Для рейтинга и соревнований" on={extras.data?.stepsVisible !== false}
+          onChange={v => { void saveProfileExtras({ stepsVisible: v }).then(() => qc.invalidateQueries({ queryKey: ['me', 'extras'] })).catch(() => undefined); }} last />
+      </Group>
       <Text style={styles.note}>
         {Platform.OS === 'web' ? 'Шаги считаются в приложении на телефоне.'
           : source === 'health' ? 'Шаги за весь день берём из Health Connect — их считает сам телефон, даже когда Meets закрыт.'

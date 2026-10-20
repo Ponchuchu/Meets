@@ -4,6 +4,7 @@ import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path, Text 
 import { photo } from '../data/photos';
 import { colors, fonts } from '../theme';
 import { FxFrame, type FxKind } from './fxFrames';
+import { shapeOf, shapePath, type ShapeId } from './shapes';
 
 export type FrameShape = 'flower' | 'seal' | 'squircle' | 'hex';
 type Motif = 'apples' | 'tulips' | 'mountains' | 'dusk' | 'stars' | 'ornament';
@@ -41,20 +42,6 @@ export const LEGACY_FRAMES: AvatarFrameDef[] = [
 export const MAP_FRAMES = [...FX_FRAMES, ...ILLUSTRATED_FRAMES, ...LEGACY_FRAMES];
 export const frameById = (id?: string | null): AvatarFrameDef => MAP_FRAMES.find(f => f.id === id) ?? LEGACY_FRAMES[0];
 
-/** Прежние формы оставлены для уже сохранённых профилей. */
-export function framePath(shape: FrameShape, r = 25): string {
-  const points: string[] = [];
-  for (let i = 0; i < 120; i++) {
-    const t = i / 120 * Math.PI * 2;
-    let k: number;
-    if (shape === 'flower') k = 1 + .075 * Math.cos(10 * t);
-    else if (shape === 'seal') k = .9 + .12 * Math.pow(Math.abs(Math.cos(4 * t)), .7);
-    else if (shape === 'squircle') k = .97 / Math.pow(Math.abs(Math.cos(t)) ** 4 + Math.abs(Math.sin(t)) ** 4, .25);
-    else { const a = ((t + Math.PI / 6) % (Math.PI / 3)) - Math.PI / 6; k = .82 * Math.cos(Math.PI / 6) / Math.cos(a) + .18; }
-    points.push(`${(32 + r * k * Math.cos(t)).toFixed(2)} ${(30 + r * k * Math.sin(t)).toFixed(2)}`);
-  }
-  return `M${points.join('L')}Z`;
-}
 
 function Apple({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
   return <G transform={`translate(${x} ${y}) scale(${scale})`}>
@@ -112,30 +99,38 @@ function FrameArt({ motif, compact }: { motif: Motif; compact: boolean }) {
   </G>;
 }
 
-export const AvatarFrame = memo(function AvatarFrame({ frameId, photo: image, initial, tint = '#DDD8CB', size = 104, mapPin = false, ring, animate = true }: {
+/** Своя форма рамки для «Как у рамки»: «солнышко» у «Рядом» заменено кругом (владелец, 20 октября). */
+const OWN: Partial<Record<string, Exclude<ShapeId, 'auto'>>> = { sunset: 'star', forest: 'squircle', violet: 'hex' };
+
+export const AvatarFrame = memo(function AvatarFrame({ frameId, photo: image, initial, tint = '#DDD8CB', size = 104, mapPin = false, ring, animate = true, shape: shapeId }: {
   frameId?: string | null; photo?: string | null; initial: string; tint?: string; size?: number; mapPin?: boolean; ring?: string;
   /** Живые рамки двигаются (кроме карты и маленьких размеров). */
   animate?: boolean;
+  /** Форма аватарки (profiles.map_shape); «auto» — своя форма рамки. */
+  shape?: string | null;
 }) {
   const id = `portrait-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const frame = frameById(frameId);
-  if (frame.fx) return <FxFrame kind={frame.fx} image={image} initial={initial} tint={tint} size={size} mapPin={mapPin} animate={animate} />;
+  const chosen = shapeOf(shapeId);
+  if (frame.fx) return <FxFrame kind={frame.fx} image={image} initial={initial} tint={tint} size={size} mapPin={mapPin} animate={animate} shape={chosen} />;
+  const form = chosen === 'auto' ? OWN[frame.id] ?? 'circle' : chosen;
   const color = ring ?? frame.color;
-  const outline = frame.shape ? framePath(frame.shape) : 'M32 3A27 27 0 1 1 31.999 3Z';
-  const aperture = frame.shape ? outline : 'M32 9.2A20.8 20.8 0 1 1 31.999 9.2Z';
+  const outline = shapePath(form, 27);
+  const r = frame.motif ? 20.8 : 23;
+  const aperture = shapePath(form, r);
   const extent = mapPin ? 72 : 64;
   const compact = size < 72;
   return <View pointerEvents="none" style={{ width: size, height: size * extent / 64 }}>
     <Svg width={size} height={size * extent / 64} viewBox={`0 0 64 ${extent}`}>
       <Defs><ClipPath id={id}><Path d={aperture} /></ClipPath></Defs>
-      {mapPin && <><Ellipse cx={32} cy={67} rx={7} ry={2} fill={colors.ink} opacity={.14} /><Path d="M25 51L32 63L39 51" fill={color} stroke="#FFFCF4" strokeWidth={2.5} strokeLinejoin="round" /></>}
+      {mapPin && <><Ellipse cx={32} cy={67} rx={7} ry={2} fill={colors.ink} opacity={.14} /><Path d="M25 54L32 65L39 54" fill={color} stroke="#FFFCF4" strokeWidth={2.5} strokeLinejoin="round" /></>}
       <Path d={outline} fill={frame.paper} stroke="#FFFCF4" strokeWidth={4.5} strokeLinejoin="round" />
       <Path d={outline} fill="none" stroke={color} strokeWidth={.8} opacity={.7} />
       {frame.motif && <G transform="scale(0.533333)"><FrameArt motif={frame.motif} compact={compact} /></G>}
       <Path d={aperture} fill={tint} />
-      {image ? <SvgImage href={photo(image)!} x={frame.shape ? 4 : 11.2} y={frame.shape ? 2 : 9.2} width={frame.shape ? 56 : 41.6} height={frame.shape ? 56 : 41.6} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${id})`} />
-        : <SvgText x={32} y={37} textAnchor="middle" fontFamily={fonts.body700} fontSize={frame.shape ? 24 : 22} fill={colors.ink}>{initial}</SvgText>}
-      <Path d={aperture} fill="none" stroke={frame.motif ? '#FFFCF4' : color} strokeWidth={frame.motif ? 1.5 : 2.6} />
+      {image ? <SvgImage href={photo(image)!} x={32 - r - 1} y={32 - r - 1} width={2 * r + 2} height={2 * r + 2} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${id})`} />
+        : <SvgText x={32} y={39} textAnchor="middle" fontFamily={fonts.body700} fontSize={22} fill={colors.ink}>{initial}</SvgText>}
+      <Path d={aperture} fill="none" stroke={frame.motif ? '#FFFCF4' : color} strokeWidth={frame.motif ? 1.5 : 2.6} strokeLinejoin="round" />
     </Svg>
   </View>;
 });

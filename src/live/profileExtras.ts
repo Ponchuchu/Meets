@@ -111,11 +111,11 @@ export async function learnMyPlaces(): Promise<{ places: number; sleepovers: num
   return must(sb().rpc('learn_my_places'), 20000);
 }
 
-export interface ProfileExtras { shown: string[]; memoriesVisible: boolean; sleepoversVisible: boolean }
+export interface ProfileExtras { shown: string[]; memoriesVisible: boolean; sleepoversVisible: boolean; stepsVisible?: boolean }
 export async function getProfileExtras(): Promise<ProfileExtras> {
-  if (!LIVE) { const s = useDemo.getState(); return { shown: s.shown, memoriesVisible: s.memoriesVisible, sleepoversVisible: s.sleepoversVisible }; }
-  const r = await must(sb().from('profiles').select('shown_badges,memories_visible,sleepovers_visible').eq('id', me()).single()) as { shown_badges: string[] | null; memories_visible: boolean; sleepovers_visible: boolean };
-  return { shown: r.shown_badges ?? [], memoriesVisible: r.memories_visible, sleepoversVisible: r.sleepovers_visible };
+  if (!LIVE) { const s = useDemo.getState(); return { shown: s.shown, memoriesVisible: s.memoriesVisible, sleepoversVisible: s.sleepoversVisible, stepsVisible: true }; }
+  const r = await must(sb().from('profiles').select('shown_badges,memories_visible,sleepovers_visible,steps_visible').eq('id', me()).single()) as { shown_badges: string[] | null; memories_visible: boolean; sleepovers_visible: boolean; steps_visible: boolean };
+  return { shown: r.shown_badges ?? [], memoriesVisible: r.memories_visible, sleepoversVisible: r.sleepovers_visible, stepsVisible: r.steps_visible };
 }
 
 export async function saveProfileExtras(p: Partial<ProfileExtras>): Promise<void> {
@@ -124,6 +124,7 @@ export async function saveProfileExtras(p: Partial<ProfileExtras>): Promise<void
     ...(p.shown ? { shown_badges: p.shown.slice(0, 3) } : {}),
     ...(p.memoriesVisible != null ? { memories_visible: p.memoriesVisible } : {}),
     ...(p.sleepoversVisible != null ? { sleepovers_visible: p.sleepoversVisible } : {}),
+    ...(p.stepsVisible != null ? { steps_visible: p.stepsVisible } : {}),
   }).eq('id', me()));
 }
 
@@ -132,4 +133,54 @@ export async function getShownBadges(userId: string): Promise<string[]> {
   if (!LIVE) return [];
   const r = await withTimeout(sb().from('profiles').select('shown_badges').eq('id', userId).maybeSingle(), 8000);
   return ((r.data as { shown_badges?: string[] } | null)?.shown_badges ?? []).slice(0, 3);
+}
+
+// ——— Шаги с друзьями (миграция 33): рейтинг и соревнования ———
+export interface StepRank { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; today: number; week: number; me: boolean }
+export interface Challenge {
+  id: string; title: string; kind: 'most' | 'goal'; goal: number | null; starts_on: string; ends_on: string; created_by: string; my_status: 'invited' | 'joined';
+  members: { user_id: string; name: string; photo_url: string | null; status: string; steps: number }[];
+}
+
+const DEMO_RANK: StepRank[] = [
+  { user_id: 'igor', name: 'Игорь', photo_url: null, map_frame: 'neon', map_shape: 'auto', today: 9120, week: 48300, me: false },
+  { user_id: 'me', name: 'Ты', photo_url: null, map_frame: 'bubble', map_shape: 'auto', today: 6240, week: 41200, me: true },
+  { user_id: 'denis', name: 'Денис', photo_url: null, map_frame: 'classic', map_shape: 'heart', today: 11800, week: 39900, me: false },
+  { user_id: 'aru', name: 'Аружан', photo_url: null, map_frame: 'tulips', map_shape: 'auto', today: 3400, week: 22100, me: false },
+];
+const useDemoChallenges = create<{ list: Challenge[] }>(() => ({ list: [{
+  id: 'demo-ch', title: 'Кто больше за 7 дн.', kind: 'most', goal: null, starts_on: new Date(Date.now() - 2 * 86400e3).toISOString().slice(0, 10), ends_on: new Date(Date.now() + 4 * 86400e3).toISOString().slice(0, 10), created_by: 'igor', my_status: 'joined',
+  members: [{ user_id: 'igor', name: 'Игорь', photo_url: null, status: 'joined', steps: 24800 }, { user_id: 'me', name: 'Ты', photo_url: null, status: 'joined', steps: 21300 }, { user_id: 'denis', name: 'Денис', photo_url: null, status: 'invited', steps: 18900 }],
+}] }));
+
+export async function getFriendsSteps(): Promise<StepRank[]> {
+  if (!LIVE) return DEMO_RANK;
+  return must(sb().rpc('friends_steps'));
+}
+
+export async function getChallenges(): Promise<Challenge[]> {
+  if (!LIVE) return useDemoChallenges.getState().list;
+  const rows = await must(sb().rpc('my_step_challenges')) as (Omit<Challenge, 'members'> & { user_id: string; name: string; photo_url: string | null; status: string; steps: number })[];
+  const by = new Map<string, Challenge>();
+  for (const r of rows) {
+    const c = by.get(r.id) ?? { id: r.id, title: r.title, kind: r.kind, goal: r.goal, starts_on: r.starts_on, ends_on: r.ends_on, created_by: r.created_by, my_status: r.my_status, members: [] };
+    c.members.push({ user_id: r.user_id, name: r.name, photo_url: r.photo_url, status: r.status, steps: r.steps });
+    by.set(r.id, c);
+  }
+  return [...by.values()];
+}
+
+export async function createChallenge(p: { friends: string[]; days: number; kind: 'most' | 'goal'; goal?: number }): Promise<void> {
+  if (!LIVE) {
+    const start = new Date().toISOString().slice(0, 10);
+    useDemoChallenges.setState(s => ({ list: [{ id: uid('ch'), title: p.kind === 'goal' ? `Кто первым пройдёт ${p.goal} шагов` : `Кто больше за ${p.days} дн.`, kind: p.kind, goal: p.goal ?? null, starts_on: start, ends_on: new Date(Date.now() + (p.days - 1) * 86400e3).toISOString().slice(0, 10), created_by: 'me', my_status: 'joined',
+      members: [{ user_id: 'me', name: 'Ты', photo_url: null, status: 'joined', steps: 0 }, ...p.friends.map(f => ({ user_id: f, name: DEMO_RANK.find(r => r.user_id === f)?.name ?? 'Друг', photo_url: null, status: 'invited', steps: 0 }))] }, ...s.list] }));
+    return;
+  }
+  await must(sb().rpc('create_step_challenge', { friends: p.friends, days: p.days, challenge_kind: p.kind, target: p.goal ?? null }));
+}
+
+export async function answerChallenge(id: string, accept: boolean): Promise<void> {
+  if (!LIVE) { useDemoChallenges.setState(s => ({ list: accept ? s.list.map(c => c.id === id ? { ...c, my_status: 'joined' } : c) : s.list.filter(c => c.id !== id) })); return; }
+  await must(sb().rpc('answer_step_challenge', { challenge: id, accept }));
 }

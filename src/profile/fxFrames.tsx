@@ -7,6 +7,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSeq
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { photo } from '../data/photos';
 import { colors, fonts } from '../theme';
+import { shapePath, type ShapeId } from './shapes';
 
 export type FxKind = 'bubble' | 'drop' | 'neon' | 'aurora' | 'cosmos' | 'tesla' | 'lava' | 'crown';
 
@@ -36,6 +37,10 @@ const BOLT = (a0: number, len: number) => {
 };
 
 interface Look { aperture: number; base: string; outline: string; paper: string }
+type Form = Exclude<ShapeId, 'auto'> | undefined;
+/** Круглые детали кольца повторяют выбранную форму. */
+const ringOf = (form: Form, r: number) => (form ? shapePath(form, r) : CIRCLE(r));
+const lookOf = (kind: FxKind, form: Form): Look => (form ? { ...LOOK[kind], base: shapePath(form, 29), outline: shapePath(form, 28.5) } : LOOK[kind]);
 const LOOK: Record<FxKind, Look> = {
   bubble: { aperture: 23, base: CIRCLE(29), outline: CIRCLE(29), paper: '#EAF4F7' },
   drop: { aperture: 22, base: BLOB, outline: BLOB, paper: '#DDEBF7' },
@@ -48,8 +53,8 @@ const LOOK: Record<FxKind, Look> = {
 };
 
 /** Подложка под фото — неподвижная. */
-function Base({ kind, gid }: { kind: FxKind; gid: string }) {
-  const L = LOOK[kind];
+function Base({ kind, gid, form }: { kind: FxKind; gid: string; form: Form }) {
+  const L = lookOf(kind, form);
   return <>
     <Defs>
       <RadialGradient id={`${gid}bg`} cx="50%" cy="40%" r="60%">
@@ -65,13 +70,13 @@ function Base({ kind, gid }: { kind: FxKind; gid: string }) {
 }
 
 /** Слой поверх: кольцо и детали, которые двигаются. */
-function Ring({ kind, gid }: { kind: FxKind; gid: string }) {
-  const L = LOOK[kind];
+function Ring({ kind, gid, form }: { kind: FxKind; gid: string; form: Form }) {
+  const L = lookOf(kind, form);
   if (kind === 'bubble') return <>
     <Defs><LinearGradient id={`${gid}ir`} x1="0" y1="0" x2="1" y2="1">
       <Stop offset="0" stopColor="#FF9AD5" /><Stop offset="0.3" stopColor="#8EE7FF" /><Stop offset="0.55" stopColor="#FFF29A" /><Stop offset="0.8" stopColor="#B49BFF" /><Stop offset="1" stopColor="#FF9AD5" />
     </LinearGradient></Defs>
-    <Path d={CIRCLE(26)} fill="none" stroke={`url(#${gid}ir)`} strokeWidth={5} opacity={0.85} />
+    <Path d={ringOf(form, 26)} fill="none" stroke={`url(#${gid}ir)`} strokeWidth={5} opacity={0.85} />
     <Path d="M14 22Q18 12 28 9" fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" opacity={0.9} />
     <Circle cx={47} cy={46} r={1.8} fill="#FFFFFF" opacity={0.8} />
   </>;
@@ -81,20 +86,20 @@ function Ring({ kind, gid }: { kind: FxKind; gid: string }) {
     <Path d="M16 20Q20 13 27 11" fill="none" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" opacity={0.85} />
   </>;
   if (kind === 'neon') return <G fill="none">
-    <Path d={CIRCLE(26.5)} stroke="#FF3FA4" strokeWidth={6} opacity={0.18} />
-    <Path d={CIRCLE(26.5)} stroke="#FF3FA4" strokeWidth={2.4} />
-    <Path d={CIRCLE(23.6)} stroke="#38E1FF" strokeWidth={4} opacity={0.2} />
-    <Path d={CIRCLE(23.6)} stroke="#38E1FF" strokeWidth={1.3} />
+    <Path d={ringOf(form, 26.5)} stroke="#FF3FA4" strokeWidth={6} opacity={0.18} />
+    <Path d={ringOf(form, 26.5)} stroke="#FF3FA4" strokeWidth={2.4} />
+    <Path d={ringOf(form, 23.6)} stroke="#38E1FF" strokeWidth={4} opacity={0.2} />
+    <Path d={ringOf(form, 23.6)} stroke="#38E1FF" strokeWidth={1.3} />
   </G>;
   if (kind === 'aurora') return <>
     <Defs><LinearGradient id={`${gid}au`} x1="0" y1="0" x2="1" y2="0.6">
       <Stop offset="0" stopColor="#3DFFB0" /><Stop offset="0.45" stopColor="#3AA8FF" /><Stop offset="0.75" stopColor="#B26BFF" /><Stop offset="1" stopColor="#3DFFB0" />
     </LinearGradient></Defs>
     <Path d={L.outline} fill="none" stroke={`url(#${gid}au)`} strokeWidth={4.5} strokeLinejoin="round" />
-    <Path d={WAVE} fill="none" stroke={`url(#${gid}au)`} strokeWidth={9} opacity={0.18} />
+    <Path d={L.outline} fill="none" stroke={`url(#${gid}au)`} strokeWidth={9} opacity={0.18} />
   </>;
   if (kind === 'cosmos') return <G>
-    <Path d={CIRCLE(26)} fill="none" stroke="#7E8CFF" strokeWidth={1} strokeDasharray="1.5 3" opacity={0.8} />
+    <Path d={ringOf(form, 26)} fill="none" stroke="#7E8CFF" strokeWidth={1} strokeDasharray="1.5 3" opacity={0.8} />
     <G transform="translate(32 6)">
       <Circle r={4.2} fill="#FFB86B" />
       <Ellipse rx={7} ry={2} fill="none" stroke="#FFE2B8" strokeWidth={1} transform="rotate(-18)" />
@@ -102,7 +107,7 @@ function Ring({ kind, gid }: { kind: FxKind; gid: string }) {
     <Circle cx={58} cy={32} r={1.8} fill="#9FE8FF" />
   </G>;
   if (kind === 'tesla') return <G fill="none" strokeLinecap="round" strokeLinejoin="round">
-    <Path d={CIRCLE(26)} stroke="#5BC8FF" strokeWidth={1.4} opacity={0.6} />
+    <Path d={ringOf(form, 26)} stroke="#5BC8FF" strokeWidth={1.4} opacity={0.6} />
     {[0, 1.6, 3.3, 4.8].map(a => <G key={a}><Path d={BOLT(a, 0.9)} stroke="#9BE7FF" strokeWidth={3.2} opacity={0.25} /><Path d={BOLT(a, 0.9)} stroke="#F2FBFF" strokeWidth={1.1} /></G>)}
   </G>;
   if (kind === 'lava') return <>
@@ -136,9 +141,10 @@ function useMotion(kind: FxKind, on: boolean) {
   });
 }
 
-export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size, mapPin, animate }: {
-  kind: FxKind; image?: string | null; initial: string; tint: string; size: number; mapPin: boolean; animate: boolean;
+export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size, mapPin, animate, shape }: {
+  kind: FxKind; image?: string | null; initial: string; tint: string; size: number; mapPin: boolean; animate: boolean; shape?: ShapeId;
 }) {
+  const form: Form = shape && shape !== 'auto' ? shape : undefined;
   const gid = `fx${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const L = LOOK[kind];
   const extent = mapPin ? 72 : 64;
@@ -147,16 +153,16 @@ export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size,
   const accent = { bubble: '#8EE7FF', drop: '#2457C9', neon: '#FF3FA4', aurora: '#3AA8FF', cosmos: '#7E8CFF', tesla: '#5BC8FF', lava: '#FF6A1A', crown: '#D9A22A' }[kind];
   return <View pointerEvents="none" style={{ width: size, height: (size * extent) / 64 }}>
     <Svg width={size} height={(size * extent) / 64} viewBox={`0 0 64 ${extent}`} style={StyleSheet.absoluteFill}>
-      <Defs><ClipPath id={`${gid}c`}><Path d={CIRCLE(r)} /></ClipPath></Defs>
+      <Defs><ClipPath id={`${gid}c`}><Path d={ringOf(form, r)} /></ClipPath></Defs>
       {mapPin && <><Ellipse cx={32} cy={67} rx={7} ry={2} fill={colors.ink} opacity={0.14} /><Path d="M25 55L32 66L39 55" fill={accent} stroke="#FFFCF4" strokeWidth={2.5} strokeLinejoin="round" /></>}
-      <Base kind={kind} gid={gid} />
-      <Path d={CIRCLE(r)} fill={tint} />
+      <Base kind={kind} gid={gid} form={form} />
+      <Path d={ringOf(form, r)} fill={tint} />
       {image ? <SvgImage href={photo(image)!} x={32 - r} y={32 - r} width={2 * r} height={2 * r} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${gid}c)`} />
         : <SvgText x={32} y={39} textAnchor="middle" fontFamily={fonts.body700} fontSize={20} fill={colors.ink}>{initial}</SvgText>}
-      <Path d={CIRCLE(r)} fill="none" stroke="#FFFCF4" strokeWidth={1.4} />
+      <Path d={ringOf(form, r)} fill="none" stroke="#FFFCF4" strokeWidth={1.4} />
     </Svg>
     <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, motion]}>
-      <Svg width={size} height={size} viewBox="0 0 64 64"><Ring kind={kind} gid={gid} /></Svg>
+      <Svg width={size} height={size} viewBox="0 0 64 64"><Ring kind={kind} gid={gid} form={form} /></Svg>
     </Animated.View>
   </View>;
 });

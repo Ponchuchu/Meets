@@ -328,7 +328,7 @@ export default function MapScreen() {
     if (filters.friends) {
       const grouped = new Set<string>();
       const own = fix ?? myPos;
-      const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
+      const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, mapShape: myProfile?.map_shape, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
       const ownSpot = own ? { ...own, personId: 'map-self', place: 'Сейчас', state: 'here' as const, minutesAgo: 0 } : null;
       if (!focusId && detail !== 'far') for (const group of closeGroups([...spots.filter(s => { const p = people.find(p => p.id === s.personId); return p && !social.removed[p.id] && (LIVE || !!detailsOf(p.id) && canSee('friend', 'location', detailsOf(p.id)!.privacy)); }), ...(ownSpot ? [ownSpot] : [])])) {
         if (group.length < 2) continue;

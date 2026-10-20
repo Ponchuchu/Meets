@@ -84,6 +84,8 @@ export interface Person {
   photo: string | null; // ключ фото из assets
   mapTrail?: 'none' | 'dots' | 'comet';
   mapFrame?: string;
+  /** Форма аватарки (profiles.map_shape). */
+  mapShape?: string;
   initial: string;
   tint: string;
   isFriend: boolean;

@@ -1,18 +1,19 @@
-import { framePath, LEGACY_FRAMES } from '../profile/frames';
+import { shapeOf, shapePath, SHAPES, type ShapeId } from '../profile/shapes';
 import { badgeIcon, BADGES } from '../profile/badges';
 import { toneOf } from '../ui/BadgeMedal';
 
-describe('значок друга на карте', () => {
-  it('у каждой рамки своя замкнутая форма в пределах 64×72', () => {
-    const shapes = new Set(LEGACY_FRAMES.map((f) => f.shape));
-    expect(shapes.size).toBe(LEGACY_FRAMES.length);
-    for (const f of LEGACY_FRAMES) {
-      const d = framePath(f.shape!);
+describe('форма аватарки', () => {
+  it('каждая форма — замкнутый контур в пределах 64×64', () => {
+    for (const sh of SHAPES.filter(x => x.id !== 'auto')) {
+      const d = shapePath(sh.id as Exclude<ShapeId, 'auto'>, 27);
       expect(d.startsWith('M') && d.endsWith('Z')).toBe(true);
+      if (sh.id === 'circle') continue;
       const nums = d.replace(/[MLZ]/g, ' ').trim().split(/\s+/).map(Number);
       expect(Math.min(...nums)).toBeGreaterThan(0);
       expect(Math.max(...nums)).toBeLessThan(64);
     }
+    expect(shapeOf('nope')).toBe('auto');
+    expect(shapeOf('heart')).toBe('heart');
   });
 });
 

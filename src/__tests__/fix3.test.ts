@@ -67,3 +67,32 @@ describe('линии карты', () => {
     expect(linesGeo([]).features).toEqual([]);
   });
 });
+
+describe('соревнования по шагам', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { challengeState } = require('../profile/stepsSocial') as typeof import('../profile/stepsSocial');
+  const base = { id: 'c', title: 't', created_by: 'a', my_status: 'joined' as const, starts_on: '2026-10-18', ends_on: '2026-10-24' };
+  const members = [
+    { user_id: 'a', name: 'Аня', photo_url: null, status: 'joined', steps: 30000 },
+    { user_id: 'b', name: 'Боря', photo_url: null, status: 'joined', steps: 42000 },
+    { user_id: 'c', name: 'Вова', photo_url: null, status: 'invited', steps: 90000 },
+  ];
+  it('«кто больше»: лидер среди принявших, дни до конца', () => {
+    const s = challengeState({ ...base, kind: 'most', goal: null, members }, '2026-10-20');
+    expect(s.leader?.name).toBe('Боря');
+    expect(s.daysLeft).toBe(5);
+    expect(s.finished).toBe(false);
+    expect(s.share(21000)).toBe(0.5);
+  });
+  it('после последнего дня — победитель', () => {
+    const s = challengeState({ ...base, kind: 'most', goal: null, members }, '2026-10-25');
+    expect(s.winner?.name).toBe('Боря');
+    expect(s.label).toBe('Победил Боря');
+  });
+  it('«кто первым до цели» заканчивается, когда цель взята', () => {
+    const s = challengeState({ ...base, kind: 'goal', goal: 40000, members }, '2026-10-20');
+    expect(s.finished).toBe(true);
+    expect(s.winner?.name).toBe('Боря');
+    expect(s.share(20000)).toBe(0.5);
+  });
+});

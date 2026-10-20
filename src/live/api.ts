@@ -33,11 +33,12 @@ export interface Profile {
   photo_url: string | null;
   map_trail?: 'none' | 'dots' | 'comet';
   map_frame?: string;
+  map_shape?: string;
   about: string | null;
 }
 
 export async function getProfile(id = me()): Promise<Profile | null> {
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').eq('id', id).maybeSingle());
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').eq('id', id).maybeSingle());
 }
 
 export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void> {
@@ -106,7 +107,7 @@ export async function getFriends(): Promise<Friend[]> {
   const rows = await must(sb().from('friendships').select('a,b,created_at').or(`a.eq.${id},b.eq.${id}`)) as { a: string; b: string; created_at: string }[];
   const ids = rows.map((r) => (r.a === id ? r.b : r.a));
   if (!ids.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', ids)) as Profile[];
   return profs.map((p) => ({ ...p, since: rows.find((r) => r.a === p.id || r.b === p.id)!.created_at }));
 }
 
@@ -121,7 +122,7 @@ export async function removeFriend(friendId: string): Promise<void> {
 export async function findByHandle(q: string): Promise<Profile[]> {
   const h = q.replace(/^@/, '').trim().toLowerCase();
   if (h.length < 2) return [];
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').ilike('handle', `${h}%`).neq('id', me()).limit(10));
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').ilike('handle', `${h}%`).neq('id', me()).limit(10));
 }
 
 /** Заявка в друзья. Встречная заявка уже есть — дружба сразу (триггер в базе). */
@@ -143,7 +144,7 @@ export async function answerFriend(from: string, accept: boolean): Promise<void>
 export async function getFriendRequests(): Promise<(Profile & { note: string | null })[]> {
   const rows = await must(sb().from('friend_requests').select('from_id,note').eq('to_id', me()).eq('status', 'pending')) as { from_id: string; note: string | null }[];
   if (!rows.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', rows.map((r) => r.from_id))) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', rows.map((r) => r.from_id))) as Profile[];
   return profs.map((p) => ({ ...p, note: rows.find((r) => r.from_id === p.id)?.note ?? null }));
 }
 
@@ -344,7 +345,7 @@ export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[];
     must(sb().from('company_requests').select('user_id,note').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null }[]>,
   ]);
   const ids = [...new Set([...att.map((a) => a.user_id), ...look.map((l) => l.user_id)])].filter((x) => x !== id);
-  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[] : [];
+  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', ids)) as Profile[] : [];
   const friendIds = new Set(att.map((a) => a.user_id));
   return {
     friends: profs.filter((p) => friendIds.has(p.id)),

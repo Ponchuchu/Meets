@@ -20,6 +20,7 @@ export interface ProfileRow {
   photo_url: string | null;
   map_trail?: 'none' | 'dots' | 'comet';
   map_frame?: string;
+  map_shape?: string;
   handle: string | null;
   about?: string | null;
   instagram?: string | null;
@@ -56,7 +57,7 @@ export function mapProfile(r: ProfileRow, friends: Set<string>, at = new Date())
     id: r.id,
     name: r.name,
     age: ageFrom(r.birth_date, at),
-    photo: r.photo_url, mapFrame: r.map_frame, mapTrail: r.map_trail,
+    photo: r.photo_url, mapFrame: r.map_frame, mapShape: r.map_shape, mapTrail: r.map_trail,
     initial: r.name.slice(0, 1).toUpperCase(),
     tint: TINTS[n % TINTS.length],
     isFriend: friends.has(r.id),
@@ -113,7 +114,7 @@ async function friendIds(me: string): Promise<Set<string>> {
 
 async function profiles(ids: string[]): Promise<ProfileRow[]> {
   if (!ids.length) return [];
-  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date,map_frame,map_trail').in('id', ids));
+  const { data, error } = await withTimeout(supabase().from('profiles').select('id,name,photo_url,handle,birth_date,map_frame,map_trail,map_shape').in('id', ids));
   if (error) throw error;
   return data as ProfileRow[];
 }
