@@ -48,7 +48,7 @@ import { colors, fonts } from '../../theme';
 import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
-import { getProfile, sendInvite, getMalls, getPlacesInView, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
+import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
@@ -249,16 +249,7 @@ export default function MapScreen() {
   });
   const mallsQ = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
-  // Места справочника — с 15-го масштаба, по кадру (центр округляем, чтобы не спрашивать сервер на каждый сдвиг).
-  const [view, setView] = useState<{ lat: number; lon: number } | null>(null);
-  const placesBox = useMemo(() => {
-    if (!view || zoom < 15) return null;
-    const half = (W / 2) * 360 / (256 * 2 ** zoom) * 1.6;
-    const r = (x: number) => Math.round(x * 400) / 400;
-    return { w: r(view.lon - half), e: r(view.lon + half), s: r(view.lat - half * 1.4), n: r(view.lat + half * 1.4) };
-  }, [view, zoom, W]);
-  const placesQ = useQuery({ queryKey: ['places', placesBox], queryFn: () => getPlacesInView(placesBox!.w, placesBox!.s, placesBox!.e, placesBox!.n), enabled: LIVE && !!placesBox, staleTime: 600e3, placeholderData: (p) => p });
-  const places = useMemo(() => (placesBox ? placesQ.data ?? [] : []), [placesBox, placesQ.data]);
+  // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
   const fog = useMemo(() => (lens === 'explore' ? fogPolygon(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
@@ -437,9 +428,7 @@ export default function MapScreen() {
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
-        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)}
-        places={places} onPlace={(id) => { const p = places.find((x) => x.id === id); if (p) { select(null); setMall(p); setSheet('venue'); } }}
-        onCenter={(lat, lon) => setView({ lat, lon })} />}
+        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
       <View style={[styles.top, { top: topY }]}>

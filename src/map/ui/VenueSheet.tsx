@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
 import { almaty } from '../../lib/clock';
 import { getSessions, type Mall } from '../../live/api';
+import { distM } from '../../live/geo';
 import { config } from '../../lib/config';
 import { colors, fonts, radii, space } from '../../theme';
 import { StateView } from '../../ui/StateView';
@@ -12,6 +13,14 @@ import { glass } from '../../ui/glass';
 import { useBackClose } from '../../state/app';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
+/** Событие «в этом центре»: точка в пределах 350 м от центра или название площадки содержит имя центра. */
+export function insideMall(m: Mall, events: EventItem[]): EventItem[] {
+  const name = m.name.toLowerCase();
+  return events
+    .filter((e) => (!e.noPoint && !e.needsPin && distM(e, m) <= 350) || (!!e.venueName && e.venueName.toLowerCase().includes(name)))
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+}
+const dayHm = (iso: string) => { const d = almaty(iso); const n = almaty(new Date().toISOString()); const same = d.getUTCDate() === n.getUTCDate() && d.getUTCMonth() === n.getUTCMonth(); return `${same ? '' : `${d.getUTCDate()}.${String(d.getUTCMonth() + 1).padStart(2, '0')} `}${hm(iso)}`; };
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
 
 export function MallPin({ m, onPress }: { m: Mall; onPress: () => void }) {
@@ -35,7 +44,7 @@ export function PlaceCard({ m, events, onEvent, onClose }: { m: Mall; events: Ev
 export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: EventItem[]; onEvent: (e: EventItem) => void; onClose?: () => void }) {
   const q = useQuery({ queryKey: ['sessions', m.id], queryFn: () => getSessions(m.id), enabled: config.dataMode !== 'demo' });
   const sessions = q.data ?? [];
-  const inside = events.filter((e) => e.venueName && e.venueName.toLowerCase() === m.name.toLowerCase());
+  const inside = insideMall(m, events);
   return (
     <View style={{ gap: space.m }}>
       <View style={styles.head}>
@@ -52,9 +61,9 @@ export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: E
         )}
       </View>
       {inside.length > 0 && <Text style={styles.cap}>СОБЫТИЯ</Text>}
-      {inside.slice(0, onClose ? 3 : 6).map((e) => (
+      {inside.slice(0, onClose ? 5 : 10).map((e) => (
         <Pressable key={e.id} onPress={() => onEvent(e)} style={styles.row} accessibilityRole="button">
-          <Text style={styles.time}>{hm(e.startsAt)}</Text>
+          <Text style={styles.time}>{dayHm(e.startsAt)}</Text>
           <Text style={styles.name} numberOfLines={1}>{e.title}</Text>
         </Pressable>
       ))}
@@ -83,6 +92,6 @@ const styles = StyleSheet.create({
   sub: { flexShrink: 1, fontFamily: fonts.body400, fontSize: 14, color: colors.muted },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, borderBottomWidth: 1, borderBottomColor: '#D9D3C5' },
-  time: { fontFamily: fonts.mono600, fontSize: 14, color: colors.ink, width: 50 },
+  time: { fontFamily: fonts.mono600, fontSize: 13, color: colors.ink, minWidth: 50 },
   name: { flex: 1, fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
 });

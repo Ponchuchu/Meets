@@ -269,10 +269,6 @@ export interface Mall { id: string; name: string; address: string | null; hours:
   kind?: string }
 
 /** Места справочника в кадре карты (docs/MAP-DATA.md). */
-export async function getPlacesInView(w: number, s: number, e: number, n: number): Promise<(Mall & { kind: string })[]> {
-  const rows = await must(sb().rpc('places_in_view', { w, s, e, n, lim: 150 })) as { id: string; name: string; kind: string; address: string | null; lat: number; lon: number }[];
-  return rows.map((r) => ({ ...r, hours: null, cover: null }));
-}
 
 export async function getMalls(): Promise<Mall[]> {
   const rows = await must(sb().from('venues').select('id,name,address,hours,cover_url,geog').eq('kind', 'mall').limit(100)) as
