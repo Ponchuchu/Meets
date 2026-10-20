@@ -1,5 +1,6 @@
 -- Панель разработчика v2: в сводку добавлены «что требует внимания» — последний запуск поиска, ошибки, пустые поля у событий,
 -- старые черновики. Всё считается одним запросом, только для команды.
+-- FIX3: колонки robot_runs с префиксом rr. — иначе found совпадает с переменной PL/pgSQL FOUND и запрос падает.
 create or replace function public.admin_overview() returns jsonb
 language plpgsql stable security definer set search_path = public as $$
 declare r jsonb;
@@ -24,9 +25,9 @@ begin
     'events_no_place', (select count(*) from public.events e left join public.venues v on v.id = e.venue_id where e.status = 'published' and e.visibility = 'public' and coalesce(e.ends_at, e.starts_at + interval '3 hours') > now() and (v.geog is null or v.needs_pin)),
     'events_no_cover', (select count(*) from public.events where status = 'published' and visibility = 'public' and coalesce(ends_at, starts_at + interval '3 hours') > now() and cover_url is null),
     'runs_failed_24h', (select count(*) from public.robot_runs where status = 'failed' and started_at > now() - interval '24 hours'),
-    'last_run', (select jsonb_build_object('status', status, 'found', found, 'queued', queued, 'at', coalesce(finished_at, started_at), 'params', params,
+    'last_run', (select jsonb_build_object('status', rr.status, 'found', rr.found, 'queued', rr.queued, 'at', coalesce(rr.finished_at, rr.started_at), 'params', rr.params,
                    'error', (select l.text from public.robot_log l where l.run_id = rr.id and l.level = 'error' order by l.at desc limit 1))
-                 from public.robot_runs rr order by started_at desc limit 1),
+                 from public.robot_runs rr order by rr.started_at desc limit 1),
     'top_cats', coalesce((select jsonb_agg(x) from (select category, count(*) n from public.events where status = 'published' and visibility = 'public' group by 1 order by 2 desc limit 5) x), '[]'::jsonb)
   ) into r;
   return r;

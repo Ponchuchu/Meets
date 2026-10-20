@@ -37,5 +37,24 @@ try {
   await assert.rejects(db.query("update profiles set map_frame='unknown' where id=$1", [id]), /profiles_map_frame_check/); checks++;
   await assert.rejects(db.query("insert into profiles(id,map_frame) values ('00000000-0000-4000-8000-000000000002','ornament')"), /frame-locked/); checks++;
   await db.query("insert into profiles(id,map_frame) values ('00000000-0000-4000-8000-000000000003','almaty-apples')"); checks++;
+  // FIX3: рамки по таблице frame_levels, новые формы, ошибки клиента.
+  await db.exec(`
+    create schema if not exists auth; create table if not exists auth.users(id uuid primary key);
+    create or replace function auth.uid() returns uuid language sql as $$ select null::uuid $$;
+    create or replace function public.is_staff() returns boolean language sql as $$ select false $$;
+    do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
+    do $$ begin create role anon; exception when duplicate_object then null; end $$;
+  `);
+  const fix3 = await readFile(new URL('../supabase/migrations/20261020000030_fix3_backend.sql', import.meta.url), 'utf8');
+  await db.exec(fix3);
+  await db.exec(fix3);
+  await db.query('update user_level set level=1 where user_id=$1', [id]);
+  await db.query("update profiles set map_frame='bubble' where id=$1", [id]); checks++;
+  await assert.rejects(db.query("update profiles set map_frame='tesla' where id=$1", [id]), /frame-locked/); checks++;
+  await assert.rejects(db.query("update profiles set map_frame='nope-frame' where id=$1", [id]), /frame-unknown/); checks++;
+  await assert.rejects(db.query("update profiles set map_frame='Bad Frame!' where id=$1", [id]), /frame-unknown|profiles_map_frame_check/); checks++;
+  await db.query('update user_level set level=5 where user_id=$1', [id]);
+  await db.query("update profiles set map_frame='tesla' where id=$1", [id]); checks++;
+  await db.query("insert into client_errors(message, fatal) values ('test', true)"); checks++;
   console.log(`✓ ${checks} SQL-проверки рамок: повтор миграции, старый выбор, уровни, INSERT, неизвестный id, след.`);
 } finally { await db.close(); }
