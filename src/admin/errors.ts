@@ -7,7 +7,11 @@ export function explainError(text?: string | null): Explained {
   if (/\b402\b|prepayment|depleted|insufficient|balance|недостаточно средств|закончились деньги/i.test(t)) {
     return { kind: 'money', title: 'Закончились деньги на счёте ИИ', hint: 'Пополни баланс у поставщика (Gemini: AI Studio → Billing, Kimi: platform.moonshot). Код менять не нужно. Афиши сайтов ищутся без ИИ и бесплатно.' };
   }
-  if (/GitHub|workflow|dispatch|токен|token/i.test(t) && !/API[_ ]?KEY/i.test(t)) {
+  // «Запуск завершился с ошибкой. Журнал: GitHub → …» — поиск уже шёл, токен тут ни при чём.
+  if (/завершился с ошибкой/i.test(t)) {
+    return { kind: 'other', title: 'Поиск остановился на середине', hint: 'Афиши прочитаны, но запись прервалась. Запусти ещё раз — найденное не потеряется.' };
+  }
+  if (/не удалось запустить|dispatch|токен|token|Bad credentials/i.test(t) && !/API[_ ]?KEY/i.test(t)) {
     return { kind: 'github', title: 'Не удалось запустить поиск на GitHub', hint: 'Проверь токен в «Настройки → Подключение» и повтори.' };
   }
   if (/Нет (GEMINI|KIMI)_API_KEY|API[_ ]?KEY|\b401\b|PERMISSION_DENIED|unauthori[sz]ed|invalid.*key|ключ/i.test(t)) {

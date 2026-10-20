@@ -144,10 +144,11 @@ async function live() {
   if (purged) { console.log(`Убрано из очереди просроченных черновиков: ${purged}`); await robotLog(`Убрано из очереди просроченных черновиков: ${purged}`); }
   if (searchFile) {
     if(await cancelled()){await robotLog('Остановлено до публикации черновиков');return;}
-    const source = sources.find((s) => s.kind === 'search');
+    // ИИ-поиск может быть выключен — тогда находки афиш записываем на «Добавлено вручную» (FIX3: запуск падал целиком).
+    const source = sources.find((s) => s.kind === 'search') ?? sources.find((s) => s.kind === 'manual') ?? sources[0];
     if (!source) {
-      console.log('В базе нет источника «Поиск · Gemini» — примени миграцию 20261004000008_search.sql.');
-      throw new Error('Нет источника Gemini в базе');
+      console.log('В базе нет ни одного источника — примени supabase/apply-all.sql (docs/KEYS.md).');
+      throw new Error('Нет источников в базе');
     }
     const found = await readFound(searchFile);
     // Каждое событие записываем на «свой» источник: на карточке будет «Яндекс Афиша» или «Sxodim», а не «ИИ».
@@ -180,7 +181,7 @@ async function live() {
   const tgStats: TelegramStat[] = [];
   for (const source of sources) {
     // Сайты-афиши читает поиск (код, без ИИ); здесь только каналы. Режим --telegram: только Telegram, с отчётом для панели.
-    if (source.kind === 'search' || source.kind === 'site') continue;
+    if (source.kind !== 'telegram') continue;
     if (args.has('--telegram') && source.kind !== 'telegram') continue;
     try {
       const fetched = await fetchChannel(source.handle, source.id, source.cursor);

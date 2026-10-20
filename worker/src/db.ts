@@ -33,7 +33,7 @@ export function createDb(url: string, key: string): Db {
   const patch = (path: string, body: unknown) => rest(path, { method: 'PATCH', body: JSON.stringify(body), headers: { Prefer: 'return=minimal' } });
 
   return {
-    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search)&select=*'),
+    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual)&select=*'),
     venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,address,lat,lon'),
     known: async () => {
       const since = new Date(Date.now() - 2 * 86400e3).toISOString();

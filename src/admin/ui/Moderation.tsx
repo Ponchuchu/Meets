@@ -7,14 +7,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { now as clockNow } from '../../lib/clock';
 import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
-import { readPoint } from '../../live/point';
-import { MapCanvas } from '../../map/MapCanvas';
-import type { MapCanvasHandle } from '../../map/types';
 import { colors, fonts } from '../../theme';
 import type { ToastData } from '../../ui/Toast';
 import { loadQueue, moderate, saveDraft } from '../api';
 import { isReliable } from '../rules';
 import { EventRow, RoundBtn } from './EventRow';
+import { PinPicker } from './PinPicker';
 import { Banner } from './kit';
 import { demoQueue, metaLine, parseRuDate, type QueueFlag, type QueueItem } from '../model';
 import { useAdminDemo } from '../store';
@@ -182,7 +180,7 @@ export function Moderation({ live }: { live: boolean }) {
         }} />
       )}
       {pinning && (
-        <PinCard item={pinning} onClose={() => setPinning(null)} onPin={(point) => {
+        <PinPicker title={pinning.title} address={pinning.address} point={pinning.point ?? null} onClose={() => setPinning(null)} onPin={(point) => {
           act.mutate({ item: pinning, action: 'pin', point });
           setPinning(null);
         }} />
@@ -212,56 +210,6 @@ function EditCard({ item, onClose, onSave }: { item: QueueItem; onClose: () => v
         <Text style={[styles.btnText, { color: colors.paper }]}>{busy?'Сохраняю…':'Сохранить'}</Text>
       </Pressable>
       {!!error&&<Text style={styles.flagText}>{error}</Text>}
-    </Overlay>
-  );
-}
-
-/** Точка по адресу: Nominatim в рамке Алматы. Модератор проверяет найденное и публикует. */
-function PinCard({ item, onClose, onPin }: { item: QueueItem; onClose: () => void; onPin: (p: { lat: number; lon: number }) => void }) {
-  const [q, setQ] = useState(item.address && item.address !== 'в центре' ? item.address : '');
-  const mapRef = useRef<MapCanvasHandle>(null);
-  const camera = useMemo(() => ({ lat: item.point?.lat ?? 43.2579, lon: item.point?.lon ?? 76.9458, zoom: item.point ? 14 : 12 }), [item.point]);
-  const [hit, setHit] = useState<{ lat: number; lon: number; name: string } | null>(item.point ? { ...item.point, name: 'Примерное место — проверь на карте' } : null);
-  const [state, setState] = useState<'idle' | 'busy' | 'none'>('idle');
-  const find = async () => {
-    setState('busy');
-    try {
-      const street = q.replace(/(?:,?\s+(?:дом\s*)?|,\s*)\d+[а-яa-z]?(?:[\/\-]\d+)?\s*$/i, '').trim();
-      const queries = street && street !== q.trim() ? [q, street] : [q];
-      for (let i = 0; i < queries.length; i++) {
-        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&accept-language=ru&bounded=1&viewbox=76.70,43.40,77.20,43.05&q=${encodeURIComponent(`${queries[i]}, Алматы`)}`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!response.ok) throw new Error('Поиск недоступен');
-        const [r] = await response.json() as { lat: string; lon: string; display_name: string }[];
-        const point = r && readPoint({ coordinates: [Number(r.lon), Number(r.lat)] });
-        if (!point) continue;
-        setHit({ ...point, name: `${i ? 'Примерно · ' : ''}${r.display_name.split(',').slice(0, 3).join(',')}` });
-        mapRef.current?.flyTo(point.lat, point.lon, i ? 14 : 15, 0);
-        setState('idle'); return;
-      }
-      setState('none');
-    } catch {
-      setState('none');
-    }
-  };
-  return (
-    <Overlay label="Поставить точку" onClose={onClose}>
-      <Text style={styles.sheetTitle}>Поставить точку</Text>
-      <Text style={styles.meta}>{item.title}</Text>
-      <Label text="Адрес или место" />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <TextInput value={q} onChangeText={setQ} onSubmitEditing={find} style={[styles.input, { flex: 1 }]} placeholder="Например: Панфилова 110" placeholderTextColor={colors.muted3} accessibilityLabel="Адрес" />
-        <Pressable onPress={find} disabled={!q.trim() || state === 'busy'} style={[styles.btn, { flex: 0, paddingHorizontal: 16 }]} accessibilityRole="button"><Text style={styles.btnText}>Найти</Text></Pressable>
-      </View>
-      {state === 'none' && <Text style={[styles.meta, { color: colors.accentText }]}>Точный адрес не найден. Выбери место на карте</Text>}
-      <Text style={styles.meta}>Найденное место может быть приблизительным. Нажми на карте там, где вход в площадку</Text>
-      <View style={{ height: 250, borderRadius: 18, overflow: 'hidden' }}>
-        <MapCanvas ref={mapRef} theme="paper" camera={camera} onPress={p => { if (p) setHit({ ...p, name: 'Выбрано вручную' }); }} markers={hit ? [{ id: 'chosen', lat: hit.lat, lon: hit.lon, node: <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.paper }} /> }] : []} />
-      </View>
-      {hit && <Text style={styles.meta}>{hit.name} · {hit.lat.toFixed(5)}, {hit.lon.toFixed(5)}</Text>}
-      <Pressable disabled={!hit} onPress={() => hit && onPin(hit)} style={[styles.btn, styles.primary, { flex: 0, marginTop: 14 }, !hit && { opacity: 0.4 }]} accessibilityRole="button">
-        <Text style={[styles.btnText, { color: colors.paper }]}>Опубликовать с этой точкой</Text>
-      </Pressable>
     </Overlay>
   );
 }
