@@ -88,7 +88,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (cam.current) cam.current.fitBounds(ne, sw, p, 450);
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading) => { if (!okPoint([lon, lat])) return; moved.current = true; heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 17, heading, pitch: 60, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if (!okPoint([lon, lat])) return; moved.current = true; heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, heading, pitch, animationDuration: 900 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       if (!okPoint([lon, lat])) return;
       moved.current = true;

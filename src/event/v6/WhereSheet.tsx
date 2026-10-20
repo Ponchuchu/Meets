@@ -10,7 +10,7 @@ import type { EventItem } from '../../data/types';
 import { getRoute } from '../../live/api';
 import { distM } from '../../live/geo';
 import { kmText } from '../../map/ui/EventSheet';
-import { busFor } from '../../transit/almaty';
+import { busFor, transitFor } from '../../transit/almaty';
 import { colors, fonts } from '../../theme';
 
 export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, mode: 'walk' | 'car' | 'bus' = 'walk') {
@@ -19,11 +19,14 @@ export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, m
   const q = useQuery({ queryKey: ['route', e.id, me ? `${me.lat.toFixed(3)},${me.lon.toFixed(3)}` : ''], queryFn: () => getRoute(me!, e), enabled, staleTime: 10 * 60e3, retry: 0, placeholderData:(previous,query)=>query?.queryKey[1]===e.id?previous:undefined });
   const loading = enabled && q.isPending;
   const bus = useMemo(() => mode === 'bus' && me && !e.needsPin && !e.noPoint ? busFor(me, e, new Date()) : null, [e, me?.lat, me?.lon, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Автобусы и метро с пересадками — считаем всегда (раньше только в режиме «автобус», которого экран не передавал).
+  const meKey = me ? `${me.lat.toFixed(3)},${me.lon.toFixed(3)}` : '';
+  const transit = useMemo(() => (me && !e.noPoint ? transitFor(me, e, new Date()) : []), [e.id, e.lat, e.lon, meKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Без сети или без ответа — по прямой × 1,3, с пометкой «примерно».
   const straight = me ? distM(me, e) * 1.3 : 0;
   const walkMin = q.data?.walk?.min ?? (me && !e.noPoint && !loading ? Math.round(straight / 75) : null);
   const carMin = q.data?.car?.min ?? (me && !e.noPoint && !loading ? Math.max(3, Math.round(straight / 400)) : null);
-  return { route: q.data ?? null, bus, walkMin, carMin, rough: !q.data && !loading, loading };
+  return { route: q.data ?? null, bus, transit, walkMin, carMin, rough: !q.data && !loading, loading };
 }
 
 type Point = { lat: number; lon: number };

@@ -88,9 +88,29 @@ export function indexStops(points: NamedPoint[]): Map<string, NamedPoint[]> {
 
 const MAX_HOP_M = 2500; // соседние остановки дальше — значит, выбрали не ту с таким же названием
 
+/** Похожесть названий по словам (Жаккар): «ул. Толе би – Ауэзова» ≈ «Толе би / Ауэзова». */
+export function nameSim(a: string, b: string): number {
+  const w = (t: string) => new Set(normName(t).base.split(' ').filter((x) => x.length > 1 && !['ул', 'пр', 'мкр', 'улица', 'проспект'].includes(x)));
+  const A = w(a), B = w(b);
+  if (!A.size || !B.size) return 0;
+  let both = 0;
+  for (const x of A) if (B.has(x)) both++;
+  return both / (A.size + B.size - both);
+}
+
+/** Кандидаты по названию: точное совпадение, иначе похожие (≥ 0,6). FIX3: точных было мало, маршруты выходили дырявыми. */
+function candidates(name: string, idx: Map<string, NamedPoint[]>): NamedPoint[] {
+  const n = normName(name);
+  const exact = idx.get(n.full) ?? idx.get(n.base);
+  if (exact) return exact;
+  const out: NamedPoint[] = [];
+  for (const [key, list] of idx) if (nameSim(key, name) >= 0.6) out.push(...list);
+  return out;
+}
+
 /** Остановки маршрута по порядку с координатами. Для каждого названия берём одноимённую остановку, ближайшую к предыдущей. */
 export function placeStops(names: string[], idx: Map<string, NamedPoint[]>): { stops: Stop[]; matched: number } {
-  const cands = names.map((nm) => { const n = normName(nm); return idx.get(n.full) ?? idx.get(n.base) ?? []; });
+  const cands = names.map((nm) => candidates(nm, idx));
   const out: Stop[] = [];
   let prev: NamedPoint | null = null;
   for (let i = 0; i < names.length; i++) {

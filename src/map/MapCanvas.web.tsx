@@ -45,7 +45,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (map.current) map.current.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], { padding, duration:450, maxZoom:18 });
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 17, bearing: heading, pitch: 60, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom, bearing: heading, pitch, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 250) => {
       if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: threeD ? TILT_PITCH : 0, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
