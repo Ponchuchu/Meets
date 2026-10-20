@@ -211,8 +211,8 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 2. **Токен для кнопки «Искать сейчас»:** github.com → аватарка → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**: репозиторий только `Ponchuchu/ryadom`, права **Actions: Read and write** → скопировать. Положить в Supabase secrets (ссылка выше) как `GITHUB_DISPATCH_TOKEN`.
 3. **Пуши на Android (FIX3, 20 октября — без этого пушей нет совсем).** Нужны два файла из Firebase:
    1. console.firebase.google.com → **Add project** «ryadom» (Google Analytics можно выключить).
-   2. В проекте: значок Android → **Add app** → Android package name: `kz.ryadom.app` → **Register app** → **Download google-services.json**. Открой файл как текст, скопируй всё содержимое → GitHub → репозиторий → **Settings → Secrets and variables → Actions → New repository secret** → имя `GOOGLE_SERVICES_JSON`, значение — содержимое файла. Сборка APK сама подложит его.
-   3. **Project settings → Service accounts → Generate new private key** (скачается второй .json). expo.dev → проект ryadom → **Credentials** → Android → **FCM V1 service account key** → загрузить этот файл.
+   2. Файл `google-services.json` уже лежит в репозитории (проект Firebase `ryadom-17ea3`) — ничего делать не нужно.
+   3. Firebase → шестерёнка → **Project settings → Service accounts → Generate new private key** → скачается .json. Открой его как текст, скопируй всё от `{` до `}` → GitHub → репозиторий → **Settings → Secrets and variables → Actions → New repository secret** → имя `FCM_SERVICE_ACCOUNT_JSON`, значение — содержимое файла → **Add secret**. Потом **Actions → «Ключ пушей Android» → Run workflow** (ветка с исправлениями). Зелёная галочка — ключ подключён к Expo, на expo.dev ничего нажимать не нужно.
    4. Собрать новую APK (п. 4). В приложении: Профиль → Настройки → Уведомления — внизу видно «Пуши подключены» или причину.
    Файлы никому не пересылай.
 4. **APK:** GitHub → **Actions** → «Android APK» → **Run workflow**. Через ~20 минут ссылка на APK — в логе. Открыть на телефоне, установить.
