@@ -74,6 +74,7 @@ export default function ProfileDetail() {
             setFrameError(error.code === '23514' && error.message?.includes('map_frame')
               ? 'Новая коллекция пока недоступна. Выбери классическую рамку.'
               : error.message?.includes('frame-locked') ? 'Эта рамка пока закрыта. Обнови страницу с уровнем.'
+              : error.message?.includes('frame-unknown') ? 'Эта рамка появится после обновления сервера.'
               : 'Не удалось сохранить рамку. Попробуй ещё раз.');
           }
           finally { setFrameBusy(false); }

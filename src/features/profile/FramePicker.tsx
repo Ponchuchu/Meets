@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Check, Lock, X } from 'lucide-react-native';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { AvatarFrame, frameById, ILLUSTRATED_FRAMES, LEGACY_FRAMES } from '../../profile/frames';
+import { AvatarFrame, frameById, FX_FRAMES, ILLUSTRATED_FRAMES, LEGACY_FRAMES, type AvatarFrameDef } from '../../profile/frames';
 import { colors, fonts } from '../../theme';
+
+/** Тёмная подложка предпросмотра — светлый текст. */
+const isDark = (f: AvatarFrameDef) => parseInt(f.paper.slice(1, 3), 16) < 80;
 
 export function FramePicker({ selected, level, image, initial, busy, error, onSelect }: {
   selected: string; level: number; image?: string | null; initial: string; busy: boolean; error?: string; onSelect: (id: string) => Promise<void>;
@@ -15,7 +18,7 @@ export function FramePicker({ selected, level, image, initial, busy, error, onSe
   const chosen = frame.id === selected;
   return <View style={{ gap: 16 }}>
     <Text style={{ fontFamily: fonts.display700, fontSize: 22, color: colors.ink }}>Твоя рамка</Text>
-    <Text style={{ fontFamily: fonts.body400, color: colors.muted, lineHeight: 21 }}>Маленькие истории Алматы. Рассмотри любую — доступные можно выбрать для профиля и карты.</Text>
+    <Text style={{ fontFamily: fonts.body400, color: colors.muted, lineHeight: 21 }}>Живые рамки двигаются, у каждой своя форма. Рассмотри любую — доступные можно выбрать для профиля и карты.</Text>
     <Pressable accessibilityRole="button" accessibilityLabel="Посмотреть текущую рамку" onPress={() => setPreview(current.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, backgroundColor: '#F5F1E8' }}>
       <AvatarFrame frameId={current.id} photo={image} initial={initial} size={64} />
       <View style={{ flex: 1, gap: 4 }}><Text style={{ fontFamily: fonts.body700, color: colors.ink }}>{current.name}</Text><Text style={{ fontFamily: fonts.body400, fontSize: 12, color: colors.muted }}>Сейчас в профиле и на карте</Text></View>
@@ -28,8 +31,8 @@ export function FramePicker({ selected, level, image, initial, busy, error, onSe
       <ScrollView contentContainerStyle={{ gap: 16 }}>
       <View style={{ alignItems: 'center', gap: 10, paddingVertical: 18, paddingHorizontal: 12, borderRadius: 24, backgroundColor: frame.paper }}>
       <AvatarFrame frameId={frame.id} photo={image} initial={initial} size={144} />
-      <Text style={{ fontFamily: fonts.display700, fontSize: 20, textAlign: 'center', color: frame.id === 'starry-night' ? '#F7EAD0' : colors.ink }}>{frame.name}</Text>
-      <Text style={{ fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, textAlign: 'center', color: frame.id === 'starry-night' ? '#D6DFED' : colors.muted }}>{frame.description}</Text>
+      <Text style={{ fontFamily: fonts.display700, fontSize: 20, textAlign: 'center', color: isDark(frame) ? '#F7EAD0' : colors.ink }}>{frame.name}</Text>
+      <Text style={{ fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, textAlign: 'center', color: isDark(frame) ? '#D6DFED' : colors.muted }}>{frame.description}</Text>
     </View>
     <Pressable accessibilityRole="button" accessibilityLabel={locked ? `Рамка откроется на уровне ${frame.level}` : chosen ? 'Рамка выбрана' : `Выбрать рамку «${frame.name}»`}
       disabled={busy || locked || chosen} accessibilityState={{ disabled: busy || locked || chosen, busy }} onPress={() => { void onSelect(frame.id); }}
@@ -40,8 +43,10 @@ export function FramePicker({ selected, level, image, initial, busy, error, onSe
       {!!error && <Text accessibilityRole="alert" style={{ color: colors.accentText }}>{error}</Text>}
       </ScrollView></View></View>
     </Modal>
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-      {[...ILLUSTRATED_FRAMES, ...(showLegacy ? LEGACY_FRAMES : [])].map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityLabel={`Посмотреть рамку «${f.name}»`}
+    {([['ЖИВЫЕ', FX_FRAMES], ['АЛМАТЫ', ILLUSTRATED_FRAMES], ...(showLegacy ? [['КЛАССИКА', LEGACY_FRAMES]] : [])] as [string, AvatarFrameDef[]][]).map(([cap, list]) => <View key={cap} style={{ gap: 10 }}>
+      <Text style={{ fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted }}>{cap}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      {list.map(f => <Pressable key={f.id} accessibilityRole="button" accessibilityLabel={`Посмотреть рамку «${f.name}»`}
         onPress={() => setPreview(f.id)} style={{ flexBasis: '47%', flexGrow: 1, minHeight: 150, alignItems: 'center', justifyContent: 'center', gap: 7, padding: 10, borderRadius: 20, borderWidth: 1.5, borderColor: f.id === selected ? f.color : 'transparent', backgroundColor: '#F5F1E8' }}>
         <AvatarFrame frameId={f.id} photo={image} initial={initial} size={82} />
         <Text style={{ fontFamily: fonts.body600, fontSize: 13, textAlign: 'center', color: colors.ink }}>{f.name}</Text>
@@ -50,7 +55,8 @@ export function FramePicker({ selected, level, image, initial, busy, error, onSe
           <Text style={{ fontFamily: fonts.body400, fontSize: 12, color: f.id === selected ? f.color : colors.muted }}>{f.id === selected ? 'Выбрана' : level < f.level ? `Уровень ${f.level}` : 'Доступна'}</Text>
         </View>
       </Pressable>)}
-    </View>
+      </View>
+    </View>)}
     <Pressable accessibilityRole="button" accessibilityState={{ expanded: showLegacy }} onPress={() => setShowLegacy(x => !x)} style={{ minHeight: 44, justifyContent: 'center' }}>
       <Text style={{ fontFamily: fonts.body600, textAlign: 'center', color: colors.muted }}>{showLegacy ? 'Скрыть классическую коллекцию' : 'Классическая коллекция · 4 рамки'}</Text>
     </Pressable>

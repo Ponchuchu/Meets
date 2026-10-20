@@ -3,13 +3,26 @@ import { View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path, Text as SvgText } from 'react-native-svg';
 import { photo } from '../data/photos';
 import { colors, fonts } from '../theme';
+import { FxFrame, type FxKind } from './fxFrames';
 
 export type FrameShape = 'flower' | 'seal' | 'squircle' | 'hex';
 type Motif = 'apples' | 'tulips' | 'mountains' | 'dusk' | 'stars' | 'ornament';
 export interface AvatarFrameDef {
   id: string; name: string; description: string; color: string; paper: string;
-  level: number; motif?: Motif; shape?: FrameShape;
+  level: number; motif?: Motif; shape?: FrameShape; fx?: FxKind;
 }
+
+/** «Живые рамки» (FIX3 Ф11): своя форма и движение. Уровни совпадают с frame_levels в базе. */
+export const FX_FRAMES: AvatarFrameDef[] = [
+  { id: 'bubble', name: 'Мыльный пузырь', description: 'Переливается всеми цветами и чуть дышит — как настоящий пузырь.', color: '#8EE7FF', paper: '#EAF4F7', level: 1, fx: 'bubble' },
+  { id: 'drop', name: 'Капля', description: 'Мягкая живая форма: медленно плывёт по кругу.', color: '#2457C9', paper: '#DDEBF7', level: 1, fx: 'drop' },
+  { id: 'neon', name: 'Неон', description: 'Розовая и голубая неоновые трубки — светятся и пульсируют.', color: '#FF3FA4', paper: '#16121F', level: 2, fx: 'neon' },
+  { id: 'aurora', name: 'Северное сияние', description: 'Волна зелёного, синего и фиолетового — переливается без остановки.', color: '#3AA8FF', paper: '#10202A', level: 3, fx: 'aurora' },
+  { id: 'cosmos', name: 'Космос', description: 'Звёзды, орбита и маленькая планета, которая облетает тебя.', color: '#7E8CFF', paper: '#0F1430', level: 4, fx: 'cosmos' },
+  { id: 'tesla', name: 'Тесла', description: 'Электрические разряды по кругу — мерцают, как катушка Теслы.', color: '#5BC8FF', paper: '#0E1726', level: 5, fx: 'tesla' },
+  { id: 'lava', name: 'Лава', description: 'Горячая форма, которая плавится и поворачивается.', color: '#FF6A1A', paper: '#2A0F08', level: 6, fx: 'lava' },
+  { id: 'crown', name: 'Корона', description: 'Золото и корона сверху — для тех, кто дошёл до восьмого уровня.', color: '#D9A22A', paper: '#FFF3D6', level: 8, fx: 'crown' },
+];
 
 export const ILLUSTRATED_FRAMES: AvatarFrameDef[] = [
   { id: 'almaty-apples', name: 'Яблоки Алматы', description: 'Красные яблоки, тонкие веточки и цветы родного города.', color: '#A54138', paper: '#F6E8D9', level: 1, motif: 'apples' },
@@ -25,7 +38,7 @@ export const LEGACY_FRAMES: AvatarFrameDef[] = [
   { id: 'forest', name: 'Лес', description: 'Прежняя зелёная рамка со скруглёнными углами.', color: '#2F8F5B', paper: '#E2EBDD', level: 3, shape: 'squircle' },
   { id: 'violet', name: 'Ночь', description: 'Прежняя фиолетовая рамка в форме соты.', color: '#9167CE', paper: '#EAE1F1', level: 7, shape: 'hex' },
 ];
-export const MAP_FRAMES = [...ILLUSTRATED_FRAMES, ...LEGACY_FRAMES];
+export const MAP_FRAMES = [...FX_FRAMES, ...ILLUSTRATED_FRAMES, ...LEGACY_FRAMES];
 export const frameById = (id?: string | null): AvatarFrameDef => MAP_FRAMES.find(f => f.id === id) ?? LEGACY_FRAMES[0];
 
 /** Прежние формы оставлены для уже сохранённых профилей. */
@@ -99,11 +112,14 @@ function FrameArt({ motif, compact }: { motif: Motif; compact: boolean }) {
   </G>;
 }
 
-export const AvatarFrame = memo(function AvatarFrame({ frameId, photo: image, initial, tint = '#DDD8CB', size = 104, mapPin = false, ring }: {
+export const AvatarFrame = memo(function AvatarFrame({ frameId, photo: image, initial, tint = '#DDD8CB', size = 104, mapPin = false, ring, animate = true }: {
   frameId?: string | null; photo?: string | null; initial: string; tint?: string; size?: number; mapPin?: boolean; ring?: string;
+  /** Живые рамки двигаются (кроме карты и маленьких размеров). */
+  animate?: boolean;
 }) {
   const id = `portrait-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const frame = frameById(frameId);
+  if (frame.fx) return <FxFrame kind={frame.fx} image={image} initial={initial} tint={tint} size={size} mapPin={mapPin} animate={animate} />;
   const color = ring ?? frame.color;
   const outline = frame.shape ? framePath(frame.shape) : 'M32 3A27 27 0 1 1 31.999 3Z';
   const aperture = frame.shape ? outline : 'M32 9.2A20.8 20.8 0 1 1 31.999 9.2Z';
