@@ -9,7 +9,9 @@ import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { AboutBlock } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
 import type { EventItem, Person } from '../data/types';
@@ -80,6 +82,13 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
   const sendingInvite=useRef(false);
   const [inviting,setInviting]=useState(false);
+  // Обложка: при прокрутке уезжает медленнее текста, при оттягивании вниз — растёт (параллакс, FIX3).
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler(ev => { scrollY.set(ev.contentOffset.y); });
+  const parallax = useAnimatedStyle(() => {
+    const y = scrollY.get();
+    return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / 470 }] } : { transform: [{ translateY: y * 0.35 }] };
+  });
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -150,6 +159,10 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
+  // Обратный отсчёт до начала (в пределах суток) — «через 2 ч 15 мин», идёт сейчас — «уже идёт».
+  const toStart = startMs - now.getTime();
+  const soon = toStart > 0 && toStart < 24 * 3600e3 ? `через ${toStart >= 3600e3 ? `${Math.floor(toStart / 3600e3)} ч ` : ''}${Math.max(1, Math.round((toStart % 3600e3) / 60000))} мин`
+    : toStart <= 0 && now.getTime() < endMs ? 'уже идёт' : null;
   const sessions = occurrencesOf(e, sameVenue, now);
   const sessionTime = (x: EventItem) => { const at = almaty(x.startsAt); return `${at.getUTCDate()}.${String(at.getUTCMonth() + 1).padStart(2, '0')} · ${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`; };
   const moreHere = e.venueName ? sameVenue.filter((x) => x.id !== e.id && x.venueName === e.venueName).length : 0;
@@ -159,8 +172,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
 
   return (
     <View style={styles.root}>
-      <ScrollView style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
+        <Animated.View style={[{ zIndex: -1 }, parallax]}>
         <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
             <Defs>
@@ -185,10 +199,12 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </View>
         </EventCover>
+        </Animated.View>
 
         <View style={styles.body}>
           <View style={styles.chips}>
             <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
+            {soon && <View style={[styles.chip, styles.soon]} accessibilityLabel={`Начало ${soon}`}><View style={styles.soonDot} /><Text style={[styles.chipText, { color: colors.accentText }]}>{soon}</Text></View>}
             {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
             {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
@@ -216,7 +232,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
           </View>}
-          {!!e.about && <Text style={styles.about}>{e.about}</Text>}
+          {!!e.about && <AboutBlock text={e.about} />}
 
           <View style={styles.list}>
             {site && (
@@ -256,7 +272,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             </Pressable>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 100 + insets.bottom }} />}
 
@@ -404,6 +420,8 @@ const styles = StyleSheet.create({
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  soon: { backgroundColor: '#F6DCCD', borderColor: 'rgba(240,82,31,0.25)' },
+  soonDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
