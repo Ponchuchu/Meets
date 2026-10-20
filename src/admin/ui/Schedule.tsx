@@ -46,7 +46,7 @@ export function Schedule({ live }: { live: boolean }) {
   const on = !row.paused;
 
   return (
-    <Section title="Расписание" hint="Без расписания поиск запускается только кнопкой. Включишь, и он пойдёт сам в назначенное время (по Алматы).">
+    <Section fold="closed" title="Расписание" hint="Без расписания поиск запускается только кнопкой. Включишь, и он пойдёт сам в назначенное время (по Алматы).">
       <Card>
         <View style={styles.line}>
           <View style={{ flex: 1 }}>

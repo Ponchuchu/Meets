@@ -83,10 +83,10 @@ export default function Admin() {
           )}
           {tab === 'analytics' && (
             <>
-              <Attention live={staff} go={go} />
               <OverviewBlock live={staff} />
+              <Attention live={staff} go={go} />
               <Metrics live={staff} />
-              <Section title="Вкус человека" hint="Найди человека по нику и увидишь, что ему показываем и почему.">
+              <Section fold="closed" title="Вкус человека" hint="Найди человека по нику и увидишь, что ему показываем и почему.">
                 {taste ? <TasteAdmin live={staff} /> : <Chip label="Открыть" onPress={() => setTaste(true)} />}
               </Section>
             </>

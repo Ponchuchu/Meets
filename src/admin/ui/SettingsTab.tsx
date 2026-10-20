@@ -21,7 +21,7 @@ function AiSettings() {
   const preset = MODELS.some((m) => m.id === cfg.model);
   const [custom, setCustom] = useState(!preset);
   return (
-    <Section title="ИИ-поиск" hint="Работает, когда в поиске выбраны «ИИ» или «Оба». «Скрипт» (афиши сайтов) этих настроек не использует.">
+    <Section fold="closed" title="ИИ-поиск" hint="Работает, когда в поиске выбраны «ИИ» или «Оба». «Скрипт» (афиши сайтов) этих настроек не использует.">
       <Card>
         <Text style={styles.label}>Модель</Text>
         <View style={styles.chips}>
@@ -64,7 +64,7 @@ function Publishing({ live }: { live: boolean }) {
     onError: (e) => setNote({ tone: 'error', text: e instanceof Error ? e.message : 'Не удалось сохранить' }),
   });
   return (
-    <Section title="Публикация">
+    <Section fold="closed" title="Публикация">
       <Card>
         <SettingRow title="Публиковать сразу, если 95%+" sub="Только для источников с доверием. Остальное идёт в очередь."
           right={<Toggle on={auto} onChange={(v) => saveAuto.mutate(v)} label="Публиковать сразу, если 95%+" />} />
@@ -85,7 +85,7 @@ const PHOTO_HELP: Record<FindImages, string> = {
 function PhotoSettings() {
   const cfg = useRobotConfig();
   return (
-    <Section title="Фото событий" hint="Откуда берётся картинка, если на афише её нет.">
+    <Section fold="closed" title="Фото событий" hint="Откуда берётся картинка, если на афише её нет.">
       <Card>
         <Text style={styles.label}>Если фото нет</Text>
         <Segmented<string> value={String(cfg.findImages)} onChange={(v) => cfg.set({ findImages: Number(v) as FindImages })}
@@ -106,7 +106,7 @@ function Connection({ live }: { live: boolean }) {
   const { keys, loading } = useKeyStatuses(live);
   const err = cmd.isError ? explainError(cmd.error instanceof Error ? cmd.error.message : '') : null;
   return (
-    <Section title="Подключения" hint="Что нужно, чтобы поиск работал: связь с GitHub и ключи ИИ. Статусы обновляются при каждом поиске. Сами ключи здесь не видны.">
+    <Section fold="closed" title="Подключения" hint="Что нужно, чтобы поиск работал: связь с GitHub и ключи ИИ. Статусы обновляются при каждом поиске. Сами ключи здесь не видны.">
       <Card>
         <SettingRow title="GitHub" sub={cmd.isSuccess ? 'Связь работает' : 'Здесь запускается поиск. Нажми, чтобы проверить связь (ничего не тратит)'}
           right={<Btn label={cmd.isPending ? 'Проверяю…' : 'Проверить'} kind="ghost" disabled={cmd.isPending} onPress={() => cmd.mutate('check')} />} />
@@ -136,7 +136,7 @@ export function SettingsTab({ live }: { live: boolean }) {
   // Порядок по смыслу: откуда события → фото → что публиковать сразу → когда искать → ИИ → подключения.
   return (
     <View style={{ gap: 28 }}>
-      <Section title="Источники" hint="Откуда берём события. «Собирать» включает чтение при поиске. «Доверие» разрешает публиковать события оттуда без проверки (только если включено «Публиковать сразу» ниже).">
+      <Section fold="open" title="Источники" hint="Откуда берём события. «Собирать» включает чтение при поиске. «Доверие» разрешает публиковать события оттуда без проверки (только если включено «Публиковать сразу» ниже).">
         <Sources live={live} />
       </Section>
       <PhotoSettings />

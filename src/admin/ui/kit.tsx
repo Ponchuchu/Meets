@@ -1,17 +1,51 @@
 // Общие кирпичики панели разработчика: карточка, заголовок раздела, кнопки, чипсы.
-import type { ReactNode } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts } from '../../theme';
 
-export function Section({ title, hint, children, right }: { title: string; hint?: string; children: ReactNode; right?: ReactNode }) {
+/** Раздел. С fold — сворачивается по нажатию на заголовок (FIX3: в «Настройках» всё сразу было слишком длинно). */
+export function Section({ title, hint, children, right, fold }: { title: string; hint?: string; children: ReactNode; right?: ReactNode; fold?: 'open' | 'closed' }) {
+  const [open, setOpen] = useState(fold !== 'closed');
+  const head = (
+    <View style={styles.sectionHead}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">{title}</Text>
+      {right}
+      {fold && <ChevronDown size={22} color={colors.muted2} strokeWidth={2} style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} />}
+    </View>
+  );
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHead}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">{title}</Text>
-        {right}
+      {fold ? <Pressable onPress={() => setOpen(v => !v)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={{ minHeight: 44, justifyContent: 'center' }}>{head}</Pressable> : head}
+      {open && !!hint && <Text style={styles.hint}>{hint}</Text>}
+      {open && children}
+    </View>
+  );
+}
+
+/** Строка «что требует внимания»: цветная точка, что случилось, коротко — что делать; нажатие ведёт к исправлению. */
+export function TodoRow({ tone, title, sub, onPress, last }: { tone: 'error' | 'warn' | 'info' | 'ok'; title: string; sub?: string; onPress?: () => void; last?: boolean }) {
+  const dot = tone === 'error' ? colors.accent : tone === 'warn' ? '#D9A93B' : tone === 'ok' ? '#2F8F5B' : colors.muted3;
+  const body = (
+    <View style={[styles.todo, !last && styles.todoSep]}>
+      <View style={[styles.todoDot, { backgroundColor: dot }]} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.todoTitle, tone === 'error' && { color: colors.accentText }]}>{title}</Text>
+        {!!sub && <Text style={styles.todoSub}>{sub}</Text>}
       </View>
-      {!!hint && <Text style={styles.hint}>{hint}</Text>}
-      {children}
+      {onPress && <ChevronRight size={18} color={colors.muted} strokeWidth={2} />}
+    </View>
+  );
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button">{body}</Pressable> : body;
+}
+
+/** Главная цифра дашборда: крупно, с подписью и подсказкой, что это значит. */
+export function Kpi({ n, label, sub, accent }: { n: string | number; label: string; sub?: string; accent?: boolean }) {
+  return (
+    <View style={[styles.kpi, accent && { backgroundColor: colors.ink, borderColor: colors.ink }]}>
+      <Text style={[styles.kpiN, accent && { color: colors.paper }]}>{n}</Text>
+      <Text style={[styles.kpiL, accent && { color: '#E8E4DA' }]}>{label}</Text>
+      {!!sub && <Text style={[styles.kpiS, accent && { color: '#BDB8AD' }]}>{sub}</Text>}
     </View>
   );
 }
@@ -133,6 +167,15 @@ const styles = StyleSheet.create({
   stepBtn: { width: 44, height: 44, borderRadius: 11, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   stepSign: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink, lineHeight: 24 },
   stepVal: { minWidth: 72, textAlign: 'center', fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
+  todo: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 10 },
+  todoSep: { borderBottomWidth: 1, borderBottomColor: colors.line },
+  todoDot: { width: 10, height: 10, borderRadius: 5 },
+  todoTitle: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 20, color: colors.ink },
+  todoSub: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted2 },
+  kpi: { flexGrow: 1, flexBasis: '45%', backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 2 },
+  kpiN: { fontFamily: fonts.display800, fontSize: 34, letterSpacing: -1, color: colors.ink },
+  kpiL: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
+  kpiS: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
   setRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
   setTitle: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   setSub: { fontFamily: fonts.body400, fontSize: 12.5, lineHeight: 17, color: colors.muted },
