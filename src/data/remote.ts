@@ -40,6 +40,7 @@ export interface MessageRow {
   media_path: string | null;
   duration_s: number | null;
   event_id?: string | null;
+  reply_to?: string | null;
   created_at: string;
 }
 
@@ -84,6 +85,7 @@ export function mapMessage(r: MessageRow, me: string): Message {
     media: r.media_path,
     duration: r.duration_s != null ? secs(r.duration_s) : undefined,
     eventId: r.event_id ?? undefined,
+    replyTo: r.reply_to ?? undefined,
     sub: r.kind === 'invite' ? r.author_id === me ? 'Ты пригласил · нажми, чтобы открыть' : 'Приглашает тебя · нажми, чтобы открыть' : undefined,
   };
 }
@@ -204,7 +206,7 @@ export async function getChats(): Promise<Chat[]> {
 
 export async function getMessages(chatId: string, before?: { at: string; id: string }, attachment?: 'media' | 'voice' | 'links'): Promise<Message[]> {
   const me = await requireUser();
-  let query = supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,created_at').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100);
+  let query = supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,reply_to,created_at').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100);
   if (before) query = query.or(`created_at.lt.${before.at},and(created_at.eq.${before.at},id.lt.${before.id})`);
   if (attachment === 'media') query = query.in('kind', ['photo', 'video', 'circle']);
   if (attachment === 'voice') query = query.eq('kind', 'voice');
@@ -256,9 +258,9 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
 
 // ——— Запись ———
 
-export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string, messageId?: string): Promise<void> {
+export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string, messageId?: string, replyTo?: string): Promise<void> {
   const me = await requireUser();
-  const { error } = await withTimeout(supabase().from('messages').insert({ ...(messageId ? { id: messageId } : {}), chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null }));
+  const { error } = await withTimeout(supabase().from('messages').insert({ ...(messageId ? { id: messageId } : {}), chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null, ...(replyTo ? { reply_to: replyTo } : {}) }));
   if (error?.code === '23505' && messageId) {
     const check = await withTimeout(supabase().from('messages').select('id').eq('id', messageId).eq('chat_id', chatId).eq('author_id', me).maybeSingle());
     if (!check.error && check.data) return;

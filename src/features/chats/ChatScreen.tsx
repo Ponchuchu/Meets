@@ -16,6 +16,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { AttachmentsSheet } from '../../chat/ui/AttachmentsSheet';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
 import { StickerPicker } from '../../stickers/StickerPicker';
+import { SwipeReply } from '../../chat/ui/SwipeReply';
+import * as Clipboard from 'expo-clipboard';
+import { Sticker as StickerIcon } from 'lucide-react-native';
 import { getMeStats, answerInvite, getInvites } from '../../live/api';
 import { config } from '../../lib/config';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -111,6 +114,8 @@ export default function ChatScreen() {
   const focusFriend = useMapState((s) => s.focusFriend);
   const [text, setText] = useState('');
   const [tray, setTray] = useState(trayParam === '1');
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [menu, setMenu] = useState<Message | null>(null);
   const [album, setAlbum] = useState<Album>('recent');
   const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
@@ -187,14 +192,15 @@ export default function ChatScreen() {
     const local = !msg.uploadedPath && msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':');
     useOutbox.getState().add({ id: msg.id, kind: 'message', chatId: msg.chatId, ownerId, payload: {
       kind: msg.kind, body: msg.text, media_path: msg.uploadedPath ?? (local ? null : msg.media ?? null),
-      ...(local ? { local_uri: msg.media } : {}), duration_s: msg.durationS ?? null, event_id: msg.eventId ?? null,
+      ...(local ? { local_uri: msg.media } : {}), duration_s: msg.durationS ?? null, event_id: msg.eventId ?? null, ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
     } });
   };
   const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
     if (isRemoteId(id) && !myId()) { show({ text: 'Войди снова, чтобы отправить сообщение' }); return; }
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, ownerId: myId() ?? undefined, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
+    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, ownerId: myId() ?? undefined, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...(replyTo ? { replyTo: replyTo.id } : {}), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
+    setReplyTo(null);
     chat.send(msg);
     track('chat_sent');
     if (isRemoteId(id)) void sendPending(msg);
@@ -346,7 +352,13 @@ export default function ChatScreen() {
   const renderMessage = useCallback(({ item: m, index }: ListRenderItemInfo<Message>) => {
           const mine = m.authorId === 'me';
           const prev = listData[Platform.OS === 'web' ? index - 1 : index + 1];
+          const quoted = m.replyTo ? listData.find(x => x.id === m.replyTo) : undefined;
           return (
+            <SwipeReply enabled={check.ok && m.kind !== 'system'} onReply={() => setReplyTo(m)} onMenu={() => setMenu(m)}>
+            {quoted && <View style={[styles.quote, mine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: (isEvent || isGroup) ? 38 : 0 }]}>
+              <Text style={styles.quoteName} numberOfLines={1}>{quoted.authorId === 'me' ? 'Ты' : byId(quoted.authorId)?.name ?? 'Сообщение'}</Text>
+              <Text style={styles.quoteText} numberOfLines={1}>{snippet(quoted)}</Text>
+            </View>}
             <View><Bubble m={chat.answers[m.id] ? { ...m, answer: chat.answers[m.id] === 'yes' ? 'Иду' : 'Не смогу' } : m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
               showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
               revealed={!!chat.revealed[m.id]} onReveal={() => chat.reveal(m.id)}
@@ -356,6 +368,7 @@ export default function ChatScreen() {
               onInvite={!mine ? a => { void answerMessage(m, a); } : undefined} />
               {m.delivery && <Pressable disabled={m.delivery === 'sending'} onPress={() => void sendPending(m)} style={{ alignSelf: 'flex-end', minHeight: 36, paddingHorizontal: 8, justifyContent: 'center' }}><Text style={styles.status}>{m.delivery === 'sending' ? 'Отправляется…' : 'Не отправилось · Повторить'}</Text></Pressable>}
             </View>
+            </SwipeReply>
           );
   }, [listData, people, friend, isEvent, isGroup, chat.revealed, chat.votes, chat.answers, invites, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -444,6 +457,16 @@ export default function ChatScreen() {
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#composerFade)" />
           </Svg>
+          {replyTo && (
+            <View style={[styles.replyBar, glass]}>
+              <View style={styles.replyLine} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quoteName} numberOfLines={1}>Ответ {replyTo.authorId === 'me' ? 'себе' : byId(replyTo.authorId)?.name ?? ''}</Text>
+                <Text style={styles.quoteText} numberOfLines={1}>{snippet(replyTo)}</Text>
+              </View>
+              <Pressable onPress={() => setReplyTo(null)} style={styles.replyClose} accessibilityRole="button" accessibilityLabel="Не отвечать"><Ic d={IC.close} size={15} color={colors.ink} w={2.3} /></Pressable>
+            </View>
+          )}
           <View style={[styles.capsule, glass]}>
           <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
@@ -458,6 +481,12 @@ export default function ChatScreen() {
               onContentSizeChange={(ev) => setInputH(Math.max(44, Math.min(132, ev.nativeEvent.contentSize.height)))}
               onKeyPress={(ev) => { const ne = ev.nativeEvent as { key: string; shiftKey?: boolean }; if (Platform.OS === 'web' && ne.key === 'Enter' && !ne.shiftKey) { ev.preventDefault?.(); sendText(); } }}
               placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, { height: text ? inputH : 44 }]} accessibilityLabel="Сообщение" />
+          )}
+          {/* Стикеры — отдельной кнопкой, как в Telegram (были спрятаны в конце вложений). */}
+          {!recording && !locked && !text.trim() && (
+            <Pressable onPress={() => { Keyboard.dismiss(); setSheet('stickers'); }} style={styles.stickerBtn} hitSlop={4} accessibilityRole="button" accessibilityLabel="Стикеры">
+              <StickerIcon size={22} color={colors.muted2} strokeWidth={1.8} />
+            </Pressable>
           )}
           {locked ? <View style={{flexDirection:'row',gap:6}}>
             <Pressable style={styles.iconBtn} onPress={()=>void stopRec(false)} accessibilityLabel="Отменить запись"><Ic d={IC.close} size={20} color={colors.ink}/></Pressable>
@@ -586,6 +615,11 @@ export default function ChatScreen() {
         </>
       )}
       {sheet==='events'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet label="Поделиться событием" onClose={()=>setSheet(null)}><Text style={styles.sheetTitle}>Поделиться событием</Text><ScrollView style={{maxHeight:400}}>{[...plans.meetups,...events].filter((e,i,all)=>all.findIndex(a=>a.id===e.id)===i).map(e=><Pressable key={e.id} style={styles.menuRow} onPress={()=>{push({kind:'invite',eventId:e.id,text:e.title});setSheet(null);}}><Text style={styles.menuText}>{e.title}</Text></Pressable>)}</ScrollView></BottomSheet></>}
+      {menu && <><Backdrop label="Закрыть" onPress={() => setMenu(null)} /><BottomSheet onClose={() => setMenu(null)} label="Сообщение">
+        <Text style={styles.quoteText} numberOfLines={2}>{snippet(menu)}</Text>
+        <Pressable onPress={() => { setReplyTo(menu); setMenu(null); }} style={styles.menuRow} accessibilityRole="button"><Text style={styles.menuText}>Ответить</Text></Pressable>
+        {!!menu.text && menu.kind === 'text' && <Pressable onPress={() => { void Clipboard.setStringAsync(menu.text); setMenu(null); show({ text: 'Скопировано' }); }} style={styles.menuRow} accessibilityRole="button"><Text style={styles.menuText}>Скопировать</Text></Pressable>}
+      </BottomSheet></>}
       {sheet==='stickers'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Стикеры"><StickerPicker level={stats?.level??1} onSelect={s=>{push({kind:'sticker',text:s.label});setSheet(null);}}/></BottomSheet></>}
       {sheet === 'attachments' && <AttachmentsSheet chatId={id} messages={messages} title={title} friend={friend || isGroup || isEvent} onClose={() => setSheet(null)} />}
       {recording === 'circle' && (
@@ -655,7 +689,19 @@ function PersonSheet({ p, friend, details, spot, requested, onClose, onProfile, 
   );
 }
 
+/** Коротко о сообщении — для цитаты и плашки ответа. */
+const SNIP: Partial<Record<Message['kind'], string>> = { photo: 'Фото', video: 'Видео', voice: 'Голосовое', circle: 'Кружок', invite: 'Приглашение', poll: 'Опрос' };
+const snippet = (m: Message) => (m.kind === 'text' ? m.text : m.kind === 'sticker' ? `Стикер ${m.text}` : SNIP[m.kind] ?? m.text);
+
 const styles = StyleSheet.create({
+  quote: { maxWidth: '78%', marginBottom: 3, paddingVertical: 4, paddingHorizontal: 10, borderLeftWidth: 3, borderLeftColor: colors.accent, borderRadius: 8, backgroundColor: 'rgba(23,22,26,0.05)' },
+  quoteName: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },
+  quoteText: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
+  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 12, marginBottom: 6, paddingVertical: 8, paddingLeft: 12, paddingRight: 4, borderRadius: 18 },
+  replyLine: { width: 3, alignSelf: 'stretch', borderRadius: 2, backgroundColor: colors.accent },
+  replyClose: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+
+  stickerBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.paper },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },

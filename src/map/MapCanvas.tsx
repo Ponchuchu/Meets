@@ -37,7 +37,7 @@ const PIN_BOX = 72;
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
-  const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD)), [props.theme, threeD]);
+  const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
   const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);

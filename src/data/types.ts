@@ -115,6 +115,8 @@ export interface Message {
   sub?: string;
   answer?: string;
   eventId?: string;
+  /** Ответ на сообщение (messages.reply_to). */
+  replyTo?: string;
   poll?: { question: string; options: { text: string; votes: number }[] };
 }
 

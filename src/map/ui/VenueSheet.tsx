@@ -1,6 +1,6 @@
 // Карточка места (ТРЦ) — design/png/V6Venue.png: значок, название, адрес и часы, события внутри и сеансы кино (если есть в базе).
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Clock, MapPin, X } from 'lucide-react-native';
+import { Clock, MapPin, ShoppingBag, X } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
 import { almaty } from '../../lib/clock';
@@ -23,10 +23,26 @@ export function insideMall(m: Mall, events: EventItem[]): EventItem[] {
 const dayHm = (iso: string) => { const d = almaty(iso); const n = almaty(new Date().toISOString()); const same = d.getUTCDate() === n.getUTCDate() && d.getUTCMonth() === n.getUTCMonth(); return `${same ? '' : `${d.getUTCDate()}.${String(d.getUTCMonth() + 1).padStart(2, '0')} `}${hm(iso)}`; };
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
 
-export function MallPin({ m, onPress }: { m: Mall; onPress: () => void }) {
+/** Цвет и короткое имя ТРЦ на карте (FIX3): свой цвет у каждого центра, без чужих логотипов. */
+const MALL_LOOK: [RegExp, string, string][] = [
+  [/dostyk/i, '#1F8A8A', 'Dostyk Plaza'], [/esentai/i, '#2B2620', 'Esentai'], [/aport.*east/i, '#2F8F5B', 'Aport East'],
+  [/aport/i, '#3E7E4E', 'Aport West'], [/mega park/i, '#C8372D', 'MEGA Park'], [/mega/i, '#B32F27', 'MEGA'],
+];
+export const mallLook = (name: string): { color: string; short: string } => {
+  const hit = MALL_LOOK.find(([re]) => re.test(name));
+  return { color: hit?.[1] ?? colors.friend, short: hit?.[2] ?? name };
+};
+
+/** Значок ТРЦ: цветная плитка с сумкой, стеклянная кромка, имя подписью и число событий. */
+export function MallPin({ m, onPress, events = 0 }: { m: Mall; onPress: () => void; events?: number }) {
+  const look = mallLook(m.name);
   return (
-    <Pressable onPress={onPress} style={styles.pin} accessibilityRole="button" accessibilityLabel={`ТРЦ ${m.name}`} hitSlop={6}>
-      <Building2 size={16} color={colors.paper} strokeWidth={1.9} />
+    <Pressable onPress={onPress} style={styles.mall} accessibilityRole="button" accessibilityLabel={`ТРЦ ${m.name}${events ? `, событий: ${events}` : ''}`} hitSlop={6}>
+      <View style={[styles.pin, { backgroundColor: look.color }]}>
+        <ShoppingBag size={18} color="#FFFFFF" strokeWidth={2} />
+        {events > 0 && <View style={styles.count}><Text style={styles.countText}>{events > 9 ? '9+' : events}</Text></View>}
+      </View>
+      <View style={styles.label}><Text style={styles.labelText} numberOfLines={1}>{look.short}</Text></View>
     </Pressable>
   );
 }
@@ -48,7 +64,7 @@ export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: E
   return (
     <View style={{ gap: space.m }}>
       <View style={styles.head}>
-        <View style={styles.logo}><Building2 size={24} color={colors.paper} strokeWidth={1.8} /></View>
+        <View style={[styles.logo, { backgroundColor: mallLook(m.name).color }]}><ShoppingBag size={24} color={colors.paper} strokeWidth={1.8} /></View>
         <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>{m.name}</Text>
           {!!m.address && <View style={styles.meta}><MapPin size={14} color={colors.muted} strokeWidth={1.9} /><Text style={styles.sub} numberOfLines={2}>{m.address}</Text></View>}
@@ -82,7 +98,12 @@ export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: E
 }
 
 const styles = StyleSheet.create({
-  pin: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.friend, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  mall: { alignItems: 'center', gap: 3, width: 72 },
+  pin: { width: 38, height: 38, borderRadius: 13, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.45), 0 6px 14px -4px rgba(23,22,26,0.45)' },
+  count: { position: 'absolute', top: -7, right: -9, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  countText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.ink },
+  label: { maxWidth: 72, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(252,251,248,0.92)', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)' },
+  labelText: { fontFamily: fonts.body700, fontSize: 9.5, color: colors.ink },
   card: { borderRadius: radii.xl, padding: space.l, paddingTop: space.l },
   close: { width: 44, height: 44, borderRadius: 22, marginTop: -6, marginRight: -8, alignItems: 'center', justifyContent: 'center' },
   head: { flexDirection: 'row', gap: space.m, alignItems: 'flex-start' },

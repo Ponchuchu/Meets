@@ -254,7 +254,7 @@ setOutboxSender(async (it) => {
       useOutbox.getState().updatePayload(it.id, payload);
     }
     if (me() !== owner) throw new Error('auth: аккаунт изменился');
-    await sendMessage(it.chatId, String(payload.body ?? ''), payload.kind as MessageKind, payload.media_path as string | undefined, payload.duration_s as number | undefined, payload.event_id as string | undefined, it.id);
+    await sendMessage(it.chatId, String(payload.body ?? ''), payload.kind as MessageKind, payload.media_path as string | undefined, payload.duration_s as number | undefined, payload.event_id as string | undefined, it.id, (payload.reply_to as string | undefined) ?? undefined);
     const local = useChat.getState().sent.find(m => m.id === it.id);
     if (local) queryClient.setQueryData<Message[]>(['messages', it.chatId], (old = []) => old.some(m => m.id === it.id) ? old : [...old, { ...local, delivery: undefined }]);
     useChat.getState().unsend(it.id);

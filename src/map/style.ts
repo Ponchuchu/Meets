@@ -10,8 +10,11 @@ export const BUILDINGS_MIN_ZOOM = 14.5;
 
 const FONT = ['DIN Pro Medium', 'Arial Unicode MS Regular'];
 
-export function mapStyle(theme: MapTheme, threeD = true): Record<string, unknown> {
+/** native — свойства Mapbox Maps v11 (свет, мягкие тени, скруглённые рёбра); веб-версия mapbox-gl 2 их не знает. */
+export function mapStyle(theme: MapTheme, threeD = true, native = false): Record<string, unknown> {
   const c = mapPalettes[theme];
+  const night = theme === 'night';
+  const v11 = threeD && native;
   return {
     version: 8,
     name: `ryadom-${theme}`,
@@ -22,6 +25,11 @@ export function mapStyle(theme: MapTheme, threeD = true): Record<string, unknown
       ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
     },
     // В экономном режиме не загружаем DEM и не рисуем объёмную геометрию.
+    // Свет для объёмных домов: мягкий общий и «солнце» с юго-запада (без теней — их считать дорого для Poco M6).
+    ...(v11 ? { lights: [
+      { id: 'ambient', type: 'ambient', properties: { color: night ? '#9AA3C7' : '#FFFFFF', intensity: night ? 0.45 : 0.62 } },
+      { id: 'sun', type: 'directional', properties: { color: night ? '#C9D2FF' : '#FFF4E2', intensity: night ? 0.25 : 0.5, direction: [210, 40], 'cast-shadows': false } },
+    ] } : {}),
     ...(threeD ? { terrain: { source: 'dem', exaggeration: 1.2 },
       fog: { range: [1.5, 10], color: c.land, 'high-color': c.land, 'space-color': c.land, 'horizon-blend': 0.08 } } : {}),
     layers: [
@@ -57,8 +65,12 @@ export function mapStyle(theme: MapTheme, threeD = true): Record<string, unknown
       },
       {
         id: 'buildings', type: threeD ? 'fill-extrusion' : 'fill', source: 'streets', 'source-layer': 'building', minzoom: BUILDINGS_MIN_ZOOM,
+        ...(v11 ? { layout: { 'fill-extrusion-edge-radius': 0.35 } } : {}),
         paint: threeD ? {
-          'fill-extrusion-color': theme === 'night' ? '#454956' : '#D5D9DE',
+          // Цвет по высоте: малоэтажки — прохладный серый, высотки — светлее и теплее (читаются силуэты города).
+          'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'height'], 6],
+            0, night ? '#3F434F' : '#CDD2D8', 30, night ? '#4A4F5E' : '#DCDDDD', 90, night ? '#5A5F72' : '#EBE4D6', 180, night ? '#6B6F86' : '#F3E7D2'],
+          ...(v11 ? { 'fill-extrusion-ambient-occlusion-intensity': 0.35, 'fill-extrusion-ambient-occlusion-radius': 4, 'fill-extrusion-vertical-gradient': true } : {}),
           'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.6, ['max', 3, ['coalesce', ['get', 'height'], 6]]],
           'fill-extrusion-base': ['min', ['coalesce', ['get', 'min_height'], 0], ['max', 3, ['coalesce', ['get', 'height'], 6]]],
           'fill-extrusion-opacity': 0.9,

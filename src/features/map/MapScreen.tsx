@@ -49,7 +49,7 @@ import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { MallPin, PlaceCard } from '../../map/ui/VenueSheet';
+import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
@@ -324,7 +324,7 @@ export default function MapScreen() {
         ),
       };
     });
-    if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} onPress={() => { setMall(m); setSheet('venue'); }} /> });
+    if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
       const own = fix ?? myPos;
