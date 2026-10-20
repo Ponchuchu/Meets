@@ -6,6 +6,9 @@ export interface Db {
   sources(): Promise<Source[]>;
   venues(): Promise<VenueRow[]>;
   known(): Promise<KnownEvent[]>;
+  /** Ближайшие события с коротким описанием (обрезанным старым сборщиком) по ссылкам источника. */
+  shortAbouts(urls: string[]): Promise<{ id: string; source_url: string }[]>;
+  setAbout(id: string, about: string): Promise<void>;
   /** Сохраняет посты, возвращает только новые (которых ещё не было). */
   savePosts(posts: RawPost[]): Promise<(RawPost & { id: string })[]>;
   markPost(id: string, cls: string, eventId: string | null): Promise<void>;
@@ -34,6 +37,15 @@ export function createDb(url: string, key: string): Db {
 
   return {
     sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual)&select=*'),
+    shortAbouts: async (urls) => {
+      const out: { id: string; source_url: string; about: string | null }[] = [];
+      for (let i = 0; i < urls.length; i += 40) {
+        const list = urls.slice(i, i + 40).map(u => `"${u.replace(/"/g, '')}"`).join(',');
+        out.push(...await rest<{ id: string; source_url: string; about: string | null }[]>(`events?select=id,source_url,about&source_url=in.(${encodeURIComponent(list)})&ends_at=gte.${new Date().toISOString()}`));
+      }
+      return out.filter(r => (r.about ?? '').length < 200);
+    },
+    setAbout: async (id, about) => { await patch(`events?id=eq.${id}`, { about, updated_at: new Date().toISOString() }); },
     venues: () => rest<VenueRow[]>('venues_points?select=id,name,aliases,address,lat,lon'),
     known: async () => {
       const since = new Date(Date.now() - 2 * 86400e3).toISOString();

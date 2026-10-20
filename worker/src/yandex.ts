@@ -105,7 +105,7 @@ export function yandexFound(html: string, url: string, from = ''): Found[] {
     price_min: x.price,
     price_max: null,
     is_free: false,
-    about: about.slice(0, 160),
+    about: about.slice(0, 1500),
     url,
     image_url: typeof image === 'string' && /^https?:\/\//.test(image) ? image : null,
     source_name: 'Яндекс Афиша',

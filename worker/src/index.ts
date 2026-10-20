@@ -4,6 +4,7 @@
 //   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
+import { polishAbouts } from './polish.ts';
 import { readReport, runStats, telegramLine, telegramStat, type TelegramStat } from './runstats.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -151,6 +152,17 @@ async function live() {
       throw new Error('Нет источников в базе');
     }
     const found = await readFound(searchFile);
+    // Старые карточки с обрезанным описанием (до FIX3 сборщик резал до 160 символов) — дописываем полным текстом.
+    try {
+      const short = await db.shortAbouts([...new Set(found.map(f => f.url).filter(Boolean))]);
+      const fix = short.map(r => ({ r, f: found.find(f => f.url === r.source_url)! })).filter(x => x.f && (x.f.about ?? '').length > 200).slice(0, 40);
+      if (fix.length) {
+        const copy = fix.map(x => ({ ...x.f }));
+        await polishAbouts(copy);
+        for (let i = 0; i < fix.length; i++) await db.setAbout(fix[i].r.id, copy[i].about ?? '');
+        await robotLog(`Дописаны описания старых карточек: ${fix.length}`);
+      }
+    } catch (err) { console.error(`Описания старых карточек: ${(err as Error).message}`); }
     // Каждое событие записываем на «свой» источник: на карточке будет «Яндекс Афиша» или «Sxodim», а не «ИИ».
     const groups = new Map<string, { source: Source; found: Found[] }>();
     for (const f of found) {
@@ -166,7 +178,13 @@ async function live() {
       const fresh = await db.savePosts(posts);
       total += posts.length;
       console.log(`${src.title}: найдено ${posts.length}, новых ${fresh.length}`);
-      const results = await processPosts(fresh, src, { understand: understandFound, geocode, venues, known, now: new Date() });
+      // Только новым — описание как у редактора (Kimi), чтобы карточку хотелось читать (FIX3).
+      const extracted = await Promise.all(fresh.map(async p => ({ p, x: await understandFound(p) })));
+      const draftLike = extracted.map(({ x }) => ({ title: x.title, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, address: x.address ?? undefined, about: x.about ?? '' }) as Found);
+      const { polished } = await polishAbouts(draftLike);
+      if (polished) await robotLog(`Описания оформлены: ${polished}`);
+      const better = new Map(extracted.map(({ p, x }, i) => [p.externalId, { ...x, about: draftLike[i].about ?? x.about }]));
+      const results = await processPosts(fresh, src, { understand: async (p: RawPost) => better.get(p.externalId) ?? understandFound(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, src.id);
       print(results);
       all.push(...results);

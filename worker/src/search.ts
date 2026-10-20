@@ -58,7 +58,7 @@ export function topicPrompt(topic: string, from: string, to: string, max = 6): s
   const sites = (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
   return `Найди через поиск до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
 Ищи на: ${sites}. Нужны дата и время, площадка, адрес, цена (нет — null). url — страница события или афиша площадки, не главная сайта. Не выдумывай, год проверяй. Не больше двух поисков, затем сразу ответ: только JSON-массив без вызовов функций ([] если пусто):
-[{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"до 160 символов","url":"","source_name":"","confidence":0.8}]`;
+[{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"полное описание со страницы события, до 1500 символов","url":"","source_name":"","confidence":0.8}]`;
 }
 
 // ——— Gemini API ———
