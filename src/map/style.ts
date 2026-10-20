@@ -73,7 +73,8 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
           ...(v11 ? { 'fill-extrusion-ambient-occlusion-intensity': 0.35, 'fill-extrusion-ambient-occlusion-radius': 4, 'fill-extrusion-vertical-gradient': true } : {}),
           'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.6, ['max', 3, ['coalesce', ['get', 'height'], 6]]],
           'fill-extrusion-base': ['min', ['coalesce', ['get', 'min_height'], 0], ['max', 3, ['coalesce', ['get', 'height'], 6]]],
-          'fill-extrusion-opacity': 0.9,
+          // Дома проявляются плавно, пока приближаешься, — без резкого «щелчка» на одном масштабе.
+          'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.9, 0.9],
         } : { 'fill-color': theme === 'night' ? '#383C46' : '#D5D9DE', 'fill-opacity': 0.65 },
       },
       {
@@ -83,7 +84,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
           'symbol-placement': 'line', 'text-field': ['upcase', ['coalesce', ['get', 'name_ru'], ['get', 'name']]],
           'text-font': FONT, 'text-size': 9, 'text-letter-spacing': 0.2, 'text-max-angle': 30,
         },
-        paint: { 'text-color': c.label, 'text-halo-color': c.land, 'text-halo-width': 1 },
+        paint: { 'text-color': c.label, 'text-halo-color': c.land, 'text-halo-width': 1, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 1] },
       },
       {
         id: 'districts', type: 'symbol', source: 'streets', 'source-layer': 'place_label',
@@ -92,7 +93,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
           'text-field': ['upcase', ['coalesce', ['get', 'name_ru'], ['get', 'name']]],
           'text-font': FONT, 'text-size': 11, 'text-letter-spacing': 0.5, 'text-max-width': 12,
         },
-        paint: { 'text-color': c.district },
+        paint: { 'text-color': c.district, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 11.5, 1, 15, 1, 16, 0] },
       },
     ],
   };

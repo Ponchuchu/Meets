@@ -24,7 +24,7 @@ import { EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from 
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinScale, pxToLat } from '../../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
@@ -42,6 +42,7 @@ import { FiltersSheet } from '../../map/ui/FiltersSheet';
 import { SearchOverlay } from '../../map/ui/SearchOverlay';
 import { TopBar } from '../../map/ui/TopBar';
 import { useMapState } from '../../state/map';
+import { useMapView } from '../../state/mapView';
 import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
@@ -110,7 +111,10 @@ export default function MapScreen() {
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
-  const [threeD, setThreeD] = useState(true);
+  // 2D/3D — в «Линзах» (FIX3): кнопка на карте убрана.
+  const view = useMapView((s) => s.view);
+  const setView = useMapView((s) => s.setView);
+  const threeD = view === '3d';
   const [mapMode, setMapMode] = useState<'loading' | 'static' | 'mapbox'>('loading');
   const [mapAttempt, setMapAttempt] = useState(0);
   // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
@@ -305,7 +309,8 @@ export default function MapScreen() {
   }, [zoom, select]);
 
   const markers: MapMarker[] = useMemo(() => {
-    const list: MapMarker[] = groupByPoint(visible).map((group) => {
+    const groups = groupByPoint(visible);
+    const list: MapMarker[] = groups.map((group) => {
       // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
       const e = group.find((x) => x.id === selected?.id)
         ?? group.find((x) => x.id === selectedId)
@@ -324,6 +329,12 @@ export default function MapScreen() {
         ),
       };
     });
+    // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
+    const budget = pinBudget(zoom);
+    if (list.length > budget) {
+      const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
+      list.splice(0, list.length, ...keep);
+    }
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
@@ -458,7 +469,7 @@ export default function MapScreen() {
 
 
       {!focusId && sheet === null && (
-        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 125)} bearing={bearing} follow={follow} threeD={threeD} onThreeD={() => setThreeD(v => !v)} threeDDisabled={mapMode !== 'mapbox'}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 125)} bearing={bearing} follow={follow}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
@@ -528,7 +539,7 @@ export default function MapScreen() {
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть линзы" />
           <BottomSheet onClose={() => setSheet(null)} label="Линзы">
-            <LensSheet lens={lens} onPick={(l) => { setLens(l); setSheet(null); }} />
+            <LensSheet lens={lens} onPick={(l) => { setLens(l); setSheet(null); }} view={view} onView={(v) => { setView(v); setSheet(null); }} canThreeD={mapMode === 'mapbox'} />
           </BottomSheet>
         </>
       )}

@@ -6,6 +6,12 @@ export function pinScale(zoom: number): number {
   return Math.max(0.55, Math.min(1.15, 0.55 + (zoom - 11) * 0.19));
 }
 
+/** Сколько точек событий рисовать: вдали — самые важные, с приближением — плавно больше (FIX3: без «всё сразу»). */
+export function pinBudget(zoom: number): number {
+  if (zoom >= 15) return Infinity;
+  return Math.round(14 * 2 ** Math.max(0, zoom - 11));
+}
+
 export type Detail = 'far' | 'mid' | 'near';
 
 /** far — только иконки; mid — подписи у своих и дружеских событий; near — подписи у всех. */
