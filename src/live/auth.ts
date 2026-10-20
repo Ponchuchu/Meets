@@ -6,6 +6,7 @@ import { AppState, Platform } from 'react-native';
 import { queryClient } from './query';
 import { supabase, withTimeout } from '../data/client';
 import { config } from '../lib/config';
+import { flushCrashes } from '../lib/crash';
 
 const FN = `${config.supabaseUrl}/functions/v1/alpha-login`;
 
@@ -58,6 +59,8 @@ export function useAuthWatch() {
       if (session && previous !== session.user.id) {
         // Запросы, запущенные до восстановления сессии, повторяем после входа.
         setTimeout(() => { void queryClient.invalidateQueries(); }, 0);
+        // Ошибки прошлого запуска — в базу (только команда их видит).
+        setTimeout(() => { void flushCrashes(async rows => { const { error } = await sb.from('client_errors').insert(rows); if (error) throw error; }).catch(() => undefined); }, 4000);
       }
     });
     if (Platform.OS === 'web') return () => data.subscription.unsubscribe();

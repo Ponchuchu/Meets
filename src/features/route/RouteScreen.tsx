@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, CornerUpLeft, CornerUpRight, Flag, Footprints, Undo2, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { InteractionManager, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
@@ -62,6 +62,12 @@ export default function RouteScreen() {
   const { width: screenW } = useWindowDimensions();
   const [mapReady, setMapReady] = useState(false);
   const [mapMode, setMapMode] = useState<'mapbox' | 'static' | null>(null);
+  // Карту создаём после анимации перехода: на Android одновременный разбор старой карты и запуск новой ронял приложение.
+  const [mountMap, setMountMap] = useState(Platform.OS === 'web');
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setTimeout(() => setMountMap(true), 120));
+    return () => task.cancel();
+  }, []);
   const fitted = useRef('');
   const mapRef = useRef<MapCanvasHandle>(null);
   const fix = useMyFix((s) => s.fix);
@@ -165,8 +171,8 @@ export default function RouteScreen() {
 
   return (
     <View style={styles.root} onLayout={(ev) => setSize((s) => ({ ...s, h: ev.nativeEvent.layout.height }))}>
-      <MapCanvas ref={mapRef} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
-        me={me} meHeading={heading} meArrow={follow} bottomInset={size.sheet + 8} topInset={headTop + 80} />
+      {mountMap && <MapCanvas ref={mapRef} threeD={false} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
+        me={me} meHeading={heading} meArrow={follow} bottomInset={size.sheet + 8} topInset={headTop + 80} />}
 
       {!follow ? (
         <View style={[styles.top, glass, { top: headTop }]}>

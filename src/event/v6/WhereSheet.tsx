@@ -5,7 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { Copy, MapPin } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
 import { getRoute } from '../../live/api';
 import { distM } from '../../live/geo';
@@ -26,6 +26,13 @@ export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, m
   return { route: q.data ?? null, bus, walkMin, carMin, rough: !q.data && !loading, loading };
 }
 
+type Point = { lat: number; lon: number };
+/** Запасной путь: свой навигатор недоступен — открываем привычное приложение, а без него сайт. */
+const OUTSIDE = [
+  { name: '2ГИС', letter: '2', color: '#2FA84F', app: (p: Point) => `dgis://2gis.ru/routeSearch/rsType/car/to/${p.lon},${p.lat}`, web: (p: Point) => `https://2gis.kz/almaty/directions/points/%7C${p.lon}%2C${p.lat}` },
+  { name: 'Яндекс', letter: 'Я', color: '#E5372B', app: (p: Point) => `yandexmaps://maps.yandex.ru/?rtext=~${p.lat},${p.lon}&rtt=auto`, web: (p: Point) => `https://yandex.kz/maps/?rtext=~${p.lat},${p.lon}&rtt=auto` },
+];
+
 export function WhereSheet({ e, me, onCopied }: { e: EventItem; me: { lat: number; lon: number } | null; onCopied: () => void }) {
   return (
     <View style={{ gap: 12 }}>
@@ -37,6 +44,16 @@ export function WhereSheet({ e, me, onCopied }: { e: EventItem; me: { lat: numbe
         <View style={styles.hereHead}><MapPin size={20} color={colors.accent} /><Text style={styles.hereTitle}>Показать на карте</Text></View>
         <Text style={styles.hereSub}>Сначала место, затем пешком, на машине или автобусе</Text>
       </Pressable>
+      {!e.noPoint && (
+        <View style={styles.apps}>
+          {OUTSIDE.map(a => (
+            <Pressable key={a.name} onPress={() => { void Linking.openURL(a.app(e)).catch(() => Linking.openURL(a.web(e)).catch(() => undefined)); }} style={styles.app} accessibilityRole="button" accessibilityLabel={`Маршрут в ${a.name}`}>
+              <View style={[styles.mark, { backgroundColor: a.color }]}><Text style={styles.markText}>{a.letter}</Text></View>
+              <Text style={styles.appText}>{a.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
       <Pressable onPress={() => { void Clipboard.setStringAsync(e.address || e.title).then(onCopied); }} style={styles.copy} accessibilityRole="button">
         <Copy size={17} color={colors.muted2} strokeWidth={1.9} />
         <Text style={styles.copyText}>Скопировать адрес</Text>

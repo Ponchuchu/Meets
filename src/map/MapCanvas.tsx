@@ -28,6 +28,19 @@ try {
 }
 
 const LOAD_TIMEOUT_MS = 8000;
+const EMPTY_FC = { type: 'FeatureCollection', features: [] };
+
+const okPoint = (p: unknown): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0] as number) <= 180 && Math.abs(p[1] as number) <= 90;
+/** Только целые линии из двух и более правильных точек; пустая коллекция — тоже правильная форма. */
+export function linesGeo(lines: NonNullable<MapCanvasProps['lines']>) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: lines.filter(l => l.coords.length >= 2 && l.coords.every(okPoint)).map(l => ({
+      type: 'Feature' as const, id: l.id, properties: { color: l.color, width: l.width ?? 5, dash: !!l.dash },
+      geometry: { type: 'LineString' as const, coordinates: l.coords },
+    })),
+  };
+}
 
 const PIN_BOX = 72;
 
@@ -37,8 +50,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD)), [props.theme, threeD]);
   const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
   const placeShape = useMemo(() => placesGeo(places), [places]);
+  const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
+  const box = useRef({ w: 390, h: 844 });
   const [failed, setFailed] = useState(!Mapbox || !config.mapboxToken);
   const loaded = useRef(false);
   const moved = useRef(false);
@@ -61,6 +76,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     return () => clearTimeout(t);
   }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toStart = () => {
+    if (!okPoint([camera.lon, camera.lat]) || !Number.isFinite(camera.zoom)) return;
     if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 });
   };
   const checkCenter = (lat: number, lon: number) => {
@@ -68,15 +84,23 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   };
 
   useImperativeHandle(ref, () => ({
-    fitBounds: (coords, padding) => {
+    fitBounds: (all, padding) => {
+      const coords = all.filter(okPoint);
       if (!coords.length) return;
       moved.current = true;
       const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);
-      if (cam.current) cam.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [padding.top, padding.right, padding.bottom, padding.left], 450);
+      // Одна точка или отступы больше карты — Mapbox на Android считал бесконечный масштаб; расширяем рамку и ужимаем отступы.
+      const pad = 0.0015;
+      const ne = [Math.max(...lons) + pad, Math.max(...lats) + pad], sw = [Math.min(...lons) - pad, Math.min(...lats) - pad];
+      const vScale = Math.min(1, (box.current.h * 0.7) / Math.max(1, padding.top + padding.bottom));
+      const hScale = Math.min(1, (box.current.w * 0.7) / Math.max(1, padding.left + padding.right));
+      const p = [padding.top * vScale, padding.right * hScale, padding.bottom * vScale, padding.left * hScale].map(v => Math.max(0, Math.round(v)));
+      if (cam.current) cam.current.fitBounds(ne, sw, p, 450);
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading) => { moved.current = true; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 17, heading, pitch: 60, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading) => { if (!okPoint([lon, lat])) return; moved.current = true; heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: 17, heading, pitch: 60, animationDuration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
+      if (!okPoint([lon, lat])) return;
       moved.current = true;
       if (zoom != null) z.current = zoom;
       if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: Math.min(350, durationMs) });
@@ -99,7 +123,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   }
   const M = Mapbox;
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#DDD8CB' }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#DDD8CB' }]} onLayout={(ev) => { box.current = { w: ev.nativeEvent.layout.width, h: ev.nativeEvent.layout.height }; }}>
       {!ready && <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: colors.muted2 }}>Загружаю карту…</Text></View>}
       <M.MapView
         key={attempt}
@@ -138,7 +162,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onMode?.('static');
         }}
       >
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: threeD ? TILT_PITCH : 0 }} animationMode="none"
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: okPoint([camera.lon, camera.lat]) ? [camera.lon, camera.lat] : [76.8897, 43.2389], zoomLevel: Number.isFinite(camera.zoom) ? camera.zoom : 12, pitch: threeD ? TILT_PITCH : 0 }} animationMode="none"
           followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
@@ -146,18 +170,18 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.RasterLayer id="traffic-layer" style={{ rasterOpacity: 0.9 }} />
           </M.RasterSource>
         )}
-        {fog && (
-          <M.ShapeSource id="fog" shape={fog as never}>
+        {/* Туман тоже держим постоянно: «линза» включает и выключает только данные, не источник. */}
+        <M.ShapeSource id="fog" shape={(fog ?? EMPTY_FC) as never}>
             <M.FillLayer id="fog-layer" style={{ fillColor: '#17161A', fillOpacity: 0.70, fillAntialias: false }} />
             {/* Мягкий край открытых мест: размытая линия того же цвета, что туман (FIX1 И2 п.14). */}
             <M.LineLayer id="fog-edge" style={{ lineColor: '#17161A', lineOpacity: 0.70, lineWidth: 26, lineBlur: 18, lineJoin: 'round' }} />
-          </M.ShapeSource>
-        )}
-        {lines.filter(l => l.coords.length >= 2 && l.coords.every(p => p?.length === 2 && p.every(Number.isFinite))).map((l) => (
-          <M.ShapeSource key={l.id} id={`line-${l.id}`} shape={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } as never}>
-            <M.LineLayer id={`line-${l.id}-layer`} style={{ lineColor: l.color, lineWidth: l.width ?? 5, lineCap: 'round', lineJoin: 'round', ...(l.dash ? { lineDasharray: [0.6, 1.8] } : {}) }} />
-          </M.ShapeSource>
-        ))}
+        </M.ShapeSource>
+        {/* Линии маршрута и друзей — один постоянный источник: слои не создаются и не удаляются при смене способа
+            (на Android удаление источника во время отрисовки роняло приложение — FIX3 Ф1). */}
+        <M.ShapeSource id="lines" shape={lineShape as never}>
+          <M.LineLayer id="lines-solid" filter={['!=', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round' }} />
+          <M.LineLayer id="lines-dash" filter={['==', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round', lineDasharray: [0.6, 1.8] }} />
+        </M.ShapeSource>
         {/* Невидимый стандартный «пак» нужен камере для следования; саму точку рисует экран (MeDot, оранжевая с конусом). */}
         {showUser && <M.LocationPuck visible={false} puckBearingEnabled={false} />}
         {places.length > 0 && (

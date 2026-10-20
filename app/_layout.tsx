@@ -5,10 +5,8 @@ import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
 import { useEffect, useSyncExternalStore } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,9 +15,28 @@ import { useAuthWatch } from '../src/live/auth';
 import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
 import { persister, queryClient } from '../src/live/query';
-import { colors } from '../src/theme';
+import { colors, fonts } from '../src/theme';
+import { installCrashHandler, recordCrash, setCrashScreen } from '../src/lib/crash';
+import { Platform, Pressable, Text, View } from 'react-native';
+import { router, Stack, usePathname, type ErrorBoundaryProps } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+installCrashHandler();
+
+/** Ошибка отрисовки любого экрана: вместо закрытия приложения — запись в журнал и «Вернуться». */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => { void recordCrash(error, false); }, [error]);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }}>
+      <Text style={{ fontFamily: fonts.display800, fontSize: 24, color: colors.ink, textAlign: 'center' }}>Что-то сломалось</Text>
+      <Text style={{ fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted2, textAlign: 'center' }}>Мы уже записали ошибку и починим её. Вернись назад и попробуй ещё раз.</Text>
+      <Pressable onPress={() => { void retry(); if (router.canGoBack()) router.back(); else router.replace('/'); }} accessibilityRole="button"
+        style={{ minHeight: 50, paddingHorizontal: 28, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper }}>Вернуться</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const subscribeMount = () => () => undefined;
 const clientSnapshot = () => true;
@@ -57,6 +74,8 @@ export default function RootLayout() {
 }
 
 function Root() {
+  const path = usePathname();
+  useEffect(() => { setCrashScreen(path); }, [path]);
   return (
     <>
       <StatusBar style="dark" />
