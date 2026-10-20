@@ -63,6 +63,16 @@ jobs:
           elif [ ! -f google-services.json ]; then
             echo "::warning::Нет google-services.json — пуши на Android работать не будут (docs/KEYS.md, «Пуши»)"
           fi
+      - name: Ключ пушей FCM в Expo (из секрета FCM_SERVICE_ACCOUNT_JSON)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$FCM_SERVICE_ACCOUNT_JSON" ]; then
+            node scripts/ci/fcm-key.mjs || echo "::warning::Ключ FCM не подключился — пуши на Android не придут (docs/KEYS.md)"
+          else
+            echo "::warning::Нет секрета FCM_SERVICE_ACCOUNT_JSON — пуши на Android не придут (docs/KEYS.md, «Пуши»)"
+          fi
       - name: Собрать APK
         id: apk
         env:

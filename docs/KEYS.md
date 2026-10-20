@@ -212,7 +212,7 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 3. **Пуши на Android (FIX3, 20 октября — без этого пушей нет совсем).** Нужны два файла из Firebase:
    1. console.firebase.google.com → **Add project** «ryadom» (Google Analytics можно выключить).
    2. Файл `google-services.json` уже лежит в репозитории (проект Firebase `ryadom-17ea3`) — ничего делать не нужно.
-   3. Firebase → шестерёнка → **Project settings → Service accounts → Generate new private key** → скачается .json. Открой его как текст, скопируй всё от `{` до `}` → GitHub → репозиторий → **Settings → Secrets and variables → Actions → New repository secret** → имя `FCM_SERVICE_ACCOUNT_JSON`, значение — содержимое файла → **Add secret**. Потом **Actions → «Ключ пушей Android» → Run workflow** (ветка с исправлениями). Зелёная галочка — ключ подключён к Expo, на expo.dev ничего нажимать не нужно.
+   3. Firebase → шестерёнка → **Project settings → Service accounts → Generate new private key** → скачается .json. Открой его как текст, скопируй всё от `{` до `}` → GitHub → репозиторий → **Settings → Secrets and variables → Actions → New repository secret** → имя `FCM_SERVICE_ACCOUNT_JSON`, значение — содержимое файла → **Add secret**. Сборка APK сама подключит ключ к Expo (шаг «Ключ пушей FCM») — на expo.dev ничего нажимать не нужно.
    4. Собрать новую APK (п. 4). В приложении: Профиль → Настройки → Уведомления — внизу видно «Пуши подключены» или причину.
    Файлы никому не пересылай.
 4. **APK:** GitHub → **Actions** → «Android APK» → **Run workflow**. Через ~20 минут ссылка на APK — в логе. Открыть на телефоне, установить.
