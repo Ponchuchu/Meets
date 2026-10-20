@@ -48,7 +48,8 @@
         "CAMERA",
         "RECORD_AUDIO",
         "POST_NOTIFICATIONS",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.health.READ_STEPS"
       ]
     },
     "web": {
@@ -112,6 +113,15 @@
         "expo-sensors",
         {
           "motionPermission": "Шаги нужны, чтобы показывать твой прогресс прогулок и открывать награды."
+        }
+      ],
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ]
     ],

@@ -39,7 +39,7 @@ export const BADGE_ICONS = {
 const I = BADGE_ICONS;
 
 /** Иконка значка по id: из списка BADGES или для значков сервера (шаги, ночной город, позвать друга, первая встреча). */
-export const badgeIcon = (id: string): string => BADGES.find((b) => b.id === id)?.icon
+export const badgeIcon = (id: string): string => (id.startsWith('steps-') ? I.boot : undefined) ?? BADGES.find((b) => b.id === id)?.icon
   ?? ({ walker: I.boot, 'night-city': I.moon, 'call-friend': I.people, 'first-bump': I.spark } as Record<string, string>)[id] ?? I.star;
 
 export const BADGES: BadgeDef[] = [

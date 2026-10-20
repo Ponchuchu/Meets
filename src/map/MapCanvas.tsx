@@ -13,6 +13,7 @@ import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
+import { linesGeo, okPoint } from './linesGeo';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
@@ -30,17 +31,6 @@ try {
 const LOAD_TIMEOUT_MS = 8000;
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
-const okPoint = (p: unknown): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0] as number) <= 180 && Math.abs(p[1] as number) <= 90;
-/** Только целые линии из двух и более правильных точек; пустая коллекция — тоже правильная форма. */
-export function linesGeo(lines: NonNullable<MapCanvasProps['lines']>) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: lines.filter(l => l.coords.length >= 2 && l.coords.every(okPoint)).map(l => ({
-      type: 'Feature' as const, id: l.id, properties: { color: l.color, width: l.width ?? 5, dash: !!l.dash },
-      geometry: { type: 'LineString' as const, coordinates: l.coords },
-    })),
-  };
-}
 
 const PIN_BOX = 72;
 

@@ -62,7 +62,7 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
   const interval = AppState.currentState === 'active' ? (stationary ? 30000 : 4000) : sendInterval(false, null, !stationary);
   if (lastSent && at - lastSent.at < interval) return;
   lastSent = p;
-  const status = statusOf(p, share.places);
+  const status = statusOf(p, share.places, (new Date().getUTCHours() + 5) % 24);
   const speed = c.speed != null && c.speed >= 0 ? c.speed : null;
   const heading = c.heading != null && c.heading >= 0 ? c.heading : null;
   const iso = new Date(at).toISOString();
