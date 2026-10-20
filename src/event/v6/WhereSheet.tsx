@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { Copy, MapPin } from 'lucide-react-native';
-import { useMemo } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { InteractionManager, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../../data/types';
 import { getRoute } from '../../live/api';
 import { distM } from '../../live/geo';
 import { kmText } from '../../map/ui/EventSheet';
 import { busFor, transitFor } from '../../transit/almaty';
+import type { TransitOption } from '../../transit/router';
 import { colors, fonts } from '../../theme';
 
 export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, mode: 'walk' | 'car' | 'bus' = 'walk') {
@@ -21,7 +22,13 @@ export function useTrip(e: EventItem, me: { lat: number; lon: number } | null, m
   const bus = useMemo(() => mode === 'bus' && me && !e.needsPin && !e.noPoint ? busFor(me, e, new Date()) : null, [e, me?.lat, me?.lon, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Автобусы и метро с пересадками — считаем всегда (раньше только в режиме «автобус», которого экран не передавал).
   const meKey = me ? `${me.lat.toFixed(3)},${me.lon.toFixed(3)}` : '';
-  const transit = useMemo(() => (me && !e.noPoint ? transitFor(me, e, new Date()) : []), [e.id, e.lat, e.lon, meKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Расчёт ~0,3 с — после анимации перехода, чтобы экран не подтормаживал.
+  const [transit, setTransit] = useState<TransitOption[]>([]);
+  useEffect(() => {
+    if (!me || e.noPoint) return;
+    const task = InteractionManager.runAfterInteractions(() => { setTransit(transitFor(me, e, new Date())); });
+    return () => task.cancel();
+  }, [e.id, e.lat, e.lon, meKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Без сети или без ответа — по прямой × 1,3, с пометкой «примерно».
   const straight = me ? distM(me, e) * 1.3 : 0;
   const walkMin = q.data?.walk?.min ?? (me && !e.noPoint && !loading ? Math.round(straight / 75) : null);
