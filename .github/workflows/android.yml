@@ -60,8 +60,8 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
             node -e "const f='app.json';const j=JSON.parse(require('fs').readFileSync(f,'utf8'));j.expo.android.googleServicesFile='./google-services.json';require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
-          else
-            echo "::warning::Нет секрета GOOGLE_SERVICES_JSON — пуши на Android работать не будут (docs/KEYS.md, «Пуши»)"
+          elif [ ! -f google-services.json ]; then
+            echo "::warning::Нет google-services.json — пуши на Android работать не будут (docs/KEYS.md, «Пуши»)"
           fi
       - name: Собрать APK
         id: apk
