@@ -16,6 +16,7 @@ import { supabase } from '../../data/client';
 import { getFriends, getProfile, getSettings, getVisibility, saveProfile, setSetting, setVisibility, type Visibility } from '../../live/api';
 import { myId, useAuth } from '../../live/auth';
 import { queryClient } from '../../live/query';
+import { askPushPermission, savePushPref, usePushStatus, type PushState } from '../../live/push';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Cap, Group, Note, Row, SettingsPage, ToggleRow } from '../../ui/v6/Settings';
@@ -189,11 +190,24 @@ function PrivacyPage() {
   );
 }
 
+const PUSH_TEXT: Record<PushState, string | null> = {
+  unknown: 'Проверяю…', ok: 'Пуши подключены', ask: 'Пуши выключены — нажми «Разрешить»', denied: 'Пуши запрещены в настройках телефона',
+  nofirebase: 'Эта сборка не умеет пуши: нет ключа Firebase. Нужна новая APK', error: 'Не получилось подключить пуши. Попробую ещё раз через минуту', unsupported: null,
+};
+
 function NotifyPage() {
   const { get, set } = useSettingsKV();
-  const t = (k: string, def = true) => ({ on: get<boolean>(k, def), onChange: (v: boolean) => set(k, v) });
+  const push = usePushStatus((s) => s.state);
+  const t = (k: string, def = true) => ({ on: get<boolean>(k, def), onChange: (v: boolean) => { set(k, v); void savePushPref(k, v).catch(() => undefined); } });
+  const pushText = PUSH_TEXT[push];
   return (
     <SettingsPage title="Уведомления" sub="Пуши приходят как в Telegram: зажал — ответил, не открывая.">
+      {pushText && (
+        <Group>
+          <Row Icon={Bell} title={pushText} value={push === 'ask' ? 'Разрешить' : push === 'denied' ? 'Открыть' : undefined}
+            onPress={push === 'ask' ? () => void askPushPermission() : push === 'denied' ? () => void Linking.openSettings() : undefined} last />
+        </Group>
+      )}
       <Cap>СООБЩЕНИЯ</Cap>
       <Group>
         <ToggleRow Icon={MessageCircle} title="Сообщения" {...t('n_messages')} />

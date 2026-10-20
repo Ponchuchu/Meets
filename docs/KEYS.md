@@ -209,7 +209,12 @@ GitHub → **Actions** → `buses` → **Run workflow**. Ключи не нуж�
 
 1. **Тестеры.** Номера и коды ты передаёшь Claude Code в сообщении. Он сам положит их в секрет Supabase `ALPHA_TESTERS`. Если не сможет — открой https://supabase.com/dashboard/project/xkpchsommtilristiesu/functions/secrets → **Add new secret** → имя `ALPHA_TESTERS`, значение в виде `+7XXXXXXXXXX:0000,+7YYYYYYYYYY:0000` → **Save**.
 2. **Токен для кнопки «Искать сейчас»:** github.com → аватарка → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**: репозиторий только `Ponchuchu/ryadom`, права **Actions: Read and write** → скопировать. Положить в Supabase secrets (ссылка выше) как `GITHUB_DISPATCH_TOKEN`.
-3. **Пуши на Android:** console.firebase.google.com → **Add project** «ryadom» → **Project settings** → **Service accounts** → **Generate new private key** (скачается .json). Потом expo.dev → проект ryadom → **Credentials** → Android → **FCM V1 service account key** → загрузить этот файл. Сам файл никому не пересылать.
+3. **Пуши на Android (FIX3, 20 октября — без этого пушей нет совсем).** Нужны два файла из Firebase:
+   1. console.firebase.google.com → **Add project** «ryadom» (Google Analytics можно выключить).
+   2. В проекте: значок Android → **Add app** → Android package name: `kz.ryadom.app` → **Register app** → **Download google-services.json**. Открой файл как текст, скопируй всё содержимое → GitHub → репозиторий → **Settings → Secrets and variables → Actions → New repository secret** → имя `GOOGLE_SERVICES_JSON`, значение — содержимое файла. Сборка APK сама подложит его.
+   3. **Project settings → Service accounts → Generate new private key** (скачается второй .json). expo.dev → проект ryadom → **Credentials** → Android → **FCM V1 service account key** → загрузить этот файл.
+   4. Собрать новую APK (п. 4). В приложении: Профиль → Настройки → Уведомления — внизу видно «Пуши подключены» или причину.
+   Файлы никому не пересылай.
 4. **APK:** GitHub → **Actions** → «Android APK» → **Run workflow**. Через ~20 минут ссылка на APK — в логе. Открыть на телефоне, установить.
 
 ## Альфа v6 (5 октября) — что уже сделано и что нужно от тебя

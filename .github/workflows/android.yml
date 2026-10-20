@@ -53,6 +53,16 @@ jobs:
           else
             echo "::warning::Нет секрета TOPTOP_TOKEN — линза «Пробки» будет без данных"
           fi
+      - name: Firebase для пушей Android (из секрета GOOGLE_SERVICES_JSON, в репозиторий не попадает)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+            node -e "const f='app.json';const j=JSON.parse(require('fs').readFileSync(f,'utf8'));j.expo.android.googleServicesFile='./google-services.json';require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
+          else
+            echo "::warning::Нет секрета GOOGLE_SERVICES_JSON — пуши на Android работать не будут (docs/KEYS.md, «Пуши»)"
+          fi
       - name: Собрать APK
         id: apk
         env:
