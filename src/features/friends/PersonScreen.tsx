@@ -11,7 +11,8 @@ import { photo } from '../../data/photos';
 import { now as clockNow } from '../../lib/clock';
 import { CAT_ICON } from '../../map/icons';
 import { canSee, distanceM } from '../../people/visibility';
-import { BADGES } from '../../profile/badges';
+import { BADGES, badgeIcon } from '../../profile/badges';
+import { getShownBadges } from '../../live/profileExtras';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
@@ -35,6 +36,8 @@ export default function PersonScreen() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: d } = useQuery({ queryKey: ['person', id], queryFn: () => data.getPersonDetails(id) });
+  // Награды, которые человек поставил у имени (FIX3 Ф8).
+  const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
@@ -82,6 +85,7 @@ export default function PersonScreen() {
         <View style={styles.body}>
           <View style={styles.nameRow}>
             <Text style={styles.name}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
+            {shownBadges.map(b => <BadgeMedal key={b} id={b} icon={badgeIcon(b)} got size={22} />)}
             {d.online ? (<><View style={styles.dot} /><Text style={styles.seen}>онлайн</Text></>) : <Text style={styles.seen}>{d.lastSeen}</Text>}
           </View>
           {!friend && (
