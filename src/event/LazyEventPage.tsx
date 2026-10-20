@@ -12,6 +12,7 @@ import { Clock, Ticket } from 'lucide-react-native';
 import { formatPrice } from '../lib/format';
 import { whenTitle } from './text';
 import { colors, fonts } from '../theme';
+import { plate } from '../ui/glass';
 import { EventCover } from '../ui/EventCover';
 import { EventPage } from './EventPage';
 
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   body: { paddingTop: 16, paddingHorizontal: 18, gap: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#D9D3C5' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 23.25, color: colors.muted2 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 33, color: '#FFFFFF' },

@@ -22,6 +22,7 @@ import { useFeed } from '../state/feed';
 import { activeCompany, usePlans } from '../state/plans';
 import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
+import { glass, plate } from '../ui/glass';
 import { Avatar } from '../ui/Avatar';
 import { EventCover } from '../ui/EventCover';
 import { IC, Ic } from '../ui/Ic';
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#D9D3C5' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
   line: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   lineText: { flex: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
   shareIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   shareLabel: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.ink },
   goingItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(243,240,232,0.96)' },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, ...glass, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
   inviteBtn: { height: 56, paddingHorizontal: 22, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   action: { flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   actionText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
