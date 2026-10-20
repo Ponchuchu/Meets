@@ -90,7 +90,7 @@ const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swif
 const browser = await chromium.launch({ args, ...(existsSync(preinstalled) && (await stat(preinstalled)).isFile() ? { executablePath: preinstalled } : {}) });
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', timezoneId: 'Asia/Almaty',
-  isMobile: true, hasTouch: true,
+  isMobile: true, hasTouch: true, reducedMotion: 'no-preference',
   // SHOTS_GEO=lat,lon — «телефон» стоит в этой точке (экраны маршрута, моя точка).
   ...(process.env.SHOTS_GEO ? { geolocation: { latitude: Number(process.env.SHOTS_GEO.split(',')[0]), longitude: Number(process.env.SHOTS_GEO.split(',')[1]) }, permissions: ['geolocation'] } : {}),
 });
@@ -136,6 +136,9 @@ for (const [route, name, preset, clicks = [], height = 844, width = 390] of rout
   // Ждём, пока уйдут индикаторы загрузки (данные из Supabase или демо).
   await page.waitForFunction(() => !document.querySelector('[role="progressbar"]'), null, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(Number(process.env.SHOTS_WAIT || 2500));
+  // SHOTS_SLOW=20 — замедлить процессор браузера перед нажатиями (кадры анимаций).
+  if (process.env.SHOTS_ANIM_SLOW) await page.evaluate((k) => { globalThis.__animSlow = k; }, Number(process.env.SHOTS_ANIM_SLOW));
+  if (process.env.SHOTS_SLOW) { const cdp = await ctx.newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.SHOTS_SLOW) }); }
   for (const label of clicks) {
     const byLabel = page.getByLabel(label, { exact: false });
     const target = (await byLabel.count()) ? byLabel.first() : page.getByText(label, { exact: true }).last();
@@ -144,6 +147,14 @@ for (const [route, name, preset, clicks = [], height = 844, width = 390] of rout
   }
   // SHOTS_EVAL=выражение — напечатать результат в странице (отладка).
   if (process.env.SHOTS_EVAL) console.log('  eval:', JSON.stringify(await page.evaluate(process.env.SHOTS_EVAL)));
+  // SHOTS_FRAMES=0,120,300 — серия кадров анимации после последнего нажатия (мс от нажатия).
+  if (process.env.SHOTS_FRAMES) {
+    let t = 0;
+    for (const at of process.env.SHOTS_FRAMES.split(',').map(Number)) {
+      await page.waitForTimeout(Math.max(0, at - t)); t = at;
+      await page.screenshot({ path: join(out, `${name}-${at}.png`) });
+    }
+  }
   await page.screenshot({ path: join(out, `${name}.png`) });
   console.log(`✓ docs/progress/${stage}/${name}.png`);
 }

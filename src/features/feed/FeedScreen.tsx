@@ -6,13 +6,14 @@ import { StateView } from '../../ui/StateView';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 import { tabCenter, tabInset } from '../../components/TabBar';
 import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import { LazyEventPage } from '../../event/LazyEventPage';
+import { FeedCard } from '../../feed/FeedCard';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
 import { QuickButtons } from '../../feed/SwipeHints';
 import { UndoBar } from '../../feed/UndoBar';
@@ -136,8 +137,13 @@ export default function ForYouScreen() {
   useEffect(() => track('feed_open'), []);
   useEffect(() => { if (top) track('card_shown', top.id); }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Раскрытие события из прямоугольника карточки (~350 мс) и обратно.
+  // Раскрытие события из прямоугольника карточки и обратно (FIX3 Ф2): окно-маска растёт из карточки на весь экран,
+  // фото внутри растёт из фото карточки, сама карточка растворяется в первой трети — без скачка картинки.
   const p = useSharedValue(0);
+  // __animSlow — только для проверки кадров анимации в web (scripts/shots.mjs, SHOTS_ANIM_SLOW).
+  const slow = () => (globalThis as { __animSlow?: number }).__animSlow ?? 1;
+  const OPEN = () => ({ duration: 420 * slow(), easing: Easing.bezier(0.16, 1, 0.3, 1) });
+  const CLOSE = () => ({ duration: 300 * slow(), easing: Easing.bezier(0.65, 0, 0.35, 1) });
   const openCard = (e: EventItem, interactive = false) => {
     setPreviewId(e.id);
     if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
@@ -145,23 +151,40 @@ export default function ForYouScreen() {
     setOpen(e);
     if (interactive) return;
     p.value = 0;
-    p.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) });
+    p.value = withTiming(1, OPEN());
   };
   const closeCard = (then?: () => void) => {
-    p.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.quad) }, () => {
+    p.value = withTiming(0, CLOSE(), () => {
       scheduleOnRN(setOpen, null);
       if (then) scheduleOnRN(then);
     });
   };
+  // Выбрал дату или сеанс в открытой карточке — событие уже в планах: сворачиваем и считаем это «Пойду»,
+  // иначе карточка под окном исчезала, а окно оставалось и лента не отвечала.
+  const plannedFromOpen = (e: EventItem) => closeCard(() => {
+    bump(e.id);
+    setPreviewId(null);
+    setEnter(null);
+    if (!decided[e.id]) {
+      const sig = makeSignal(e, 'go', clockNow());
+      decide({ eventId: e.id, kind: 'go', signalId: sig.id }, sig);
+      track('go', e.id);
+    }
+    pulsePlan();
+    useTabBadges.getState().landPlans();
+  });
   const clip = useAnimatedStyle(() => ({
     left: cardX * (1 - p.value),
     top: cardTop * (1 - p.value),
     width: cardW + (W - cardW) * p.value,
     height: cardH + (fullH - cardH) * p.value,
     borderRadius: 30 * (1 - p.value),
-    opacity: 1,
   }));
-  const clipInner = useAnimatedStyle(() => ({ left: -cardX * (1 - p.value), top: -cardTop * (1 - p.value) }));
+  const clipInner = useAnimatedStyle(() => ({ left: -cardX * (1 - p.value) }));
+  const cardFade = useAnimatedStyle(() => ({
+    opacity: interpolate(p.value, [0, 0.32], [1, 0], Extrapolation.CLAMP),
+    transform: [{ scale: 1 + ((W - cardW) / cardW) * p.value }],
+  }));
 
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
@@ -181,7 +204,7 @@ export default function ForYouScreen() {
             onLand={() => useTabBadges.getState().landPlans()}
             onTap={() => openCard(e)}
             expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.poly(4)) })); else closeCard(); }}
+            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, OPEN())); else closeCard(); }}
             onUndo={doUndo}
             drag={k === 0 ? drag : undefined}
           />
@@ -222,9 +245,12 @@ export default function ForYouScreen() {
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
-          <Animated.View style={[{ position: 'absolute', width: W, height: fullH }, clipInner]}>
-            <LazyEventPage progress={p} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
-              onGo={() => closeCard(() => topRef.current?.fly('go'))} />
+          <Animated.View style={[{ position: 'absolute', top: 0, width: W, height: fullH }, clipInner]}>
+            <LazyEventPage progress={p} coverFrom={Math.round(cardH * 0.5)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+              onGo={() => closeCard(() => topRef.current?.fly('go'))} onPlanned={() => plannedFromOpen(open)} />
+          </Animated.View>
+          <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: cardW, height: cardH, transformOrigin: 'left top' }, cardFade]}>
+            <FeedCard e={open} people={people} now={now} height={cardH} />
           </Animated.View>
         </Animated.View>
       )}

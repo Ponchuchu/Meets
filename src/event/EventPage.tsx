@@ -57,7 +57,9 @@ export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { 
   return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
 }
 
-export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, initialSheet = null }: {
+export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, onPlanned, initialSheet = null }: {
+  /** Событие попало в планы изнутри карточки (дата, сеанс): лента сворачивает её как «Пойду». */
+  onPlanned?: () => void;
   initialSheet?: Sheet;
   /** «✕» на открытой карточке: в Рекомендациях — «Мимо», на карте — просто закрыть. */
   onSkip?: () => void;
@@ -113,6 +115,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     if (going) { ungo(e.id); removePlan(); show(null); return; }
     go(e.id);
     addPlan();
+    if (onPlanned) { onPlanned(); return; }
     show({ text: e.category === 'movie' ? 'Сеанс в «Планах». Напомню о билетах за 3 часа' : 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
@@ -309,6 +312,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             show({ text: 'Дата посещения сохранена в планах' });
           }
           setSheet(null);
+          if (sheet === 'visit' && onPlanned) setTimeout(onPlanned, 450);
         }} />
       </BottomSheet></>}
       {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
