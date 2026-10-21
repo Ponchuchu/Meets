@@ -14,11 +14,15 @@ export function almatyNow(now: Date): { day: number; min: number } {
 const spansOf = (h: Hours, day: number): [number, number][] =>
   (h[String(day) as Day] ?? []).map(([a, b]) => { const s = toMin(a), e = toMin(b); return [s, e <= s ? e + 24 * 60 : e] as [number, number]; });
 
+/** Все 7 дней 00:00–24:00. */
+export const alwaysOpen = (h: Hours) => [1, 2, 3, 4, 5, 6, 7].every((d) => { const x = h[String(d) as Day]; return x?.length === 1 && x[0][0] === '00:00' && (x[0][1] === '24:00' || x[0][1] === '23:59'); });
+
 export type OpenState = 'open' | 'break' | 'closed' | 'unknown';
 export interface OpenStatus { state: OpenState; text: string; breakText?: string }
 
 export function openStatus(h: Hours | null | undefined, now = new Date()): OpenStatus {
-  if (!h || !Object.keys(h).length) return { state: 'unknown', text: 'Часы — в 2ГИС' };
+  if (!h || !Object.keys(h).length) return { state: 'unknown', text: 'Часы уточняются' };
+  if (alwaysOpen(h)) return { state: 'open', text: 'Открыто круглосуточно' };
   const { day, min } = almatyNow(now);
   // Ночные часы вчерашнего дня (до 02:00) тоже считаются.
   const yesterday = spansOf(h, day === 1 ? 7 : day - 1).find(([, e]) => e > 24 * 60 && min < e - 24 * 60);
@@ -41,6 +45,7 @@ export function openStatus(h: Hours | null | undefined, now = new Date()): OpenS
 /** Неделя строками: «Пн  10:00–13:00, 14:00–22:00» / «Вс  выходной». Одинаковые дни подряд склеиваются: «Пн–Пт». */
 export function weekLines(h: Hours | null | undefined): { days: string; time: string }[] {
   if (!h) return [];
+  if (alwaysOpen(h)) return [{ days: 'Каждый день', time: 'круглосуточно' }];
   const rows = DAY_SHORT.map((label, i) => ({ label, time: (h[String(i + 1) as Day] ?? []).map(([a, b]) => `${a}–${b}`).join(', ') || 'выходной' }));
   const out: { days: string; time: string }[] = [];
   for (let i = 0; i < rows.length;) {

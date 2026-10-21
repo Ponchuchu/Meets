@@ -2,7 +2,7 @@
 // дальше по дням — куда я иду: время, кто из друзей тоже, сколько ищут компанию. Тап — событие.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { CalendarDays, CalendarRange, User, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
+import { CalendarDays, CalendarRange, Trees, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -132,11 +132,11 @@ export default function PlansTab() {
       <View style={styles.head}>
         <Text style={[styles.h1, { flex: 1 }]} accessibilityRole="header">Планы</Text>
       </View>
-      {/* Куда ещё: одному развеяться и большие события города (21 окт.). */}
+      {/* Куда ещё: постоянные места города и большие события года (21 окт.). */}
       <View style={styles.extra}>
-        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.yearBtn, styles.soloBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Сходить одному">
-          <User size={18} color={colors.ink} strokeWidth={2} />
-          <Text style={styles.yearText}>Сходить одному</Text>
+        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.yearBtn, styles.soloBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Места города: парки, горы, музеи">
+          <Trees size={18} color={colors.ink} strokeWidth={2} />
+          <Text style={styles.yearText}>Места города</Text>
         </Pressable>
         <Pressable onPress={() => router.push('/city-year')} style={({ pressed }) => [styles.yearBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
           <CalendarRange size={18} color={colors.ink} strokeWidth={2} />

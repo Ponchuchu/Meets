@@ -1,7 +1,6 @@
 // Постоянные места (таблица spots): сборщик сам дописывает часы работы с перерывами и цены.
-// 1) 2ГИС (если есть ключ DGIS_KEY): расписание по дням, перерывы — промежутки между интервалами работы.
-// 2) Официальный сайт места (info_url): разметка schema.org — openingHoursSpecification / openingHours и priceRange.
-// Ничего не нашли — оставляем как есть: в приложении кнопка «Часы и цены» ведёт в 2ГИС, часы не выдумываем.
+// Источник — официальный сайт места (info_url): разметка schema.org (openingHoursSpecification / openingHours, priceRange),
+// а если её нет — текст страниц «режим работы / цены / контакты». Ничего не нашли — часы не выдумываем.
 // Запуск: node worker/src/spots.ts --run (шаг в процессе «Поиск событий», раз в несколько дней на место).
 
 type Hours = Record<string, [string, string][]>;
@@ -9,22 +8,8 @@ interface SpotRow { id: string; name: string; lat: number; lon: number; info_url
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; ryadom-worker/0.1; +https://ryadom.app)', 'Accept-Language': 'ru' };
 const DAYS_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAYS_2GIS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAYS_SHORT = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const hm = (v: unknown) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(v ?? '')); return m ? `${m[1].padStart(2, '0')}:${m[2]}` : null; };
-
-/** Расписание 2ГИС ({ Mon: { working_hours: [{ from, to }] } }) → наши часы. Нет дня — выходной. */
-export function hoursFrom2gis(schedule: unknown): Hours | null {
-  const s = (schedule ?? {}) as Record<string, { working_hours?: { from?: string; to?: string }[] }> & { is_24x7?: boolean };
-  if (s.is_24x7) return Object.fromEntries(DAYS_2GIS.map((_, i) => [String(i + 1), [['00:00', '24:00']]])) as Hours;
-  if (!DAYS_2GIS.some((d) => s[d])) return null;
-  const out: Hours = {};
-  DAYS_2GIS.forEach((d, i) => {
-    out[String(i + 1)] = (s[d]?.working_hours ?? []).map((w) => [hm(w.from), hm(w.to)] as [string | null, string | null])
-      .filter((p): p is [string, string] => !!p[0] && !!p[1]);
-  });
-  return out;
-}
 
 /** schema.org: openingHoursSpecification [{ dayOfWeek, opens, closes }] или openingHours «Mo-Fr 10:00-22:00». */
 export function hoursFromLd(node: Record<string, unknown>): Hours | null {
@@ -126,14 +111,6 @@ function ldNodes(html: string): Record<string, unknown>[] {
   return out;
 }
 
-async function from2gis(s: SpotRow, key: string): Promise<{ hours: Hours | null; gis_id: string | null } | null> {
-  const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(s.name)}&point=${s.lon},${s.lat}&radius=600&fields=items.schedule&locale=ru_KZ&key=${key}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
-  if (!res?.ok) return null;
-  const item = ((await res.json()) as { result?: { items?: { id?: string; schedule?: unknown }[] } }).result?.items?.[0];
-  return item ? { hours: hoursFrom2gis(item.schedule), gis_id: item.id ?? null } : null;
-}
-
 const page = async (url: string) => {
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(15_000), redirect: 'follow' }).catch(() => null);
   return r?.ok ? r.text() : null;
@@ -161,26 +138,23 @@ async function main() {
   const res = await fetch(`${url}/rest/v1/spots?select=id,name,lat,lon,info_url,gis_id,checked_at&enabled=eq.true&order=checked_at.asc.nullsfirst&limit=40`, { headers: h });
   if (!res.ok) { console.log(`Таблицы мест ещё нет или нет доступа (${res.status}) — пропускаю`); return; }
   const spots = (await res.json()) as SpotRow[];
-  const dgis = process.env.DGIS_KEY;
   let updated = 0;
   for (const s of spots) {
-    // Одно место — не чаще раза в три дня: часы меняются редко, а запросы к 2ГИС платные.
+    // Одно место — не чаще раза в три дня: часы меняются редко.
     if (s.checked_at && Date.now() - Date.parse(s.checked_at) < 3 * 86400e3) continue;
-    const g = dgis ? await from2gis(s, dgis) : null;
     const site = await fromSite(s);
-    const hours = g?.hours ?? site?.hours ?? null;
+    const hours = site?.hours ?? null;
     const patch: Record<string, unknown> = { checked_at: new Date().toISOString() };
-    if (hours) { patch.hours = hours; patch.source = g?.hours ? '2gis' : 'site'; }
-    if (g?.gis_id) patch.gis_id = g.gis_id;
+    if (hours) { patch.hours = hours; patch.source = 'site'; }
     if (site?.price) patch.price_from = site.price;
     const up = await fetch(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(s.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify(patch) });
     if (up.ok && (hours || site?.price)) updated++;
-    const line = `Места · ${s.name} · ${hours ? 'часы найдены' : 'часов нет'}${site?.price ? ` · от ${site.price} ₸` : ''}${g?.hours ? ' (2ГИС)' : hours ? ' (сайт)' : ''}`;
+    const line = `Места · ${s.name} · ${hours ? 'часы найдены' : 'часов нет'}${site?.price ? ` · от ${site.price} ₸` : ''}${hours ? ' (сайт)' : ''}`;
     console.log(`  ${line}`);
     if (process.env.ROBOT_RUN_ID) await fetch(`${url}/rest/v1/robot_log`, { method: 'POST', headers: h, body: JSON.stringify({ run_id: process.env.ROBOT_RUN_ID, text: line, level: hours ? 'ok' : 'info' }) }).catch(() => undefined);
     await new Promise((r) => setTimeout(r, 400));
   }
-  console.log(`Места: проверено ${spots.length}, обновлено ${updated}${dgis ? '' : ' (ключа 2ГИС нет — только сайты мест)'}`);
+  console.log(`Места: проверено ${spots.length}, обновлено ${updated}`);
 }
 
 if (process.argv[1]?.endsWith('spots.ts') && process.argv.includes('--run')) void main().catch((e) => { console.error(e instanceof Error ? e.message : e); process.exitCode = 1; });

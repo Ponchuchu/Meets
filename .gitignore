@@ -12,3 +12,4 @@ android/
 coverage/
 expo-env.d.ts
 supabase/.temp/
+apk/

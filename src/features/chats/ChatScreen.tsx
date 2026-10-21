@@ -6,7 +6,8 @@ import { myId } from '../../live/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../analytics';
 import * as ImagePicker from 'expo-image-picker';
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { getRecordingPermissionsAsync, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 import { mergeChatMessages } from '../../chat/messages';
 import { Camera } from 'expo-camera';
 import { usePlayback } from '../../chat/playback';
@@ -14,6 +15,7 @@ import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { AttachmentsSheet } from '../../chat/ui/AttachmentsSheet';
+import { AttachTray } from '../../chat/ui/AttachTray';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
 import { StickerPicker } from '../../stickers/StickerPicker';
 import { SwipeReply } from '../../chat/ui/SwipeReply';
@@ -30,9 +32,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../chat/rules';
 import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
-import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
 import { setOpenChat } from '../../live/reminders';
+import { useNet } from '../../live/net';
 import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
@@ -61,16 +63,8 @@ const ATTACH_IC = 'M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.
 const CIRCLE_IC = 'M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM12 8.2a3.8 3.8 0 100 7.6 3.8 3.8 0 000-7.6zM17.2 6.8h.01';
 const MIC_IC = 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6';
 const SEND_IC = 'M21.5 2.5L10 14M21.5 2.5l-7 19-4.5-7.5L2.5 9.5z';
-const POLL_IC = 'M5 20V10M12 20V4M19 20v-6';
-const CAM_IC = 'M4 8.5A1.5 1.5 0 015.5 7h2.3l1.7-2.5h5l1.7 2.5h2.3A1.5 1.5 0 0120 8.5v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z';
-const ALBUMS = [['recent', 'Недавние'], ['photo', 'Фото'], ['video', 'Видео'], ['fav', 'Избранное']] as const;
-type Album = (typeof ALBUMS)[number][0];
 /** Время для длительности записи — вне рендера. */
 const nowMs = () => Date.now();
-const MEDIA = [
-  { id: 'a', src: 'hike', video: true, dur: '0:21' }, { id: 'b', src: 'igor2', video: false }, { id: 'c', src: 'igor3', video: true, dur: '0:12' },
-  { id: 'd', src: 'igor4', video: false }, { id: 'e', src: 'igor1', video: false }, { id: 'f', src: 'krug', video: true, dur: '0:07' },
-];
 // Демо-аккаунт Данила создан давно — правило «первые 24 часа не пишут первыми» на него не действует.
 const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
@@ -125,8 +119,6 @@ export default function ChatScreen() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editing, setEditing] = useState<Message | null>(null);
   const [menu, setMenu] = useState<Message | null>(null);
-  const [album, setAlbum] = useState<Album>('recent');
-  const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
   // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
   const [composerH, setComposerH] = useState(72);
@@ -138,7 +130,6 @@ export default function ChatScreen() {
     return () => { a.remove(); b.remove(); };
   }, []);
   const [poll, setPoll] = useState<null | { q: string; options: string[] }>(null);
-  const [picked, setPicked] = useState<string[]>(trayParam === '1' ? ['b', 'a'] : []);
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -241,13 +232,23 @@ export default function ChatScreen() {
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
   // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000 }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000, isMeteringEnabled: true }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
   const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  // Живая волна голоса: последние ~32 значения громкости (дБ → 0…1).
+  const [levels, setLevels] = useState<number[]>([]);
+  const recState = useAudioRecorderState(recorder, 100);
+  const meter = recording === 'voice' && recState.isRecording ? recState.metering : undefined;
+  useEffect(() => {
+    if (meter == null) return;
+    const v = Math.max(0.06, Math.min(1, (meter + 55) / 50));
+    const t = setTimeout(() => setLevels((l) => [...l.slice(-31), v]), 0);
+    return () => clearTimeout(t);
+  }, [meter, recState.durationMillis]);
   useEffect(() => {
     if (!recording) return;
     const timer = setInterval(() => setElapsed(rec.current.started ? Math.floor((nowMs()-rec.current.started)/1000) : 0),200);
@@ -263,26 +264,37 @@ export default function ChatScreen() {
   useEffect(() => { usePlayback.getState().record(!!recording); return () => usePlayback.getState().record(false); }, [recording]);
   const preparing = useRef(false);
   const stopping = useRef(false);
+  // Разрешение на микрофон проверяем заранее (без окна): удержание сразу начинает запись, а не ждёт ответа системы.
+  const micOk = useRef(false);
+  useEffect(() => { if (Platform.OS !== 'web') void getRecordingPermissionsAsync().then((p) => { micOk.current = p.granted; }).catch(() => undefined); }, []);
   const startRec = async () => {
     if(rec.current.active || preparing.current || stopping.current) return;
     usePlayback.getState().play(null);
     rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
-    setLocked(false);setElapsed(0);setCancelling(false);
+    setLocked(false);setElapsed(0);setCancelling(false);setLevels([]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     if (recMode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
       usePlayback.getState().record(true); setRecording('circle'); return;
     }
+    // Полоса записи появляется сразу, пока микрофон готовится (доли секунды) — видно, что нажатие сработало.
+    setRecording('voice');
     preparing.current = true;
     try {
-      const perm = await requestRecordingPermissionsAsync();
-      if (!rec.current.active) return;
-      if (!perm.granted) {rec.current.active=false;show({text:'Разреши микрофон в настройках телефона'});return;}
+      if (!micOk.current) {
+        const perm = await requestRecordingPermissionsAsync();
+        micOk.current = perm.granted;
+        // Окно разрешения забрало палец — эту попытку не пишем, следующее удержание запишет сразу.
+        rec.current.active = false; setRecording(null);
+        if (!perm.granted) show({text:'Разреши микрофон в настройках телефона'});
+        return;
+      }
       usePlayback.getState().record(true);
       await setAudioModeAsync({allowsRecording:true,playsInSilentMode:true});
       await recorder.prepareToRecordAsync();
-      // Отпустил во время диалога разрешений — запись не начинается и ничего не отправляется.
+      // Отпустил, пока готовился микрофон, — запись не начинается и ничего не отправляется.
       if (!rec.current.active) {await recorder.stop().catch(()=>undefined);await setAudioModeAsync({allowsRecording:false});return;}
-      rec.current.started=nowMs();recorder.record();rec.current.ready=true;setRecording('voice');
+      rec.current.started=nowMs();recorder.record();rec.current.ready=true;
     } catch {rec.current.active=false;setRecording(null);void setAudioModeAsync({allowsRecording:false});show({text:'Не получилось включить микрофон'});} finally { preparing.current = false; if (!rec.current.active) usePlayback.getState().record(false); }
   };
   const stopRec = async (send:boolean) => {
@@ -292,7 +304,7 @@ export default function ChatScreen() {
     rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
     if(mode==='circle') {stopping.current = true;if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
     setRecording(null);
-    if(!rec.current.ready)return;
+    if(!rec.current.ready){ if (send && sec < 1) show({text:'Удерживай кнопку, чтобы записать'}); return; }
     stopping.current = true;
     try {
       await recorder.stop();await setAudioModeAsync({allowsRecording:false});
@@ -304,14 +316,16 @@ export default function ChatScreen() {
   /* eslint-disable react-hooks/refs */
   const recHandlers = useRef({ startRec, stopRec, switchRecMode });
   useEffect(() => { recHandlers.current = { startRec, stopRec, switchRecMode }; });
-  const recGesture = useMemo(() => Gesture.Exclusive(
-    Gesture.Pan().activateAfterLongPress(250).runOnJS(true)
-      .onStart(()=>void recHandlers.current.startRec())
-      .onUpdate(e=>{setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80);if(e.translationY < -70 && !rec.current.locked){rec.current.locked=true;setLocked(true);}})
-      .onEnd(e=>{if(!rec.current.locked)void recHandlers.current.stopRec(e.translationX>=-80);})
-      .onFinalize((_e,ok)=>{if(!ok && !rec.current.locked)void recHandlers.current.stopRec(false);}),
-    Gesture.Tap().runOnJS(true).onEnd(() => void recHandlers.current.switchRecMode()),
-  ), []);
+  // Одно касание: держишь 0,18 с — запись (вибрация и полоса сразу), отпустил раньше — смена «голос ↔ кружок».
+  // Раньше запись ждала долгое нажатие без движения: палец чуть сдвинулся — и ничего не происходило.
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recGesture = useMemo(() => Gesture.Pan().minDistance(0).shouldCancelWhenOutside(false).runOnJS(true)
+    .onBegin(() => { hold.current = setTimeout(() => { hold.current = null; void recHandlers.current.startRec(); }, 180); })
+    .onUpdate(e=>{ if (hold.current) return; setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80); if(e.translationY < -70 && !rec.current.locked && rec.current.active){rec.current.locked=true;setLocked(true);void Haptics.selectionAsync().catch(() => undefined);} })
+    .onFinalize((e)=>{
+      if (hold.current) { clearTimeout(hold.current); hold.current = null; void recHandlers.current.switchRecMode(); return; }
+      if (!rec.current.locked) void recHandlers.current.stopRec(e.translationX >= -80);
+    }), []);
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
@@ -319,14 +333,6 @@ export default function ChatScreen() {
     if (!poll.q.trim() || options.length < 2) return;
     push({ kind: 'poll', text: poll.q.trim(), poll: { question: poll.q.trim(), options: options.map((o) => ({ text: o, votes: 0 })) } });
     setPoll(null);
-    setTray(false);
-  };
-  const sendPicked = () => {
-    picked.forEach((pid) => {
-      const md = MEDIA.find((x) => x.id === pid)!;
-      push({ kind: md.video ? 'video' : 'photo', media: md.src, duration: md.dur, text: '' });
-    });
-    setPicked([]);
     setTray(false);
   };
   const library = async () => {
@@ -351,13 +357,15 @@ export default function ChatScreen() {
   const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
     : details?.online ? 'в сети' : details?.lastSeen ? details.lastSeen : friend ? 'в друзьях' : 'не в друзьях';
+  // Нет сети — «Соединение…» вместо статуса, как в Telegram.
+  const online = useNet((x) => x.online);
+  const shownStatus = online ? status : 'Соединение…';
   const openProfile = () => { if (personId) router.push({ pathname: '/person/[id]', params: { id: personId } }); else setSheet('attachments'); };
   const unreadElsewhere = allChats.reduce((n, c) => c.id === id ? n : n + (c.unread || 0), 0);
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
   const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
-  const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
   const answering = useRef(new Set<string>());
   const answerMessage = async (m: Message, answer: 'yes' | 'no') => {
@@ -408,7 +416,7 @@ export default function ChatScreen() {
     if (recording) void stopRec(false);
     else if (sheet) setSheet(null);
     else if (poll) setPoll(null);
-    else { setTray(false); setAlbumsOpen(false); }
+    else setTray(false);
   }, !!recording || !!sheet || !!poll || tray);
 
   return (
@@ -419,21 +427,24 @@ export default function ChatScreen() {
           <ChevronLeft size={28} color={colors.ink} strokeWidth={2.2} />
           {unreadElsewhere > 0 && <View style={styles.backBadge}><Text style={styles.backBadgeText}>{unreadElsewhere > 99 ? '99+' : unreadElsewhere}</Text></View>}
         </Pressable>
-        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button"
-          accessibilityLabel={person ? `${person.name}, ${status}. Открыть профиль` : `${title}: участники и вложения`}>
+        {/* Как в Telegram: аватар — профиль, имя — фото, видео и ссылки из чата. */}
+        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} hitSlop={4} style={({ pressed }) => [pressed && { opacity: 0.6 }]} accessibilityRole="button"
+          accessibilityLabel={person ? `${person.name}. Открыть профиль` : `${title}: участники и вложения`}>
           {person ? (
             <View>
               <Avatar p={person} size={42} />
               {details?.online && <View style={styles.onlineDot} />}
             </View>
-          ) : (
+          ) : chatMeta?.photo ? <Image source={{ uri: chatMeta.photo }} style={styles.groupIcon} /> : (
             <View style={[styles.groupIcon, { backgroundColor: isEvent ? colors.accent : colors.friend }]}>
               {isEvent ? <CalendarDays size={20} color="#FFFFFF" strokeWidth={2} /> : <Users size={20} color="#FFFFFF" strokeWidth={2} />}
             </View>
           )}
+        </Pressable>
+        <Pressable onPress={() => setSheet('attachments')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${title}, ${shownStatus}. Фото, видео и ссылки`}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            <Text style={[styles.status, details?.online && !isGroup && !isEvent && { color: colors.ok }]} numberOfLines={1}>{status}</Text>
+            <Text style={[styles.status, details?.online && !isGroup && !isEvent && online && { color: colors.ok }]} numberOfLines={1}>{shownStatus}</Text>
           </View>
         </Pressable>
         {isEvent ? (
@@ -485,7 +496,7 @@ export default function ChatScreen() {
             listMetrics.current.offset = contentOffset.y;
             setAtBottom(Platform.OS === 'web' ? contentSize.height - layoutMeasurement.height - contentOffset.y < 80 : contentOffset.y < 80);
           }} scrollEventThrottle={100}
-          onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
+          onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) setTray(false); }} />
       {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: kb ? 8 : Math.max(10, insets.bottom + 4) }]} onLayout={(ev) => setComposerH(ev.nativeEvent.layout.height)} pointerEvents="box-none">
           {/* Лента плавно уходит под капсулу: статичный градиент, без размытия. */}
@@ -520,13 +531,19 @@ export default function ChatScreen() {
             </View>
           )}
           <View style={[styles.capsule, glass]}>
-          <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
+          <Pressable onPress={() => { Keyboard.dismiss(); setTray(!tray); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
           </Pressable>
           {recording ? (
             <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
-              <View style={styles.recDot} />
-              <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${dur(elapsed)} · ${locked ? 'Запись закреплена' : '← отменить · ↑ закрепить'}`}</Text>
+              <View style={[styles.recDot, !recState.isRecording && recording === 'voice' && { opacity: 0.35 }]} />
+              <Text style={styles.recTime}>{dur(elapsed)}</Text>
+              {cancelling ? <Text style={[styles.recText, { flex: 1 }]}>Отпусти — отменить</Text> : (
+                <View style={styles.wave}>
+                  {(recording === 'voice' ? levels : []).map((v, i) => <View key={i} style={[styles.waveBar, { height: 4 + v * 22 }]} />)}
+                  {recording === 'circle' || !levels.length ? <Text style={styles.recHint} numberOfLines={1}>{locked ? 'Запись закреплена' : '← отмена · ↑ закрепить'}</Text> : null}
+                </View>
+              )}
             </View>
           ) : (
             <ComposerInput ref={input} onHasText={setHasText} onSubmit={sendText} />
@@ -559,59 +576,13 @@ export default function ChatScreen() {
       </View>
 
       {tray && check.ok && !poll && (
-        <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
-        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
-          <SwipeDown onClose={() => { setTray(false); setAlbumsOpen(false); }}><View style={styles.grab} /></SwipeDown>
-          <ScrollView style={{ maxHeight: Math.max(96, winH - 240 - insets.bottom) }} contentContainerStyle={{ gap: 10 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
-            <Pressable onPress={() => setAlbumsOpen(!albumsOpen)} style={styles.album} accessibilityRole="button" accessibilityLabel="Выбрать альбом" accessibilityState={{ expanded: albumsOpen }}>
-              <Text style={styles.albumText}>{ALBUMS.find(([k]) => k === album)?.[1]}</Text>
-              <Ic d={albumsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} size={16} color={colors.ink} w={2.2} />
-            </Pressable>
-            <View style={{ flex: 1 }} />
-            <Pressable onPress={()=>{setTray(false);setSheet('stickers');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Стикеры</Text></Pressable>
-            <Pressable onPress={()=>{setTray(false);setSheet('events');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Событие</Text></Pressable>
-            <Pressable onPress={() => setPoll({ q: '', options: ['', ''] })} style={styles.trayBtn} accessibilityRole="button">
-              <Ic d={POLL_IC} size={16} color={colors.ink} w={2.2} /><Text style={styles.trayBtnText}>Опрос</Text>
-            </Pressable>
-            <Pressable onPress={() => { setTray(false); setAlbumsOpen(false); }} style={styles.trayClose} hitSlop={6} accessibilityRole="button" accessibilityLabel="Закрыть вложения">
-              <Ic d={IC.close} size={15} color={colors.ink} w={2.3} />
-            </Pressable>
-          </ScrollView>
-          {albumsOpen && (
-            <View style={styles.albums}>
-              {ALBUMS.map(([k, label]) => (
-                <Pressable key={k} onPress={() => { setAlbum(k); setAlbumsOpen(false); }} style={[styles.albumRow, album === k && { backgroundColor: colors.sand2 }]} accessibilityRole="menuitem">
-                  <Text style={[styles.albumText, album === k && { fontFamily: fonts.body700 }]}>{label}</Text>
-                  {album === k && <Ic d={IC.check} size={16} color={colors.ink} w={2.4} />}
-                </Pressable>
-              ))}
-            </View>
-          )}
-          <Pressable onPress={()=>void library()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Выбрать из галереи телефона"><Text style={styles.sendAllText}>Выбрать из галереи телефона</Text></Pressable>
-          {config.dataMode!=='demo' && <Pressable onPress={()=>void camera()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Камера"><Text style={styles.sendAllText}>Снять фото</Text></Pressable>}
-          {config.dataMode==='demo' && <View style={styles.grid}>
-            <Pressable onPress={camera} style={[styles.thumb, styles.camTile]} accessibilityRole="button" accessibilityLabel="Камера">
-              <View style={styles.camLens}><Ic d={CAM_IC} size={26} color={colors.paper} w={1.8} /></View>
-              <Text style={styles.camText}>Камера</Text>
-            </Pressable>
-            {shownMedia.map((md) => {
-              const pos = picked.indexOf(md.id);
-              const on = pos >= 0;
-              return (
-                <Pressable key={md.id} onPress={() => setPicked(on ? picked.filter((x) => x !== md.id) : [...picked, md.id])} style={styles.thumb} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={md.video ? `Видео, ${md.dur}` : 'Фото'}>
-                  <Image source={photo(md.src)} style={[styles.thumbImg, { opacity: on ? 0.82 : 1 }]} />
-                  <View style={[styles.mark, on ? { backgroundColor: colors.accent } : { borderWidth: 2, borderColor: '#FFFFFF' }]}>{on && <Text style={styles.markText}>{pos + 1}</Text>}</View>
-                  {md.video && <View style={styles.vdur}><Ic d="M3 7h12v10H3zM15 10l6-3v10l-6-3z" size={10} color="#FFFFFF" w={2} /><Text style={styles.vdurText}>{md.dur}</Text></View>}
-                </Pressable>
-              );
-            })}
-          </View>}
-          </ScrollView>
-          {config.dataMode==='demo'&&<Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
-            <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
-          </Pressable>}
-        </View>
+        <Animated.View entering={SlideInDown.duration(220)} exiting={SlideOutDown.duration(160)}>
+          <SwipeDown onClose={() => setTray(false)}><View style={styles.grab} /></SwipeDown>
+          <AttachTray height={Math.min(520, Math.max(300, winH * 0.55)) + insets.bottom}
+            onSend={(items) => { setTray(false); void (async () => { for (const a of items) push({ kind: a.video ? 'video' : 'photo', media: a.video ? a.uri : await preparePhoto(a.uri, a.width, a.height), durationS: a.duration ? Math.round(a.duration) : undefined }); })(); }}
+            onCamera={() => void camera()} onGallery={() => void library()}
+            onEvent={() => { setTray(false); setSheet('events'); }} onPoll={() => setPoll({ q: '', options: ['', ''] })}
+            onStickers={() => { setTray(false); setSheet('stickers'); }} onClose={() => setTray(false)} />
         </Animated.View>
       )}
 
@@ -815,7 +786,7 @@ const styles = StyleSheet.create({
   backBtn: { minWidth: 44, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4 },
   backBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   backBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: colors.paper },
-  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4 },
+  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4, paddingLeft: 10 },
   onlineDot: { position: 'absolute', right: 0, bottom: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ok, borderWidth: 2, borderColor: colors.paper },
   groupIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   menuBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
@@ -843,6 +814,10 @@ const styles = StyleSheet.create({
   recBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 0, paddingBottom: 0 },
   recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   recText: { fontFamily: fonts.body500, fontSize: 14, color: colors.accentText },
+  recTime: { fontFamily: fonts.mono600, fontSize: 14, color: colors.ink, minWidth: 40 },
+  wave: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28, overflow: 'hidden' },
+  waveBar: { width: 3, borderRadius: 2, backgroundColor: colors.accent },
+  recHint: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   album: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   albumText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   albums: { borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },

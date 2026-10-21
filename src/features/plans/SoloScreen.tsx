@@ -1,11 +1,11 @@
-// «Сходить одному» (21 октября): не только с друзьями — куда пойти развеяться самому. Места, где одному хорошо,
-// по настроению (погулять, посмотреть, подвигаться), что открыто сейчас, и события, куда приходят по одному.
-// По нажатию — та же карточка места с часами и планом, что и на карте.
+// «Места города» (21 октября, после отзыва владельца): раньше — «Сходить одному», слишком громко. Теперь спокойно:
+// постоянные места по настроению (погулять, посмотреть, подвигаться), что открыто сейчас, бесплатное, и в конце —
+// тихая подборка событий, куда приходят без своей компании. Карточка места та же, что на карте.
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
 import { ATTRACTIONS, inSeason, KIND_LABEL, topSpots, type Attraction, type AttractionKind } from '../../data/attractions';
@@ -33,7 +33,9 @@ export default function SoloScreen() {
   const all = spotsQ.data ?? ATTRACTIONS;
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const [open, setOpen] = useState<Attraction | null>(null);
-  const solo = topSpots(all).filter((a) => a.solo && inSeason(a, now));
+  const [broken, setBroken] = useState<string[]>([]);
+  const solo = topSpots(all).filter((a) => inSeason(a, now));
+  const free = solo.filter((a) => a.free).slice(0, 10);
   // Только где часы известны (их дописывает сборщик): «открыто» без данных было бы догадкой.
   const openNow = solo.filter((a) => openStatus(a.hours, now).state === 'open').slice(0, 8);
   const soloEvents = events.filter((e) => e.tags.includes('можно одному') && Date.parse(e.endsAt ?? e.startsAt) > now.getTime()).slice(0, 6);
@@ -43,7 +45,9 @@ export default function SoloScreen() {
     const st = openStatus(a.hours, now);
     return (
       <Pressable onPress={() => setOpen(a)} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${a.name}, ${KIND_LABEL[a.kind]}`}>
-        <View style={styles.tileIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
+        {a.photos?.[0] && !broken.includes(a.id)
+          ? <Image source={{ uri: a.photos[0] }} style={styles.tilePhoto} resizeMode="cover" onError={() => setBroken((b) => [...b, a.id])} />
+          : <View style={styles.tileIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
         <Text style={styles.tileName} numberOfLines={2}>{a.name}</Text>
         <Text style={[styles.tileSub, st.state === 'open' && { color: colors.ok }]} numberOfLines={1}>{a.free ? 'бесплатно' : st.state === 'unknown' ? KIND_LABEL[a.kind].toLowerCase() : st.text.toLowerCase()}</Text>
       </Pressable>
@@ -56,12 +60,13 @@ export default function SoloScreen() {
         <View style={[styles.head, { paddingHorizontal: 16 }]}>
           <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад"><ChevronLeft size={24} color={colors.ink} strokeWidth={2.2} /></Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.h1} accessibilityRole="header">Сходить одному</Text>
-            <Text style={styles.sub}>Без компании тоже хорошо: места, где одному не скучно, и события, куда приходят по одному</Text>
+            <Text style={styles.h1} accessibilityRole="header">Места города</Text>
+            <Text style={styles.sub}>Парки, горы и музеи — работают каждый день, можно просто выбрать время</Text>
           </View>
         </View>
 
         {openNow.length > 0 && <Section title="Открыто сейчас">{openNow.map((a) => <Tile key={a.id} a={a} />)}</Section>}
+        {free.length > 0 && <Section title="Бесплатно">{free.map((a) => <Tile key={a.id} a={a} />)}</Section>}
         {MOODS.map((m) => {
           const list = solo.filter((a) => m.kinds.includes(a.kind));
           return list.length ? <Section key={m.key} title={m.title} sub={m.sub}>{list.map((a) => <Tile key={a.id} a={a} />)}</Section> : null;
@@ -69,7 +74,7 @@ export default function SoloScreen() {
 
         {soloEvents.length > 0 && (
           <View style={{ gap: 8, paddingHorizontal: 16 }}>
-            <Text style={styles.cap}>СОБЫТИЯ, КУДА ПРИХОДЯТ ПО ОДНОМУ</Text>
+            <Text style={styles.cap}>МОЖНО БЕЗ СВОЕЙ КОМПАНИИ</Text>
             {soloEvents.map((e) => (
               <Pressable key={e.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id } })} style={({ pressed }) => [styles.event, pressed && styles.pressed]} accessibilityRole="button">
                 <View style={[styles.evIcon, { backgroundColor: CAT_COLOR[e.category] }]}><Ic d={CAT_ICON[e.category]} size={20} color={catFg(e.category)} w={2} /></View>
@@ -109,6 +114,7 @@ const styles = StyleSheet.create({
   secSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 6 },
   tile: { width: 140, minHeight: 150, padding: 12, borderRadius: 22, ...plate, gap: 4 },
+  tilePhoto: { height: 72, borderRadius: 14, marginBottom: 4, backgroundColor: colors.sand },
   tileIcon: { height: 60, alignItems: 'flex-start', justifyContent: 'center', marginLeft: -8 },
   tileName: { fontFamily: fonts.body700, fontSize: 14.5, lineHeight: 18, color: colors.ink },
   tileSub: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },

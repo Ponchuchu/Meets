@@ -34,7 +34,10 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
 // Коробка пина шире самого большого значка («вместе» — до трёх аватарок): Android не передаёт касания за её край.
 const PIN_BOX = 128;
-const MAP_IMAGES = { tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png') };
+const MAP_IMAGES = {
+  tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png'),
+  'tree-gold': require('../../assets/map/tree-gold.png'), 'tree-amber': require('../../assets/map/tree-amber.png'),
+};
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const lowPower = useLowPowerMode();

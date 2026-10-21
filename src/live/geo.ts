@@ -22,13 +22,14 @@ export function isJump(prev: Pt | null, next: Pt): boolean {
   return distM(prev, next) / dt > 70;
 }
 
-export type Place = { kind: 'home' | 'work' | 'study' | 'gym' | 'dacha' | 'other'; lat: number; lon: number };
+export type Place = { kind: 'home' | 'work' | 'study' | 'gym' | 'dacha' | 'other' | 'fav'; lat: number; lon: number };
 
 /** Статус для друзей: в пути (скорость), дома / на работе (из «Моих мест», 150 м), иначе — нет.
  *  Ночью (23:00–07:00 по Алматы, `hour`) дома и без движения — «Спит» (FIX3 Ф10). */
 export function statusOf(p: { lat: number; lon: number; speed?: number | null }, places: Place[], hour?: number): string | null {
   if (p.speed != null && p.speed >= 2.5) return 'moving';
-  const near = places.find((x) => distM(x, p) <= 150);
+  // Избранные места — только для меня: друзьям «у кофейни» не показываем.
+  const near = places.find((x) => x.kind !== 'fav' && distM(x, p) <= 150);
   if (near?.kind === 'home' && hour != null && (hour >= 23 || hour < 7) && (p.speed ?? 0) < 0.5) return 'sleep';
   return near ? near.kind : null;
 }

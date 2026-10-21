@@ -9,9 +9,6 @@ import { useSession } from '../../state/session';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
 import { SettingsPage, Group, Row } from '../../ui/v6/Settings';
-import { StickerPicker } from '../../stickers/StickerPicker';
-import { StickerView } from '../../stickers/StickerView';
-import type {Sticker} from '../../stickers/catalog';
 import {useState} from 'react';
 import { FramePicker } from './FramePicker';
 import { StepsCard } from './StepsCard';
@@ -27,8 +24,6 @@ export default function ProfileDetail() {
   const [previewTrail, setPreviewTrail] = useState<'none'|'dots'|'comet'>('dots');
   const previewFrame = useProfile(s => s.mapFrame);
   const previewShape = useProfile(s => s.mapShape);
-  const [badge,setBadge]=useState<string|null>(null);
-  const [sticker,setSticker]=useState<Sticker|null>(null);
   const live = config.dataMode !== 'demo';
   const draft = useSession((s) => s.draft);
   const profile = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: live });
@@ -53,10 +48,31 @@ export default function ProfileDetail() {
   if (page === 'sleepovers') return <SleepoversPage />;
   const points = stats.data?.points ?? 0;
   const level = stats.data?.level ?? 1;
-  const badges = stats.data?.badges ?? [];
   const nextAt = level <= 10 ? level * 1000 : 10000 + (level - 10) * 1500;
-  return <SettingsPage title={`Уровень ${level}`} sub={`${points.toLocaleString('ru-RU')} из ${nextAt.toLocaleString('ru-RU')} очков до ${level + 1}-го. Уровень открывает рамки, след и стикеры.`}>
-    <View style={{ height: 10, borderRadius: 5, backgroundColor: colors.sand, overflow: 'hidden' }}><View style={{ height: 10, width: `${Math.min(100, (points / nextAt) * 100)}%`, backgroundColor: colors.accent }} /></View>
+  // Уровень проще (21 окт.): крупный номер и полоска, что откроется дальше, как получать очки — и оформление.
+  const next = level < 3 ? 'Рамки «Город», след «Комета» и стикеры «Город»' : level < 7 ? 'Стикеры «После заката» и новые рамки' : 'Редкие рамки — каждые несколько уровней';
+  const nextLevel = level < 3 ? 3 : level < 7 ? 7 : level + 1;
+  return <SettingsPage title="Уровень">
+    <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.ink, gap: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontFamily: fonts.display800, fontSize: 34, color: colors.ink }}>{level}</Text></View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ fontFamily: fonts.display700, fontSize: 20, color: colors.paper }}>Уровень {level}</Text>
+          <Text style={{ fontFamily: fonts.body500, fontSize: 14, color: '#BDB8AD' }}>Ещё {Math.max(0, nextAt - points).toLocaleString('ru-RU')} очков до {level + 1}-го</Text>
+        </View>
+      </View>
+      <View style={{ height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden' }}><View style={{ height: 10, width: `${Math.min(100, (points / nextAt) * 100)}%`, backgroundColor: colors.accent }} /></View>
+      <Text style={{ fontFamily: fonts.body500, fontSize: 13.5, lineHeight: 19, color: '#E8E4DA' }}>На {nextLevel} уровне: {next}</Text>
+    </View>
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      {[['+5', 'новое место в городе'], ['+30', 'отметился на событии'], ['+20', 'новый друг']].map(([n, t]) => (
+        <View key={t} style={{ flex: 1, padding: 12, borderRadius: 18, backgroundColor: colors.card, gap: 2 }}>
+          <Text style={{ fontFamily: fonts.display800, fontSize: 20, color: colors.accentText }}>{n}</Text>
+          <Text style={{ fontFamily: fonts.body500, fontSize: 12.5, lineHeight: 16, color: colors.muted2 }}>{t}</Text>
+        </View>
+      ))}
+    </View>
+    <Text style={{ fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 }}>ОФОРМЛЕНИЕ НА КАРТЕ</Text>
     <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.card, gap: 16 }}>
       <FramePicker shape={(live ? profile.data?.map_shape : previewShape) ?? 'auto'} onShape={async id => {
           if (frameBusy) return;
@@ -94,10 +110,9 @@ export default function ProfileDetail() {
       }} style={{ minHeight: 44, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', backgroundColor: (live ? profile.data?.map_trail : previewTrail) === t.id ? colors.ink : colors.sand, opacity: level >= t.level ? 1 : .4 }}><Text style={{ fontFamily: fonts.body600, color: (live ? profile.data?.map_trail : previewTrail) === t.id ? colors.paper : colors.ink }}>{t.name}{level < t.level ? ` · ур. ${t.level}` : ''}</Text></Pressable>)}</View>
       {!!frameError && <Text accessibilityRole="alert" style={{ color: colors.accentText }}>{frameError}</Text>}
     </View>
-    <Group><Row title="Новые места" sub="Открывай клетки города — 5 очков за каждую" /><Row title="Я на месте" sub="Отметься на событии — 30 очков" /><Row title="Друзья рядом" sub="Встречайтесь и знакомьтесь — очки начисляются за новые знакомства" /></Group>
-    <Row title="Награды" sub="Медали за задания — в отдельном разделе" onPress={() => router.push('/profile/awards')} />
-    {sticker&&<View style={{alignItems:'center',padding:12,backgroundColor:colors.card,borderRadius:24}}><StickerView st={sticker} size="lg"/><Text style={{fontFamily:fonts.body400,color:colors.muted}}>Отправь этот стикер другу в чате</Text></View>}
-    <StickerPicker level={level} onSelect={setSticker}/>
-    <Group><Row title="Стикеры «Рядом»" sub="Базовая коллекция открыта сразу" value="17" /><Row title="Стикеры «Город»" sub="Открываются на 3 уровне" value={level >= 3 ? 'Открыты' : 'Уровень 3'} /><Row title="Стикеры «После заката»" sub="Открываются на 7 уровне" value={level >= 7 ? 'Открыты' : 'Уровень 7'} /></Group>
+    <Group>
+      <Row title="Значки" sub="Собирай за походы и ставь один рядом с именем" onPress={() => router.push('/profile/awards')} />
+      <Row title="Стикеры" sub={level >= 7 ? 'Открыты все наборы' : level >= 3 ? 'Открыты «Рядом» и «Город»' : 'Открыт набор «Рядом»'} value={`${level >= 7 ? 3 : level >= 3 ? 2 : 1} из 3`} last />
+    </Group>
   </SettingsPage>;
 }

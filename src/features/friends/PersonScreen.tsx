@@ -107,7 +107,7 @@ export default function PersonScreen() {
             </Pressable>
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-              {shownBadges.map(b => <BadgeMedal key={b} id={b} icon={badgeIcon(b)} got size={24} />)}
+              {shownBadges.slice(0, 1).map(b => <BadgeMedal key={b} id={b} got size={28} />)}
             </View>
             <View style={styles.seenRow}>
               {d.online && <View style={styles.dot} />}

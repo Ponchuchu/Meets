@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { agoShort } from './ago';
 import { MapAvatar } from './MapAvatar';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
@@ -126,8 +127,8 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
         </Tag>
       )}
       {paused && spot.minutesAgo != null && (
-        <Tag x={0} y={20} align="center">
-          <View style={styles.ago}><Text style={styles.agoText}>{spot.minutesAgo} МИН</Text></View>
+        <Tag x={0} y={34} align="center">
+          <View style={styles.ago}><Text style={styles.agoText}>{agoShort(spot.minutesAgo)}</Text></View>
         </Tag>
       )}
     </View>
@@ -226,8 +227,8 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
-  ago: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5, backgroundColor: colors.cardAlt },
-  agoText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.muted },
+  ago: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.94)', boxShadow: '0 2px 6px rgba(23,22,26,0.18)' },
+  agoText: { fontFamily: fonts.body700, fontSize: 10.5, color: colors.muted2 },
   meHalo: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.1)', alignItems: 'center', justifyContent: 'center' },
   me: { width: 16, height: 16, borderRadius: 8, backgroundColor: colors.ink, borderWidth: 3, borderColor: '#FFFFFF' },
 });

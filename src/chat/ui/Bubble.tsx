@@ -186,9 +186,8 @@ export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAu
     case 'sticker': {
       const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
       return (
-        <View style={{ alignItems: align, gap: 6 }}>
+        <View style={{ alignItems: align }}>
           <InteractiveSticker st={st} />
-          <Text style={styles.cap}>СТИКЕР С КАРТЫ · {m.time}</Text>
         </View>
       );
     }

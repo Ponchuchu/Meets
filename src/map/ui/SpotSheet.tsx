@@ -1,12 +1,12 @@
-// Карточка постоянного места (21 октября): шапка цвета места с объёмным значком, «открыто до 22:00 · перерыв 13–14»,
-// цена, «можно одному», советы, что внутри (у Кок-Тобе и Медеу), часы на неделю — и план: день, время, «один / с друзьями».
-// Кнопки: «Купить билет» (официальный сайт), «Kaspi» (если у места есть ссылка оплаты), «Часы и цены» (2ГИС), «Маршрут».
+// Карточка постоянного места (21 октября): шапка — листаемые фото места (не загрузились — цвет места), значок места
+// в углу, «открыто до 22:00 · перерыв 13–14», цена, как попасть бесплатно, советы, что внутри (у Кок-Тобе и Медеу),
+// часы на неделю — и план: день, время, «с друзьями / один». Кнопки: «Купить билет», «Kaspi», «Сайт», «Маршрут».
 import { router } from 'expo-router';
 import { ArrowUpRight, CalendarPlus, Check, ChevronDown, Lightbulb, Navigation, Ticket, User, Users, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { gisUrl, inSeason, KIND_COLOR, KIND_LABEL, partsOf, seasonText, type Attraction } from '../../data/attractions';
+import { inSeason, KIND_COLOR, KIND_LABEL, partsOf, seasonText, type Attraction } from '../../data/attractions';
 import { almatyNow, openStatus, slotsFor, weekLines } from '../../data/hours';
 import { spotPlan } from '../../data/spots';
 import { now as clockNow } from '../../lib/clock';
@@ -32,7 +32,11 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
   const [week, setWeek] = useState(false);
   const [day, setDay] = useState(0);
   const [time, setTime] = useState<string | null>(null);
-  const [solo, setSolo] = useState(!!a.solo);
+  const [solo, setSolo] = useState(false);
+  const { width } = useWindowDimensions();
+  const [broken, setBroken] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const photos = (a.photos ?? []).filter((u) => !broken.includes(u));
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const addMeetup = usePlans((s) => s.addMeetup);
@@ -63,14 +67,31 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
     <>
       <Backdrop label="Закрыть" onPress={onClose} />
       <BottomSheet onClose={onClose} label={a.name} scroll style={{ paddingTop: 0, paddingHorizontal: 0, paddingBottom: 28 }}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, photos.length > 0 && styles.heroPhoto]}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
             <Defs><LinearGradient id="spotHero" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={color} stopOpacity={0.95} /><Stop offset="1" stopColor={color} stopOpacity={0.55} /></LinearGradient></Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#spotHero)" />
           </Svg>
-          <View style={styles.heroIcon} pointerEvents="none"><View style={{ transform: [{ scale: 1.6 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View></View>
+          {photos.length > 0 ? (
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={StyleSheet.absoluteFill}
+              onMomentumScrollEnd={(ev) => setPage(Math.round(ev.nativeEvent.contentOffset.x / Math.max(1, width)))}>
+              {photos.map((u) => <Image key={u} source={{ uri: u }} style={{ width, height: '100%' }} resizeMode="cover" onError={() => setBroken((b) => [...b, u])} accessibilityIgnoresInvertColors />)}
+            </ScrollView>
+          ) : (
+            <View style={styles.heroIcon} pointerEvents="none"><View style={{ transform: [{ scale: 1.6 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View></View>
+          )}
+          {photos.length > 0 && (
+            <>
+              <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+                <Defs><LinearGradient id="spotShade" x1="0" y1="0" x2="0" y2="1"><Stop offset="0.55" stopColor="#17161A" stopOpacity={0} /><Stop offset="1" stopColor="#17161A" stopOpacity={0.55} /></LinearGradient></Defs>
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#spotShade)" />
+              </Svg>
+              <View style={styles.cornerIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
+              {photos.length > 1 && <View style={styles.dots} pointerEvents="none">{photos.map((u, i) => <View key={u} style={[styles.pdot, i === page && styles.pdotOn]} />)}</View>}
+            </>
+          )}
           <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="Закрыть"><X size={20} color="#FFFFFF" strokeWidth={2.2} /></Pressable>
-          <Text style={styles.heroKind}>{KIND_LABEL[a.kind].toUpperCase()}</Text>
+          <Text style={[styles.heroKind, photos.length > 0 && { left: 70 }]} pointerEvents="none">{KIND_LABEL[a.kind].toUpperCase()}</Text>
         </View>
 
         <View style={styles.body}>
@@ -83,16 +104,17 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
             {season && status.breakText && <Text style={styles.statusSub}>· {status.breakText}</Text>}
           </View>
           <View style={styles.tags}>
-            {a.solo && <View style={[styles.tag, styles.tagSolo]}><User size={12} color={colors.ink} strokeWidth={2.4} /><Text style={styles.tagText}>можно одному</Text></View>}
             {a.free && <View style={[styles.tag, { backgroundColor: '#D7EBDD' }]}><Text style={[styles.tagText, { color: '#1F6B43' }]}>бесплатно</Text></View>}
             {!a.free && a.priceFrom ? <View style={styles.tag}><Text style={styles.tagText}>от {a.priceFrom.toLocaleString('ru-RU')} ₸</Text></View> : null}
             {season && a.season && <View style={styles.tag}><Text style={styles.tagText}>{seasonText(a, now)}</Text></View>}
             {!!a.address && <View style={styles.tag}><Text style={styles.tagText} numberOfLines={1}>{a.address}</Text></View>}
           </View>
 
+          {!!a.howTo && <Text style={styles.howTo}>{a.howTo}</Text>}
+
           {!!a.tips?.length && (
             <View style={styles.tips}>
-              <View style={styles.tipsHead}><Lightbulb size={16} color={colors.accentText} strokeWidth={2.2} /><Text style={styles.tipsTitle}>{a.solo ? 'Если идёшь один' : 'Совет'}</Text></View>
+              <View style={styles.tipsHead}><Lightbulb size={16} color={colors.accentText} strokeWidth={2.2} /><Text style={styles.tipsTitle}>{a.tips.length > 1 ? 'Советы' : 'Совет'}</Text></View>
               {a.tips.map((t) => <Text key={t} style={styles.tip}>{t}</Text>)}
             </View>
           )}
@@ -148,11 +170,11 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
               </ScrollView>
             ) : <Text style={styles.statusSub}>В этот день закрыто — выбери другой</Text>}
             <View style={styles.mode}>
-              <Pressable onPress={() => setSolo(true)} style={[styles.modeBtn, solo && styles.modeOn]} accessibilityRole="radio" accessibilityState={{ selected: solo }}>
-                <User size={16} color={solo ? colors.paper : colors.ink} strokeWidth={2} /><Text style={[styles.modeText, solo && { color: colors.paper }]}>Один</Text>
-              </Pressable>
               <Pressable onPress={() => setSolo(false)} style={[styles.modeBtn, !solo && styles.modeOn]} accessibilityRole="radio" accessibilityState={{ selected: !solo }}>
                 <Users size={16} color={!solo ? colors.paper : colors.ink} strokeWidth={2} /><Text style={[styles.modeText, !solo && { color: colors.paper }]}>С друзьями</Text>
+              </Pressable>
+              <Pressable onPress={() => setSolo(true)} style={[styles.modeBtn, solo && styles.modeOn]} accessibilityRole="radio" accessibilityState={{ selected: solo }}>
+                <User size={16} color={solo ? colors.paper : colors.ink} strokeWidth={2} /><Text style={[styles.modeText, solo && { color: colors.paper }]}>Сам</Text>
               </Pressable>
             </View>
             {saved ? (
@@ -171,7 +193,7 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
           <View style={styles.actions}>
             {a.buy && !a.free && <Pressable onPress={() => go(a.buy!)} style={({ pressed }) => [styles.btn, styles.dark, pressed && styles.pressed]} accessibilityRole="link"><Ticket size={18} color={colors.paper} strokeWidth={2} /><Text style={[styles.btnText, { color: colors.paper }]}>Купить билет</Text></Pressable>}
             {a.kaspi && <Pressable onPress={() => go(a.kaspi!)} style={({ pressed }) => [styles.btn, styles.kaspi, pressed && styles.pressed]} accessibilityRole="link" accessibilityLabel="Оплатить в Kaspi"><Text style={[styles.btnText, { color: '#FFFFFF' }]}>Kaspi</Text></Pressable>}
-            <Pressable onPress={() => go(gisUrl(a))} style={({ pressed }) => [styles.btn, pressed && styles.pressed]} accessibilityRole="link" accessibilityLabel="Часы и цены в 2ГИС"><ArrowUpRight size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Часы и цены</Text></Pressable>
+            {a.info && <Pressable onPress={() => go(a.info!)} style={({ pressed }) => [styles.btn, pressed && styles.pressed]} accessibilityRole="link" accessibilityLabel={`Сайт: ${a.name}`}><ArrowUpRight size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Сайт</Text></Pressable>}
             <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: { id: `place-${a.id}`, lat: String(a.lat), lon: String(a.lon), title: a.name, address: a.address ?? '' } }); }}
               style={({ pressed }) => [styles.btn, styles.square, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Маршрут: ${a.name}`}><Navigation size={18} color={colors.ink} strokeWidth={2} /></Pressable>
           </View>
@@ -183,6 +205,12 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
 }
 
 const styles = StyleSheet.create({
+  heroPhoto: { height: 230 },
+  cornerIcon: { position: 'absolute', left: 6, bottom: -6, transform: [{ scale: 0.9 }] },
+  dots: { position: 'absolute', right: 16, bottom: 14, flexDirection: 'row', gap: 5 },
+  pdot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
+  pdotOn: { width: 16, backgroundColor: '#FFFFFF' },
+  howTo: { fontFamily: fonts.body500, fontSize: 14, lineHeight: 19, color: '#1F6B43', backgroundColor: '#E3F1E7', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
   hero: { height: 132, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   heroIcon: { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
   heroKind: { position: 'absolute', left: 16, bottom: 10, fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: '#FFFFFF' },

@@ -278,7 +278,7 @@ export default function MapScreen() {
   const placesQ = useQuery({ queryKey: ['me', 'places', 'list'], enabled: LIVE && !!myId(), staleTime: 10 * 60e3, queryFn: async () => {
     const r = await supabase().from('user_places_points').select('*').eq('user_id', myId()!);
     if (r.error) throw r.error;
-    return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number }[];
+    return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number; icon?: string | null }[];
   } });
   const myPlaces = placesQ.data ?? [];
   // Постоянные места: из базы (часы и цены от сборщика), без неё — встроенный список.
@@ -384,7 +384,7 @@ export default function MapScreen() {
       if (!c.e.point || (c.status !== 'now' && c.status !== 'soon')) continue;
       list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
     }
-    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
+    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} icon={pl.icon} label={zoom >= 14.5} /> });
     // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
     // Каждый значок — отдельный слой поверх карты, а их перерисовка при движении дорогая на слабых телефонах:
     // издалека — только горы и канатки, с района — ещё парки и музеи, всё остальное — вблизи; в экономии — вдвое меньше.

@@ -1,6 +1,8 @@
 // «Ивенты» → главная карточка: выбор источника (Скрипт / ИИ / Оба), темы и период, большая кнопка «Найти».
-// Пока идёт поиск — анимация и что читается; когда закончил — итог по источникам, и список найденного выкатывается ниже («Новые»).
+// Пока идёт поиск — анимация и что читается (сразу после нажатия, ещё до того, как сервер взял задачу); когда закончил —
+// одна строка итога, которую можно смахнуть крестиком. Подробности и предупреждения — только в колокольчике (21 окт.).
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import { ago, explainError } from '../errors';
@@ -24,7 +26,18 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
   const cfg = useRobotConfig();
   const enabled = useEnabledSources(live);
   const [log, setLog] = useState(false);
-  const running = view.state === 'running';
+  // С нажатия «Найти» до ответа сервера тоже показываем радар — иначе непонятно, идёт поиск или нет.
+  const [pressedAt, setPressedAt] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pressedAt) return;
+    const t = setTimeout(() => setPressedAt(null), 45_000);
+    return () => clearTimeout(t);
+  }, [pressedAt]);
+  // Сервер взял задачу (новый запуск не раньше нажатия, с запасом на разницу часов) — дальше показываем его состояние.
+  const serverTook = !!pressedAt && !!view.run?.started_at && Date.parse(view.run.started_at) >= Date.parse(pressedAt) - 60_000;
+  const running = view.state === 'running' || (!!pressedAt && !cmd.isError && !serverTook);
+  const start = () => { setPressedAt(new Date().toISOString()); cmd.mutate('start'); };
   const noSource = live && !enabled.loading && cfg.sources !== 'ai' && enabled.list.length === 0;
   const problem = searchProblem(cfg) ?? (noSource ? 'Включи хотя бы один источник: Настройки → Источники → «собирать»' : null);
   const cmdError = cmd.isError ? explainError(cmd.error instanceof Error ? cmd.error.message : '') : null;
@@ -37,7 +50,7 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
     was.current = view.state;
   }, [view.state, onDone]);
 
-  const startedAt = view.run?.started_at;
+  const startedAt = view.state === 'running' ? view.run?.started_at : pressedAt ?? view.run?.started_at;
   const summary = view.state === 'done' && view.run?.stats ? describeRun(view.run.stats) : null;
   const results = view.state === 'done' && !summary ? sourceResults(view.logs) : [];
   const siteNames = enabled.list.filter((x) => x.kind === 'site').map((x) => x.title.replace(/ · .*$/, ''));
@@ -52,15 +65,20 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
 
       {running && startedAt ? (
         <>
-          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model, live && siteNames.length ? siteNames : undefined, tgOn)} line={view.line} found={view.run?.found} queued={view.run?.queued} logs={view.logs} />
+          <SearchRadar since={startedAt} sources={activeSources(cfg.sources, cfg.model, live && siteNames.length ? siteNames : undefined, tgOn)} line={view.state === 'running' ? view.line : 'Запускаю поиск…'} found={view.state === 'running' ? view.run?.found : 0} queued={view.state === 'running' ? view.run?.queued : 0} logs={view.state === 'running' ? view.logs : []} />
         </>
       ) : (
         <>
           {view.state === 'never' && !view.loading && <Banner tone="info" text="Поиск ещё не запускали." />}
-          {view.state === 'done' && view.run && (summary && view.run.stats
-            ? <RunSummary stats={view.run.stats} when={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} />
-            : <Banner tone="ok" title={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} text={`Найдено ${view.run.found}${view.run.queued ? `, ждут проверки ${view.run.queued}` : ''}`} />)}
-          {results.length > 0 && (
+          {view.state === 'done' && view.run && hidden !== view.run.id && (
+            <View style={styles.doneRow}>
+              <View style={styles.dot} />
+              <Text style={styles.doneText} numberOfLines={2}>Готово · {ago(view.run.finished_at ?? view.run.started_at)} · найдено {view.run.found}{view.run.queued ? `, ждут проверки ${view.run.queued}` : ''}</Text>
+              <Pressable onPress={() => setHidden(view.run!.id)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Скрыть итог"><X size={18} color={colors.muted2} strokeWidth={2} /></Pressable>
+            </View>
+          )}
+          {view.state === 'done' && summary && view.run?.stats && hidden !== view.run.id && log && <RunSummary stats={view.run.stats} when={`Готово · ${ago(view.run.finished_at ?? view.run.started_at)}`} />}
+          {results.length > 0 && log && (
             <View style={styles.results}>
               {results.map((r) => (
                 <View key={r.name} style={styles.resRow}>
@@ -105,11 +123,10 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
 
       {!running && !!problem && <Text style={styles.warn}>{problem}</Text>}
       <View style={styles.two}>
-        <Btn flex label={cmd.isPending ? 'Подожди…' : running ? 'Идёт поиск…' : 'Найти'} disabled={cmd.isPending || running || !!problem} onPress={() => cmd.mutate('start')} />
+        <Btn flex label={cmd.isPending ? 'Подожди…' : running ? 'Идёт поиск…' : 'Найти'} disabled={cmd.isPending || running || !!problem} onPress={start} />
         {running && <Btn label="Стоп" kind="ghost" onPress={() => cmd.mutate('stop')} />}
       </View>
 
-      {cmd.isSuccess && !running && <Banner tone="ok" text={cmd.data} />}
       {cmdError && (plain ? <Banner tone="info" text={(cmd.error as Error).message} /> : <Banner tone="error" title={cmdError.title} hint={cmdError.hint} />)}
 
       <View style={styles.foot}>
@@ -118,8 +135,8 @@ export function SearchCard({ live, onSettings, onDone }: { live: boolean; onSett
       </View>
       {view.logs.length > 0 && (
         <View style={{ gap: 6 }}>
-          <Pressable onPress={() => setLog(!log)} accessibilityRole="button" hitSlop={8} style={styles.link}><Text style={styles.linkText}>{log ? 'Скрыть журнал' : 'Показать журнал'}</Text></Pressable>
-          {log && view.logs.map((l) => <Text key={l.id} style={[styles.log, l.level === 'error' && { color: colors.accentText }]}>{l.text}</Text>)}
+          <Pressable onPress={() => setLog(!log)} accessibilityRole="button" hitSlop={8} style={styles.link}><Text style={styles.linkText}>{log ? 'Скрыть подробности' : 'Подробности'}</Text></Pressable>
+          {log && view.logs.slice(0, 60).map((l) => <Text key={l.id} style={[styles.log, l.level === 'error' && { color: colors.accentText }]}>{l.text}</Text>)}
         </View>
       )}
     </Card>
@@ -141,6 +158,8 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4E7A52' },
   resName: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   resVal: { fontFamily: fonts.mono600, fontSize: 12, color: colors.muted2 },
+  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.cardAlt },
+  doneText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   meta: { fontFamily: fonts.mono500, fontSize: 11.5, color: colors.muted3, letterSpacing: 0.3 },
   link: { minHeight: 40, justifyContent: 'center' },

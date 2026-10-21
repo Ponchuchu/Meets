@@ -1,6 +1,7 @@
 // Стиль Mapbox из палитр DESIGN.md (paper / night / mono). Хранится в коде — версионируется с приложением.
 import { config } from '../lib/config';
 import { mapPalettes, type MapTheme } from '../theme';
+import { landmarksGeoJSON } from './landmarks';
 
 /** Рельеф Алматы: terrain-RGB из Copernicus DEM GLO-30 (data/terrain, workflow «terrain»), только город и горы. */
 export const TERRAIN_TILES = `${config.supabaseUrl}/storage/v1/object/public/terrain/v1/{z}/{x}/{y}.png`;
@@ -9,7 +10,7 @@ const TERRAIN_BOUNDS = [76.55, 42.9, 77.4, 43.5];
 export const BUILDINGS_MIN_ZOOM = 14.5;
 /** Высотки (от 28 м) — объёмом с этого масштаба: город сразу выглядит объёмным при открытии приложения. */
 export const TALL_MIN_ZOOM = 12.6;
-/** Деревья — картинки tree / pine, их регистрирует MapCanvas. */
+/** Деревья — картинки tree / pine (и осенние tree-gold / tree-amber), их регистрирует MapCanvas. */
 export const TREES_MIN_ZOOM = 15;
 
 const FONT = ['DIN Pro Medium', 'Arial Unicode MS Regular'];
@@ -20,6 +21,14 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
   const night = theme === 'night';
   const v11 = threeD && native;
   const trees = threeD;
+  // Осень (сентябрь–ноябрь по Алматы): часть деревьев жёлтые и оранжевые — у каждого парка свой цвет.
+  const month = new Date(Date.now() + 5 * 3600e3).getUTCMonth();
+  const autumn = month >= 8 && month <= 10;
+  const treeImage = autumn
+    ? ['match', ['%', ['to-number', ['coalesce', ['id'], 0]], 3], 0, 'tree-gold', 1, 'tree-amber', 'tree']
+    : 'tree';
+  // Mapbox v11: значок, который закрыт домом, не рисуется — деревья больше не «стоят» на крышах и не просвечивают сквозь стены.
+  const occlusion = v11 ? { 'icon-occlusion-opacity': 0 } : {};
   return {
     version: 8,
     name: `ryadom-${theme}`,
@@ -27,6 +36,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
     sources: {
       streets: { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' },
       terrain: { type: 'vector', url: 'mapbox://mapbox.mapbox-terrain-v2' },
+      ...(threeD ? { landmarks: { type: 'geojson', data: landmarksGeoJSON() } } : {}),
       ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
     },
     // В экономном режиме не загружаем DEM и не рисуем объёмную геометрию.
@@ -54,8 +64,12 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
         id: 'hillshade', type: 'hillshade', source: 'dem', maxzoom: 16,
         paint: { 'hillshade-shadow-color': c.label, 'hillshade-highlight-color': c.highway, 'hillshade-accent-color': c.label, 'hillshade-exaggeration': 0.35, 'hillshade-illumination-anchor': 'map' },
       }] : []),
-      { id: 'water', type: 'fill', source: 'streets', 'source-layer': 'water', paint: { 'fill-color': c.water } },
-      { id: 'waterway', type: 'line', source: 'streets', 'source-layer': 'waterway', paint: { 'line-color': c.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 16, 4] } },
+      { id: 'water', type: 'fill', source: 'streets', 'source-layer': 'water', paint: { 'fill-color': c.water, 'fill-outline-color': c.waterEdge } },
+      // Реки и арыки: Есентай и Малая Алматинка заметны издалека, вблизи — с тёмной кромкой, как настоящая вода.
+      { id: 'waterway-edge', type: 'line', source: 'streets', 'source-layer': 'waterway', minzoom: 13, layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': c.waterEdge, 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 13, ['match', ['get', 'class'], 'river', 3.5, 1.6], 17, ['match', ['get', 'class'], 'river', 16, 6]] } },
+      { id: 'waterway', type: 'line', source: 'streets', 'source-layer': 'waterway', layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': c.water, 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 10, ['match', ['get', 'class'], 'river', 1.2, 0.5], 13, ['match', ['get', 'class'], 'river', 2.5, 1], 17, ['match', ['get', 'class'], 'river', 13, 4.5]] } },
       {
         id: 'streets', type: 'line', source: 'streets', 'source-layer': 'road',
         filter: ['match', ['get', 'class'], ['street', 'street_limited', 'tertiary', 'secondary_link', 'tertiary_link'], true, false],
@@ -92,19 +106,25 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
           'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], TALL_MIN_ZOOM, 0, TALL_MIN_ZOOM + 0.6, 0.85, BUILDINGS_MIN_ZOOM + 0.5, 0.85, BUILDINGS_MIN_ZOOM + 0.9, 0],
         },
       }] : []),
+      // Знаменитые здания (src/map/landmarks.ts): телебашню на Кок-Тобе видно со всего города.
+      ...(threeD ? [{
+        id: 'landmarks', type: 'fill-extrusion', source: 'landmarks', minzoom: 11,
+        paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'], 'fill-extrusion-opacity': 0.95,
+          ...(v11 ? { 'fill-extrusion-vertical-gradient': true } : {}) },
+      }] : []),
       // Деревья: картинки «стоят» (обращены к камере) по краям парков и скверов, ели — в лесах и на склонах.
       // Только вблизи и с пропуском при наложении — на слабом телефоне это десятки значков, а не тысячи.
       ...(trees ? [
         { id: 'trees-park', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
           filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery', 'pitch'], true, false],
-          layout: { 'symbol-placement': 'line', 'symbol-spacing': 34, 'icon-image': 'tree', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': 34, 'icon-image': treeImage, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
             'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.09, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false } ,
-          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1] } },
+          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1], ...occlusion } },
         { id: 'trees-wood', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM - 0.5,
           filter: ['match', ['get', 'class'], ['wood', 'scrub'], true, false],
           layout: { 'symbol-placement': 'line', 'symbol-spacing': 26, 'icon-image': 'pine', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
             'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0.08, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false },
-          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0, TREES_MIN_ZOOM, 1] } },
+          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0, TREES_MIN_ZOOM, 1], ...occlusion } },
       ] : []),
       {
         id: 'street-labels', type: 'symbol', source: 'streets', 'source-layer': 'road',

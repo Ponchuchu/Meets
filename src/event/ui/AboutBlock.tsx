@@ -1,6 +1,6 @@
 // Описание события (FIX3): абзацы как у редактора, длинный текст раскрывается плавно.
 // «Важно: …» больше не показываем (21 окт.): там повторялись время, место и цена, которые уже есть на плашках выше.
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, Languages } from 'lucide-react-native';
 import { useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
 import { colors, fonts } from '../../theme';
@@ -16,13 +16,18 @@ export function splitAbout(text: string): { paragraphs: string[]; note: string |
   return { paragraphs: parts.filter((_, i) => i !== noteIdx), note };
 }
 
-export function AboutBlock({ text }: { text: string }) {
+/** Язык события — тихой строкой над описанием, если не русский (описание уже по-русски). */
+const LANGS = ['на казахском и русском', 'на казахском', 'на английском'];
+export const langOf = (tags: string[] = []) => LANGS.find((l) => tags.includes(l)) ?? null;
+
+export function AboutBlock({ text, lang }: { text: string; lang?: string | null }) {
   const { paragraphs } = splitAbout(text);
   const long = text.length > 360 || paragraphs.length > 2;
   const [open, setOpen] = useState(!long);
   const shown = open ? paragraphs : paragraphs.slice(0, 1);
   return (
     <View style={{ gap: 10 }}>
+      {!!lang && <View style={styles.lang}><Languages size={13} color={colors.muted2} strokeWidth={2} /><Text style={styles.langText}>Событие {lang} · описание по-русски</Text></View>}
       {shown.map((p, i) => <Text key={i} style={[styles.p, i === 0 && styles.lead]} numberOfLines={!open && i === 0 ? 4 : undefined}>{p}</Text>)}
       {long && (
         <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity')); setOpen(v => !v); }} style={styles.more} accessibilityRole="button" accessibilityState={{ expanded: open }}>
@@ -35,6 +40,8 @@ export function AboutBlock({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  lang: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: colors.sand },
+  langText: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted2 },
   p: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 23, color: colors.muted2 },
   lead: { fontFamily: fonts.body500, fontSize: 16.5, lineHeight: 24, color: colors.ink },
   more: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 14, borderRadius: 22, ...plate },

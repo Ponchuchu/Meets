@@ -32,6 +32,8 @@ export interface Found {
   confidence?: number;
   lat?: number | null;
   lon?: number | null;
+  /** Язык события (ru, kk, en…) — от редактора описаний. */
+  lang?: string | null;
 }
 
 const ALMATY = '+05:00';

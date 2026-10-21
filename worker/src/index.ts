@@ -4,7 +4,7 @@
 //   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
-import { polishAbouts } from './polish.ts';
+import { LANG_TAG, polishAbouts } from './polish.ts';
 import { readReport, runStats, telegramLine, telegramStat, type TelegramStat } from './runstats.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -188,7 +188,10 @@ async function live() {
       const draftLike = extracted.map(({ x }) => ({ title: x.title, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, address: x.address ?? undefined, about: x.about ?? '' }) as Found);
       const { polished } = await polishAbouts(draftLike);
       if (polished) await robotLog(`Описания оформлены: ${polished}`);
-      const better = new Map(extracted.map(({ p, x }, i) => [p.externalId, { ...x, about: draftLike[i].about ?? x.about }]));
+      const better = new Map(extracted.map(({ p, x }, i) => {
+        const lang = LANG_TAG[draftLike[i].lang ?? ''];
+        return [p.externalId, { ...x, about: draftLike[i].about ?? x.about, tags: lang && !x.tags.includes(lang) ? [...x.tags, lang] : x.tags }];
+      }));
       const results = await processPosts(fresh, src, { understand: async (p: RawPost) => better.get(p.externalId) ?? understandFound(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, src.id);
       print(results);

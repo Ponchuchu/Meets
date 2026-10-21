@@ -4,7 +4,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { resolveMessages, type MessageRow } from './remote';
-import { requireUser, supabase } from './client';
+import { requireUser, supabase, uniqTopic } from './client';
 import { isJump, type Pt } from '../live/geo';
 import { config } from '../lib/config';
 import { useAuth } from '../live/auth';
@@ -33,7 +33,7 @@ export function useLiveChat(chatId: string, focused = true) {
       if (ch) void supabase().removeChannel(ch);
       joined = false;
       ch = supabase()
-        .channel(`chat:${chatId}:${Date.now()}`)
+        .channel(uniqTopic(`chat:${chatId}`))
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, async payload => {
           try {
             const user = await requireUser();
@@ -138,7 +138,7 @@ export function useLiveChats() {
     const chatsSoon = () => { clearTimeout(chatsTimer); chatsTimer = setTimeout(() => void qc.invalidateQueries({ queryKey: ['chats'] }), 400); };
     const connect = () => {
       if (channel) void supabase().removeChannel(channel);
-      channel = supabase().channel(`inbox:${userId}:${Date.now()}`)
+      channel = supabase().channel(uniqTopic(`inbox:${userId}`))
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, chatsSoon)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, refresh)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, refresh)
