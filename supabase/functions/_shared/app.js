@@ -193,7 +193,11 @@ function tasteFrom(answers, signals, now) {
   });
   return taste;
 }
-var WEIGHTS = { taste: 0.35, friends: 0.2, time: 0.15, price: 0.1, soon: 0.1, similar: 0.05, novelty: 0.05 };
+var WEIGHTS = { taste: 0.32, friends: 0.18, time: 0.13, price: 0.1, soon: 0.1, near: 0.08, similar: 0.05, novelty: 0.04 };
+function km(a, b) {
+  const dLat = (b.lat - a.lat) * 111.32, dLon = (b.lon - a.lon) * 111.32 * Math.cos(a.lat * Math.PI / 180);
+  return Math.hypot(dLat, dLon);
+}
 function dayPartOf(iso) {
   const a = almaty(iso);
   const h = a.getUTCHours();
@@ -213,7 +217,8 @@ function scoreEvent(taste, e, ctx) {
   const soon = Math.max(0, 1 - days / 14);
   const similar = ctx.similar ? ctx.similar(e) : Math.min(1, Math.log10(1 + e.goingCount) / Math.log10(5e3));
   const novelty = positive.length === 0 ? 1 : 0;
-  const parts = { taste: tasteScore, friends, time, price, soon, similar, novelty };
+  const near = ctx.me && !e.noPoint && !e.needsPin && Number.isFinite(e.lat) ? Math.max(0, Math.min(1, 1 - (km(ctx.me, e) - 2) / 13)) : 0.5;
+  const parts = { taste: tasteScore, friends, time, price, soon, similar, novelty, near };
   const total = Object.keys(WEIGHTS).reduce((sum, k) => sum + WEIGHTS[k] * parts[k], 0);
   return { total, parts };
 }
@@ -228,6 +233,8 @@ function buildDeck(taste, candidates, history, ctx, opts = {}) {
     const pos = deck.length;
     const last2 = deck.slice(-2).map((e) => e.category);
     const blocked = last2.length === 2 && last2[0] === last2[1] ? last2[0] : null;
+    const lastVenue = deck.at(-1)?.venueName?.toLowerCase() ?? null;
+    const sameVenue = (e) => !!lastVenue && e.venueName?.toLowerCase() === lastVenue;
     const recent = new Set(deck.slice(-3).map((e) => e.category));
     const free = pool.filter((x) => !used.has(x.e.id));
     let pick;
@@ -235,7 +242,7 @@ function buildDeck(taste, candidates, history, ctx, opts = {}) {
       pick = [...free].sort((a, b) => b.s.parts.novelty - a.s.parts.novelty || a.s.parts.taste - b.s.parts.taste || b.s.total - a.s.total).find((x) => x.e.category !== blocked);
     }
     if (!pick && calibrating && pos >= 3) pick = free.find((x) => !recent.has(x.e.category) && x.s.parts.taste > 0);
-    if (!pick) pick = free.find((x) => x.e.category !== blocked) ?? free[0];
+    if (!pick) pick = free.find((x) => x.e.category !== blocked && !sameVenue(x.e)) ?? free.find((x) => x.e.category !== blocked) ?? free[0];
     if (!pick) break;
     used.add(pick.e.id);
     deck.push(pick.e);
