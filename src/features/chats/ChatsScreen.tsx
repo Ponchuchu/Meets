@@ -1,6 +1,7 @@
 import { QueryNotice } from '../../ui/QueryNotice';
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
+import { useShallow } from 'zustand/react/shallow';
 import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
@@ -47,8 +48,10 @@ export default function ChatsScreen() {
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo', staleTime: 30e3 });
-  const chat = useChat();
-  const social = useSocial();
+  // Только нужные части хранилищ — список не перерисовывается от голосов в опросах, раскрытых фото и т. п.
+  const chat = useChat(useShallow((s) => ({ addGroup: s.addGroup, answerRequest: s.answerRequest, archive: s.archive, archived: s.archived, blocked: s.blocked,
+    groups: s.groups, hidden: s.hidden, hide: s.hide, pinned: s.pinned, read: s.read, requests: s.requests, sent: s.sent, togglePin: s.togglePin })));
+  const social = useSocial(useShallow((s) => ({ answered: s.answered, removed: s.removed })));
   const [group, setGroup] = useState(false);
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
@@ -67,7 +70,7 @@ export default function ChatsScreen() {
     } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
     finally { creating.current = false; setBusy(false); }
   };
-  const plans = usePlans();
+  const plans = usePlans(useShallow((s) => ({ go: s.go, going: s.going })));
   const addPlan = useApp((s) => s.addPlan);
   const pending = requests.filter((r) => !chat.requests[r.id]);
   const q = (search ?? '').trim().toLowerCase();

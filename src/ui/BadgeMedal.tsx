@@ -1,6 +1,6 @@
 // Значок-награда — медаль: розетка с градиентом, внутренний диск и белая иконка (24×24 из src/profile/badges.ts).
 // Не открыт — серая медаль и дуга прогресса вокруг. Статичный SVG, без анимаций.
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import Svg, { Circle, Defs, G, LinearGradient, Path, Stop } from 'react-native-svg';
 
 const TONES: [string, string, string][] = [
@@ -26,7 +26,7 @@ function rosette(c: number, r: number): string {
   return `M${pts.join('L')}Z`;
 }
 
-export function BadgeMedal({ id, icon, got, progress = 0, size = 56 }: { id: string; icon: string; got: boolean; progress?: number; size?: number }) {
+export const BadgeMedal = memo(function BadgeMedal({ id, icon, got, progress = 0, size = 56 }: { id: string; icon: string; got: boolean; progress?: number; size?: number }) {
   const t = got ? toneOf(id) : LOCKED;
   const g = `bm-${id}-${got ? 1 : 0}`;
   const outer = useMemo(() => rosette(50, 44), []);
@@ -54,4 +54,4 @@ export function BadgeMedal({ id, icon, got, progress = 0, size = 56 }: { id: str
       </G>
     </Svg>
   );
-}
+});

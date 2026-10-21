@@ -129,7 +129,8 @@ function useMotion(kind: FxKind, on: boolean) {
     // Выключили (прокрутка, экономия) — останавливаем на месте, а не просто перестаём запускать.
     if (!on) { cancelAnimation(t); cancelAnimation(p); return; }
     const turn = { bubble: 9000, drop: 14000, neon: 0, aurora: 11000, cosmos: 10000, tesla: 0, lava: 16000, crown: 0 }[kind];
-    if (turn) t.set(withRepeat(withTiming(1, { duration: turn, easing: Easing.linear }), -1, false));
+    // Продолжаем с того же угла: повтор идёт от s до s+1 (полный оборот), без скачка после паузы.
+    if (turn) { const s = t.get() % 1; t.set(s); t.set(withRepeat(withTiming(s + 1, { duration: turn, easing: Easing.linear }), -1, false)); }
     p.set(kind === 'tesla'
       ? withRepeat(withSequence(withTiming(1, { duration: 90 }), withTiming(0.35, { duration: 140 }), withTiming(1, { duration: 60 }), withTiming(0.8, { duration: 900 })), -1, false)
       : withRepeat(withTiming(1, { duration: kind === 'neon' ? 1400 : 2600, easing: Easing.inOut(Easing.sin) }), -1, true));

@@ -19,6 +19,8 @@ export function useHeading(enabled = true): SharedValue<number> {
       const current = h.get();
       const cur = Number.isFinite(current) ? current : deg;
       const d = ((deg - (cur % 360) + 540) % 360) - 180; // кратчайший поворот
+      // Компас присылает десятки событий в секунду: дрожание меньше 3° не рисуем — иначе карта перерисовывается без остановки.
+      if (Number.isFinite(current) && Math.abs(d) < 3) return;
       h.set(withTiming(cur + d, { duration: 150, easing: Easing.linear }));
     }).then((s) => { if (cancelled) s.remove(); else sub = s; }).catch(() => undefined);
     return () => { cancelled = true; sub?.remove(); };
@@ -38,7 +40,9 @@ export function MeArrow({ heading, bearing }: { heading?: SharedValue<number>; b
 
 export function MeDot({ heading, bearing, dim }: { heading?: SharedValue<number>; bearing?: SharedValue<number>; dim?: boolean }) {
   const pulse = useSharedValue(0);
-  useEffect(() => { pulse.set(withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), -1, false)); }, [pulse]);
+  // Три волны при появлении, дальше точка спокойная: бесконечная пульсация внутри карты заставляла её
+  // перерисовываться 60 раз в секунду всё время — телефон грелся.
+  useEffect(() => { pulse.set(withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), 3, false)); }, [pulse]);
   const cone = useAnimatedStyle(() => { const h = heading?.get(); return { opacity: h != null && Number.isFinite(h) ? 1 : 0, transform: [{ rotate: `${Number.isFinite(h) ? h! - (bearing?.get() ?? 0) : 0}deg` }] }; });
   const ring = useAnimatedStyle(() => ({ opacity: 0.35 * (1 - pulse.get()), transform: [{ scale: 0.6 + pulse.get() * 1.6 }] }));
   return (

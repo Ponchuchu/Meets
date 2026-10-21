@@ -23,7 +23,8 @@ function Ico({ d, size, color, w = 2 }: { d: string; size: number; color: string
 function Pulse({ size, color }: { size: number; color: string }) {
   const t = useSharedValue(0);
   useEffect(() => {
-    t.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1, false);
+    // Несколько волн и тишина: бесконечная анимация в пине держит карту в постоянной перерисовке (нагрев).
+    t.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), 4, false);
   }, [t]);
   const s = useAnimatedStyle(() => ({ opacity: 0.55 * (1 - t.value), transform: [{ scale: 0.6 + 1.1 * t.value }] }));
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: color }, s]} />;

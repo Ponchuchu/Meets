@@ -21,7 +21,8 @@ const demoHistory = () => Array.from({ length: 12 }, (_, i) => ({ day: new Date(
 export function StepsCard() {
   const live = config.dataMode !== 'demo';
   const steps = useSteps(s => (live ? stepsToday(s) : 6240));
-  const { status, source } = useSteps();
+  const status = useSteps((s) => s.status);
+  const source = useSteps((s) => s.source);
   const qc = useQueryClient();
   const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const history = useQuery({ queryKey: ['me', 'steps'], queryFn: stepHistory, enabled: live, staleTime: 60e3 });

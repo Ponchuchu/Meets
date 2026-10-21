@@ -1,5 +1,6 @@
 // «Аналитика», верх: люди и контент одним взглядом (admin_overview — только команда). Без входа — пример.
 import { useQuery } from '@tanstack/react-query';
+import { Hash } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { supabase, withTimeout } from '../../data/client';
 import { colors, fonts } from '../../theme';
@@ -49,7 +50,7 @@ export function OverviewBlock({ live }: { live: boolean }) {
             <Kpi n={o.messages_24h} label="сообщений за сутки" sub={`чатов: ${o.chats}`} />
             <Kpi n={o.events_upcoming} label="событий впереди" sub={`ждут проверки: ${o.events_draft}`} />
           </View>
-          <Section title="Все цифры" fold="closed">
+          <Section title="Все цифры" icon={Hash} fold="closed">
             <View style={styles.grid}>
               <Stat n={o.new_24h} label="новых за сутки" />
               <Stat n={o.friendships} label="дружб" />

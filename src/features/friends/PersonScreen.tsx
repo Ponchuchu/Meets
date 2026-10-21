@@ -3,6 +3,7 @@ import { useSocialActions } from '../../live/socialActions';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { StateView } from '../../ui/StateView';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
@@ -34,8 +35,10 @@ export default function PersonScreen() {
   const [pic, setPic] = useState(0);
   const [sheet, setSheet] = useState<null | 'report' | 'remove'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: d } = useQuery({ queryKey: ['person', id], queryFn: () => data.getPersonDetails(id) });
+  const peopleQ = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const people = peopleQ.data ?? [];
+  const detailsQ = useQuery({ queryKey: ['person', id], queryFn: () => data.getPersonDetails(id) });
+  const d = detailsQ.data;
   // Награды, которые человек поставил у имени (FIX3 Ф8).
   const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
@@ -46,7 +49,14 @@ export default function PersonScreen() {
   const p = people.find((x) => x.id === id);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
-  if (!p || !d) return <View style={styles.root} />;
+  // Пока профиль грузится или человек не найден — понятное состояние и кнопка «Назад», а не пустой экран.
+  if (!p || !d) return (
+    <View style={[styles.root, { justifyContent: 'center' }]}>
+      <Pressable onPress={back} style={[styles.back, { top: Math.max(50, insets.top + 6) }]} accessibilityRole="button" accessibilityLabel="Назад"><Ic d={IC.back} size={20} color={colors.ink} w={2} /></Pressable>
+      <StateView kind={peopleQ.isPending || detailsQ.isPending ? 'loading' : 'empty'} title={peopleQ.isPending || detailsQ.isPending ? 'Открываю профиль…' : 'Профиль недоступен'}
+        text={peopleQ.isPending || detailsQ.isPending ? undefined : 'Человек мог скрыть профиль или удалить аккаунт.'} action={peopleQ.isPending || detailsQ.isPending ? undefined : 'Назад'} onAction={back} />
+    </View>
+  );
 
   const friend = isFriendNow(p, social);
   const rel = friend ? 'friend' : 'stranger';

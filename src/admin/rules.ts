@@ -26,6 +26,23 @@ export function isReliable(x: Pick<QueueItem, 'flags' | 'confidence' | 'source' 
   return end > now;
 }
 
+/**
+ * «Готово к публикации» для кнопки «Опубликовать всё»: у события есть точка на карте (в live — координаты, в демо — нет пометки
+ * «поставь точку»), нет сигнала «отменили» и оно ещё не закончилось. Неточный адрес и «отменили» остаются на ручную проверку.
+ */
+export function isReady(x: Pick<QueueItem, 'flags' | 'startsAt' | 'point'> & { endsAt?: string | null }, live: boolean, now = Date.now()): boolean {
+  if (x.flags.includes('needs_pin') || x.flags.includes('cancel_reported')) return false;
+  if (live && !x.point) return false;
+  const end = x.endsAt ? Date.parse(x.endsAt) : Date.parse(x.startsAt) + 3 * 3600e3;
+  return !(end <= now);
+}
+
+/** «1 событие», «2 события», «5 событий». */
+export function plural(n: number, one: string, few: string, many: string): string {
+  const m = n % 10, k = n % 100;
+  return m === 1 && k !== 11 ? one : m >= 2 && m <= 4 && (k < 10 || k >= 20) ? few : many;
+}
+
 /** Строки «Источник · имя · итог» из журнала → для плашки результата. */
 export function sourceResults(lines: { text: string }[]): { name: string; result: string; bad: boolean }[] {
   const out: { name: string; result: string; bad: boolean }[] = [];

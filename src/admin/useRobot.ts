@@ -16,6 +16,8 @@ export type RobotState = 'never' | 'running' | 'done' | 'failed' | 'cancelled';
 export interface RobotView {
   state: RobotState;
   run?: Run;
+  /** Последние запуски (новые сверху) — для истории во вкладке «Поиск». */
+  runs: Run[];
   /** Последняя строка журнала — что происходит сейчас. */
   line?: string;
   error?: Explained;
@@ -27,9 +29,10 @@ export interface RobotView {
 export function useRobotView(live: boolean): RobotView {
   const runs = useQuery({
     queryKey: ['admin', 'robot'], enabled: live,
-    refetchInterval: (q) => ((q.state.data as Run[] | undefined)?.some((r) => r.status === 'queued' || r.status === 'running') ? 4000 : 20000),
+    // Пока поиск идёт — каждые 4 с (видно прогресс), в покое — раз в минуту.
+    refetchInterval: (q) => ((q.state.data as Run[] | undefined)?.some((r) => r.status === 'queued' || r.status === 'running') ? 4000 : 60_000),
     queryFn: async () => {
-      const r = await withTimeout(supabase().from('robot_runs').select('id,status,found,queued,started_at,finished_at,params,stats').order('started_at', { ascending: false }).limit(3));
+      const r = await withTimeout(supabase().from('robot_runs').select('id,status,found,queued,started_at,finished_at,params,stats').order('started_at', { ascending: false }).limit(8));
       if (r.error) throw r.error;
       return r.data as Run[];
     },
@@ -47,7 +50,7 @@ export function useRobotView(live: boolean): RobotView {
   const state: RobotState = !run ? 'never' : run.status === 'queued' ? 'running' : run.status;
   const errText = lines.find((l) => l.level === 'error')?.text;
   return {
-    state, run, logs: lines, line: lines[0]?.text,
+    state, run, runs: runs.data ?? [], logs: lines, line: lines[0]?.text,
     error: state === 'failed' ? explainError(errText) : undefined,
     loading: live && runs.isPending, fetchError: runs.isError,
   };

@@ -8,7 +8,8 @@ import { Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, Vi
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
-import { useApp, useCoverTabBar } from '../../state/app';
+import { useApp, useBackClose, useCoverTabBar } from '../../state/app';
+import { useShallow } from 'zustand/react/shallow';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import {openDirectChat,sendMessage} from '../../data/remote';
@@ -53,7 +54,7 @@ import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
-import { startBackground, useMyFix } from '../../live/location';
+import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
 import { startCamera } from '../../live/startPoint';
 import { MeDot, useHeading } from '../../map/MeDot';
@@ -105,7 +106,9 @@ export default function MapScreen() {
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [clock, setClock] = useState(clockNow);
-  const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState();
+  const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState(useShallow((s) => ({
+    filters: s.filters, setFilters: s.setFilters, resetFilters: s.resetFilters, selectedId: s.selectedId, select: s.select, focusId: s.focusId,
+    focusFriend: s.focusFriend, inviteOpen: s.inviteOpen, setInviteOpen: s.setInviteOpen })));
   const inviteSending = useRef(false);
   const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -125,6 +128,7 @@ export default function MapScreen() {
   // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
   const bearing = useSharedValue(0);
   const heading = useHeading(focused);
+  usePreciseGps(focused);
   const [follow, setFollow] = useState(false);
   useEffect(() => { void startCamera().then(setStartCam); }, []);
   // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
@@ -244,6 +248,8 @@ export default function MapScreen() {
     enabled: spots.length > 0,
   });
   const detailsOf = (id: string) => details.find((d) => d?.id === id) ?? undefined;
+  // «Назад» на Android закрывает карточку друга или события, а не выходит из приложения.
+  useBackClose(() => { if (focusId) focusFriend(null); else select(null); }, sheet === null && (!!focusId || !!selectedId));
   const focusSpot = spots.find((x) => x.personId === focusId);
   const focusPerson = people.find((x) => x.id === focusId);
   // Хвост друга: последние 4 точки за 10 минут (только у выбранного).
@@ -443,7 +449,8 @@ export default function MapScreen() {
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
-      <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
+      {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
+      {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}
 
       <View style={[styles.top, { top: topY }]}>
         <TopBar

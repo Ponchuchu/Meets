@@ -102,7 +102,7 @@ function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(${Math.round(23 + 217 * ring.get())},${Math.round(22 + 60 * ring.get())},${Math.round(26 + 5 * ring.get())},${0.16 + 0.84 * ring.get()})` }));
   return (
     <Animated.View style={[styles.meRing, st]}>
-      {avatar.url ? <Image source={{ uri: avatar.url }} style={styles.meFace} /> : (
+      {avatar.url ? <Image source={{ uri: avatar.url }} resizeMethod="resize" style={styles.meFace} /> : (
         <View style={[styles.meFace, styles.meEmpty]}><Text style={styles.meLetter}>{avatar.letter || '·'}</Text></View>
       )}
     </Animated.View>

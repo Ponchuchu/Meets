@@ -62,10 +62,12 @@ function Shell() {
     <>
       <Tabs detachInactiveScreens tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
         <Tabs.Screen name="index" options={{ title: 'Карта' }} />
-        <Tabs.Screen name="foryou" options={{ title: 'Рекомендации' }} />
-        <Tabs.Screen name="plans" options={{ title: 'Планы' }} />
-        <Tabs.Screen name="chats" options={{ title: 'Чаты' }} />
-        <Tabs.Screen name="me" options={{ title: 'Профиль' }} />
+        {/* Скрытые вкладки (кроме карты) замирают: не перерисовываются от сообщений и точек друзей, пока открыта другая.
+            Карту не замораживаем — она сама отключает отрисовку вне фокуса (MapScreen: focused). */}
+        <Tabs.Screen name="foryou" options={{ title: 'Рекомендации', freezeOnBlur: true }} />
+        <Tabs.Screen name="plans" options={{ title: 'Планы', freezeOnBlur: true }} />
+        <Tabs.Screen name="chats" options={{ title: 'Чаты', freezeOnBlur: true }} />
+        <Tabs.Screen name="me" options={{ title: 'Профиль', freezeOnBlur: true }} />
       </Tabs>
       <Tutorial />
     </>

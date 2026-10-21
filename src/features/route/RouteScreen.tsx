@@ -17,7 +17,7 @@ import { useTrip } from '../../event/v6/WhereSheet';
 import { almaty, now as clockNow } from '../../lib/clock';
 import { config } from '../../lib/config';
 import { getEventsByIds } from '../../live/api';
-import { useMyFix, useMyPos } from '../../live/location';
+import { useMyFix, useMyPos, usePreciseGps } from '../../live/location';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { MapCanvas } from '../../map/MapCanvas';
 import { MeArrow, MeDot, useHeading } from '../../map/MeDot';
@@ -74,6 +74,7 @@ export default function RouteScreen() {
   }, []);
   const fitted = useRef('');
   const mapRef = useRef<MapCanvasHandle>(null);
+  usePreciseGps(true);
   const fix = useMyFix((s) => s.fix);
   const pos = useMyPos();
   const heading = useHeading();

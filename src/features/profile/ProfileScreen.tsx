@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { BedDouble, ChevronRight, Code2, Footprints, Home, ImagePlus, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { create } from 'zustand';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -37,7 +38,13 @@ const DEMO_STATS = { friends: 4, level: 3, points: 2140, cells: Array.from({ len
   { id: 'jazz', name: 'Джазмен', goal: 3, progress: 2, got: false }, { id: 'laugh', name: 'Смешинка', goal: 3, progress: 1, got: false },
   { id: 'above', name: 'Выше города', goal: 1, progress: 0, got: false }], places: ['дом', 'работа'], staff: true, drafts: 4 };
 
-function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
+const useStill = create<{ still: boolean }>(() => ({ still: false }));
+function HeroFrame(props: { frameId?: string | null; shape?: string | null; photo?: string | null; initial: string }) {
+  const still = useStill((s) => s.still);
+  return <AvatarFrame {...props} size={128} animate={!still} />;
+}
+
+const Ring = memo(function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
   const r = (size - stroke) / 2;
   const len = 2 * Math.PI * r;
   return (
@@ -47,10 +54,10 @@ function Ring({ value, size, stroke, color, track }: { value: number; size: numb
         strokeDasharray={`${Math.max(1, len * Math.min(1, value))} ${len}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
     </Svg>
   );
-}
+});
 
 /** Свечение за аватаркой — цвет выбранной рамки, мягко растворяется в бумаге. */
-function Aura({ color, height }: { color: string; height: number }) {
+const Aura = memo(function Aura({ color, height }: { color: string; height: number }) {
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height={height} pointerEvents="none">
       <Defs>
@@ -63,7 +70,7 @@ function Aura({ color, height }: { color: string; height: number }) {
       <Rect x="0" y="0" width="100%" height={height} fill="url(#aura)" />
     </Svg>
   );
-}
+});
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -104,10 +111,10 @@ export default function ProfileScreen() {
   const nights = sleeps.data ?? [];
   const heroH = insets.top + 270;
   // Пока листаешь — живая рамка замирает (на слабых телефонах анимация и прокрутка вместе давали ~3 кадра в секунду).
-  const [still, setStill] = useState(false);
+  // Флаг живёт в маленьком хранилище: меняется только рамка, а не весь экран.
   const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const scrollStart = () => { clearTimeout(settle.current); if (!still) setStill(true); };
-  const scrollEnd = () => { clearTimeout(settle.current); settle.current = setTimeout(() => setStill(false), 400); };
+  const scrollStart = () => { clearTimeout(settle.current); if (!useStill.getState().still) useStill.setState({ still: true }); };
+  const scrollEnd = () => { clearTimeout(settle.current); settle.current = setTimeout(() => useStill.setState({ still: false }), 400); };
   useEffect(() => () => clearTimeout(settle.current), []);
 
   const pickPhoto = async () => {
@@ -143,7 +150,7 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.head}>
           <Pressable onPress={() => void pickPhoto()} onLongPress={() => router.push('/profile/level')} style={({ pressed }) => [pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка «${frame.name}»`}>
-            <AvatarFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={128} animate={!still} />
+            <HeroFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} />
           </Pressable>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>

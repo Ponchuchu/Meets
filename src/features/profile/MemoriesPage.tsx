@@ -19,7 +19,7 @@ const dateRu = (iso: string) => { const d = new Date(new Date(iso).getTime() + 5
 const cat = (c?: string): Category => (c && c in CAT_COLOR ? c : 'music') as Category;
 
 function Cover({ uri, category, size = 34 }: { uri?: string | null; category?: string; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={StyleSheet.absoluteFill} />;
+  if (uri) return <Image source={{ uri }} resizeMethod="resize" style={StyleSheet.absoluteFill} />;
   const c = cat(category);
   return <View style={[StyleSheet.absoluteFill, { backgroundColor: CAT_COLOR[c], alignItems: 'center', justifyContent: 'center' }]}><Ic d={CAT_ICON[c]} size={size} color={catFg(c)} w={1.6} /></View>;
 }
@@ -155,7 +155,7 @@ export function MemoryAlbum({ id }: { id: string }) {
         </Pressable>
         {m.photos.map(p => (
           <Pressable key={p.id} onPress={() => setView(p.id)} style={{ width: cell, height: cell, borderRadius: 14, overflow: 'hidden' }} accessibilityRole="imagebutton" accessibilityLabel="Открыть фото">
-            <Image source={{ uri: p.url }} style={StyleSheet.absoluteFill} />
+            <Image source={{ uri: p.url }} resizeMethod="resize" style={StyleSheet.absoluteFill} />
           </Pressable>
         ))}
       </View>
@@ -170,7 +170,7 @@ export function MemoryAlbum({ id }: { id: string }) {
 
       <Modal visible={!!photo} transparent animationType="fade" onRequestClose={() => setView(null)}>
         <View style={styles.viewer}>
-          {photo && <Image source={{ uri: photo.url }} style={{ width: '100%', height: '78%' }} resizeMode="contain" />}
+          {photo && <Image source={{ uri: photo.url }} resizeMethod="resize" style={{ width: '100%', height: '78%' }} resizeMode="contain" />}
           <View style={styles.viewerBar}>
             <Pressable onPress={() => setView(null)} style={styles.viewerBtn} accessibilityRole="button" accessibilityLabel="Закрыть"><X size={24} color="#FFFFFF" /></Pressable>
             <Pressable onPress={() => { if (!photo) return; const pid = photo.id; setView(null); void removeMemoryPhoto(m.id, pid).then(refresh).catch(() => setError('Фото не удалилось')); }} style={styles.viewerBtn} accessibilityRole="button" accessibilityLabel="Удалить фото"><Trash2 size={22} color="#FFFFFF" /></Pressable>

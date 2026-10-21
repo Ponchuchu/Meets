@@ -33,6 +33,17 @@ const hidden = () => share.invisible === true
   || (typeof share.invisible === 'string' && new Date(share.invisible).getTime() > Date.now())
   || (!!share.shareUntil && new Date(share.shareUntil).getTime() < Date.now());
 
+/** Точный GPS нужен, только когда на экране карта или навигатор; в чатах, ленте и профиле — экономный
+ *  (GPS высокой точности всё время — главный источник нагрева и разряда). Экраны отмечаются через usePreciseGps. */
+export const useGpsMode = create<{ precise: number }>(() => ({ precise: 0 }));
+export function usePreciseGps(on: boolean) {
+  useEffect(() => {
+    if (!on) return;
+    useGpsMode.setState((s) => ({ precise: s.precise + 1 }));
+    return () => useGpsMode.setState((s) => ({ precise: Math.max(0, s.precise - 1) }));
+  }, [on]);
+}
+
 /** Последняя своя точка и её точность — для «моей точки» и состояния «Неточно». */
 export const useMyFix = create<{ fix: Pt | null; set: (p: Pt) => void }>((set) => ({ fix: null, set: (fix) => set({ fix }) }));
 
@@ -134,11 +145,13 @@ export async function stopBackground() {
 }
 
 /** Пока приложение открыто: частая точка (4 с). Возвращает функцию остановки или null — разрешения ещё нет. */
-export async function watchForeground(): Promise<(() => void) | null> {
+export async function watchForeground(precise = useGpsMode.getState().precise > 0): Promise<(() => void) | null> {
   const perm = await Location.getForegroundPermissionsAsync();
   if (!perm.granted) return null;
   const sub = await Location.watchPositionAsync(
-    { accuracy: isEco() ? Location.Accuracy.Balanced : Location.Accuracy.High, timeInterval: isEco() ? 10000 : sendInterval(true, await battery()), distanceInterval: isEco() ? 10 : 2 },
+    precise && !isEco()
+      ? { accuracy: Location.Accuracy.High, timeInterval: sendInterval(true, await battery()), distanceInterval: 2 }
+      : { accuracy: Location.Accuracy.Balanced, timeInterval: isEco() ? 15000 : 10000, distanceInterval: 15 },
     (l) => { void sendPoint(l.coords, l.timestamp).catch(() => undefined); },
   );
   return () => sub.remove();

@@ -110,7 +110,7 @@ export function EventsList({ live, filter, onFilter }: { live: boolean; filter: 
       </View>
       {q.isError && <Text style={styles.muted}>Не удалось загрузить события. Проверь связь.</Text>}
       {q.isLoading && <Text style={styles.muted}>Загружаю…</Text>}
-      {!q.isLoading && !q.isError && rows.length === 0 && <Text style={styles.muted}>{all.length ? 'Ничего не нашлось' : 'На карте пока пусто. Найди события наверху'}</Text>}
+      {!q.isLoading && !q.isError && rows.length === 0 && <Text style={styles.muted}>{all.length ? 'Ничего не нашлось' : 'На карте пока пусто. Найди события во вкладке «Поиск»'}</Text>}
       <View style={{ gap: 8 }}>
         {rows.slice(0, shown).map((r, i) => {
           const x = factsOf(r);

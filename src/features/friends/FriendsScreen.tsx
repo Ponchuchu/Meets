@@ -18,6 +18,7 @@ import { now as clockNow } from '../../lib/clock';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { planWhen } from '../../lib/planWhen';
 import { useApp } from '../../state/app';
+import { StateView } from '../../ui/StateView';
 import { usePlans } from '../../state/plans';
 import { displayName, isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
@@ -135,6 +136,7 @@ export default function FriendsScreen() {
               <Text style={styles.h2}>Друзья</Text>
               <View style={[styles.count, { backgroundColor: colors.sand2 }]}><Text style={styles.countText}>{friends.length}</Text></View>
             </View>
+            {!friends.length && <StateView kind="empty" compact title="Пока без друзей" text="Покажи свой QR-код или найди по @нику — друзья будут видеть тебя на карте, а ты их." />}
             <View style={{ gap: 2 }}>
               {friends.map((p) => (
                 <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={styles.friendRow} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
