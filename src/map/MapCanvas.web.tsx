@@ -91,7 +91,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (!config.mapAttribution) (host.current.querySelector('.mapboxgl-ctrl-logo') as HTMLElement | null)?.style.setProperty('display', 'none');
       // Масштаб — наружу, не чаще кадра: пины меняют размер и подписи.
       let raf = 0;
-      m.on('moveend', () => { const c = m.getCenter(); onCenter?.(c.lat, c.lng); });
+      m.on('moveend', () => { const c = m.getCenter(); props.onMoving?.(false); onCenter?.(c.lat, c.lng); });
+      m.on('dragstart', () => props.onMoving?.(true));
       m.on('zoom', () => {
         if (raf) return;
         raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
