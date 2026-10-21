@@ -379,10 +379,14 @@ export default function MapScreen() {
     }
     for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
     // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
+    // Каждый значок — отдельный слой поверх карты, а их перерисовка при движении дорогая на слабых телефонах:
+    // издалека — только горы и канатки, с района — ещё парки и музеи, всё остальное — вблизи; в экономии — вдвое меньше.
     for (const a of topSpots(places)) {
-      const far = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
-      if (detail === 'far' && !far) continue;
-      if (a.kind === 'photo' && detail !== 'near') continue;
+      const big = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
+      const mid = big || a.kind === 'park' || a.kind === 'garden' || a.kind === 'museum' || a.kind === 'zoo';
+      if (detail === 'far' && !big) continue;
+      if (detail === 'mid' && (!mid || (eco && !big))) continue;
+      if (detail === 'near' && eco && !mid) continue;
       list.push({ id: `a-${a.id}`, lat: a.lat, lon: a.lon, z: 9, node: <AttractionPin a={a} label={detail === 'near'} onPress={() => { setSpotPlace(a); setSheet('spot'); }} /> });
     }
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });

@@ -1,7 +1,7 @@
 // Карточка ленты (переделана 11 октября): светлая, сверху фото события (или яркий постер раздела), ниже — название и всегда
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
@@ -122,11 +122,12 @@ function Fact({ Icon, text, bad, strong }: { Icon: typeof Clock; text: string; b
 
 const styles = StyleSheet.create({
   // Жидкое стекло (FIX3 Ф12): светлая кромка сверху, блик внутри, глубокая мягкая тень; плашки на фото — полупрозрачные.
-  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
+  // Карточка движется под пальцем каждый кадр — на Android без внутренней тени и с одной внешней (дешевле).
+  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: Platform.OS === 'android' ? '0 20px 40px -20px rgba(23,22,26,0.5)' : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
   gloss: { position: 'absolute', left: 0, right: 0, top: 0, height: '45%' },
-  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px -4px rgba(23,22,26,0.3)' },
+  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)' },
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
-  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)' },
+  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 3, borderRadius: 12, backgroundColor: 'rgba(251,250,246,0.92)' },
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
