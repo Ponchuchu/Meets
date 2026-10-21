@@ -94,7 +94,7 @@ export async function loadSources(): Promise<SourceItem[]> {
     .map((r) => ({ id: r.id, kind: r.kind, handle: r.handle, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
 }
 
-export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean }>): Promise<void> {
+export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean; title: string }>): Promise<void> {
   const { error } = await withTimeout(supabase().from('sources').update(patch).eq('id', id));
   if (error) throw error;
 }
@@ -105,9 +105,11 @@ export async function setAutoPublish(on: boolean): Promise<void> {
   if (error) throw error;
 }
 
-/** Ссылка → источник. Понимает t.me/<канал>, threads.net/@<ник> и просто адрес сайта. */
+/** Ссылка → источник. Понимает t.me/<канал>, @канал (Telegram), threads.net/@<ник> и просто адрес сайта. */
 export function parseSourceLink(link: string): { kind: SourceItem['kind']; handle: string; title: string } | null {
   const s = link.trim();
+  const at = /^@([A-Za-z0-9_]{4,})$/.exec(s);
+  if (at) return { kind: 'telegram', handle: at[1], title: `Telegram · @${at[1]}` };
   const tg = /(?:t\.me\/(?:s\/)?|^@)([A-Za-z0-9_]{4,})/.exec(s);
   if (/t\.me\//.test(s) && tg) return { kind: 'telegram', handle: tg[1], title: `Telegram · @${tg[1]}` };
   const th = /threads\.(?:net|com)\/@([\w.]+)/.exec(s);
@@ -117,10 +119,17 @@ export function parseSourceLink(link: string): { kind: SourceItem['kind']; handl
   return null;
 }
 
-export async function addSource(link: string): Promise<void> {
+/** Новый источник. title — своё название (по умолчанию — из ссылки). */
+export async function addSource(link: string, title?: string): Promise<void> {
   const src = parseSourceLink(link);
   if (!src) throw new Error('bad-link');
-  const { error } = await withTimeout(supabase().from('sources').insert({ ...src, enabled: src.kind === 'telegram' }));
+  const { error } = await withTimeout(supabase().from('sources').insert({ ...src, title: title?.trim() || src.title, enabled: src.kind === 'telegram' }));
+  if (error) throw error;
+}
+
+/** Удалить источник (таблица sources, политика sources_staff — только команда). */
+export async function removeSource(id: string): Promise<void> {
+  const { error } = await withTimeout(supabase().from('sources').delete().eq('id', id));
   if (error) throw error;
 }
 

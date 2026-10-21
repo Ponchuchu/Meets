@@ -23,7 +23,8 @@ function Ico({ d, size, color, w = 2 }: { d: string; size: number; color: string
 function Pulse({ size, color }: { size: number; color: string }) {
   const t = useSharedValue(0);
   useEffect(() => {
-    t.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1, false);
+    // Несколько волн и тишина: бесконечная анимация в пине держит карту в постоянной перерисовке (нагрев).
+    t.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), 4, false);
   }, [t]);
   const s = useAnimatedStyle(() => ({ opacity: 0.55 * (1 - t.value), transform: [{ scale: 0.6 + 1.1 * t.value }] }));
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: color }, s]} />;
@@ -62,7 +63,7 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
   const ring = selected ? colors.accent : kind === 'hot' ? (dark ? colors.paper : colors.ink) : outline;
   const looking = e.lookingCount;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.anchor} hitSlop={6}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.hit} hitSlop={6}>
       <View style={[styles.anchor, { transform: [{ scale: selected ? Math.max(1.1, scale * 1.2) : scale }] }]}>
         {kind === 'popular' && <View pointerEvents="none" style={[styles.halo, { backgroundColor: dark ? 'rgba(243,240,232,0.08)' : 'rgba(23,22,26,0.06)' }]} />}
         {live && <Pulse size={size + 22} color={bg} />}
@@ -106,13 +107,14 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
   const rad = ((spot.heading ?? 90) * Math.PI) / 180;
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
   return (
-    <View style={[styles.anchor, { opacity: dim ? 0.35 : 1 }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={[styles.hit, { opacity: dim ? 0.35 : 1 }]}>
+    <View style={styles.anchor}>
       {moving && person.mapTrail !== 'none' && [10, 19, 27].map((dx, i) => (
         <View key={dx} pointerEvents="none" style={{ position: 'absolute', width: 5 - i, height: 5 - i, borderRadius: 3, backgroundColor: colors.friend, opacity: [0.5, 0.3, 0.18][i], transform: [{ translateX: -Math.sin(rad) * (dx + 17) }, { translateY: Math.cos(rad) * (dx + 17) }] }} />
       ))}
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={5} style={{ alignItems: 'center' }}>
+      <View style={{ alignItems: 'center' }} pointerEvents="none">
         <MapAvatar person={person} ring={paused ? '#8C8577' : undefined} />
-      </Pressable>
+      </View>
       {moving && (
         <Tag x={-26} y={21}>
           <View style={styles.speed}>
@@ -129,20 +131,56 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
         </Tag>
       )}
     </View>
+    </Pressable>
   );
 }
 
+/** Друзья (и ты) в одном месте: аватарки при появлении «съезжаются» друг к другу, вокруг расходятся тёплые волны,
+ *  снизу — плашка «вместе · N». Волн несколько и потом тишина: бесконечная анимация на карте греет телефон. */
 export function TogetherPin({ people, onPress }: { people: Person[]; onPress: (id: string) => void }) {
   const [index, setIndex] = useState(0);
-  return <Pressable onPress={() => { onPress(people[index % people.length].id); setIndex(index + 1); }} accessibilityRole="button" accessibilityLabel={`Рядом: ${people.map(p => p.name).join(', ')}`} style={styles.anchor}>
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>{people.slice(0, 3).map((p,i) => <View key={p.id} style={{ marginLeft: i ? -12 : 0 }}><MapAvatar person={p} size={42} /></View>)}</View>
-    <Tag x={0} y={28} align="center"><View style={styles.speed}><Text style={styles.speedText}>РЯДОМ · {people.length}</Text></View></Tag>
-  </Pressable>;
+  const meet = useSharedValue(0);
+  const wave = useSharedValue(0);
+  const key = people.map(p => p.id).join(',');
+  useEffect(() => {
+    meet.set(0);
+    meet.set(withTiming(1, { duration: 650, easing: Easing.bezier(0.3, 1.4, 0.5, 1) }));
+    wave.set(0);
+    wave.set(withRepeat(withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }), 4, false));
+  }, [key, meet, wave]);
+  const shown = people.slice(0, 3);
+  const mid = (shown.length - 1) / 2;
+  const w1 = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - wave.get()), transform: [{ scale: 0.7 + 1.2 * wave.get() }] }));
+  const w2 = useAnimatedStyle(() => { const t = (wave.get() + 0.5) % 1; return { opacity: 0.35 * (1 - t), transform: [{ scale: 0.7 + 1.2 * t }] }; });
+  const tag = useAnimatedStyle(() => ({ opacity: meet.get(), transform: [{ translateY: 6 * (1 - meet.get()) }, { scale: 0.8 + 0.2 * meet.get() }] }));
+  return (
+    <Pressable onPress={() => { onPress(people[index % people.length].id); setIndex(index + 1); }} accessibilityRole="button" accessibilityLabel={`Вместе: ${people.map(p => p.name).join(', ')}`} style={styles.hitWide}>
+      <View style={styles.anchor} pointerEvents="none">
+        <Animated.View style={[styles.wave, w1]} />
+        <Animated.View style={[styles.wave, w2]} />
+        <View style={styles.together}>
+          {shown.map((p, i) => <Face key={p.id} p={p} i={i} mid={mid} meet={meet} />)}
+        </View>
+        <Tag x={0} y={30} align="center">
+          <Animated.View style={[styles.togetherTag, tag]}>
+            <Ico d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z" size={11} color={colors.ink} w={2.4} />
+            <Text style={styles.togetherText}>ВМЕСТЕ · {people.length}</Text>
+          </Animated.View>
+        </Tag>
+      </View>
+    </Pressable>
+  );
+}
+
+function Face({ p, i, mid, meet }: { p: Person; i: number; mid: number; meet: import('react-native-reanimated').SharedValue<number> }) {
+  const side = i - mid;
+  const st = useAnimatedStyle(() => ({ transform: [{ translateX: side * 16 * (1 - meet.get()) }, { scale: 0.85 + 0.15 * meet.get() }] }));
+  return <Animated.View style={[{ marginLeft: i ? -14 : 0, zIndex: 3 - i }, st]}><MapAvatar person={p} size={44} /></Animated.View>;
 }
 
 export function MePin({ onPress }: { onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Это ты. Настроить свой значок на карте" style={styles.anchor} hitSlop={10}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Это ты. Настроить свой значок на карте" style={styles.hit} hitSlop={10}>
       <View style={styles.meHalo}>
         <View style={styles.me} />
       </View>
@@ -151,6 +189,21 @@ export function MePin({ onPress }: { onPress?: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  // Область нажатия — настоящего размера: Android не передаёт касания за границы родителя, поэтому кнопка
+  // вокруг нулевого якоря, а не внутри него (раньше из-за этого нажатие на друга на карте не срабатывало).
+  hit: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  hitWide: { width: 120, height: 64, alignItems: 'center', justifyContent: 'center' },
+  city: { width: 56, height: 56, borderRadius: 19, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 10px 20px -6px rgba(23,22,26,0.5)', transform: [{ rotate: '-6deg' }] },
+  cityShine: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', backgroundColor: 'rgba(255,255,255,0.24)' },
+  cityTag: { alignItems: 'center', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(252,251,248,0.96)', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
+  cityTitle: { fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink, maxWidth: 150 },
+  cityWhen: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.3, color: colors.accentText },
+  wave: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(240,82,31,0.16)', borderWidth: 2, borderColor: 'rgba(240,82,31,0.45)' },
+  together: { flexDirection: 'row', alignItems: 'center', padding: 3, borderRadius: 30, backgroundColor: 'rgba(252,251,248,0.95)',
+    boxShadow: '0 8px 18px -6px rgba(23,22,26,0.45), inset 0 1px 1px rgba(255,255,255,0.9)' },
+  togetherTag: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 20, paddingHorizontal: 8, borderRadius: 10, backgroundColor: colors.accent },
+  togetherText: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.4, color: colors.ink },
   // Нулевой якорь: всё содержимое центрируется на координате.
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   halo: { position: 'absolute', width: 96, height: 96, borderRadius: 48 },
@@ -202,5 +255,27 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
         </Tag>
       )}
     </View>
+  );
+}
+
+/** Большое событие города («Год в Алматы»): крупный значок со своей иконкой, глянцем и мягким ореолом,
+ *  под ним — название и «через 4 дня». Ореол пульсирует несколько раз при появлении и затихает. */
+export function CityPin({ title, when, color, Icon, onPress }: { title: string; when: string; color: string; Icon: import('lucide-react-native').LucideIcon; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}, ${when}`} style={styles.hitWide}>
+      <View style={styles.anchor} pointerEvents="none">
+        <Pulse size={78} color={color} />
+        <View style={[styles.city, { backgroundColor: color }]}>
+          <View style={styles.cityShine} />
+          <Icon size={26} color="#FFFFFF" strokeWidth={2.1} />
+        </View>
+        <Tag x={0} y={33} align="center">
+          <View style={styles.cityTag}>
+            <Text style={styles.cityTitle} numberOfLines={1}>{title}</Text>
+            <Text style={styles.cityWhen} numberOfLines={1}>{when}</Text>
+          </View>
+        </Tag>
+      </View>
+    </Pressable>
   );
 }

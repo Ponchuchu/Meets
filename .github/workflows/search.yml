@@ -87,6 +87,9 @@ jobs:
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          # Описания карточек оформляет Kimi (worker/src/polish.ts); без ключа — аккуратно обрезанный текст афиши.
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
+          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
       # Telegram: ИИ решает, где событие, а где реклама и мемы. Явная реклама отсеивается без ИИ. Сбой канала не роняет весь запуск.
       - name: Telegram-каналы (новые посты)
         if: ${{ !cancelled() && inputs.telegram == '1' }}

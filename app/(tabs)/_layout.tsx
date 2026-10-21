@@ -2,6 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
+import { InteractionManager } from 'react-native';
+import { trimCache } from '../../src/live/memory';
 import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
@@ -51,6 +53,8 @@ function Shell() {
   usePlansSync();
   useInvites();
   useNotificationTaps((url) => router.push(url as never));
+  // Кэш кружков и видео не разрастается: раз за запуск, когда всё уже открылось.
+  useEffect(() => { const t = InteractionManager.runAfterInteractions(() => { void trimCache().catch(() => undefined); }); return () => t.cancel(); }, []);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: !demo });
   const draft = useSession((s) => s.draft);
   useEffect(() => {
@@ -62,10 +66,12 @@ function Shell() {
     <>
       <Tabs detachInactiveScreens tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
         <Tabs.Screen name="index" options={{ title: 'Карта' }} />
-        <Tabs.Screen name="foryou" options={{ title: 'Рекомендации' }} />
-        <Tabs.Screen name="plans" options={{ title: 'Планы' }} />
-        <Tabs.Screen name="chats" options={{ title: 'Чаты' }} />
-        <Tabs.Screen name="me" options={{ title: 'Профиль' }} />
+        {/* Скрытые вкладки (кроме карты) замирают: не перерисовываются от сообщений и точек друзей, пока открыта другая.
+            Карту не замораживаем — она сама отключает отрисовку вне фокуса (MapScreen: focused). */}
+        <Tabs.Screen name="foryou" options={{ title: 'Рекомендации', freezeOnBlur: true }} />
+        <Tabs.Screen name="plans" options={{ title: 'Планы', freezeOnBlur: true }} />
+        <Tabs.Screen name="chats" options={{ title: 'Чаты', freezeOnBlur: true }} />
+        <Tabs.Screen name="me" options={{ title: 'Профиль', freezeOnBlur: true }} />
       </Tabs>
       <Tutorial />
     </>

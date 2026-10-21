@@ -1,3 +1,5 @@
+import { QueryNotice } from '../../ui/QueryNotice';
+import { useSocialActions } from '../../live/socialActions';
 // «Друзья»: заявки (если есть) → «Рекомендации» (листаемые карточки) → «Друзья · N» → планы друзей.
 // «Добавить друга»: поиск по имени или нику, приглашение ссылкой, Bump — телефоны рядом.
 import { useQuery } from '@tanstack/react-query';
@@ -9,13 +11,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
 import { data, eventsSnapshot, type EventItem, type Person } from '../../data';
 import { PERSON_DETAILS } from '../../data/demo';
-import { APP_URL } from '../../lib/config';
+import { APP_URL, config } from '../../lib/config';
+import { findByHandle } from '../../live/api';
+import { mapProfile } from '../../data/remote';
 import { now as clockNow } from '../../lib/clock';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { planWhen } from '../../lib/planWhen';
 import { useApp } from '../../state/app';
+import { StateView } from '../../ui/StateView';
 import { usePlans } from '../../state/plans';
-import { displayName, isFriendNow, useSocial } from '../../state/social';
+import { displayName, isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
@@ -33,10 +38,11 @@ export default function FriendsScreen() {
   const now = clockNow();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const peopleQuery = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = [] } = peopleQuery;
   const { data: requests = [] } = useQuery({ queryKey: ['friendRequests'], queryFn: () => data.getFriendRequests() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const social = useSocial();
+  const social = useSocialActions(text => setToast({ text }));
   const { going, go } = usePlans();
   const addPlan = useApp((s) => s.addPlan);
 
@@ -71,6 +77,7 @@ export default function FriendsScreen() {
           </Pressable>
         </View>
 
+        <QueryNotice pending={peopleQuery.isPending} error={peopleQuery.isError} onRetry={() => { void peopleQuery.refetch(); }} />
         {pending.length > 0 && (
           <Animated.View entering={FadeIn} style={{ gap: 8 }}>
             <View style={[styles.row, { justifyContent: 'flex-start', gap: 8 }]}>
@@ -86,7 +93,7 @@ export default function FriendsScreen() {
                     <Avatar p={p} size={44} />
                     <View style={{ flex: 1, gap: 2 }}><Text style={styles.name}>{p.name}</Text><Text style={styles.sub}>{r.note}</Text></View>
                   </Pressable>
-                  <Pressable onPress={() => { social.answer(p.id, 'accepted'); show({ text: `${p.name} теперь в друзьях` }); }} style={styles.dark} accessibilityRole="button" accessibilityLabel={`Принять: ${p.name}`}><Text style={styles.darkText}>Принять</Text></Pressable>
+                  <Pressable onPress={() => { void social.answer(p.id, 'accepted').then(ok => { if (ok) show({ text: `${p.name} теперь в друзьях` }); }); }} style={styles.dark} accessibilityRole="button" accessibilityLabel={`Принять: ${p.name}`}><Text style={styles.darkText}>Принять</Text></Pressable>
                   <Pressable onPress={() => social.answer(p.id, 'declined')} style={styles.x} accessibilityRole="button" accessibilityLabel={`Отклонить: ${p.name}`}><Ic d={IC.close} size={14} color={colors.ink} w={2.2} /></Pressable>
                 </View>
               );
@@ -129,6 +136,7 @@ export default function FriendsScreen() {
               <Text style={styles.h2}>Друзья</Text>
               <View style={[styles.count, { backgroundColor: colors.sand2 }]}><Text style={styles.countText}>{friends.length}</Text></View>
             </View>
+            {!friends.length && <StateView kind="empty" compact title="Пока без друзей" text="Покажи свой QR-код или найди по @нику — друзья будут видеть тебя на карте, а ты их." />}
             <View style={{ gap: 2 }}>
               {friends.map((p) => (
                 <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={styles.friendRow} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
@@ -192,11 +200,16 @@ export default function FriendsScreen() {
 }
 
 function AddFriend({ people, social, onInvite, onBump, onOpen }: {
-  people: Person[]; social: ReturnType<typeof useSocial.getState>; onInvite: () => void; onBump: () => void; onOpen: (id: string) => void;
+  people: Person[]; social: ReturnType<typeof useSocialActions>; onInvite: () => void; onBump: () => void; onOpen: (id: string) => void;
 }) {
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase().replace(/^@/, '');
-  const found = query ? people.filter((p) => p.name.toLowerCase().includes(query) || (p.handle ?? '').toLowerCase().includes(query)).slice(0, 5) : [];
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => { const timer = setTimeout(() => setDebounced(query), 300); return () => clearTimeout(timer); }, [query]);
+  const search = useQuery({ queryKey: ['peopleSearch', debounced], queryFn: () => findByHandle(debounced), enabled: config.dataMode !== 'demo' && debounced.length >= 2 });
+  const local = query ? people.filter((p) => p.name.toLowerCase().includes(query) || (p.handle ?? '').toLowerCase().includes(query)) : [];
+  const friends = new Set(people.filter(p => p.isFriend).map(p => p.id));
+  const found = [...new Map([...local, ...(debounced === query ? search.data ?? [] : []).map(p => mapProfile(p, friends))].map(p => [p.id, p])).values()].slice(0, 10);
   return (
     <>
       <Text style={styles.sheetTitle}>Добавить друга</Text>
@@ -204,6 +217,7 @@ function AddFriend({ people, social, onInvite, onBump, onOpen }: {
         <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={18} color={colors.muted} w={2} />
         <TextInput value={q} onChangeText={setQ} autoFocus placeholder="Имя или @ник" placeholderTextColor={colors.muted3} style={styles.searchInput} accessibilityLabel="Найти по имени или нику" autoCapitalize="none" />
       </View>
+      {search.isError && <Text style={styles.sub}>Поиск временно недоступен. Попробуй ещё раз</Text>}
       {found.map((p) => {
         const friend = isFriendNow(p, social);
         const sent = !!social.sent[p.id];

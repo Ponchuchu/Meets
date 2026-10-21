@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { supabase } from '../data/client';
 import { coarse } from '../data/realtime';
 import { myId } from './auth';
+import { isEco } from '../state/perf';
 import { cellOf, distM, isJump, sendInterval, statusOf, type Place, type Pt } from './geo';
 
 export const BG_TASK = 'ryadom-location';
@@ -32,6 +33,17 @@ const hidden = () => share.invisible === true
   || (typeof share.invisible === 'string' && new Date(share.invisible).getTime() > Date.now())
   || (!!share.shareUntil && new Date(share.shareUntil).getTime() < Date.now());
 
+/** Точный GPS нужен, только когда на экране карта или навигатор; в чатах, ленте и профиле — экономный
+ *  (GPS высокой точности всё время — главный источник нагрева и разряда). Экраны отмечаются через usePreciseGps. */
+export const useGpsMode = create<{ precise: number }>(() => ({ precise: 0 }));
+export function usePreciseGps(on: boolean) {
+  useEffect(() => {
+    if (!on) return;
+    useGpsMode.setState((s) => ({ precise: s.precise + 1 }));
+    return () => useGpsMode.setState((s) => ({ precise: Math.max(0, s.precise - 1) }));
+  }, [on]);
+}
+
 /** Последняя своя точка и её точность — для «моей точки» и состояния «Неточно». */
 export const useMyFix = create<{ fix: Pt | null; set: (p: Pt) => void }>((set) => ({ fix: null, set: (fix) => set({ fix }) }));
 
@@ -46,8 +58,9 @@ function liveChannel(me: string) {
   if (channel && channelFor === me) return channel;
   if (channel) void supabase().removeChannel(channel);
   channelFor = me;
+  // Свой канал не подписываем: читать его может только друг (can_see_location), и подписка на себя
+  // бесконечно переподключалась с ошибкой «Unauthorized». Отправляем через HTTP — без подписки.
   channel = supabase().channel(`locations:${me}`, { config: { private: true, broadcast: { self: false } } });
-  channel.subscribe();
   return channel;
 }
 
@@ -55,14 +68,17 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
   const me = myId();
   const p: Pt = { lat: c.latitude, lon: c.longitude, at, accuracy: c.accuracy, speed: c.speed, heading: c.heading != null && c.heading >= 0 ? c.heading : null };
   if (isJump(last, p)) return;
+  // «Моя точка» для экранов обновляется не чаще раза в 1,5 с (3 с в экономии) и при сдвиге от 3 м:
+  // каждая точка GPS перерисовывала карту и открытую карточку целиком.
+  const shown = useMyFix.getState().fix;
   last = p;
-  useMyFix.getState().set(p);
+  if (!shown || distM(shown, p) > 3 && at - shown.at > (isEco() ? 3000 : 1500) || at - shown.at > 15000) useMyFix.getState().set(p);
   if (!me || hidden()) return;
   const stationary = lastSent && distM(lastSent, p) < 15 && (p.speed ?? 0) < 1;
-  const interval = AppState.currentState === 'active' ? (stationary ? 30000 : 4000) : sendInterval(false, null, !stationary);
+  const interval = AppState.currentState === 'active' ? (stationary ? 30000 : isEco() ? 10000 : 4000) : sendInterval(false, null, !stationary);
   if (lastSent && at - lastSent.at < interval) return;
   lastSent = p;
-  const status = statusOf(p, share.places);
+  const status = statusOf(p, share.places, (new Date().getUTCHours() + 5) % 24);
   const speed = c.speed != null && c.speed >= 0 ? c.speed : null;
   const heading = c.heading != null && c.heading >= 0 ? c.heading : null;
   const iso = new Date(at).toISOString();
@@ -82,7 +98,7 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
   }
   // «Только район»: координаты друзьям не уходят вовсе.
   const payload = share.districtOnly ? { updated_at: iso, status } : { ...coarse(p.lat, p.lon), speed, heading, accuracy: c.accuracy ?? null, status, updated_at: iso };
-  void liveChannel(me).send({ type: 'broadcast', event: 'pos', payload });
+  void liveChannel(me).httpSend('pos', payload).catch(() => undefined);
   await Promise.all(jobs);
 }
 
@@ -129,11 +145,13 @@ export async function stopBackground() {
 }
 
 /** Пока приложение открыто: частая точка (4 с). Возвращает функцию остановки или null — разрешения ещё нет. */
-export async function watchForeground(): Promise<(() => void) | null> {
+export async function watchForeground(precise = useGpsMode.getState().precise > 0): Promise<(() => void) | null> {
   const perm = await Location.getForegroundPermissionsAsync();
   if (!perm.granted) return null;
   const sub = await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.High, timeInterval: sendInterval(true, await battery()), distanceInterval: 0 },
+    precise && !isEco()
+      ? { accuracy: Location.Accuracy.High, timeInterval: sendInterval(true, await battery()), distanceInterval: 2 }
+      : { accuracy: Location.Accuracy.Balanced, timeInterval: isEco() ? 15000 : 10000, distanceInterval: 15 },
     (l) => { void sendPoint(l.coords, l.timestamp).catch(() => undefined); },
   );
   return () => sub.remove();

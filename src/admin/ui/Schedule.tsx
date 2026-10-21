@@ -1,5 +1,6 @@
 // «Настройки» → расписание поиска: по умолчанию выключено. Запускает Supabase (robot-tick раз в 5 минут), время — по Алматы.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CalendarClock } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase, withTimeout } from '../../data/client';
@@ -46,7 +47,7 @@ export function Schedule({ live }: { live: boolean }) {
   const on = !row.paused;
 
   return (
-    <Section title="Расписание" hint="Без расписания поиск запускается только кнопкой. Включишь, и он пойдёт сам в назначенное время (по Алматы).">
+    <Section fold="closed" icon={CalendarClock} title="Расписание" hint="Без расписания поиск запускается только кнопкой. Включишь, и он пойдёт сам в назначенное время (по Алматы).">
       <Card>
         <View style={styles.line}>
           <View style={{ flex: 1 }}>

@@ -1,6 +1,7 @@
 import { mediaFormat } from '../chat/media';
 import { useOutbox, setOutboxSender } from '../live/outbox';
 import { useNet } from '../live/net';
+import { useAuth } from '../live/auth';
 import { fitCamera } from '../map/fit';
 import { project } from '../map/projection';
 import { closeGroups } from '../map/proximity';
@@ -77,14 +78,15 @@ it('реакции уникальны и не заменяют коллекци�
 
 it('очередь отправляет сообщение, добавленное во время предыдущей отправки', async () => {
   useOutbox.setState({ items: [] }); useNet.setState({ online: false });
+  useAuth.setState({ session: { user: { id: 'queue-owner' } } as import('@supabase/supabase-js').Session });
   let release!: () => void;
   const hold = new Promise<void>(resolve => { release = resolve; });
   const sent: string[] = [];
   setOutboxSender(async item => { sent.push(item.id); if (item.id === 'one') await hold; });
-  useOutbox.getState().add({ id: 'one', kind: 'message', chatId: 'chat', payload: {} });
+  useOutbox.getState().add({ id: 'one', kind: 'message', chatId: 'chat', ownerId: 'queue-owner', payload: {} });
   useNet.setState({ online: true });
   await Promise.resolve();
-  useOutbox.getState().add({ id: 'two', kind: 'message', chatId: 'chat', payload: {} });
+  useOutbox.getState().add({ id: 'two', kind: 'message', chatId: 'chat', ownerId: 'queue-owner', payload: {} });
   release();
   await new Promise(resolve => setTimeout(resolve,0));
   expect(sent).toEqual(['one','two']);

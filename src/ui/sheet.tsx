@@ -77,8 +77,9 @@ export function BottomSheet({ children, style, label, onClose, scroll = false }:
   const pan = Gesture.Pan().enabled(!!onClose).activeOffsetY(12)
     .onUpdate((e) => y.set(Math.max(0, e.translationY)))
     .onEnd((e) => {
-      if (onClose && (e.translationY > 90 || e.velocityY > 900)) scheduleOnRN(onClose);
-      y.set(withSpring(0, { damping: 28, overshootClamping: true }));
+      // Закрываем, когда шторка уже уехала вниз, — без прыжка вверх перед анимацией выхода.
+      if (onClose && (e.translationY > 90 || e.velocityY > 900)) y.set(withTiming(winH, { duration: 200 }, (done) => { if (done) scheduleOnRN(onClose); }));
+      else y.set(withSpring(0, { damping: 28, overshootClamping: true }));
     });
   const moving = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
   return (

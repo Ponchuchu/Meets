@@ -28,5 +28,6 @@ export const glass: ViewStyle = {
 export const plate: ViewStyle = {
   backgroundColor: '#F1ECE2',
   ...edgeBorder,
-  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.75), 0 6px 18px -10px rgba(23,22,26,0.25)',
+  // На Android внутренняя тень дорого обходится при прокрутке (8+ карточек в профиле) — там только внешняя.
+  boxShadow: Platform.OS === 'android' ? '0 6px 18px -10px rgba(23,22,26,0.25)' : 'inset 0 1px 1px rgba(255,255,255,0.75), 0 6px 18px -10px rgba(23,22,26,0.25)',
 };

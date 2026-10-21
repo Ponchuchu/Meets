@@ -1,3 +1,7 @@
+import { preparePhoto } from '../../chat/media';
+import { useSocialActions } from '../../live/socialActions';
+import { useOutbox } from '../../live/outbox';
+import { myId } from '../../live/auth';
 // Чат: личный (DirectChat, ChatAttach, ChatSheets) и чат события (EventChat).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../analytics';
@@ -12,9 +16,14 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { AttachmentsSheet } from '../../chat/ui/AttachmentsSheet';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
 import { StickerPicker } from '../../stickers/StickerPicker';
+import { SwipeReply } from '../../chat/ui/SwipeReply';
+import { Tick, tickOf, type TickKind } from '../../chat/ui/Tick';
+import * as Clipboard from 'expo-clipboard';
+import { CalendarDays, ChevronLeft, MoreVertical, Sticker as StickerIcon, Users } from 'lucide-react-native';
 import { getMeStats, answerInvite, getInvites } from '../../live/api';
 import { config } from '../../lib/config';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { FlatList, type ListRenderItemInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +32,8 @@ import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
-import { openDirectChat, sendMessage, uploadMedia, markChatRead, getMessages } from '../../data/remote';
+import { setOpenChat } from '../../live/reminders';
+import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
@@ -34,7 +44,7 @@ import { uid } from '../../lib/uid';
 import { useMapState } from '../../state/map';
 import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
-import { isFriendNow, useSocial } from '../../state/social';
+import { isFriendNow } from '../../state/social';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
 import { glass } from '../../ui/glass';
@@ -92,26 +102,32 @@ export default function ChatScreen() {
     }).catch(() => undefined);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useLiveChat(id, focused);
+  useEffect(() => { if (!focused) return; setOpenChat(id); return () => setOpenChat(null); }, [id, focused]);
   const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
   const base = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId });
-  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
-  const spot = spots.find((x) => x.personId === personId);
-  const chat = useChat();
-  const social = useSocial();
-  const plans = usePlans();
+  const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId, refetchInterval: focused ? 60e3 : false });
+  // Только точка собеседника: обновления точек других друзей (каждые несколько секунд) не перерисовывают чат.
+  const { data: spot } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), select: (all: FriendSpot[]) => all.find((x) => x.personId === personId) ?? null, enabled: !!personId });
+  // Только нужные части хранилищ: чужие изменения (другой чат, другие планы) экран не перерисовывают.
+  const chat = useChat(useShallow(s => ({ sent: s.sent, answers: s.answers, revealed: s.revealed, votes: s.votes, blocked: s.blocked, reported: s.reported,
+    markRead: s.markRead, updateMessage: s.updateMessage, send: s.send, unsend: s.unsend, reveal: s.reveal, vote: s.vote, report: s.report, block: s.block })));
+  const plans = usePlans(useShallow(s => ({ meetups: s.meetups, going: s.going, newChats: s.newChats, startChat: s.startChat, go: s.go })));
   const arrive = useProfile((s) => s.arrive);
   const arrived = useProfile((s) => s.arrivals);
   const addPlan = useApp((s) => s.addPlan);
   const focusFriend = useMapState((s) => s.focusFriend);
-  const [text, setText] = useState('');
+  // Текст живёт внутри поля ввода: буква не перерисовывает весь экран и ленту (было — фризы на слабых телефонах).
+  const input = useRef<ComposerHandle>(null);
+  const [hasText, setHasText] = useState(false);
   const [tray, setTray] = useState(trayParam === '1');
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editing, setEditing] = useState<Message | null>(null);
+  const [menu, setMenu] = useState<Message | null>(null);
   const [album, setAlbum] = useState<Album>('recent');
   const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
-  const [inputH, setInputH] = useState(44);
   // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
   const [composerH, setComposerH] = useState(72);
   const [kb, setKb] = useState(false);
@@ -126,7 +142,11 @@ export default function ChatScreen() {
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const social = useSocialActions(text => setToast({ text }));
   const scroll = useRef<FlatList<Message>>(null);
+  const listMetrics = useRef({ height: 0, offset: 0 });
+  const historyAnchor = useRef<{ height: number; offset: number } | null>(null);
+  const initialScrollFor = useRef<string | null>(null);
 
   const person = personId ? people.find((p) => p.id === personId) : undefined;
   const chatMeta = allChats.find((c) => c.id === id);
@@ -143,12 +163,19 @@ export default function ChatScreen() {
     setLoadingOlder(true);
     try {
       const rows = await getMessages(id, { at: first.createdAt, id: first.id });
+      if (Platform.OS === 'web') historyAnchor.current = { ...listMetrics.current };
       setOlder(old => ({ chatId: id, rows: [...rows, ...(old.chatId === id ? old.rows : [])] }));
       if (rows.length < 100) setEndOfHistory(id);
     } catch { show({ text: 'Не получилось загрузить историю. Потяни список ещё раз' }); }
     finally { setLoadingOlder(false); }
   };
-  const listData = useMemo(() => [...messages].reverse(), [messages]);
+  // Сервер вернул сообщение — локальная копия (в том числе с ошибкой) больше не нужна.
+  useEffect(() => {
+    if (!isRemoteId(id) || !base.length) return;
+    const ids = new Set(base.map(m => m.id));
+    chat.sent.forEach(m => { if (m.chatId === id && ids.has(m.id)) chat.unsend(m.id); });
+  }, [base, id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const listData = useMemo(() => Platform.OS === 'web' ? messages : [...messages].reverse(), [messages]);
   const { data: invites = [] } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
   const byId = (pid: string) => people.find((p) => p.id === pid);
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
@@ -172,36 +199,49 @@ export default function ChatScreen() {
       blocked: !!(personId && chat.blocked[personId]), now,
     });
 
-  const sending = useRef(new Set<string>());
   const sendPending = async (msg: Message) => {
-    if (sending.current.has(msg.id)) return;
-    sending.current.add(msg.id);
+    const ownerId = myId();
+    if (!ownerId || msg.ownerId && msg.ownerId !== ownerId) { show({ text: 'Войди в аккаунт отправителя' }); return; }
     chat.updateMessage(msg.id, { delivery: 'sending' });
-    try {
-      const path = msg.uploadedPath ?? (msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':') ? await uploadMedia(id, msg.media, msg.kind) : msg.media ?? undefined);
-      if (path) chat.updateMessage(msg.id, { uploadedPath: path });
-      await sendMessage(id, msg.text, msg.kind, path, msg.durationS, msg.eventId, msg.id);
-      qc.setQueryData<Message[]>(['messages', id], (old = []) => old.some(m => m.id === msg.id) ? old : [...old, { ...msg, delivery: undefined }]);
-      chat.unsend(msg.id);
-      void qc.invalidateQueries({ queryKey: ['chats'] });
-    } catch {
-      chat.updateMessage(msg.id, { delivery: 'failed' });
-      show({ text: 'Не отправилось. Нажми «Повторить» под сообщением' });
-    } finally { sending.current.delete(msg.id); }
+    const local = !msg.uploadedPath && msg.media && !/^https?:/.test(msg.media) && msg.media.includes(':');
+    useOutbox.getState().add({ id: msg.id, kind: 'message', chatId: msg.chatId, ownerId, payload: {
+      kind: msg.kind, body: msg.text, media_path: msg.uploadedPath ?? (local ? null : msg.media ?? null),
+      ...(local ? { local_uri: msg.media } : {}), duration_s: msg.durationS ?? null, event_id: msg.eventId ?? null, ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
+    } });
   };
   const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
+    if (isRemoteId(id) && !myId()) { show({ text: 'Войди снова, чтобы отправить сообщение' }); return; }
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
-    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
+    const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, ownerId: myId() ?? undefined, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...(replyTo ? { replyTo: replyTo.id } : {}), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
+    setReplyTo(null);
     chat.send(msg);
     track('chat_sent');
     if (isRemoteId(id)) void sendPending(msg);
   };
-  const sendText = () => { if (text.trim()) { push({ kind: 'text', text: text.trim() }); setText(''); setInputH(44); } };
+  const sendText = () => {
+    const t = input.current?.take().trim();
+    if (editing) { const m = editing; setEditing(null); if (t && t !== m.text) saveEdit(m, t); return; }
+    if (t) push({ kind: 'text', text: t });
+  };
+  const startEdit = (m: Message) => { setReplyTo(null); setEditing(m); input.current?.fill(m.text); };
+  const cancelEdit = () => { setEditing(null); input.current?.fill(''); };
+  // Исправление: сразу видно у себя; на сервер уходит через ту же очередь, что и сообщения, — без сети дойдёт позже.
+  const saveEdit = (m: Message, t: string) => {
+    const ownerId = myId();
+    if (m.delivery) { chat.updateMessage(m.id, { text: t }); useOutbox.getState().updatePayload(m.id, { body: t }); return; }
+    if (!ownerId) { show({ text: 'Войди снова, чтобы исправить сообщение' }); return; }
+    const at = new Date().toISOString();
+    qc.setQueryData<Message[]>(['messages', id], old => old?.map(x => x.id === m.id ? { ...x, text: t, editedAt: at } : x));
+    setOlder(o => ({ ...o, rows: o.rows.map(x => x.id === m.id ? { ...x, text: t, editedAt: at } : x) }));
+    useOutbox.getState().add({ id: `edit:${m.id}`, kind: 'edit', chatId: id, ownerId, payload: { message_id: m.id, body: t } });
+  };
+  const canEdit = (m: Message) => m.authorId === 'me' && m.kind === 'text' && (isRemoteId(id) || !!m.delivery)
+    && (!m.createdAt || now.getTime() - Date.parse(m.createdAt) < 48 * 3600e3);
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
   // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 64000 });
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000 }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -293,8 +333,8 @@ export default function ChatScreen() {
     const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();
     if(!permission.granted){show({text:'Разреши доступ к фотографиям'});return;}
     try {
-      const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsMultipleSelection:true,selectionLimit:10,quality:0.9});
-      if(!r.canceled)for(const a of r.assets)push({kind:a.type==='video'?'video':'photo',media:a.uri,durationS:a.duration?Math.round(a.duration/1000):undefined});
+      const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],allowsMultipleSelection:true,selectionLimit:10,quality:0.78,videoExportPreset:ImagePicker.VideoExportPreset.H264_1280x720});
+      if(!r.canceled)for(const a of r.assets)push({kind:a.type==='video'?'video':'photo',media:a.type==='video'?a.uri:await preparePhoto(a.uri,a.width,a.height),durationS:a.duration?Math.round(a.duration/1000):undefined});
       setTray(false);
     }catch{show({text:'Не удалось открыть галерею'});}
   };
@@ -303,14 +343,16 @@ export default function ChatScreen() {
       const permission=await ImagePicker.requestCameraPermissionsAsync();
       if(!permission.granted){show({text:'Разреши доступ к камере'});return;}
       const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-      if (!res.canceled && res.assets[0]) push({ kind: 'photo', media: res.assets[0].uri, text: '' });
+      if (!res.canceled && res.assets[0]) { const a = res.assets[0]; push({ kind: 'photo', media: await preparePhoto(a.uri, a.width, a.height), text: '' }); }
     } catch { show({ text: 'Камера доступна в приложении на телефоне' }); }
   };
 
   const title = isGroup ? chatMeta?.title ?? 'Группа' : isEvent ? chatMeta?.title ?? event?.title ?? 'Чат события' : person?.name ?? 'Чат';
   const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
-    : friend ? (details?.online ? 'в друзьях · онлайн' : 'в друзьях') : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
+    : details?.online ? 'в сети' : details?.lastSeen ? details.lastSeen : friend ? 'в друзьях' : 'не в друзьях';
+  const openProfile = () => { if (personId) router.push({ pathname: '/person/[id]', params: { id: personId } }); else setSheet('attachments'); };
+  const unreadElsewhere = allChats.reduce((n, c) => c.id === id ? n : n + (c.unread || 0), 0);
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
   const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
@@ -341,21 +383,26 @@ export default function ChatScreen() {
     } finally { answering.current.delete(m.id); }
   };
 
+  // Колбэки строк — через ref: строка (memo) перерисовывается только когда меняются её данные, а не на каждый рендер экрана.
+  const rowActions = useRef<RowActions>(null!);
+  // eslint-disable-next-line react-hooks/refs
+  rowActions.current = {
+    reply: m => { setEditing(null); setReplyTo(m); }, menu: m => setMenu(m), reveal: id2 => chat.reveal(id2), vote: (id2, k) => chat.vote(id2, k),
+    avatar: pid => router.push({ pathname: '/person/[id]', params: { id: pid } }),
+    openEvent: eid => router.push({ pathname: '/event/[id]', params: { id: eid } }),
+    invite: (m, a) => { void answerMessage(m, a); }, retry: m => void sendPending(m),
+  };
+  const peopleById = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
+  const msgById = useMemo(() => new Map(listData.map(m => [m.id, m])), [listData]);
+  const canReply = check.ok, readUpTo = chatMeta?.readUpTo, remote = isRemoteId(id), wide = isEvent || isGroup, friendly = friend || isEvent || isGroup;
+  const { answers, revealed, votes } = chat;
   const renderMessage = useCallback(({ item: m, index }: ListRenderItemInfo<Message>) => {
-          const mine = m.authorId === 'me';
-          const prev = listData[index + 1];
-          return (
-            <View><Bubble m={chat.answers[m.id] ? { ...m, answer: chat.answers[m.id] === 'yes' ? 'Иду' : 'Не смогу' } : m} mine={mine} author={byId(m.authorId)} friendChat={friend || isEvent || isGroup}
-              showAuthor={(isEvent || isGroup) && (!prev || prev.authorId !== m.authorId)}
-              revealed={!!chat.revealed[m.id]} onReveal={() => chat.reveal(m.id)}
-              voteState={chat.votes[m.id]} onVote={(k) => chat.vote(m.id, k)}
-              onAvatar={() => router.push({ pathname: '/person/[id]', params: { id: m.authorId } })}
-              onOpenEvent={() => m.eventId && router.push({ pathname: '/event/[id]', params: { id: m.eventId } })}
-              onInvite={!mine ? a => { void answerMessage(m, a); } : undefined} />
-              {m.delivery && <Pressable disabled={m.delivery === 'sending'} onPress={() => void sendPending(m)} style={{ alignSelf: 'flex-end', minHeight: 36, paddingHorizontal: 8, justifyContent: 'center' }}><Text style={styles.status}>{m.delivery === 'sending' ? 'Отправляется…' : 'Не отправилось · Повторить'}</Text></Pressable>}
-            </View>
-          );
-  }, [listData, people, friend, isEvent, isGroup, chat.revealed, chat.votes, chat.answers, invites, id]); // eslint-disable-line react-hooks/exhaustive-deps
+    const prev = listData[Platform.OS === 'web' ? index - 1 : index + 1];
+    const quoted = m.replyTo ? msgById.get(m.replyTo) : undefined;
+    return <MessageRow m={m} quoted={quoted} quotedName={quoted ? (quoted.authorId === 'me' ? 'Ты' : peopleById.get(quoted.authorId)?.name ?? 'Сообщение') : undefined}
+      author={peopleById.get(m.authorId)} canReply={canReply} wide={wide} friendChat={friendly}
+      showAuthor={wide && (!prev || prev.authorId !== m.authorId)} tick={m.authorId === 'me' && remote ? tickOf(m, readUpTo) : undefined} answer={answers[m.id]} revealed={!!revealed[m.id]} vote={votes[m.id]} actions={rowActions} />;
+  }, [listData, msgById, peopleById, canReply, wide, friendly, answers, revealed, votes, readUpTo, remote]);
 
   useBackClose(() => {
     if (recording) void stopRec(false);
@@ -366,18 +413,28 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior="padding">
-      <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 6) }]}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/chats'))} style={styles.round} accessibilityRole="button" accessibilityLabel="Назад">
-          <Ic d={IC.back} size={20} color={colors.ink} w={2} />
+      {/* Шапка как в Telegram: назад · аватар · имя и «в сети» / «был …»; нажатие — профиль собеседника. */}
+      <View style={[styles.header, { paddingTop: Math.max(44, insets.top + 4) }]}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/chats'))} style={styles.backBtn} hitSlop={6} accessibilityRole="button" accessibilityLabel="Назад">
+          <ChevronLeft size={28} color={colors.ink} strokeWidth={2.2} />
+          {unreadElsewhere > 0 && <View style={styles.backBadge}><Text style={styles.backBadgeText}>{unreadElsewhere > 99 ? '99+' : unreadElsewhere}</Text></View>}
         </Pressable>
-        {person && (
-          <Pressable onPress={() => setSheet('person')} accessibilityRole="button" accessibilityLabel={friend ? `${person.name}: профиль и где сейчас` : `${person.name}: профиль`}>
-            <Avatar p={person} size={40} ring={friend ? colors.friend : undefined} />
-          </Pressable>
-        )}
-        <Pressable onPress={() => setSheet('attachments')} style={{ flex: 1, gap: 1 }} accessibilityRole="button" accessibilityLabel={`${title}: участники и вложения`}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.status} numberOfLines={2}>{status}</Text>
+        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button"
+          accessibilityLabel={person ? `${person.name}, ${status}. Открыть профиль` : `${title}: участники и вложения`}>
+          {person ? (
+            <View>
+              <Avatar p={person} size={42} />
+              {details?.online && <View style={styles.onlineDot} />}
+            </View>
+          ) : (
+            <View style={[styles.groupIcon, { backgroundColor: isEvent ? colors.accent : colors.friend }]}>
+              {isEvent ? <CalendarDays size={20} color="#FFFFFF" strokeWidth={2} /> : <Users size={20} color="#FFFFFF" strokeWidth={2} />}
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={[styles.status, details?.online && !isGroup && !isEvent && { color: colors.ok }]} numberOfLines={1}>{status}</Text>
+          </View>
         </Pressable>
         {isEvent ? (
           <View style={{ flexDirection: 'row' }}>
@@ -385,8 +442,8 @@ export default function ChatScreen() {
             {(chatMeta?.members ?? 0) > 2 && <View style={styles.plus}><Text style={styles.plusText}>+{(chatMeta?.members ?? 0) - 3}</Text></View>}
           </View>
         ) : (
-          <Pressable onPress={() => setSheet('menu')} style={styles.round} accessibilityRole="button" accessibilityLabel="Ещё: пожаловаться, заблокировать">
-            <Ic d="M5 12h.01M12 12h.01M19 12h.01" size={22} color={colors.ink} w={3} />
+          <Pressable onPress={() => setSheet(person ? 'menu' : 'attachments')} style={styles.menuBtn} accessibilityRole="button" accessibilityLabel="Ещё: вложения, пожаловаться, заблокировать">
+            <MoreVertical size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
         )}
       </View>
@@ -407,10 +464,27 @@ export default function ChatScreen() {
             </Pressable>
           </View>
         )}
-        <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted
-          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, paddingTop: check.ok && !tray && !poll ? composerH + 8 : 16 }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={() => void loadOlder()} onEndReachedThreshold={0.3}
+        <FlatList ref={scroll} data={listData} renderItem={renderMessage} keyExtractor={m => m.id} inverted={Platform.OS !== 'web'}
+          style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12, ...(check.ok && !tray && !poll ? Platform.OS === 'web' ? { paddingBottom: composerH + 8 } : { paddingTop: composerH + 8 } : {}) }} initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5} onRefresh={() => { void qc.invalidateQueries({ queryKey: ['messages', id] }); }} refreshing={messagesQuery.isRefetching} removeClippedSubviews={false} onEndReached={Platform.OS !== 'web' ? () => void loadOlder() : undefined} onEndReachedThreshold={0.3}
+          onStartReached={Platform.OS === 'web' ? () => void loadOlder() : undefined} onStartReachedThreshold={0.3}
+          onContentSizeChange={(_, height) => {
+            listMetrics.current.height = height;
+            if (Platform.OS !== 'web') return;
+            const anchor = historyAnchor.current;
+            if (anchor) {
+              historyAnchor.current = null;
+              scroll.current?.scrollToOffset({ offset: anchor.offset + height - anchor.height, animated: false });
+            } else if (initialScrollFor.current !== id || atBottom) {
+              initialScrollFor.current = id;
+              requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: false }));
+            }
+          }}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} keyboardShouldPersistTaps="handled"
-          onScroll={ev => setAtBottom(ev.nativeEvent.contentOffset.y < 80)} scrollEventThrottle={100}
+          onScroll={ev => {
+            const { contentOffset, contentSize, layoutMeasurement } = ev.nativeEvent;
+            listMetrics.current.offset = contentOffset.y;
+            setAtBottom(Platform.OS === 'web' ? contentSize.height - layoutMeasurement.height - contentOffset.y < 80 : contentOffset.y < 80);
+          }} scrollEventThrottle={100}
           onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
       {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: kb ? 8 : Math.max(10, insets.bottom + 4) }]} onLayout={(ev) => setComposerH(ev.nativeEvent.layout.height)} pointerEvents="box-none">
@@ -425,6 +499,26 @@ export default function ChatScreen() {
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#composerFade)" />
           </Svg>
+          {editing && (
+            <View style={[styles.replyBar, glass]}>
+              <View style={[styles.replyLine, { backgroundColor: colors.friend }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quoteName} numberOfLines={1}>Редактирование</Text>
+                <Text style={styles.quoteText} numberOfLines={1}>{editing.text}</Text>
+              </View>
+              <Pressable onPress={cancelEdit} style={styles.replyClose} accessibilityRole="button" accessibilityLabel="Не исправлять"><Ic d={IC.close} size={15} color={colors.ink} w={2.3} /></Pressable>
+            </View>
+          )}
+          {replyTo && !editing && (
+            <View style={[styles.replyBar, glass]}>
+              <View style={styles.replyLine} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quoteName} numberOfLines={1}>Ответ {replyTo.authorId === 'me' ? 'себе' : byId(replyTo.authorId)?.name ?? ''}</Text>
+                <Text style={styles.quoteText} numberOfLines={1}>{snippet(replyTo)}</Text>
+              </View>
+              <Pressable onPress={() => setReplyTo(null)} style={styles.replyClose} accessibilityRole="button" accessibilityLabel="Не отвечать"><Ic d={IC.close} size={15} color={colors.ink} w={2.3} /></Pressable>
+            </View>
+          )}
           <View style={[styles.capsule, glass]}>
           <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
@@ -435,17 +529,20 @@ export default function ChatScreen() {
               <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${dur(elapsed)} · ${locked ? 'Запись закреплена' : '← отменить · ↑ закрепить'}`}</Text>
             </View>
           ) : (
-            <TextInput value={text} onChangeText={setText} multiline
-              onContentSizeChange={(ev) => setInputH(Math.max(44, Math.min(132, ev.nativeEvent.contentSize.height)))}
-              onKeyPress={(ev) => { const ne = ev.nativeEvent as { key: string; shiftKey?: boolean }; if (Platform.OS === 'web' && ne.key === 'Enter' && !ne.shiftKey) { ev.preventDefault?.(); sendText(); } }}
-              placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, { height: text ? inputH : 44 }]} accessibilityLabel="Сообщение" />
+            <ComposerInput ref={input} onHasText={setHasText} onSubmit={sendText} />
+          )}
+          {/* Стикеры — отдельной кнопкой, как в Telegram (были спрятаны в конце вложений). */}
+          {!recording && !locked && !hasText && (
+            <Pressable onPress={() => { Keyboard.dismiss(); setSheet('stickers'); }} style={styles.stickerBtn} hitSlop={4} accessibilityRole="button" accessibilityLabel="Стикеры">
+              <StickerIcon size={22} color={colors.muted2} strokeWidth={1.8} />
+            </Pressable>
           )}
           {locked ? <View style={{flexDirection:'row',gap:6}}>
             <Pressable style={styles.iconBtn} onPress={()=>void stopRec(false)} accessibilityLabel="Отменить запись"><Ic d={IC.close} size={20} color={colors.ink}/></Pressable>
             <Pressable style={[styles.iconBtn,{backgroundColor:colors.accent}]} onPress={()=>void stopRec(true)} accessibilityLabel="Отправить запись"><Ic d={SEND_IC} size={20} color={colors.paper}/></Pressable>
-          </View> : text.trim() && !recording ? (
-            <Pressable onPress={sendText} style={[styles.iconBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]} accessibilityRole="button" accessibilityLabel="Отправить">
-              <Ic d={SEND_IC} size={19} color={colors.ink} w={2} />
+          </View> : hasText && !recording ? (
+            <Pressable onPress={sendText} style={[styles.iconBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]} accessibilityRole="button" accessibilityLabel={editing ? 'Сохранить исправление' : 'Отправить'}>
+              <Ic d={editing ? IC.check : SEND_IC} size={19} color={colors.ink} w={editing ? 2.6 : 2} />
             </Pressable>
           ) : (
             <GestureDetector gesture={recGesture}>
@@ -550,11 +647,14 @@ export default function ChatScreen() {
         <>
           <Backdrop label="Закрыть" onPress={() => setSheet(null)} opacity={0.35} />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'menu' ? 'Действия' : person.name} style={{ paddingBottom: 30 + insets.bottom }}>
-            {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} spot={spot} requested={!!social.sent[person.id]}
+            {sheet === 'person' ? <PersonSheet p={person} friend={friend} details={details ?? undefined} spot={spot ?? undefined} requested={!!social.sent[person.id]}
               onClose={() => setSheet(null)} onProfile={() => router.push({ pathname: '/person/[id]', params: { id: person.id } })}
               onMap={() => { focusFriend(person.id); router.dismissTo('/'); }} onAdd={() => social.toggleRequest(person.id)} /> : (
               <>
                 <Text style={styles.sheetTitle}>{person.name}</Text>
+                <Pressable onPress={() => setSheet('attachments')} style={styles.menuRow} accessibilityRole="button">
+                  <Text style={styles.menuText}>Фото, видео и ссылки</Text>
+                </Pressable>
                 <Pressable onPress={() => { chat.report(person.id); setSheet(null); show({ text: 'Жалоба отправлена. Команда проверит в течение суток' }); }} style={styles.menuRow} accessibilityRole="button">
                   <Text style={styles.menuText}>{chat.reported[person.id] ? 'Жалоба отправлена' : 'Пожаловаться'}</Text>
                 </Pressable>
@@ -567,10 +667,16 @@ export default function ChatScreen() {
         </>
       )}
       {sheet==='events'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet label="Поделиться событием" onClose={()=>setSheet(null)}><Text style={styles.sheetTitle}>Поделиться событием</Text><ScrollView style={{maxHeight:400}}>{[...plans.meetups,...events].filter((e,i,all)=>all.findIndex(a=>a.id===e.id)===i).map(e=><Pressable key={e.id} style={styles.menuRow} onPress={()=>{push({kind:'invite',eventId:e.id,text:e.title});setSheet(null);}}><Text style={styles.menuText}>{e.title}</Text></Pressable>)}</ScrollView></BottomSheet></>}
+      {menu && <><Backdrop label="Закрыть" onPress={() => setMenu(null)} /><BottomSheet onClose={() => setMenu(null)} label="Сообщение">
+        <Text style={styles.quoteText} numberOfLines={2}>{snippet(menu)}</Text>
+        <Pressable onPress={() => { setEditing(null); setReplyTo(menu); setMenu(null); }} style={styles.menuRow} accessibilityRole="button"><Text style={styles.menuText}>Ответить</Text></Pressable>
+        {canEdit(menu) && <Pressable onPress={() => { startEdit(menu); setMenu(null); }} style={styles.menuRow} accessibilityRole="button"><Text style={styles.menuText}>Изменить</Text></Pressable>}
+        {!!menu.text && menu.kind === 'text' && <Pressable onPress={() => { void Clipboard.setStringAsync(menu.text); setMenu(null); show({ text: 'Скопировано' }); }} style={styles.menuRow} accessibilityRole="button"><Text style={styles.menuText}>Скопировать</Text></Pressable>}
+      </BottomSheet></>}
       {sheet==='stickers'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Стикеры"><StickerPicker level={stats?.level??1} onSelect={s=>{push({kind:'sticker',text:s.label});setSheet(null);}}/></BottomSheet></>}
       {sheet === 'attachments' && <AttachmentsSheet chatId={id} messages={messages} title={title} friend={friend || isGroup || isEvent} onClose={() => setSheet(null)} />}
       {recording === 'circle' && (
-        <CircleRecorder ref={circleRef} cancelling={cancelling} onStart={() => { rec.current.started = nowMs(); rec.current.ready = true; }}
+        <CircleRecorder ref={circleRef} cancelling={cancelling} locked={locked} onSend={() => void stopRec(true)} onDiscard={() => void stopRec(false)} onStart={() => { rec.current.started = nowMs(); rec.current.ready = true; }}
           onDone={(uri, sec) => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
           onCancel={() => {stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null);}}
           onDenied={() => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />
@@ -636,12 +742,86 @@ function PersonSheet({ p, friend, details, spot, requested, onClose, onProfile, 
   );
 }
 
+/** Коротко о сообщении — для цитаты и плашки ответа. */
+const SNIP: Partial<Record<Message['kind'], string>> = { photo: 'Фото', video: 'Видео', voice: 'Голосовое', circle: 'Кружок', invite: 'Приглашение', poll: 'Опрос' };
+type RowActions = {
+  reply: (m: Message) => void; menu: (m: Message) => void; reveal: (id: string) => void; vote: (id: string, k: number) => void;
+  avatar: (personId: string) => void; openEvent: (eventId: string) => void; invite: (m: Message, a: 'yes' | 'no') => void; retry: (m: Message) => void;
+};
+
+const MessageRow = memo(function MessageRow({ m, quoted, quotedName, author, canReply, wide, friendChat, showAuthor, answer, revealed, vote, actions, tick }: {
+  m: Message; quoted?: Message; quotedName?: string; author?: Person; canReply: boolean; wide: boolean; friendChat: boolean; showAuthor: boolean; tick?: TickKind;
+  answer?: 'yes' | 'no'; revealed: boolean; vote?: number; actions: { current: RowActions };
+}) {
+  const mine = m.authorId === 'me';
+  const shown = useMemo(() => (answer ? { ...m, answer: answer === 'yes' ? 'Иду' : 'Не смогу' } : m), [m, answer]);
+  const a = actions.current;
+  return (
+    <SwipeReply enabled={canReply && m.kind !== 'system'} right={!mine} onReply={() => actions.current.reply(m)} onMenu={() => actions.current.menu(m)}>
+      {quoted && <View style={[styles.quote, mine ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start', marginLeft: wide ? 38 : 0 }]}>
+        <Text style={styles.quoteName} numberOfLines={1}>{quotedName}</Text>
+        <Text style={styles.quoteText} numberOfLines={1}>{snippet(quoted)}</Text>
+      </View>}
+      <View>
+        <Bubble m={shown} mine={mine} author={author} friendChat={friendChat} showAuthor={showAuthor}
+          revealed={revealed} onReveal={() => a.reveal(m.id)} voteState={vote} onVote={(k) => actions.current.vote(m.id, k)}
+          onAvatar={() => actions.current.avatar(m.authorId)} onOpenEvent={() => m.eventId && actions.current.openEvent(m.eventId)}
+          onInvite={!mine ? ans => actions.current.invite(m, ans) : undefined} tick={tick} />
+        {/* У текста статус стоит рядом со временем в пузыре; у фото, голосовых, стикеров — строкой под ним. */}
+        {tick && tick !== 'failed' && m.kind !== 'text' && <View style={styles.tickRow}><Tick kind={tick} color={colors.muted} /></View>}
+        {tick === 'failed' && <Pressable onPress={() => actions.current.retry(m)} style={styles.failRow} accessibilityRole="button"><Tick kind="failed" /><Text style={[styles.status, { color: colors.accentText }]}>Не отправилось · Повторить</Text></Pressable>}
+      </View>
+    </SwipeReply>
+  );
+});
+
+type ComposerHandle = { take: () => string; fill: (t: string) => void };
+/** Поле ввода со своим состоянием: экран узнаёт только «пусто / не пусто» (для кнопки «Отправить»). */
+const ComposerInput = memo(forwardRef<ComposerHandle, { onHasText: (v: boolean) => void; onSubmit: () => void }>(function ComposerInput({ onHasText, onSubmit }, ref) {
+  const [text, setText] = useState('');
+  const [h, setH] = useState(44);
+  const has = useRef(false);
+  const change = (t: string) => {
+    setText(t);
+    const now = !!t.trim();
+    if (now !== has.current) { has.current = now; onHasText(now); }
+  };
+  const field = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => ({ take: () => { const t = text; change(''); setH(44); return t; }, fill: (t: string) => { change(t); if (t) field.current?.focus(); } }));
+  return (
+    <TextInput ref={field} value={text} onChangeText={change} multiline
+      onContentSizeChange={(ev) => { const nh = Math.max(44, Math.min(132, ev.nativeEvent.contentSize.height)); setH(old => (old === nh ? old : nh)); }}
+      onKeyPress={(ev) => { const ne = ev.nativeEvent as { key: string; shiftKey?: boolean }; if (Platform.OS === 'web' && ne.key === 'Enter' && !ne.shiftKey) { ev.preventDefault?.(); onSubmit(); } }}
+      placeholder="Сообщение" placeholderTextColor={colors.muted3} style={[styles.input, { height: text ? h : 44 }]} accessibilityLabel="Сообщение" />
+  );
+}));
+
+const snippet = (m: Message) => (m.kind === 'text' ? m.text : m.kind === 'sticker' ? `Стикер ${m.text}` : SNIP[m.kind] ?? m.text);
+
 const styles = StyleSheet.create({
+  tickRow: { alignSelf: 'flex-end', paddingHorizontal: 6, paddingTop: 3 },
+  failRow: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 8 },
+  quote: { maxWidth: '78%', marginBottom: 3, paddingVertical: 4, paddingHorizontal: 10, borderLeftWidth: 3, borderLeftColor: colors.accent, borderRadius: 8, backgroundColor: 'rgba(23,22,26,0.05)' },
+  quoteName: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },
+  quoteText: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
+  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 12, marginBottom: 6, paddingVertical: 8, paddingLeft: 12, paddingRight: 4, borderRadius: 18 },
+  replyLine: { width: 3, alignSelf: 'stretch', borderRadius: 2, backgroundColor: colors.accent },
+  replyClose: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+
+  stickerBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.paper },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4, paddingRight: 8, paddingBottom: 8, backgroundColor: colors.paper, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line2,
+    shadowColor: '#17161A', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3, zIndex: 2 },
+  backBtn: { minWidth: 44, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4 },
+  backBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
+  backBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: colors.paper },
+  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4 },
+  onlineDot: { position: 'absolute', right: 0, bottom: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ok, borderWidth: 2, borderColor: colors.paper },
+  groupIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  menuBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
-  status: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
+  title: { fontFamily: fonts.display700, fontSize: 17, letterSpacing: -0.2, color: colors.ink },
+  status: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, marginTop: 1 },
   plus: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
   plusText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
   banner: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: colors.sand },

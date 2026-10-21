@@ -4,6 +4,7 @@
 //   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
+import { polishAbouts } from './polish.ts';
 import { readReport, runStats, telegramLine, telegramStat, type TelegramStat } from './runstats.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -17,6 +18,7 @@ import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
 import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
 import { geocode, type VenueRow } from './venues.ts';
+import { EVENT_SITES, type EventSite } from './eventSites.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -44,15 +46,19 @@ async function loadSearch(file: string, sourceId: string) {
 }
 
 /** Какой строке «Источников» принадлежит событие: «Яндекс Афиша» → сайт Яндекса, «Sxodim» → Sxodim, остальное — «Поиск». */
-type SiteKey = CinemaSite | 'yandex' | 'sxodim' | 'search';
+type SiteKey = CinemaSite | EventSite | 'yandex' | 'sxodim' | 'search';
 function sourceKeyOf(f: Found): SiteKey {
   const n = (f.source_name ?? '').toLowerCase();
   const cinema = Object.entries(CINEMA_SITES).find(([, c]) => c.name.toLowerCase() === n);
-  return cinema ? cinema[0] as CinemaSite : n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
+  const site = Object.entries(EVENT_SITES).find(([, c]) => c.name.toLowerCase() === n);
+  return cinema ? cinema[0] as CinemaSite : site ? site[0] as EventSite : n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
 }
+/** Строка «Источников» нового сайта-афиши — по адресу её первой страницы (onvibe.me/almaty, kino.kz/ru/concert…). */
+const EVENT_HANDLES: Record<EventSite, string> = { onvibe: 'onvibe.me', topbilet: 'topbilet.kz', portalbilet: 'portalbilet.kz', gorodzovet: 'gorodzovet.ru', 'kino-concert': 'kino.kz/ru/concert' };
 const rowFor = (key: SiteKey, sources: Source[], fallback: Source): Source => {
   if (key === 'search') return fallback;
-  const cinema = key !== 'yandex' && key !== 'sxodim' ? CINEMA_SITES[key] : null;
+  if (key in EVENT_HANDLES) return sources.find(s => s.kind === 'site' && s.handle.toLowerCase().includes(EVENT_HANDLES[key as EventSite])) ?? fallback;
+  const cinema = key !== 'yandex' && key !== 'sxodim' ? CINEMA_SITES[key as CinemaSite] : null;
   const handle = cinema ? cinema.url.replace(/^https?:\/\/(?:www\.)?/, '').replace(/\/$/, '') : key;
   return sources.find(s => s.kind === 'site' && (cinema ? s.handle.toLowerCase().replace(/^www\./, '').replace(/\/$/, '') === handle : s.handle.toLowerCase().includes(key) && !s.handle.includes('/cinema'))) ?? fallback;
 };
@@ -144,12 +150,24 @@ async function live() {
   if (purged) { console.log(`Убрано из очереди просроченных черновиков: ${purged}`); await robotLog(`Убрано из очереди просроченных черновиков: ${purged}`); }
   if (searchFile) {
     if(await cancelled()){await robotLog('Остановлено до публикации черновиков');return;}
-    const source = sources.find((s) => s.kind === 'search');
+    // ИИ-поиск может быть выключен — тогда находки афиш записываем на «Добавлено вручную» (FIX3: запуск падал целиком).
+    const source = sources.find((s) => s.kind === 'search') ?? sources.find((s) => s.kind === 'manual') ?? sources[0];
     if (!source) {
-      console.log('В базе нет источника «Поиск · Gemini» — примени миграцию 20261004000008_search.sql.');
-      throw new Error('Нет источника Gemini в базе');
+      console.log('В базе нет ни одного источника — примени supabase/apply-all.sql (docs/KEYS.md).');
+      throw new Error('Нет источников в базе');
     }
     const found = await readFound(searchFile);
+    // Старые карточки с обрезанным описанием (до FIX3 сборщик резал до 160 символов) — дописываем полным текстом.
+    try {
+      const short = await db.shortAbouts([...new Set(found.map(f => f.url).filter(Boolean))]);
+      const fix = short.map(r => ({ r, f: found.find(f => f.url === r.source_url)! })).filter(x => x.f && (x.f.about ?? '').length > 200).slice(0, 40);
+      if (fix.length) {
+        const copy = fix.map(x => ({ ...x.f }));
+        await polishAbouts(copy);
+        for (let i = 0; i < fix.length; i++) await db.setAbout(fix[i].r.id, copy[i].about ?? '');
+        await robotLog(`Дописаны описания старых карточек: ${fix.length}`);
+      }
+    } catch (err) { console.error(`Описания старых карточек: ${(err as Error).message}`); }
     // Каждое событие записываем на «свой» источник: на карточке будет «Яндекс Афиша» или «Sxodim», а не «ИИ».
     const groups = new Map<string, { source: Source; found: Found[] }>();
     for (const f of found) {
@@ -165,7 +183,13 @@ async function live() {
       const fresh = await db.savePosts(posts);
       total += posts.length;
       console.log(`${src.title}: найдено ${posts.length}, новых ${fresh.length}`);
-      const results = await processPosts(fresh, src, { understand: understandFound, geocode, venues, known, now: new Date() });
+      // Только новым — описание как у редактора (Kimi), чтобы карточку хотелось читать (FIX3).
+      const extracted = await Promise.all(fresh.map(async p => ({ p, x: await understandFound(p) })));
+      const draftLike = extracted.map(({ x }) => ({ title: x.title, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, address: x.address ?? undefined, about: x.about ?? '' }) as Found);
+      const { polished } = await polishAbouts(draftLike);
+      if (polished) await robotLog(`Описания оформлены: ${polished}`);
+      const better = new Map(extracted.map(({ p, x }, i) => [p.externalId, { ...x, about: draftLike[i].about ?? x.about }]));
+      const results = await processPosts(fresh, src, { understand: async (p: RawPost) => better.get(p.externalId) ?? understandFound(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, src.id);
       print(results);
       all.push(...results);
@@ -180,7 +204,7 @@ async function live() {
   const tgStats: TelegramStat[] = [];
   for (const source of sources) {
     // Сайты-афиши читает поиск (код, без ИИ); здесь только каналы. Режим --telegram: только Telegram, с отчётом для панели.
-    if (source.kind === 'search' || source.kind === 'site') continue;
+    if (source.kind !== 'telegram') continue;
     if (args.has('--telegram') && source.kind !== 'telegram') continue;
     try {
       const fetched = await fetchChannel(source.handle, source.id, source.cursor);

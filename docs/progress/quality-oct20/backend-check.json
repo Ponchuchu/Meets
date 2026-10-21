@@ -1,0 +1,22 @@
+{
+  "source": "read_only_schema_probe",
+  "authenticated": false,
+  "results": [
+    {
+      "name": "events_live",
+      "result": "network_unavailable"
+    },
+    {
+      "name": "profile_frames_migration_27",
+      "result": "network_unavailable"
+    },
+    {
+      "name": "message_keys_migration_27",
+      "result": "network_unavailable"
+    },
+    {
+      "name": "chat_summaries_migration_27",
+      "result": "network_unavailable"
+    }
+  ]
+}

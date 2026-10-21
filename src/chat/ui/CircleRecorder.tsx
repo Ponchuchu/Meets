@@ -1,8 +1,10 @@
 // Запись кружка — design/png/V6ChatCircle.png: фронтальная камера в круге 300, кольцо прогресса до 60 с,
-// снизу «0:07 ‹ влево — отмена». Держишь кнопку — пишем; отпустил — отправили; увёл влево — отмена.
+// снизу «0:07 ‹ влево — отмена». Держишь кнопку — пишем; отпустил — отправили; увёл влево — отмена; вверх — закрепить.
+// Видео 480p и ~0,9 Мбит/с: кружок показывается в круге 300 px, а файл в 2–3 раза меньше прежнего 720p.
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SendHorizontal, Trash2 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeOut, useAnimatedProps, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
@@ -17,7 +19,9 @@ export interface CircleRecorderHandle { stop: (send: boolean) => void }
 
 export const CircleRecorder = forwardRef<CircleRecorderHandle, {
   cancelling: boolean; onStart: () => void; onDone: (uri: string, seconds: number) => void; onCancel: () => void; onDenied: () => void;
-}>(function CircleRecorder({ cancelling, onStart, onDone, onCancel, onDenied }, ref) {
+  /** Запись закреплена (свайп вверх): палец отпущен — нужны свои кнопки «Отменить» и «Отправить». */
+  locked?: boolean; onSend?: () => void; onDiscard?: () => void;
+}>(function CircleRecorder({ cancelling, onStart, onDone, onCancel, onDenied, locked = false, onSend, onDiscard }, ref) {
   const cam = useRef<CameraView>(null);
   const [camPerm, askCam] = useCameraPermissions();
   const [micPerm, askMic] = useMicrophonePermissions();
@@ -67,10 +71,10 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
   }));
 
   return (
-    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.veil} pointerEvents="none">
+    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={styles.veil} pointerEvents={locked ? 'box-none' : 'none'}>
       <View style={styles.circle}>
         {camPerm?.granted && micPerm?.granted && (
-          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" videoBitrate={1000000} mirror animateShutter={false} onCameraReady={() => setReady(true)} />
+          <CameraView ref={cam} style={StyleSheet.absoluteFill} facing="front" mode="video" zoom={0} videoQuality="480p" videoBitrate={900000} mirror animateShutter={false} onCameraReady={() => setReady(true)} />
         )}
       </View>
       <Svg width={SIZE + 8} height={SIZE + 8} style={styles.ring}>
@@ -80,7 +84,21 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
       <View style={styles.bar}>
         <View style={styles.dot} />
         <Text style={styles.time}>0:{String(Math.min(59, sec)).padStart(2, '0')}</Text>
-        <Text style={[styles.hint, cancelling && { color: colors.accentText }]}>{cancelling ? 'отпусти — отменить' : '‹ влево — отмена'}</Text>
+        {locked ? (
+          <>
+            <View style={{ flex: 1 }} />
+            {/* Раньше полоса записи закрывала кнопки поля ввода — «Отправить» было не видно. Теперь они здесь. */}
+            <Pressable onPress={onDiscard} style={styles.discard} accessibilityRole="button" accessibilityLabel="Отменить кружок">
+              <Trash2 size={22} color={colors.ink} strokeWidth={1.9} />
+            </Pressable>
+            <Pressable onPress={onSend} style={styles.send} accessibilityRole="button" accessibilityLabel="Отправить кружок">
+              <SendHorizontal size={22} color={colors.ink} strokeWidth={2.2} />
+              <Text style={styles.sendText}>Отправить</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Text style={[styles.hint, cancelling && { color: colors.accentText }]}>{cancelling ? 'отпусти — отменить' : '‹ влево — отмена · ↑ закрепить'}</Text>
+        )}
       </View>
     </Animated.View>
   );
@@ -94,4 +112,7 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   time: { fontFamily: fonts.mono600, fontSize: 16, color: colors.ink },
   hint: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
+  discard: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#DDD7CA', alignItems: 'center', justifyContent: 'center' },
+  send: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: 26, backgroundColor: colors.accent },
+  sendText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
 });

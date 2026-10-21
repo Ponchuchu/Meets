@@ -84,6 +84,8 @@ export interface Person {
   photo: string | null; // ключ фото из assets
   mapTrail?: 'none' | 'dots' | 'comet';
   mapFrame?: string;
+  /** Форма аватарки (profiles.map_shape). */
+  mapShape?: string;
   initial: string;
   tint: string;
   isFriend: boolean;
@@ -97,6 +99,7 @@ export type MessageKind = 'text' | 'photo' | 'video' | 'voice' | 'circle' | 'sti
 
 export interface Message {
   clientKey?: string;
+  ownerId?: string;
   id: string;
   chatId: string;
   authorId: string; // 'me' — это я
@@ -105,6 +108,8 @@ export interface Message {
   time: string; // «18:10»
   createdAt?: string;
   delivery?: 'sending' | 'failed';
+  /** Исправлено автором — пометка «изменено». */
+  editedAt?: string;
   durationS?: number;
   uploadedPath?: string;
   media?: string | null;
@@ -112,6 +117,8 @@ export interface Message {
   sub?: string;
   answer?: string;
   eventId?: string;
+  /** Ответ на сообщение (messages.reply_to). */
+  replyTo?: string;
   poll?: { question: string; options: { text: string; votes: number }[] };
 }
 
@@ -132,6 +139,10 @@ export interface Chat {
   meetPoint?: string;
   members?: number;
   memberIds?: string[];
+  /** До какого времени собеседник (в группе — хоть кто-то) прочитал чат: для двух галочек. */
+  readUpTo?: string;
+  /** Время последнего сообщения (ISO) — для галочек в списке чатов. */
+  lastAt?: string;
 }
 
 export interface ChatRequest {
@@ -227,6 +238,14 @@ export interface PersonDetails {
   suggestNote?: string;
   /** Строка плана в карточке на карте: «Вечером идёт на джаз — ты тоже». */
   planLine?: { text: string; eventId?: string; color: string };
+  /** Когда последний раз был в приложении (видят друзья). */
+  seenAt?: string;
+  /** Шаги сегодня и число альбомов — если человек это открыл. */
+  stepsToday?: number;
+  memoriesCount?: number;
+  frame?: string | null;
+  shape?: string | null;
+  photo?: string | null;
 }
 
 export interface DataSource {

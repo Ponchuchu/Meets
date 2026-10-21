@@ -1,9 +1,10 @@
 // «Аналитика», верх: люди и контент одним взглядом (admin_overview — только команда). Без входа — пример.
 import { useQuery } from '@tanstack/react-query';
+import { Hash } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { supabase, withTimeout } from '../../data/client';
 import { colors, fonts } from '../../theme';
-import { Banner, Section, Stat } from './kit';
+import { Banner, Kpi, Section, Stat } from './kit';
 
 export interface Overview {
   users: number; new_24h: number; new_7d: number; online_24h: number; sharing_now: number; friendships: number; chats: number;
@@ -33,33 +34,33 @@ export function useOverview(live: boolean) {
   return { data: live ? q.data : SAMPLE, isError: live && q.isError, isLoading: live && q.isPending, refetch: q.refetch };
 }
 
+/** Дашборд: четыре главные цифры сразу, остальное — в «Все цифры» (FIX3: двенадцать одинаковых плиток читались плохо). */
 export function OverviewBlock({ live }: { live: boolean }) {
   const q = useOverview(live);
   const o = q.data;
   return (
-    <Section title="Люди" hint={live ? 'Обновляется раз в минуту' : 'Пример: настоящие цифры видны после входа сотрудника'}>
-      {q.isError && <Banner tone="error" text="Сводка не загрузилась. Нужна миграция 21 (admin_overview) — Actions → Supabase backend." />}
+    <Section title="Сегодня" hint={live ? 'Из базы, обновляется раз в минуту' : 'Пример: настоящие цифры видны после входа сотрудника'}>
+      {q.isError && <Banner tone="error" text="Сводка не загрузилась. Потяни экран вниз, чтобы повторить." />}
       {!o && !q.isError && <Text style={styles.muted}>Загружаю…</Text>}
       {o && (
         <>
           <View style={styles.grid}>
-            <Stat n={o.users} label="всего людей" />
-            <Stat n={o.new_24h} label="новых за сутки" />
-            <Stat n={o.new_7d} label="новых за неделю" />
-            <Stat n={o.online_24h} label="заходили за сутки" />
-            <Stat n={o.sharing_now} label="на карте сейчас" />
-            <Stat n={o.friendships} label="дружб" />
-            <Stat n={o.chats} label="чатов" />
-            <Stat n={o.messages_24h} label="сообщений за сутки" />
-            <Stat n={o.going} label="планов «иду»" />
+            <Kpi accent n={o.users} label="людей в Meets" sub={`+${o.new_7d} за неделю`} />
+            <Kpi n={o.sharing_now} label="на карте сейчас" sub={`заходили за сутки: ${o.online_24h}`} />
+            <Kpi n={o.messages_24h} label="сообщений за сутки" sub={`чатов: ${o.chats}`} />
+            <Kpi n={o.events_upcoming} label="событий впереди" sub={`ждут проверки: ${o.events_draft}`} />
           </View>
-          <Text style={styles.sub}>События</Text>
-          <View style={styles.grid}>
-            <Stat n={o.events_published} label="на карте" />
-            <Stat n={o.events_draft} label="ждут согласования" />
-            <Stat n={o.meetups} label="встреч друзей" />
-          </View>
-          {o.top_cats.length > 0 && <Text style={styles.muted}>Больше всего: {o.top_cats.map((c) => `${CAT[c.category] ?? c.category} ${c.n}`).join(' · ')}</Text>}
+          <Section title="Все цифры" icon={Hash} fold="closed">
+            <View style={styles.grid}>
+              <Stat n={o.new_24h} label="новых за сутки" />
+              <Stat n={o.friendships} label="дружб" />
+              <Stat n={o.going} label="планов «иду»" />
+              <Stat n={o.events_published} label="опубликовано всего" />
+              <Stat n={o.meetups} label="встреч друзей" />
+              <Stat n={o.runs_failed_24h} label="сбоев поиска за сутки" warn={o.runs_failed_24h > 0} />
+            </View>
+            {o.top_cats.length > 0 && <Text style={styles.muted}>Больше всего: {o.top_cats.map((c) => `${CAT[c.category] ?? c.category} ${c.n}`).join(' · ')}</Text>}
+          </Section>
         </>
       )}
     </Section>
@@ -68,6 +69,5 @@ export function OverviewBlock({ live }: { live: boolean }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  sub: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink, marginTop: 4 },
   muted: { fontFamily: fonts.body400, fontSize: 13.5, color: colors.muted },
 });

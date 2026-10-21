@@ -1645,3 +1645,964 @@ begin
 end $$;
 drop trigger if exists award_arrived on public.attendance;
 create trigger award_arrived after insert or update of status on public.attendance for each row execute function public.award_arrival();
+
+-- ===== 20261011000019_admin_overview.sql =====
+-- Панель разработчика, вкладка «Аналитика»: сводка по людям одним запросом. Только команда.
+create or replace function public.admin_overview() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare r jsonb;
+begin
+  if not public.is_staff() then raise exception 'forbidden'; end if;
+  select jsonb_build_object(
+    'users', (select count(*) from public.profiles),
+    'new_24h', (select count(*) from public.profiles where created_at > now() - interval '24 hours'),
+    'new_7d', (select count(*) from public.profiles where created_at > now() - interval '7 days'),
+    'online_24h', (select count(*) from public.locations_last where updated_at > now() - interval '24 hours'),
+    'sharing_now', (select count(*) from public.locations_last where updated_at > now() - interval '15 minutes'),
+    'friendships', (select count(*) from public.friendships),
+    'chats', (select count(*) from public.chats),
+    'messages_24h', (select count(*) from public.messages where created_at > now() - interval '24 hours'),
+    'going', (select count(*) from public.attendance where status = 'going'),
+    'meetups', (select count(*) from public.events where visibility = 'friends'),
+    'events_published', (select count(*) from public.events where status = 'published' and visibility = 'public'),
+    'events_draft', (select count(*) from public.events where status = 'draft'),
+    'events_no_price', (select count(*) from public.events where status = 'published' and visibility = 'public' and not is_free and price_min is null),
+    'events_no_place', (select count(*) from public.events where status = 'published' and visibility = 'public' and venue_id is null and address is null),
+    'top_cats', coalesce((select jsonb_agg(x) from (select category, count(*) n from public.events where status = 'published' and visibility = 'public' group by 1 order by 2 desc limit 5) x), '[]'::jsonb)
+  ) into r;
+  return r;
+end $$;
+revoke execute on function public.admin_overview() from public, anon;
+grant execute on function public.admin_overview() to authenticated;
+
+-- ===== 20261011000020_avatars_read.sql =====
+-- Фото профиля не загружалось: загрузка с upsert требует права чтения строки в storage.objects, а политики чтения у бакета не было.
+drop policy if exists avatars_read on storage.objects;
+create policy avatars_read on storage.objects for select to authenticated using (bucket_id = 'avatars');
+
+-- ===== 20261012000021_admin_overview_v2.sql =====
+-- Панель разработчика v2: в сводку добавлены «что требует внимания» — последний запуск поиска, ошибки, пустые поля у событий,
+-- старые черновики. Всё считается одним запросом, только для команды.
+-- FIX3: колонки robot_runs с префиксом rr. — иначе found совпадает с переменной PL/pgSQL FOUND и запрос падает.
+create or replace function public.admin_overview() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare r jsonb;
+begin
+  if not public.is_staff() then raise exception 'forbidden'; end if;
+  select jsonb_build_object(
+    'users', (select count(*) from public.profiles),
+    'new_24h', (select count(*) from public.profiles where created_at > now() - interval '24 hours'),
+    'new_7d', (select count(*) from public.profiles where created_at > now() - interval '7 days'),
+    'online_24h', (select count(*) from public.locations_last where updated_at > now() - interval '24 hours'),
+    'sharing_now', (select count(*) from public.locations_last where updated_at > now() - interval '15 minutes'),
+    'friendships', (select count(*) from public.friendships),
+    'chats', (select count(*) from public.chats),
+    'messages_24h', (select count(*) from public.messages where created_at > now() - interval '24 hours'),
+    'going', (select count(*) from public.attendance where status = 'going'),
+    'meetups', (select count(*) from public.events where visibility = 'friends'),
+    'events_published', (select count(*) from public.events where status = 'published' and visibility = 'public'),
+    'events_upcoming', (select count(*) from public.events where status = 'published' and visibility = 'public' and coalesce(ends_at, starts_at + interval '3 hours') > now()),
+    'events_draft', (select count(*) from public.events where status = 'draft' and not rejected),
+    'drafts_stale', (select count(*) from public.events where status = 'draft' and not rejected and coalesce(ends_at, starts_at + interval '3 hours') < now()),
+    'events_no_price', (select count(*) from public.events where status = 'published' and visibility = 'public' and coalesce(ends_at, starts_at + interval '3 hours') > now() and not is_free and price_min is null),
+    'events_no_place', (select count(*) from public.events e left join public.venues v on v.id = e.venue_id where e.status = 'published' and e.visibility = 'public' and coalesce(e.ends_at, e.starts_at + interval '3 hours') > now() and (v.geog is null or v.needs_pin)),
+    'events_no_cover', (select count(*) from public.events where status = 'published' and visibility = 'public' and coalesce(ends_at, starts_at + interval '3 hours') > now() and cover_url is null),
+    'runs_failed_24h', (select count(*) from public.robot_runs where status = 'failed' and started_at > now() - interval '24 hours'),
+    'last_run', (select jsonb_build_object('status', rr.status, 'found', rr.found, 'queued', rr.queued, 'at', coalesce(rr.finished_at, rr.started_at), 'params', rr.params,
+                   'error', (select l.text from public.robot_log l where l.run_id = rr.id and l.level = 'error' order by l.at desc limit 1))
+                 from public.robot_runs rr order by rr.started_at desc limit 1),
+    'top_cats', coalesce((select jsonb_agg(x) from (select category, count(*) n from public.events where status = 'published' and visibility = 'public' group by 1 order by 2 desc limit 5) x), '[]'::jsonb)
+  ) into r;
+  return r;
+end $$;
+revoke execute on function public.admin_overview() from public, anon;
+grant execute on function public.admin_overview() to authenticated;
+
+-- ===== 20261012000022_admin_events_manage.sql =====
+-- Панель разработчика: «Все события» — переименовать, поменять фото, снять с карты, удалить.
+-- Удаление «мягкое»: событие уходит в архив с пометкой rejected, чтобы поиск не вернул его снова,
+-- а планы и чаты людей, которые уже на него записались, не пропали.
+alter table public.events add column if not exists orig_title text;
+
+create or replace function public.staff_rename_event(ev uuid, new_title text)
+returns void language plpgsql security definer set search_path = public as $$
+declare t text := btrim(coalesce(new_title, ''));
+begin
+  if not public.is_staff() then raise exception 'staff-only'; end if;
+  if char_length(t) < 2 or char_length(t) > 120 then raise exception 'bad-title'; end if;
+  update events set orig_title = coalesce(orig_title, title), title = t, updated_at = now() where id = ev;
+end;
+$$;
+grant execute on function public.staff_rename_event(uuid, text) to authenticated;
+
+create or replace function public.staff_event_action(ev uuid, action text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_staff() then raise exception 'staff-only'; end if;
+  if action = 'unpublish' then
+    update events set status = 'draft', published_at = null, updated_at = now() where id = ev and visibility = 'public';
+  elsif action = 'delete' then
+    update events set status = 'archived', rejected = true, updated_at = now() where id = ev and visibility = 'public';
+  else
+    raise exception 'unknown-action';
+  end if;
+end;
+$$;
+grant execute on function public.staff_event_action(uuid, text) to authenticated;
+
+-- Фото события от сотрудника: кладёт и заменяет только staff, читают все (бакет публичный).
+drop policy if exists covers_staff_write on storage.objects;
+create policy covers_staff_write on storage.objects for insert to authenticated with check (bucket_id = 'covers' and public.is_staff());
+drop policy if exists covers_staff_update on storage.objects;
+create policy covers_staff_update on storage.objects for update to authenticated using (bucket_id = 'covers' and public.is_staff());
+
+-- ===== 20261012000023_robot_stats.sql =====
+-- Итоги запуска поиска для панели разработчика: что прочитано с каждого сайта, что отсеяно, сколько новых карточек и какого качества
+-- (с фото, с точкой, с ценой), разбор Telegram. Пишет воркер (worker/src/runstats.ts), читает панель «Ивенты».
+alter table public.robot_runs add column if not exists stats jsonb;
+comment on column public.robot_runs.stats is 'Итоги запуска: sources, outside, merged, kept, queue{added,published,duplicates,...}, telegram[], ai{...}';
+
+-- ===== 20261012000024_review_fixes.sql =====
+-- Переименование касается только публичной афиши, частные встречи не меняем.
+create or replace function public.staff_rename_event(ev uuid, new_title text)
+returns void language plpgsql security definer set search_path = public as $$
+declare t text := btrim(coalesce(new_title, ''));
+begin
+  if not public.is_staff() then raise exception 'staff-only'; end if;
+  if char_length(t) < 2 or char_length(t) > 120 then raise exception 'bad-title'; end if;
+  update public.events set orig_title = coalesce(orig_title, title), title = t, updated_at = now()
+    where id = ev and visibility = 'public';
+  if not found then raise exception 'public-event-not-found'; end if;
+end;
+$$;
+revoke execute on function public.staff_rename_event(uuid, text) from public, anon;
+grant execute on function public.staff_rename_event(uuid, text) to authenticated;
+
+-- Карта остаётся на events_live. Планы могут показать снятое событие его участнику.
+-- security_invoker сохраняет существующие правила доступа events, attendance и venues.
+create or replace view public.events_for_plans with (security_invoker = true) as
+select e.id, e.external_id, e.title, e.category, e.tags, e.starts_at, e.ends_at, e.is_long,
+       v.id as venue_id, v.name as venue_name, v.kind as venue_kind,
+       coalesce(e.address, v.address) as address, e.address_note,
+       st_y(v.geog::geometry) as lat, st_x(v.geog::geometry) as lon,
+       coalesce(v.needs_pin, true) as needs_pin,
+       e.price_min, e.price_max, e.is_free, e.about, e.organizer, e.cover_url, e.source_url,
+       e.visibility, e.status
+from public.events e
+left join public.venues v on v.id = e.venue_id
+where e.status = 'published'
+   or (e.visibility = 'public' and exists (
+     select 1 from public.attendance a
+     where a.event_id = e.id and a.user_id = auth.uid() and a.status in ('going', 'arrived')
+   ));
+revoke all on public.events_for_plans from public, anon;
+grant select on public.events_for_plans to authenticated;
+
+-- ===== 20261012000025_cinema_sources.sql =====
+-- Киноафиши добавлены в настройки. Пока не проверен настоящий формат сайтов,
+-- сбор выключен: нельзя выдавать неподтверждённое расписание за готовое.
+insert into public.sources (kind, handle, title, trusted, auto_publish, enabled)
+values
+  ('site', 'chaplin.kz', 'Chaplin · кино', false, false, false),
+  ('site', 'kino.kz', 'Kino.kz · кино', false, false, false),
+  ('site', 'ticketon.kz/almaty/cinema', 'Ticketon · кино', false, false, false),
+  ('site', 'kinopark.kz/ru/movies/today', 'Kinopark · кино', false, false, false),
+  ('site', 'kz.kinoafisha.info/almaty/cinema', 'Киноафиша · Алматы', false, false, false),
+  ('site', 'afisha.yandex.kz/almaty/cinema', 'Яндекс · кино', false, false, false),
+  ('site', 'lyubimiigorod.ru/almaty/cinema', 'Любимый город · кино', false, false, false)
+on conflict (kind, handle) do nothing;
+
+-- ===== 20261012000026_chat_read.sql =====
+-- Поздний ответ сети не возвращает уже прочитанные сообщения в непрочитанные.
+-- Участник может менять только отметку чтения, не chat_id/user_id своего членства.
+revoke update on public.chat_members from public, anon, authenticated;
+grant update (last_read_at) on public.chat_members to authenticated;
+
+create or replace function public.mark_chat_read(p_chat uuid, p_seen timestamptz)
+returns void language plpgsql security invoker set search_path = public as $$
+begin
+  if auth.uid() is null or p_seen is null then raise exception 'not-authenticated'; end if;
+  update public.chat_members
+    set last_read_at = greatest(coalesce(last_read_at, '-infinity'::timestamptz), least(p_seen, now()))
+    where chat_id = p_chat and user_id = auth.uid();
+  if not found then raise exception 'chat-not-found'; end if;
+end;
+$$;
+revoke execute on function public.mark_chat_read(uuid, timestamptz) from public, anon;
+grant execute on function public.mark_chat_read(uuid, timestamptz) to authenticated;
+
+-- ===== 20261012000027_phone_feedback.sql =====
+-- 12 октября: шаги, персональная дата посещения, перенос своей встречи, быстрый список чатов.
+create table if not exists public.daily_steps (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day date not null, steps integer not null check(steps between 0 and 100000),
+  updated_at timestamptz not null default now(), primary key(user_id,day)
+);
+alter table public.daily_steps enable row level security;
+drop policy if exists daily_steps_read on public.daily_steps;
+create policy daily_steps_read on public.daily_steps for select to authenticated using(user_id=auth.uid());
+grant select on public.daily_steps to authenticated;
+
+create or replace function public.record_daily_steps(step_day date, step_count integer) returns integer
+language plpgsql security definer set search_path=public as $$
+declare who uuid:=auth.uid(); count_now integer;
+begin
+  if who is null then raise exception 'auth'; end if;
+  if step_day<>(now() at time zone 'Asia/Almaty')::date or step_count not between 0 and 100000 or step_count is null then raise exception 'invalid-steps'; end if;
+  insert into public.daily_steps(user_id,day,steps) values(who,step_day,step_count)
+    on conflict(user_id,day) do update set steps=greatest(daily_steps.steps,excluded.steps),updated_at=now() returning steps into count_now;
+  if count_now>=3000 then perform public.award(who,'steps',10,step_day::text||':3000'); end if;
+  if count_now>=6000 then perform public.award(who,'steps',20,step_day::text||':6000'); end if;
+  if count_now>=10000 then perform public.award(who,'steps',30,step_day::text||':10000'); end if;
+  return count_now;
+end $$;
+revoke all on function public.record_daily_steps(date,integer) from public;
+grant execute on function public.record_daily_steps(date,integer) to authenticated;
+
+alter table public.attendance add column if not exists visit_at timestamptz;
+create or replace function public.choose_event_visit(event uuid, visit timestamptz) returns void
+language plpgsql security definer set search_path=public as $$
+declare e public.events;
+begin
+  if auth.uid() is null then raise exception 'auth'; end if;
+  select * into e from public.events where id=event and status='published' and (visibility='public' or created_by=auth.uid() or exists(select 1 from public.meetup_guests g where g.event_id=event and g.user_id=auth.uid()));
+  if not found then raise exception 'event-unavailable'; end if;
+  if visit is null or visit<greatest(e.starts_at,now()) or visit>=coalesce(e.ends_at,e.starts_at+interval '2 hours') then raise exception 'invalid-visit'; end if;
+  insert into public.attendance(user_id,event_id,status,visit_at) values(auth.uid(),event,'going',visit)
+    on conflict(user_id,event_id) do update set status='going',visit_at=excluded.visit_at;
+end $$;
+revoke all on function public.choose_event_visit(uuid,timestamptz) from public;
+grant execute on function public.choose_event_visit(uuid,timestamptz) to authenticated;
+
+create or replace function public.reschedule_meetup(event uuid, new_start timestamptz) returns void
+language plpgsql security definer set search_path=public as $$
+declare e public.events; finish timestamptz;
+begin
+  if auth.uid() is null then raise exception 'auth'; end if;
+  select * into e from public.events where id=event and created_by=auth.uid() and exists(select 1 from public.meetup_locations l where l.event_id=event) for update;
+  if not found then raise exception 'not-owner'; end if;
+  if new_start is null or new_start<=now() or new_start>now()+interval '92 days' then raise exception 'invalid-start'; end if;
+  finish:=new_start+greatest(coalesce(e.ends_at-e.starts_at,interval '3 hours'),interval '1 minute');
+  update public.events set starts_at=new_start,ends_at=finish,updated_at=now() where id=event;
+  update public.attendance set visit_at=new_start where event_id=event and visit_at is not null;
+  insert into public.messages(chat_id,author_id,kind,body,event_id)
+    select distinct m.chat_id,auth.uid(),'system','Встреча перенесена на '||to_char(new_start at time zone 'Asia/Almaty','DD.MM HH24:MI'),event
+    from public.messages m where m.event_id=event and exists(select 1 from public.chat_members c where c.chat_id=m.chat_id and c.user_id=auth.uid());
+end $$;
+revoke all on function public.reschedule_meetup(uuid,timestamptz) from public;
+grant execute on function public.reschedule_meetup(uuid,timestamptz) to authenticated;
+
+create index if not exists messages_chat_recent_idx on public.messages(chat_id,created_at desc,id desc);
+create or replace function public.my_chat_summaries() returns table(chat_id uuid, author_id uuid, body text, kind text, created_at timestamptz, unread bigint)
+language sql stable security invoker set search_path=public as $$
+  select c.chat_id,m.author_id,m.body,m.kind,m.created_at,
+    (select count(*) from public.messages u where u.chat_id=c.chat_id and u.author_id<>auth.uid() and (c.last_read_at is null or u.created_at>c.last_read_at))
+  from public.chat_members c left join lateral (
+    select author_id,body,kind,created_at from public.messages where chat_id=c.chat_id order by created_at desc,id desc limit 1
+  ) m on true where c.user_id=auth.uid();
+$$;
+revoke all on function public.my_chat_summaries() from public;
+grant execute on function public.my_chat_summaries() to authenticated;
+
+alter table public.profiles add column if not exists map_frame text not null default 'classic' check(map_frame in ('classic','sunset','forest','violet'));
+
+-- Владелец встречи доступен клиенту; остальные колонки view не меняются.
+create or replace view public.events_live with(security_invoker=true) as
+select e.id,e.external_id,e.title,e.category,e.tags,e.starts_at,e.ends_at,e.is_long,
+       v.id as venue_id,v.name as venue_name,v.kind as venue_kind,
+       coalesce(e.address,v.address) as address,e.address_note,
+       extensions.st_y(v.geog::extensions.geometry) as lat,extensions.st_x(v.geog::extensions.geometry) as lon,
+       coalesce(v.needs_pin,true) as needs_pin,
+       e.price_min,e.price_max,e.is_free,e.about,e.organizer,e.cover_url,e.source_url,e.visibility,e.status,e.created_by
+from public.events e left join public.venues v on v.id=e.venue_id where e.status='published';
+
+alter table public.profiles add column if not exists map_trail text not null default 'dots' check(map_trail in ('none','dots','comet'));
+
+create or replace function public.check_map_frame() returns trigger
+language plpgsql security definer set search_path=public as $$
+declare lvl integer; required integer;
+begin
+  if new.map_frame is not distinct from old.map_frame and new.map_trail is not distinct from old.map_trail then return new; end if;
+  required:=case new.map_frame when 'sunset' then 2 when 'forest' then 3 when 'violet' then 7 else 1 end;
+  if new.map_trail='comet' then required:=greatest(required,3); end if;
+  select level into lvl from public.user_level where user_id=new.id;
+  if coalesce(lvl,1)<required then raise exception 'frame-locked'; end if;
+  return new;
+end $$;
+drop trigger if exists check_map_frame on public.profiles;
+create trigger check_map_frame before update of map_frame,map_trail on public.profiles for each row execute function public.check_map_frame();
+
+create or replace function public.due_event_reminders(from_at timestamptz,to_at timestamptz)
+returns table(user_id uuid,event_id uuid,title text)
+language sql stable security definer set search_path=public as $$
+  select a.user_id,a.event_id,e.title from public.attendance a join public.events e on e.id=a.event_id
+  where a.status='going' and e.status='published' and coalesce(a.visit_at,e.starts_at)>=from_at and coalesce(a.visit_at,e.starts_at)<to_at;
+$$;
+revoke all on function public.due_event_reminders(timestamptz,timestamptz) from public,anon,authenticated;
+grant execute on function public.due_event_reminders(timestamptz,timestamptz) to service_role;
+
+-- Повтор запроса после потери сети не дублирует сообщение.
+alter table public.messages add column if not exists client_key text;
+create unique index if not exists messages_client_key_once on public.messages(author_id,client_key) where client_key is not null;
+create or replace function public.send_chat_message(chat uuid,client text,message_body text,message_kind text default 'text',media text default null,duration integer default null,event uuid default null) returns uuid
+language plpgsql security invoker set search_path=public as $$
+declare result uuid;
+begin
+  if auth.uid() is null or client is null or length(client) not between 1 and 160 then raise exception 'invalid-message'; end if;
+  insert into public.messages(chat_id,author_id,kind,body,media_path,duration_s,event_id,client_key)
+    values(chat,auth.uid(),message_kind,message_body,media,duration,event,client)
+    on conflict(author_id,client_key) where client_key is not null do nothing returning id into result;
+  if result is null then select id into result from public.messages where author_id=auth.uid() and client_key=client and chat_id=chat; end if;
+  if result is null then raise exception 'client-key-conflict'; end if;
+  return result;
+end $$;
+revoke all on function public.send_chat_message(uuid,text,text,text,text,integer,uuid) from public;
+grant execute on function public.send_chat_message(uuid,text,text,text,text,integer,uuid) to authenticated;
+
+-- Адреса уже опубликованных карточек: отдельная операция только для команды/воркера.
+create or replace function public.repair_event_point(event uuid,latitude double precision,longitude double precision) returns void
+language plpgsql security definer set search_path=public,extensions as $$
+declare e public.events; v public.venues; venue uuid;
+begin
+  if coalesce(auth.role(),'')<>'service_role' and not public.is_staff() then raise exception 'staff-only'; end if;
+  if latitude is null or longitude is null or latitude not between 43.05 and 43.40 or longitude not between 76.70 and 77.20 then raise exception 'outside-almaty'; end if;
+  select * into e from public.events where id=event and visibility='public' and status in ('draft','published') for update;
+  if not found or e.address is null or length(trim(e.address))<3 then raise exception 'no-public-address'; end if;
+  select * into v from public.venues where id=e.venue_id;
+  insert into public.venues(name,address,geog,needs_pin)
+    values(coalesce(v.name,e.title)||' · '||e.address,e.address,st_setsrid(st_makepoint(longitude,latitude),4326)::geography,false)
+    on conflict(name) do update set address=excluded.address,geog=excluded.geog,needs_pin=false returning id into venue;
+  update public.events set venue_id=venue,flags=array_remove(flags,'needs_pin'),updated_at=now() where id=event;
+end $$;
+revoke all on function public.repair_event_point(uuid,double precision,double precision) from public;
+grant execute on function public.repair_event_point(uuid,double precision,double precision) to authenticated,service_role;
+
+-- ===== 20261020000024_reliability.sql =====
+-- Надёжные заявки в друзья, права сообщений и индексы. Применить до обновления приложения.
+begin;
+
+create index if not exists messages_chat_recent_idx on public.messages(chat_id, created_at desc, id desc);
+create index if not exists friendships_by_b on public.friendships(b, a);
+create index if not exists friend_requests_incoming on public.friend_requests(to_id, status);
+create index if not exists chat_members_by_user on public.chat_members(user_id, chat_id);
+drop policy if exists messages_update_own on public.messages;
+create policy messages_update_own on public.messages for update to authenticated
+  using (author_id = auth.uid() and public.is_chat_member(chat_id))
+  with check (author_id = auth.uid() and public.is_chat_member(chat_id));
+
+drop policy if exists friend_requests_cancel on public.friend_requests;
+create policy friend_requests_cancel on public.friend_requests for delete to authenticated
+  using (from_id = auth.uid() and status = 'pending');
+-- Получатель меняет только статус; нельзя подменить отправителя или адресата принятой заявки.
+revoke update on public.friend_requests from authenticated;
+grant update(status) on public.friend_requests to authenticated;
+
+create or replace function public.send_friend_request(other uuid, request_note text default null) returns void
+language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'auth-required'; end if;
+  if other is null or other = me then raise exception 'invalid-recipient'; end if;
+  if public.is_blocked(me, other) then raise exception 'blocked'; end if;
+  -- Одновременные встречные заявки обрабатываются одной транзакцией за другой.
+  perform pg_advisory_xact_lock(hashtextextended(least(me, other)::text || greatest(me, other)::text, 0));
+  if public.is_friend(me, other) then return; end if;
+  insert into public.friend_requests(from_id, to_id, note, status)
+    values (me, other, left(request_note, 500), 'pending')
+    on conflict (from_id, to_id) do update set note = excluded.note, status = 'pending', created_at = now();
+  if exists(select 1 from public.friend_requests where from_id = other and to_id = me and status = 'pending') then
+    update public.friend_requests set status = 'accepted'
+      where (from_id = me and to_id = other) or (from_id = other and to_id = me);
+  end if;
+end $$;
+revoke all on function public.send_friend_request(uuid, text) from public, anon;
+grant execute on function public.send_friend_request(uuid, text) to authenticated;
+
+-- Списки обновляются через Realtime; при отсутствии публикации клиент использует сверку раз в минуту.
+do $$
+declare t text;
+begin
+  if exists(select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array['friendships','friend_requests','chat_members','messages'] loop
+      if not exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
+  end if;
+end $$;
+commit;
+
+-- ===== 20261020000028_places_addresses.sql =====
+-- Места из Overture и справочник адресов Алматы (OpenStreetMap + Overture), docs/MAP-DATA.md.
+-- Адрес из карточки события («ул. Жандосова 1/1», «Жандосов көшесі, 1/1») находит свою точку:
+-- нормализуем одинаково на записи и на запросе, ищем по триграммам с поправкой на близость.
+
+create extension if not exists pg_trgm with schema extensions;
+
+-- «Достық даңғылы 42» и «пр. Достык, 42» → «достык 42». Казахские буквы → русские, слова-типы улиц — прочь,
+-- окончания имён — тоже: «Жандосова» (рус.) и «Жандосов көшесі» (каз.) → «жандосов», «Абая» и «Абай» → «аба».
+create or replace function public.norm_addr(t text) returns text
+language sql immutable parallel safe as $$
+  select btrim(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+    -- скобки, этаж, офис, квартира — не часть адреса дома
+    regexp_replace(regexp_replace(translate(lower(coalesce(t, '')), 'ёәөүұқғңһі', 'еаоуукгнхи'),
+      '\([^)]*\)', ' ', 'g'), '(\d+\s*-?\s*(этаж|эт)\.?|(офис|оф|кв|каб|кабинет|блок|вход|подъезд)\.?\s*[0-9а-яa-z/-]+)', ' ', 'g'),
+    '(^|[^а-яa-z0-9])(г|город|алматы|алма-ата|улица|ул|көшесі|кошеси|көш|кош|проспект|пр-т|пр|просп|даңғылы|дангылы|даң|микрорайон|мкр|мкрн|шағын ауданы|шагын ауданы|ш\.а|переулок|пер|бульвар|б-р|шоссе|площадь|пл|тас жолы|набережная|наб|к)(?=[^а-яa-z0-9]|$)\.?', ' ', 'g'),
+    '[^а-яa-z0-9/]+', ' ', 'g'),
+    '([а-я]{3,}?)(а|я|й)(?= |$)', '\1', 'g'),
+    '\s+', ' ', 'g'))
+$$;
+
+-- Тип улицы — чтобы «проспект Абая 10» (= «Абай даңғылы 10», центр) не путался с «улица Абая 10» в пригороде.
+create or replace function public.addr_type(t text) returns text
+language sql immutable parallel safe as $$
+  select case
+    when t ~* '(^|[^а-яәөүұқғңһі])(проспект|пр-т|пр|просп|даңғылы|дангылы|даң)([^а-яәөүұқғңһі]|$)' then 'пр'
+    when t ~* '(^|[^а-яәөүұқғңһі])(микрорайон|мкр|мкрн|шағын ауданы|шагын ауданы|ш\.а)([^а-яәөүұқғңһі]|$)' then 'мкр'
+    when t ~* '(^|[^а-яәөүұқғңһі])(бульвар|б-р|желекжолы)([^а-яәөүұқғңһі]|$)' then 'бул'
+    when t ~* '(^|[^а-яәөүұқғңһі])(переулок|пер|тұйық көшесі)([^а-яәөүұқғңһі]|$)' then 'пер'
+    when t ~* '(^|[^а-яәөүұқғңһі])(улица|ул|көшесі|кошеси|көш)([^а-яәөүұқғңһі]|$)' then 'ул'
+  end
+$$;
+
+create table if not exists public.addresses (
+  id bigserial primary key,
+  street text not null,
+  house text not null,
+  label text not null,
+  norm text generated always as (public.norm_addr(street || ' ' || house)) stored,
+  geog extensions.geography(point, 4326) not null,
+  source text not null check (source in ('osm', 'overture'))
+);
+-- Одинаковые улицы бывают в разных районах — уникальности по норме нет; дубли одного дома (ближе 80 м) чистит загрузчик.
+create index if not exists addresses_norm_idx on public.addresses (norm);
+create index if not exists addresses_norm_trgm on public.addresses using gin (norm extensions.gin_trgm_ops);
+create index if not exists addresses_geog_idx on public.addresses using gist (geog);
+alter table public.addresses enable row level security;
+drop policy if exists addresses_read on public.addresses;
+create policy addresses_read on public.addresses for select to anon, authenticated using (true);
+
+create table if not exists public.places (
+  id text primary key,
+  name text not null,
+  kind text not null,
+  category text,
+  address text,
+  geog extensions.geography(point, 4326) not null,
+  confidence real not null default 0,
+  source text not null default 'overture',
+  updated_at timestamptz not null default now()
+);
+create index if not exists places_geog_idx on public.places using gist (geog);
+create index if not exists places_name_trgm on public.places using gin (lower(name) extensions.gin_trgm_ops);
+alter table public.places enable row level security;
+drop policy if exists places_read on public.places;
+create policy places_read on public.places for select to anon, authenticated using (true);
+
+-- Подсказки адреса: похожие по тексту, при равенстве — ближе к точке (если есть).
+create or replace function public.suggest_address(q text, near_lat double precision default null, near_lon double precision default null, lim int default 6)
+returns table (label text, street text, house text, lat double precision, lon double precision, score real)
+language sql stable security invoker set search_path = public, extensions as $$
+  with n as (select public.norm_addr(q) as v)
+  select a.label, a.street, a.house, extensions.st_y(a.geog::extensions.geometry), extensions.st_x(a.geog::extensions.geometry),
+    extensions.similarity(a.norm, n.v)::real as score
+  from public.addresses a, n
+  where length(n.v) >= 3 and a.norm operator(extensions.%) n.v
+  order by (a.norm = n.v) desc,
+    extensions.similarity(a.norm, n.v) desc,
+    coalesce(public.addr_type(q) = public.addr_type(a.label), false) desc,
+    -- Рядом с точкой, а без точки — ближе к центру города (события в основном там).
+    extensions.st_distance(a.geog, extensions.st_makepoint(coalesce(near_lon, 76.9286), coalesce(near_lat, 43.2567))::extensions.geography)
+  limit least(greatest(lim, 1), 20)
+$$;
+
+-- Лучшее совпадение для сборщика событий: только уверенное (дом совпадает, похожесть ≥ 0,5).
+create or replace function public.match_address(q text)
+returns table (label text, lat double precision, lon double precision, score real)
+language sql stable security invoker set search_path = public, extensions as $$
+  select s.label, s.lat, s.lon, s.score from public.suggest_address(q, null, null, 3) with ordinality s(label, street, house, lat, lon, score, i)
+  where s.score >= 0.5 and (regexp_match(public.norm_addr(q), '(\d+[а-яa-z]?(/\d+[а-яa-z]?)?)\s*$'))[1] = s.house
+     or s.score >= 0.95
+  order by s.i limit 1
+$$;
+
+-- Места в видимой области карты (с 15-го масштаба), не больше lim — дёшево для телефона.
+create or replace function public.places_in_view(w double precision, s double precision, e double precision, n double precision, lim int default 150)
+returns table (id text, name text, kind text, category text, address text, lat double precision, lon double precision)
+language sql stable security invoker set search_path = public, extensions as $$
+  select p.id, p.name, p.kind, p.category, p.address, extensions.st_y(p.geog::extensions.geometry), extensions.st_x(p.geog::extensions.geometry)
+  from public.places p
+  where p.geog operator(extensions.&&) extensions.st_makeenvelope(w, s, e, n, 4326)::extensions.geography
+  order by p.confidence desc
+  limit least(greatest(lim, 1), 300)
+$$;
+
+-- Поиск мест по названию («Куда сходить?»).
+create or replace function public.search_places(q text, lim int default 12)
+returns table (id text, name text, kind text, category text, address text, lat double precision, lon double precision)
+language sql stable security invoker set search_path = public, extensions as $$
+  select p.id, p.name, p.kind, p.category, p.address, extensions.st_y(p.geog::extensions.geometry), extensions.st_x(p.geog::extensions.geometry)
+  from public.places p
+  where length(q) >= 2 and (lower(p.name) like '%' || lower(q) || '%' or lower(p.name) operator(extensions.%) lower(q))
+  order by (lower(p.name) like lower(q) || '%') desc, extensions.similarity(lower(p.name), lower(q)) desc, p.confidence desc
+  limit least(greatest(lim, 1), 30)
+$$;
+
+grant execute on function public.norm_addr(text), public.addr_type(text), public.suggest_address(text, double precision, double precision, int), public.match_address(text),
+  public.places_in_view(double precision, double precision, double precision, double precision, int), public.search_places(text, int) to anon, authenticated;
+
+-- Адрес под точкой («как в доставке»): ближайший дом в 60 м.
+create or replace function public.nearest_address(lat double precision, lon double precision)
+returns table (label text, dist real)
+language sql stable security invoker set search_path = public, extensions as $$
+  select a.label, extensions.st_distance(a.geog, p.g)::real
+  from public.addresses a, (select extensions.st_makepoint(lon, lat)::extensions.geography g) p
+  where extensions.st_dwithin(a.geog, p.g, 60)
+  order by a.geog operator(extensions.<->) p.g limit 1
+$$;
+grant execute on function public.nearest_address(double precision, double precision) to anon, authenticated;
+
+-- ===== 20261020000029_illustrated_frames.sql =====
+-- Зависит от 20261012000027_phone_feedback.sql. Сохраняет прежние id и выбор профилей.
+begin;
+
+alter table public.profiles drop constraint if exists profiles_map_frame_check;
+alter table public.profiles add constraint profiles_map_frame_check check (map_frame in (
+  'classic', 'sunset', 'forest', 'violet',
+  'almaty-apples', 'tulips', 'alatau', 'dusk', 'starry-night', 'ornament'
+));
+
+create or replace function public.check_map_frame() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare lvl integer; required integer;
+begin
+  if tg_op = 'UPDATE' then
+    if new.map_frame is not distinct from old.map_frame and new.map_trail is not distinct from old.map_trail then
+      return new;
+    end if;
+  end if;
+  required := case new.map_frame
+    when 'sunset' then 2 when 'forest' then 3 when 'violet' then 7
+    when 'alatau' then 2 when 'dusk' then 3 when 'starry-night' then 5 when 'ornament' then 7
+    else 1 end;
+  if new.map_trail = 'comet' then required := greatest(required, 3); end if;
+  select level into lvl from public.user_level where user_id = new.id;
+  if coalesce(lvl, 1) < required then raise exception 'frame-locked'; end if;
+  return new;
+end $$;
+
+drop trigger if exists check_map_frame on public.profiles;
+create trigger check_map_frame before insert or update of map_frame, map_trail on public.profiles
+  for each row execute function public.check_map_frame();
+
+commit;
+
+-- ===== 20261020000030_fix3_backend.sql =====
+-- FIX3 Ф0: ошибки с телефона (поиск причин вылетов) и рамки без жёсткого списка в базе.
+-- Зависит от 20261012000027_phone_feedback.sql. Повторное применение безопасно.
+begin;
+
+-- Ошибки приложения: телефон кладёт сюда текст падения при следующем запуске. Читает только команда.
+create table if not exists public.client_errors (
+  id bigserial primary key,
+  user_id uuid references auth.users(id) on delete set null default auth.uid(),
+  at timestamptz not null default now(),
+  fatal boolean not null default false,
+  screen text check (length(screen) <= 120),
+  message text not null check (length(message) <= 2000),
+  stack text check (length(stack) <= 8000),
+  app_version text check (length(app_version) <= 40),
+  platform text check (length(platform) <= 20)
+);
+create index if not exists client_errors_at on public.client_errors(at desc);
+alter table public.client_errors enable row level security;
+drop policy if exists client_errors_insert on public.client_errors;
+create policy client_errors_insert on public.client_errors for insert to authenticated
+  with check (user_id is null or user_id = auth.uid());
+drop policy if exists client_errors_staff on public.client_errors;
+create policy client_errors_staff on public.client_errors for select to authenticated using (public.is_staff());
+grant insert on public.client_errors to authenticated;
+grant usage on sequence public.client_errors_id_seq to authenticated;
+grant select on public.client_errors to authenticated;
+
+-- Рамки: список живёт в приложении, база проверяет только уровень. Новые рамки — строкой в frame_levels.
+create table if not exists public.frame_levels (code text primary key, level integer not null default 1);
+alter table public.frame_levels enable row level security;
+drop policy if exists frame_levels_read on public.frame_levels;
+create policy frame_levels_read on public.frame_levels for select using (true);
+grant select on public.frame_levels to anon, authenticated;
+insert into public.frame_levels(code, level) values
+  ('classic',1),('sunset',2),('forest',3),('violet',7),
+  ('almaty-apples',1),('tulips',1),('alatau',2),('dusk',3),('starry-night',5),('ornament',7),
+  ('bubble',1),('drop',1),('neon',2),('aurora',3),('cosmos',4),('tesla',5),('lava',6),('crown',8)
+on conflict (code) do update set level = excluded.level;
+
+alter table public.profiles drop constraint if exists profiles_map_frame_check;
+alter table public.profiles add constraint profiles_map_frame_check check (map_frame ~ '^[a-z0-9-]{2,32}$');
+
+create or replace function public.check_map_frame() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare lvl integer; required integer;
+begin
+  if tg_op = 'UPDATE' then
+    if new.map_frame is not distinct from old.map_frame and new.map_trail is not distinct from old.map_trail then
+      return new;
+    end if;
+  end if;
+  select level into required from public.frame_levels where code = new.map_frame;
+  if required is null then raise exception 'frame-unknown'; end if;
+  if new.map_trail = 'comet' then required := greatest(required, 3); end if;
+  select level into lvl from public.user_level where user_id = new.id;
+  if coalesce(lvl, 1) < required then raise exception 'frame-locked'; end if;
+  return new;
+end $$;
+drop trigger if exists check_map_frame on public.profiles;
+create trigger check_map_frame before insert or update of map_frame, map_trail on public.profiles
+  for each row execute function public.check_map_frame();
+
+commit;
+
+-- ===== 20261020000031_malls.sql =====
+-- FIX3 Ф3: на карте нажимаются только торговые центры, где почти всегда есть события (решение владельца 20 октября).
+-- Точки — из справочника мест Overture (places); часы — обычные для ТРЦ Алматы. Повторное применение обновляет данные.
+insert into public.venues (name, kind, address, hours, geog, needs_pin, geo_source) values
+  ('Dostyk Plaza', 'mall', 'пр. Достык, 111, уг. ул. Жолдасбекова', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(76.95683, 43.23339), 4326)::extensions.geography, false, 'overture'),
+  ('MEGA Alma-Ata', 'mall', 'ул. Розыбакиева, 247А', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(76.89234, 43.20247), 4326)::extensions.geography, false, 'overture'),
+  ('MEGA Park', 'mall', 'ул. Макатаева, 127/1, уг. пр. Сейфуллина', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(76.92977, 43.26418), 4326)::extensions.geography, false, 'overture'),
+  ('Esentai Mall', 'mall', 'пр. Аль-Фараби, 77/8', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(76.92762, 43.21848), 4326)::extensions.geography, false, 'overture'),
+  ('Aport Mall East', 'mall', 'Кульджинский тракт, 106', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(77.02384, 43.31526), 4326)::extensions.geography, false, 'overture'),
+  ('Aport Mall West', 'mall', 'Ташкентский тракт, 18', '10:00–22:00', extensions.st_setsrid(extensions.st_makepoint(76.82176, 43.23306), 4326)::extensions.geography, false, 'overture')
+on conflict (name) do update set kind = excluded.kind, address = excluded.address, hours = coalesce(public.venues.hours, excluded.hours),
+  geog = excluded.geog, needs_pin = false, geo_source = excluded.geo_source;
+
+-- FIX3 Ф4: событие с адресом само находит точку по справочнику адресов (match_address), если у площадки точки нет,
+-- она «примерная» или стоит в центре города по умолчанию. Срабатывает при добавлении и смене адреса; старые — разово ниже.
+create or replace function public.point_from_address(ev uuid) returns boolean
+language plpgsql security definer set search_path = public, extensions as $$
+declare e public.events; v public.venues; m record; venue uuid;
+begin
+  select * into e from public.events where id = ev;
+  if not found or e.visibility <> 'public' or coalesce(length(trim(e.address)), 0) < 3 then return false; end if;
+  select * into v from public.venues where id = e.venue_id;
+  if v.id is not null and v.geog is not null and not v.needs_pin
+     and not st_dwithin(v.geog, st_makepoint(76.8897, 43.2389)::geography, 30) then return false; end if;
+  select * into m from public.match_address(e.address);
+  if m.lat is null then return false; end if;
+  insert into public.venues(name, address, geog, needs_pin, geo_source)
+    values (coalesce(v.name, e.title) || ' · ' || m.label, m.label, st_setsrid(st_makepoint(m.lon, m.lat), 4326)::geography, false, 'addresses')
+    on conflict (name) do update set geog = excluded.geog, needs_pin = false returning id into venue;
+  update public.events set venue_id = venue, flags = array_remove(flags, 'needs_pin') where id = ev;
+  return true;
+end $$;
+revoke all on function public.point_from_address(uuid) from public, anon, authenticated;
+
+create or replace function public.events_point_from_address() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.point_from_address(new.id);
+  return null;
+end $$;
+drop trigger if exists events_point_from_address on public.events;
+create trigger events_point_from_address after insert or update of address, venue_id on public.events
+  for each row when (pg_trigger_depth() < 1) execute function public.events_point_from_address();
+
+select public.point_from_address(e.id) from public.events e
+  where e.visibility = 'public' and e.status in ('draft', 'published') and not e.rejected
+    and coalesce(e.ends_at, e.starts_at + interval '3 hours') > now();
+
+-- ===== 20261020000032_profile_memories.sql =====
+-- FIX3 Ф8–Ф10: значки у имени, «Воспоминания» (альбомы прошедших событий со своими фото), ночёвки и «Мои места» сами.
+-- Приватность (PRODUCT.md «Кто что видит»): воспоминания и ночёвки по умолчанию видишь только ты; друзьям — если включил.
+-- Точные точки ночёвок никому не отдаются: только имя друга-хозяина, район и дата.
+begin;
+
+-- ——— Значки рядом с именем (до трёх из полученных) ———
+alter table public.profiles add column if not exists shown_badges text[] not null default '{}';
+alter table public.profiles drop constraint if exists profiles_shown_badges_max;
+alter table public.profiles add constraint profiles_shown_badges_max check (cardinality(shown_badges) <= 3);
+alter table public.profiles add column if not exists memories_visible boolean not null default false;
+alter table public.profiles add column if not exists sleepovers_visible boolean not null default false;
+
+create or replace function public.check_shown_badges() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.shown_badges is not distinct from old.shown_badges then return new; end if;
+  if exists (select 1 from unnest(new.shown_badges) b
+             where not exists (select 1 from public.user_badges u where u.user_id = new.id and u.badge_id = b and u.got_at is not null)
+               and b not like 'steps-%') then
+    raise exception 'badge-not-earned';
+  end if;
+  return new;
+end $$;
+drop trigger if exists check_shown_badges on public.profiles;
+create trigger check_shown_badges before update of shown_badges on public.profiles for each row execute function public.check_shown_badges();
+
+-- ——— Воспоминания ———
+create table if not exists public.memories (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  event_id uuid references public.events(id) on delete set null,
+  title text not null check (length(title) between 1 and 120),
+  note text check (length(note) <= 1000),
+  happened_at timestamptz not null default now(),
+  cover_path text,
+  created_at timestamptz not null default now(),
+  unique (user_id, event_id)
+);
+create index if not exists memories_user on public.memories(user_id, happened_at desc);
+create table if not exists public.memory_photos (
+  id uuid primary key default gen_random_uuid(),
+  memory_id uuid not null references public.memories(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  path text not null check (length(path) <= 300),
+  created_at timestamptz not null default now()
+);
+create index if not exists memory_photos_memory on public.memory_photos(memory_id, created_at);
+
+create or replace function public.can_see_memories(owner uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select owner = auth.uid() or (public.is_friend(auth.uid(), owner) and not public.is_blocked(auth.uid(), owner)
+    and coalesce((select memories_visible from public.profiles where id = owner), false));
+$$;
+
+alter table public.memories enable row level security;
+alter table public.memory_photos enable row level security;
+drop policy if exists memories_read on public.memories;
+create policy memories_read on public.memories for select to authenticated using (public.can_see_memories(user_id));
+drop policy if exists memories_write on public.memories;
+create policy memories_write on public.memories for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists memory_photos_read on public.memory_photos;
+create policy memory_photos_read on public.memory_photos for select to authenticated using (public.can_see_memories(user_id));
+drop policy if exists memory_photos_write on public.memory_photos;
+create policy memory_photos_write on public.memory_photos for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid() and exists (select 1 from public.memories m where m.id = memory_id and m.user_id = auth.uid()));
+grant select, insert, update, delete on public.memories, public.memory_photos to authenticated;
+
+-- Фото воспоминаний: закрытый бакет, путь <user_id>/<memory_id>/<файл>; читать — тем, кому видны воспоминания владельца.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('memories', 'memories', false, 8388608, array['image/jpeg', 'image/png', 'image/webp', 'image/heic'])
+  on conflict (id) do nothing;
+drop policy if exists memories_obj_read on storage.objects;
+create policy memories_obj_read on storage.objects for select to authenticated
+  using (bucket_id = 'memories' and public.can_see_memories(((storage.foldername(name))[1])::uuid));
+drop policy if exists memories_obj_write on storage.objects;
+create policy memories_obj_write on storage.objects for insert to authenticated
+  with check (bucket_id = 'memories' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists memories_obj_delete on storage.objects;
+create policy memories_obj_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'memories' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Прошедшие события, где я был («пойду» или «я на месте») — основа альбомов. Уже созданные альбомы помечены.
+create or replace function public.my_past_events(lim int default 60)
+returns table (event_id uuid, title text, category text, starts_at timestamptz, venue_name text, cover_url text, arrived boolean, memory_id uuid)
+language sql stable security invoker set search_path = public as $$
+  select e.id, e.title, e.category, coalesce(a.visit_at, e.starts_at), v.name, e.cover_url, a.status = 'arrived', m.id
+  from public.attendance a
+  join public.events e on e.id = a.event_id
+  left join public.venues v on v.id = e.venue_id
+  left join public.memories m on m.event_id = e.id and m.user_id = auth.uid()
+  where a.user_id = auth.uid() and a.status in ('going', 'arrived')
+    and coalesce(e.ends_at, e.starts_at + interval '3 hours') < now()
+  order by 4 desc limit least(greatest(lim, 1), 200)
+$$;
+grant execute on function public.my_past_events(int) to authenticated;
+
+-- ——— Ночёвки ———
+create table if not exists public.sleepovers (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  night date not null,
+  host_id uuid references auth.users(id) on delete set null,
+  area text,
+  cell text not null,
+  primary key (user_id, night)
+);
+alter table public.sleepovers enable row level security;
+drop policy if exists sleepovers_read on public.sleepovers;
+create policy sleepovers_read on public.sleepovers for select to authenticated using (
+  user_id = auth.uid() or (public.is_friend(auth.uid(), user_id) and coalesce((select sleepovers_visible from public.profiles where id = user_id), false)));
+drop policy if exists sleepovers_delete on public.sleepovers;
+create policy sleepovers_delete on public.sleepovers for delete to authenticated using (user_id = auth.uid());
+grant select, delete on public.sleepovers to authenticated;
+
+-- «Мои места» сами и ночёвки — по своим точкам за 3 недели (только свои, только для себя).
+-- Дом: ночью (00–06 по Алматы) чаще всего здесь, минимум 3 ночи. Работа/учёба: будни 09–17, минимум 3 дня, не дома;
+-- учёба — если обычно уходишь до 15:00. Ночёвка: ночь ≥ 2 часов не дома (дальше 400 м). Ручные места не трогаем.
+create or replace function public.learn_my_places() returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare me uuid := auth.uid(); home_cell text; home_pt geography; manual_home geography; day_cell text; day_pt geography; leave_h numeric;
+  added int := 0; nights int := 0;
+begin
+  if me is null then raise exception 'auth'; end if;
+  create temp table if not exists _pts (at timestamptz, lt timestamp, g geography, cell text) on commit drop;
+  truncate _pts;
+  insert into _pts select p.at, p.at at time zone 'Asia/Almaty', p.point,
+      (round(st_y(p.point::geometry) / 0.0015))::text || ':' || (round(st_x(p.point::geometry) / 0.002))::text
+    from public.location_points p where p.user_id = me and p.at > now() - interval '21 days' and p.point is not null;
+
+  select point into manual_home from public.user_places where user_id = me and kind = 'home' order by auto, created_at limit 1;
+  select cell, st_centroid(st_collect(g::geometry))::geography into home_cell, home_pt from _pts
+    where extract(hour from lt) < 6 group by cell having count(distinct lt::date) >= 3 order by count(distinct lt::date) desc, count(*) desc limit 1;
+  if manual_home is null and home_pt is not null then
+    insert into public.user_places(user_id, kind, title, point, auto) values (me, 'home', 'Дом', home_pt, true); added := added + 1;
+  end if;
+  home_pt := coalesce(manual_home, home_pt);
+
+  select cell, st_centroid(st_collect(g::geometry))::geography, percentile_cont(0.5) within group (order by extract(hour from lt))
+    into day_cell, day_pt, leave_h from _pts
+    where extract(isodow from lt) between 1 and 5 and extract(hour from lt) between 9 and 16
+      and (home_pt is null or not st_dwithin(g, home_pt, 300))
+    group by cell having count(distinct lt::date) >= 3 order by count(distinct lt::date) desc, count(*) desc limit 1;
+  if day_pt is not null and not exists (select 1 from public.user_places where user_id = me and kind in ('work', 'study')) then
+    insert into public.user_places(user_id, kind, title, point, days, auto)
+      values (me, case when leave_h < 13 then 'study' else 'work' end, case when leave_h < 13 then 'Учёба' else 'Работа' end, day_pt, '{1,2,3,4,5}', true);
+    added := added + 1;
+  end if;
+
+  if home_pt is not null then
+    insert into public.sleepovers(user_id, night, host_id, area, cell)
+    select me, n.night,
+      (select f.id from public.user_places h join lateral (select case when fr.a = me then fr.b else fr.a end id from public.friendships fr where (fr.a = me or fr.b = me)) f on f.id = h.user_id
+        where h.kind = 'home' and st_dwithin(h.point, n.g, 250) limit 1),
+      (select a.street from public.addresses a where st_dwithin(a.geog, n.g, 400) order by a.geog <-> n.g limit 1),
+      n.cell
+    from (select (lt - interval '6 hours')::date night, mode() within group (order by cell) cell, st_centroid(st_collect(g::geometry))::geography g
+          from _pts where extract(hour from lt) < 6 and not st_dwithin(g, home_pt, 400)
+          group by 1 having max(at) - min(at) >= interval '2 hours') n
+    on conflict (user_id, night) do nothing;
+    get diagnostics nights = row_count;
+  end if;
+  return jsonb_build_object('places', added, 'sleepovers', nights);
+end $$;
+revoke all on function public.learn_my_places() from public, anon;
+grant execute on function public.learn_my_places() to authenticated;
+
+-- Ночёвки с именем хозяина (только друзья, точек нет).
+create or replace function public.my_sleepovers(owner uuid default null)
+returns table (night date, host_id uuid, host_name text, host_photo text, area text)
+language sql stable security invoker set search_path = public as $$
+  select s.night, s.host_id, p.name, p.photo_url, s.area from public.sleepovers s
+  left join public.profiles p on p.id = s.host_id
+  where s.user_id = coalesce(owner, auth.uid()) order by s.night desc limit 200
+$$;
+grant execute on function public.my_sleepovers(uuid) to authenticated;
+
+commit;
+
+-- ===== 20261020000033_shapes_steps_social.sql =====
+-- FIX3, просьба владельца 20 октября (вечер): форма аватарки отдельно от рамки; рейтинг шагов среди друзей и соревнования.
+-- Шаги друзей видны только друзьям и только если человек не выключил «Показывать мои шаги друзьям».
+begin;
+
+-- ——— Форма аватарки (любая рамка + любая форма) ———
+alter table public.profiles add column if not exists map_shape text not null default 'auto';
+alter table public.profiles drop constraint if exists profiles_map_shape_check;
+alter table public.profiles add constraint profiles_map_shape_check
+  check (map_shape in ('auto', 'circle', 'squircle', 'blob', 'heart', 'hex', 'star', 'flower', 'drop'));
+alter table public.profiles add column if not exists steps_visible boolean not null default true;
+
+-- ——— Рейтинг: я и друзья, шаги сегодня и за неделю (с понедельника, по Алматы) ———
+create or replace function public.friends_steps()
+returns table (user_id uuid, name text, photo_url text, map_frame text, map_shape text, today integer, week integer, me boolean)
+language sql stable security definer set search_path = public as $$
+  with d as (select (now() at time zone 'Asia/Almaty')::date as today),
+  w as (select today, today - (extract(isodow from today)::int - 1) as monday from d),
+  people as (
+    select auth.uid() as id
+    union
+    select case when f.a = auth.uid() then f.b else f.a end from public.friendships f where auth.uid() in (f.a, f.b)
+  )
+  select p.id, p.name, p.photo_url, p.map_frame, p.map_shape,
+    coalesce((select s.steps from public.daily_steps s where s.user_id = p.id and s.day = w.today), 0),
+    coalesce((select sum(s.steps)::int from public.daily_steps s where s.user_id = p.id and s.day between w.monday and w.today), 0),
+    p.id = auth.uid()
+  from people x join public.profiles p on p.id = x.id, w
+  where auth.uid() is not null and (p.id = auth.uid() or (p.steps_visible and not public.is_blocked(auth.uid(), p.id)))
+  order by 7 desc, 6 desc
+$$;
+revoke all on function public.friends_steps() from public, anon;
+grant execute on function public.friends_steps() to authenticated;
+
+-- ——— Соревнования: «кто больше за N дней» или «кто первым дойдёт до цели» ———
+create table if not exists public.step_challenges (
+  id uuid primary key default gen_random_uuid(),
+  created_by uuid not null references auth.users(id) on delete cascade,
+  title text not null check (length(title) between 1 and 80),
+  kind text not null default 'most' check (kind in ('most', 'goal')),
+  goal integer check (goal is null or goal between 1000 and 1000000),
+  starts_on date not null,
+  ends_on date not null,
+  created_at timestamptz not null default now(),
+  check (ends_on >= starts_on and ends_on - starts_on <= 31)
+);
+create table if not exists public.step_challenge_members (
+  challenge_id uuid not null references public.step_challenges(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  status text not null default 'invited' check (status in ('invited', 'joined', 'declined')),
+  primary key (challenge_id, user_id)
+);
+create index if not exists step_challenge_members_user on public.step_challenge_members(user_id);
+alter table public.step_challenges enable row level security;
+alter table public.step_challenge_members enable row level security;
+-- Проверка участия через security definer — иначе политика на той же таблице уходит в рекурсию.
+create or replace function public.in_step_challenge(c uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.step_challenge_members m where m.challenge_id = c and m.user_id = auth.uid());
+$$;
+drop policy if exists step_challenges_read on public.step_challenges;
+create policy step_challenges_read on public.step_challenges for select to authenticated using (public.in_step_challenge(step_challenges.id));
+drop policy if exists step_challenge_members_read on public.step_challenge_members;
+create policy step_challenge_members_read on public.step_challenge_members for select to authenticated using (public.in_step_challenge(step_challenge_members.challenge_id));
+grant select on public.step_challenges, public.step_challenge_members to authenticated;
+
+-- Создать: только с друзьями, до 10 человек, от 1 до 31 дня. Создатель сразу участвует.
+create or replace function public.create_step_challenge(friends uuid[], days integer, challenge_kind text default 'most', target integer default null, challenge_title text default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); cid uuid; start date := (now() at time zone 'Asia/Almaty')::date; f uuid;
+begin
+  if me is null then raise exception 'auth'; end if;
+  if coalesce(cardinality(friends), 0) not between 1 and 10 then raise exception 'friends-1-10'; end if;
+  if days not between 1 and 31 then raise exception 'days-1-31'; end if;
+  if challenge_kind = 'goal' and target is null then raise exception 'goal-required'; end if;
+  insert into public.step_challenges(created_by, title, kind, goal, starts_on, ends_on)
+    values (me, coalesce(nullif(trim(challenge_title), ''), case when challenge_kind = 'goal' then 'Кто первым пройдёт ' || target || ' шагов' else 'Кто больше за ' || days || ' дн.' end),
+            challenge_kind, case when challenge_kind = 'goal' then target end, start, start + days - 1)
+    returning id into cid;
+  insert into public.step_challenge_members(challenge_id, user_id, status) values (cid, me, 'joined');
+  foreach f in array friends loop
+    if f <> me and public.is_friend(me, f) and not public.is_blocked(me, f) then
+      insert into public.step_challenge_members(challenge_id, user_id) values (cid, f) on conflict do nothing;
+    end if;
+  end loop;
+  return cid;
+end $$;
+revoke all on function public.create_step_challenge(uuid[], integer, text, integer, text) from public, anon;
+grant execute on function public.create_step_challenge(uuid[], integer, text, integer, text) to authenticated;
+
+create or replace function public.answer_step_challenge(challenge uuid, accept boolean) returns void
+language sql security definer set search_path = public as $$
+  update public.step_challenge_members set status = case when accept then 'joined' else 'declined' end
+  where challenge_id = challenge and user_id = auth.uid();
+$$;
+revoke all on function public.answer_step_challenge(uuid, boolean) from public, anon;
+grant execute on function public.answer_step_challenge(uuid, boolean) to authenticated;
+
+-- Мои соревнования и таблица участников (шаги за дни соревнования).
+create or replace function public.my_step_challenges()
+returns table (id uuid, title text, kind text, goal integer, starts_on date, ends_on date, created_by uuid, my_status text,
+               user_id uuid, name text, photo_url text, status text, steps integer)
+language sql stable security definer set search_path = public as $$
+  select c.id, c.title, c.kind, c.goal, c.starts_on, c.ends_on, c.created_by, mine.status,
+    p.id, p.name, p.photo_url, m.status,
+    coalesce((select sum(s.steps)::int from public.daily_steps s where s.user_id = m.user_id and s.day between c.starts_on and c.ends_on), 0)
+  from public.step_challenge_members mine
+  join public.step_challenges c on c.id = mine.challenge_id
+  join public.step_challenge_members m on m.challenge_id = c.id and m.status <> 'declined'
+  join public.profiles p on p.id = m.user_id
+  where mine.user_id = auth.uid() and mine.status <> 'declined' and c.ends_on >= (now() at time zone 'Asia/Almaty')::date - 14
+  order by c.ends_on desc, c.id, 13 desc
+$$;
+revoke all on function public.my_step_challenges() from public, anon;
+grant execute on function public.my_step_challenges() to authenticated;
+
+commit;

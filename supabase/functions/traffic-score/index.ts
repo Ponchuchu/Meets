@@ -1,5 +1,5 @@
 // Балл пробок Алматы (FIX1 И2 п.13): раз в 10 минут (pg_cron) берём TomTom Flow Segment Data в ~15 точках главных улиц.
-// Балл = round(10 × (1 − средняя(текущая / свободная скорость))), от 1 до 10. Пишем в traffic_score (одна строка).
+// Балл — по худшим двум третям точек (scoreOf), от 1 до 10; без ответа TomTom — оценка по часам (typicalScore). Пишем в traffic_score (одна строка).
 // Ключ — секрет TomTom_KEY. Вызов — только по секрету расписания.
 import { admin, isServiceCall, json, preflight } from '../_shared/supabase.ts';
 
@@ -15,11 +15,27 @@ const POINTS: { name: string; lat: number; lon: number }[] = [
   { name: 'ВОАД', lat: 43.1980, lon: 76.8550 },
 ];
 
+/** Балл 1–10 как у навигаторов: пробка обычно местная, поэтому смотрим худшие две трети точек, а не среднее по всем
+ *  (среднее «растворяло» час пик до 1–2 баллов). Половина свободной скорости на главных улицах — уже 8–9 баллов. */
 export function scoreOf(ratios: number[]): number {
   if (!ratios.length) return 1;
-  const avg = ratios.reduce((a, b) => a + b, 0) / ratios.length;
-  return Math.min(10, Math.max(1, Math.round(10 * (1 - avg))));
+  const worst = [...ratios].sort((a, b) => a - b).slice(0, Math.max(1, Math.ceil(ratios.length * 2 / 3)));
+  const jam = 1 - worst.reduce((a, b) => a + b, 0) / worst.length;
+  return Math.min(10, Math.max(1, Math.round(1 + 9 * Math.min(1, jam / 0.55))));
 }
+
+/** Запасная оценка, если сервис пробок не ответил: обычный будний / выходной день Алматы по часам. */
+export function typicalScore(at: Date): number {
+  const local = new Date(at.getTime() + 5 * 3600e3);
+  const h = local.getUTCHours() + local.getUTCMinutes() / 60, day = local.getUTCDay();
+  const weekend = day === 0 || day === 6;
+  const peak = (c: number, w: number, top: number) => top * Math.exp(-((h - c) ** 2) / (2 * w * w));
+  const v = weekend ? 1 + peak(14, 3, 3) + peak(19, 2, 2) : 1 + peak(8.7, 1, 6) + peak(13, 1.5, 2) + peak(18.4, 1.3, 7);
+  return Math.min(10, Math.max(1, Math.round(v)));
+}
+
+// По одной точке на проспект — для «до Абая 25 мин» этого хватает.
+const SAMPLE = POINTS.filter((p, i) => POINTS.findIndex(q => q.name === p.name) === i).slice(0, 8);
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
@@ -27,17 +43,26 @@ Deno.serve(async (req) => {
   if (!isServiceCall(req)) return json({ error: 'cron-only' }, 403);
   const key = Deno.env.get('TomTom_KEY') ?? Deno.env.get('TOMTOM_KEY');
   if (!key) return json({ error: 'no TomTom_KEY' }, 500);
-  const res = await Promise.all(POINTS.map(async (p) => {
+  // Квота TomTom общая с плитками пробок на карте, поэтому опрашиваем 8 точек (по одной на проспект), а не 15.
+  const statuses: number[] = [];
+  const res = await Promise.all(SAMPLE.map(async (p) => {
     const r = await fetch(`https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=${p.lat},${p.lon}&unit=KMPH&key=${key}`).catch(() => null);
+    statuses.push(r?.status ?? 0);
     const d = r?.ok ? (await r.json())?.flowSegmentData : null;
     if (!d?.freeFlowSpeed) return null;
     return { ...p, ratio: Math.min(1, d.currentSpeed / d.freeFlowSpeed), speed: d.currentSpeed };
   }));
   const ok = res.filter((x): x is NonNullable<typeof x> => !!x);
-  if (!ok.length) return json({ error: 'no data' }, 502);
+  const db = admin();
+  const now = new Date();
+  if (!ok.length) {
+    // Сервис не ответил (лимит, сеть) — пишем оценку по времени суток с пустым списком точек: приложение покажет «примерно».
+    const est = typicalScore(now);
+    await db.from('traffic_score').upsert({ id: 1, score: est, ratio: 1 - (est - 1) / 9 * 0.55, points: [], at: now.toISOString() });
+    return json({ score: est, estimated: true, statuses }, 200);
+  }
   const score = scoreOf(ok.map((x) => x.ratio));
   const ratio = ok.reduce((a, b) => a + b.ratio, 0) / ok.length;
-  const db = admin();
-  await db.from('traffic_score').upsert({ id: 1, score, ratio, points: ok, at: new Date().toISOString() });
+  await db.from('traffic_score').upsert({ id: 1, score, ratio, points: ok, at: now.toISOString() });
   return json({ score, ratio, n: ok.length });
 });

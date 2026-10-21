@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "691782529469",
+    "project_id": "ryadom-17ea3",
+    "storage_bucket": "ryadom-17ea3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:691782529469:android:b0189799b3184f84b562d4",
+        "android_client_info": {
+          "package_name": "kz.ryadom.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF1Px90f-Zuq7X7a64HN-v3feuMwPDFfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

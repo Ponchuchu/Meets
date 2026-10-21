@@ -109,7 +109,7 @@ export function sxodimFound(html: string, url: string): Found | null {
     price_min: price && price > 0 ? price : null,
     price_max: offers.length > 1 ? Math.max(...offers) : null,
     is_free: price === 0,
-    about: about.slice(0, 160),
+    about: about.slice(0, 1500),
     url,
     image_url: typeof image === 'string' && /^https?:\/\//.test(image) ? image : null,
     source_name: 'Sxodim',

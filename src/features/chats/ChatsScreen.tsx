@@ -1,5 +1,8 @@
+import { QueryNotice } from '../../ui/QueryNotice';
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
+import { useShallow } from 'zustand/react/shallow';
+import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
 import { StateView } from '../../ui/StateView';
@@ -10,7 +13,7 @@ import { queryClient } from '../../live/query';
 import { uid } from '../../lib/uid';
 import { isFriendNow, useSocial } from '../../state/social';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
-import { Archive, ArchiveRestore, CalendarCheck, EyeOff, Pin, PinOff } from 'lucide-react-native';
+import { Archive, ArchiveRestore, CalendarCheck, EyeOff, HouseHeart, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
 import { friendActivity, previewText } from '../../chat/activity';
 import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
@@ -38,16 +41,21 @@ export default function ChatsScreen() {
   const tabPad = useTabInset() + 16;
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
-  const chatsQ = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
-  const chats = chatsQ.data ?? [];
+  const chatsQuery = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const { data: chats = [] } = chatsQuery;
   const online = useNet((s) => s.online);
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo', staleTime: 30e3 });
-  const chat = useChat();
-  const social = useSocial();
+  // Только нужные части хранилищ — список не перерисовывается от голосов в опросах, раскрытых фото и т. п.
+  const chat = useChat(useShallow((s) => ({ addGroup: s.addGroup, answerRequest: s.answerRequest, archive: s.archive, archived: s.archived, blocked: s.blocked,
+    groups: s.groups, hidden: s.hidden, hide: s.hide, pinned: s.pinned, read: s.read, requests: s.requests, sent: s.sent, togglePin: s.togglePin })));
+  const social = useSocial(useShallow((s) => ({ answered: s.answered, removed: s.removed })));
   const [group, setGroup] = useState(false);
+  const [compose, setCompose] = useState(false);
+  const [who, setWho] = useState('');
+  const startGroup = (title = '') => { setCompose(false); setGroupTitle(title); setMembers([]); setGroup(true); setError(''); };
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -65,16 +73,21 @@ export default function ChatsScreen() {
     } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
     finally { creating.current = false; setBusy(false); }
   };
-  const plans = usePlans();
+  const plans = usePlans(useShallow((s) => ({ go: s.go, going: s.going })));
   const addPlan = useApp((s) => s.addPlan);
   const pending = requests.filter((r) => !chat.requests[r.id]);
   const q = (search ?? '').trim().toLowerCase();
   const match = (c: Chat) => !q || c.title.toLowerCase().includes(q) || c.lastText.toLowerCase().includes(q);
+  // Своё неотправленное показываем, только если оно новее того, что уже на сервере: раньше одно застрявшее сообщение
+  // навсегда закрывало собой всю переписку в списке.
   const last = (c: Chat) => {
-    const mine = chat.sent.filter((m) => m.chatId === c.id).at(-1);
-    return mine ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true } : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine };
+    const mine = chat.sent.filter((m) => m.chatId === c.id && m.delivery).at(-1);
+    const newer = mine && (!c.lastAt || !mine.createdAt || Date.parse(mine.createdAt) > Date.parse(c.lastAt));
+    return newer ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true, tick: tickOf(mine) }
+      : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine, tick: c.lastMine ? tickOf({ createdAt: c.lastAt }, c.readUpTo) : undefined };
   };
-  const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
+  // В настоящей базе непрочитанные считает сервер (после «прочитал» он сам отдаёт 0); локальная поправка — только для демо.
+  const unread = (c: Chat) => config.dataMode === 'demo' ? Math.max(0, c.unread - (chat.read[c.id] ?? 0)) : c.unread;
   const list = sortChats(
     [...chats, ...chat.groups.filter(g => !chats.some(c => c.id === g.id))]
       .filter((c) => match(c) && !chat.hidden[c.id] && !(c.personId && chat.blocked[c.personId]) && (filter === 'archive' ? !!chat.archived[c.id] : !chat.archived[c.id]))
@@ -98,11 +111,12 @@ export default function ChatsScreen() {
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
         <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
-        <Pressable onPress={() => {setGroupTitle('');setMembers([]);setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
+        <Pressable onPress={() => setCompose(true)} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Новый чат"><SquarePen size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
       </View>
+      <QueryNotice pending={false} error={chats.length > 0 && chatsQuery.isError} onRetry={() => { void chatsQuery.refetch(); }} />
       {search != null && <TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Найти чат или сообщение" placeholderTextColor={colors.muted3} style={styles.search} accessibilityLabel="Поиск по чатам" />}
       {filter === 'requests' ? (
         <Pressable onPress={() => setFilter('all')} style={styles.reqHead} accessibilityRole="button" accessibilityLabel="Назад к чатам">
@@ -183,23 +197,24 @@ export default function ChatsScreen() {
             return (
               <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
                 <Pressable onPress={() => open(c.id)}
-                  style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.row, n > 0 && styles.rowNew, pressed && { opacity: 0.7 }]}
                   accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
-                  {p ? <Avatar p={p} size={54} ring={p.isFriend ? colors.friend : undefined} /> : (
+                  {p ? <Avatar p={p} size={56} /> : (
                     <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
                       <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
                     </View>
                   )}
                   <View style={{ flex: 1, gap: 3 }}>
                     <View style={styles.titleRow}>
-                      <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{c.title}</Text>
-                      <Text style={styles.time}>{c.l.time}</Text>
+                      <Text style={[styles.name, { flex: 1 }, n > 0 && { fontFamily: fonts.display700 }]} numberOfLines={1}>{c.title}</Text>
+                      {c.l.tick && c.l.mine && <Tick kind={c.l.tick} color={colors.muted} size={14} />}
+                      <Text style={[styles.time, n > 0 && styles.timeNew]}>{c.l.time}</Text>
                     </View>
                     <View style={styles.titleRow}>
                       <Text style={[styles.sub, { flex: 1 }, n > 0 && { color: colors.ink, fontFamily: fonts.body600 }]} numberOfLines={1}>
                         {c.l.text ? `${c.l.mine ? 'Ты: ' : ''}${c.l.text}` : 'Напиши первым'}
                       </Text>
-                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
+                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n > 99 ? '99+' : n}</Text></View>
                         : pin ? <Pin size={14} color={colors.muted} strokeWidth={2} /> : null}
                     </View>
                     {act && (
@@ -235,14 +250,53 @@ export default function ChatsScreen() {
       )}
       {list.length === 0 && lonely.length === 0 && filter !== 'requests' && (
         q ? <StateView kind="nothing-found" text="Попробуй другое имя или название." />
-        : !online && !chatsQ.data ? <StateView kind="offline" onAction={() => void chatsQ.refetch()} />
-        : chatsQ.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQ.refetch()} />
-        : chatsQ.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
+        : !online && !chatsQuery.data ? <StateView kind="offline" onAction={() => void chatsQuery.refetch()} />
+        : chatsQuery.isError ? <StateView kind="error" text="Чаты не загрузились." onAction={() => void chatsQuery.refetch()} />
+        : chatsQuery.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
         : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
       )}
     </ScrollView>
+    {compose && <><Backdrop label="Закрыть" onPress={() => setCompose(false)}/><BottomSheet onClose={() => setCompose(false)} label="Новый чат" scroll style={{paddingBottom:24+insets.bottom}}>
+      <Text style={styles.h1}>Новый чат</Text>
+      <TextInput value={who} onChangeText={setWho} placeholder="Имя друга" placeholderTextColor={colors.muted3} accessibilityLabel="Найти друга" style={styles.search} />
+      <View style={styles.composeRow}>
+        <Pressable onPress={() => startGroup()} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+          <View style={[styles.composeIcon, { backgroundColor: colors.friend }]}><Users size={20} color="#FFFFFF" strokeWidth={2} /></View>
+          <Text style={styles.composeText}>Группа</Text>
+          <Text style={styles.composeSub}>друзья и общие планы</Text>
+        </Pressable>
+        <Pressable onPress={() => startGroup('Семья')} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+          <View style={[styles.composeIcon, { backgroundColor: colors.accent }]}><HouseHeart size={20} color={colors.ink} strokeWidth={2} /></View>
+          <Text style={styles.composeText}>Семья</Text>
+          <Text style={styles.composeSub}>куда сходить вместе</Text>
+        </Pressable>
+      </View>
+      {(() => {
+        const t = who.trim().toLowerCase();
+        const f = friends.filter(p => !t || p.name.toLowerCase().includes(t));
+        const rec = people.filter(p => !isFriendNow(p, social) && !chat.blocked[p.id] && (!t || p.name.toLowerCase().includes(t))).slice(0, 8);
+        return <>
+          {f.length > 0 && <Text style={styles.cap}>ДРУЗЬЯ</Text>}
+          {f.map(p => (
+            <Pressable key={p.id} onPress={() => { setCompose(false); open(`dm-${p.id}`); }} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Написать ${p.name}`}>
+              <Avatar p={p} size={46} /><Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{p.name}</Text><Text style={styles.write}>Написать</Text>
+            </Pressable>
+          ))}
+          {rec.length > 0 && <Text style={styles.cap}>МОГУТ БЫТЬ ЗНАКОМЫ</Text>}
+          {rec.map(p => (
+            <Pressable key={p.id} onPress={() => { setCompose(false); router.push({ pathname: '/person/[id]', params: { id: p.id } }); }} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Профиль ${p.name}`}>
+              <Avatar p={p} size={46} />
+              <View style={{ flex: 1 }}><Text style={styles.name} numberOfLines={1}>{p.name}</Text><Text style={styles.sub} numberOfLines={1}>написать можно запросом</Text></View>
+              <Text style={styles.write}>Профиль</Text>
+            </Pressable>
+          ))}
+          {!f.length && !rec.length && <Text style={styles.sub}>{t ? 'Никого не нашлось' : 'Добавь друзей — и пиши им отсюда'}</Text>}
+        </>;
+      })()}
+    </BottomSheet></>}
     {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
-      <Text style={styles.h1}>Новая группа</Text>
+      <Text style={styles.h1}>{groupTitle === 'Семья' ? 'Семья' : 'Новая группа'}</Text>
+      {groupTitle === 'Семья' && <Text style={styles.sub}>Общий чат, куда удобно кидать события на выходные — все увидят и отметят «Иду».</Text>}
       <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
       <Text style={styles.sub}>Выбери хотя бы одного друга</Text>
       <View style={{gap:4}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
@@ -279,14 +333,21 @@ const styles = StyleSheet.create({
   btn: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 20 },
+  rowNew: { backgroundColor: '#FBEFE6' },
+  timeNew: { color: colors.accentText, fontFamily: fonts.mono600 },
   card: { borderRadius: 20, ...plate },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#F0C5AE' },
   actText: { flexShrink: 1, fontFamily: fonts.body600, fontSize: 11.5, color: colors.accentText },
   write: { fontFamily: fonts.body700, fontSize: 13, color: colors.friend },
+  composeRow: { flexDirection: 'row', gap: 8 },
+  composeBtn: { flex: 1, padding: 12, borderRadius: 18, ...plate, gap: 4 },
+  composeIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  composeText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  composeSub: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted },
   evIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   time: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted },
-  unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  unreadText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
+  unread: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  unreadText: { fontFamily: fonts.body700, fontSize: 12, color: colors.ink },
 });

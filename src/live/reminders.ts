@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import type { EventItem } from '../data/types';
 import { eventReminder } from '../event/reminder';
 import { almaty } from '../lib/clock';
+import { queryClient } from './query';
 
 const KIND = 'event-hour';
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
@@ -51,10 +52,25 @@ export function useReminders(events: EventItem[]) {
   useEffect(() => { void syncReminders(events).catch(() => undefined); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
+/** Какой чат сейчас на экране — чтобы не показывать пуш о нём поверх самого чата. */
+let openChatId: string | null = null;
+export const setOpenChat = (id: string | null) => { openChatId = id; };
+
 // Показывать уведомления и когда приложение открыто; тап по пушу — открыть нужный экран (data.url).
 if (Platform.OS !== 'web') {
+  // Пуш о сообщении — это ещё и сигнал «в чате новое»: сразу перечитываем чат и список, даже если сокет
+  // Realtime ещё не переподключился после фона. Если этот чат уже открыт — баннер не показываем.
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+    handleNotification: async (n) => {
+      const url = (n.request.content.data as { url?: string } | undefined)?.url;
+      const chatId = url?.startsWith('/chat/') ? url.slice(6) : null;
+      if (chatId) {
+        void queryClient.invalidateQueries({ queryKey: ['messages', chatId] });
+        void queryClient.invalidateQueries({ queryKey: ['chats'] });
+      }
+      const here = !!chatId && openChatId === chatId;
+      return { shouldShowBanner: !here, shouldShowList: !here, shouldPlaySound: !here, shouldSetBadge: false };
+    },
   });
 }
 

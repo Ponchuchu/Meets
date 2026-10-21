@@ -1,11 +1,12 @@
 // Метрики рекомендаций (RECOMMENDATIONS.md, раздел 6): доля «пойду», дошли, возвраты, отмены.
 // Команде — все люди за 30 дней, в демо — это устройство.
 import { useQuery } from '@tanstack/react-query';
-import { Pressable,StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { loadAnalytics, useAnalytics } from '../../analytics';
 import { computeMetrics, pct } from '../../analytics/metrics';
 import { now as clockNow } from '../../lib/clock';
 import { colors, fonts } from '../../theme';
+import { Banner, Chip } from './kit';
 
 export function Metrics({ live }: { live: boolean }) {
   const local = useAnalytics((s) => s.events);
@@ -20,9 +21,7 @@ export function Metrics({ live }: { live: boolean }) {
   return (
     <View style={styles.root}>
       <Text style={styles.cap}>{live ? 'ВСЕ ЛЮДИ · 30 ДНЕЙ' : 'ЭТО УСТРОЙСТВО · ДЕМО'} · ПОКАЗАНО КАРТОЧЕК {m.shown}</Text>
-      <View style={{flexDirection:'row',gap:12}}><Pressable onPress={()=>void q.refetch()}><Text style={styles.title}>Обновить</Text></Pressable><Pressable onPress={()=>useAnalytics.setState({events:[]})}><Text style={styles.title}>Очистить на этом устройстве</Text></Pressable></View>
-      {q.isError&&<Text style={styles.note}>Не удалось загрузить аналитику. Повтори запрос.</Text>}
-      <Text style={styles.h1} accessibilityRole="header">Как понять, что работает</Text>
+      {q.isError && <Banner tone="error" title="Аналитика не загрузилась" hint="Проверь связь и нажми «Обновить»." />}
       <View style={styles.grid}>
         {rows.map(([title, value, norm, ok]) => (
           <View key={title} style={styles.card}>
@@ -33,6 +32,10 @@ export function Metrics({ live }: { live: boolean }) {
         ))}
       </View>
       {m.verdicts.map((v) => <View key={v} style={styles.flag}><Text style={styles.flagText}>{v}</Text></View>)}
+      <View style={styles.actions}>
+        {live && <Chip label={q.isFetching ? 'Обновляю…' : 'Обновить'} onPress={() => void q.refetch()} />}
+        {!live && <Chip label="Очистить на этом устройстве" onPress={() => useAnalytics.setState({ events: [] })} />}
+      </View>
       <Text style={styles.note}>Считаем по событиям без текста и координат: показ карточки, «пойду», «мимо», «вернуть», отмена плана, «Я на месте», открытие ленты. Выводы — от 20 показов.</Text>
     </View>
   );
@@ -41,11 +44,11 @@ export function Metrics({ live }: { live: boolean }) {
 const styles = StyleSheet.create({
   root: { width: '100%', paddingTop: 0, paddingBottom: 0, gap: 14 },
   cap: { fontFamily: fonts.mono600, fontSize: 11, color: colors.muted2, letterSpacing: 0.6 },
-  h1: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink, letterSpacing: -0.4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  card: { flexGrow: 1, flexBasis: 180, backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 4 },
+  card: { flexGrow: 1, flexBasis: '45%', backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 4 },
   title: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
-  value: { fontFamily: fonts.display700, fontSize: 30, color: colors.ink },
+  value: { fontFamily: fonts.display700, fontSize: 26, color: colors.ink },
   norm: { fontFamily: fonts.mono500, fontSize: 10.5, color: colors.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
   flag: { alignSelf: 'flex-start', backgroundColor: '#EDC6B2', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   flagText: { fontFamily: fonts.body600, fontSize: 13, color: colors.accentText },

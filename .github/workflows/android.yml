@@ -5,24 +5,49 @@ name: Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      builder:
+        description: 'Где собирать: github — бесплатно на GitHub (~40 мин), expo — облако Expo (лимит бесплатного тарифа)'
+        default: github
+        type: choice
+        options: [github, expo]
   push:
     tags: ['apk-review-*']
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      # По тегу или без выбора — бесплатная сборка на GitHub; «expo» — облако Expo.
+      BUILDER: ${{ github.event.inputs.builder || 'github' }}
     steps:
+      - name: Освободить место для сборки Android
+        if: env.BUILDER == 'github'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/local/share/powershell /usr/local/share/chromium /usr/share/swift /opt/microsoft /usr/local/lib/node_modules/@aws-cdk "$AGENT_TOOLSDIRECTORY/CodeQL" || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          # Сборка и кэш Gradle — на большой диск /mnt (на основном места не хватало: «Disk quota exceeded»).
+          sudo mkdir -p /mnt/eas /mnt/gradle && sudo chown -R "$USER" /mnt/eas /mnt/gradle
+          df -h / /mnt
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: Сохранить ссылку на запуск
+        if: startsWith(github.ref, 'refs/tags/apk-review-')
+        env:
+          RESULT_STATUS: in_progress
+          RESULT_STAGE: checks
+        run: |
+          node scripts/report-action.mjs
+          git checkout --detach "$GITHUB_SHA"
       - run: npm ci
       - name: Проверить код перед сборкой
-        run: npm run typecheck && npm run lint && npm run knip && npm test -- --ci --runInBand && npm run test:sql
+        run: npm run typecheck && npm run lint && npm run knip && npm test -- --ci --runInBand && npm run test:sql && npm run test:db
       - name: Проверить токен Expo
         id: expo-token
         env:
@@ -46,13 +71,61 @@ jobs:
           else
             echo "::warning::Нет секрета TOPTOP_TOKEN — линза «Пробки» будет без данных"
           fi
+      - name: Firebase для пушей Android (из секрета GOOGLE_SERVICES_JSON, в репозиторий не попадает)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+            node -e "const f='app.json';const j=JSON.parse(require('fs').readFileSync(f,'utf8'));j.expo.android.googleServicesFile='./google-services.json';require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
+          elif [ ! -f google-services.json ]; then
+            echo "::warning::Нет google-services.json — пуши на Android работать не будут (docs/KEYS.md, «Пуши»)"
+          fi
+      - name: Ключ пушей FCM в Expo (из секрета FCM_SERVICE_ACCOUNT_JSON)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$FCM_SERVICE_ACCOUNT_JSON" ]; then
+            node scripts/ci/fcm-key.mjs || echo "::warning::Ключ FCM не подключился — пуши на Android не придут (docs/KEYS.md)"
+          else
+            echo "::warning::Нет секрета FCM_SERVICE_ACCOUNT_JSON — пуши на Android не придут (docs/KEYS.md, «Пуши»)"
+          fi
+      - uses: actions/setup-java@v4
+        if: env.BUILDER == 'github'
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Собрать APK на GitHub (тот же ключ подписи из Expo — ставится поверх старой)
+        id: apk-local
+        if: env.BUILDER == 'github'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=2
+          EAS_LOCAL_BUILD_WORKINGDIR: /mnt/eas/work
+          GRADLE_USER_HOME: /mnt/gradle
+          # Только 64-битные ARM — все современные телефоны (Poco, Samsung). Вчетверо меньше сборки и места.
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
+        # Если APK уже готов, а упала только уборка временных файлов — сборка удалась.
+        run: npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output meets.apk || test -s meets.apk
+      - name: Выложить APK ссылкой (GitHub Releases)
+        if: env.BUILDER == 'github' && steps.apk-local.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="apk-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" meets.apk --target "$GITHUB_SHA" --prerelease --title "Meets APK ${GITHUB_RUN_NUMBER} (${GITHUB_REF_NAME})" --notes "Сборка для телефонов: открыть на телефоне и скачать meets.apk."
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/meets.apk"
+          echo "APK: $url"
+          printf '## Meets для Android\n\n[Скачать APK](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
       - name: Собрать APK
         id: apk
+        if: env.BUILDER == 'expo'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait --json > /tmp/meets-eas-build.json
       - name: Ссылка на APK
-        if: steps.apk.outcome == 'success'
+        if: env.BUILDER == 'expo' && steps.apk.outcome == 'success'
         run: |
           node --input-type=module <<'JS'
           import { readFileSync, appendFileSync } from 'node:fs';
@@ -63,23 +136,9 @@ jobs:
           console.log(`APK: ${url}`);
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Meets для Android\n\n[Скачать APK](${url})\n`);
           JS
-      - name: Открыть изменения для проверки
-        if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current=$(gh pr list --head review/dev-panel-polish --base main --state open --json url --jq '.[0].url // empty' 2> /tmp/meets-pr-error.txt)
-          if [ -n "$current" ]; then echo "$current" > /tmp/meets-pr-url.txt; exit 0; fi
-          cat > /tmp/meets-pr.txt <<'BODY'
-          Исправлены десять ошибок проверки 11–12 октября: удалённые события не возвращаются из поиска, планы участников сохраняются, права переименования ограничены публичной афишей, неточные адреса требуют проверки, подписка карты останавливается, фото заменяется после ошибки, запуск длится до 3,2 секунды.
-
-          Добавлены проверки повторного появления событий, прав базы, сохранения планов, геолокации, фото и заставки. Сборка APK — профиль preview с настоящей базой. Состояние применения миграции 24 и APK фиксируется в docs/builds на ветках build-results.
-          BODY
-          gh pr create --head review/dev-panel-polish --base main --title "Meets: исправления проверки и короткая заставка" --body-file /tmp/meets-pr.txt > /tmp/meets-pr-url.txt 2> /tmp/meets-pr-error.txt
       - name: Сохранить результат сборки
         if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
         env:
           RESULT_STATUS: ${{ job.status }}
-          RESULT_STAGE: ${{ steps.expo-token.outcome == 'failure' && 'expo-token' || steps.apk.outcome }}
+          RESULT_STAGE: ${{ steps.expo-token.outcome == 'failure' && 'expo-token' || (env.BUILDER == 'github' && steps.apk-local.outcome || steps.apk.outcome) }}
         run: node scripts/report-action.mjs

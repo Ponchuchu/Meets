@@ -24,15 +24,17 @@ export function isJump(prev: Pt | null, next: Pt): boolean {
 
 export type Place = { kind: 'home' | 'work' | 'study' | 'gym' | 'dacha' | 'other'; lat: number; lon: number };
 
-/** Статус для друзей: в пути (скорость), дома / на работе (из «Моих мест», 150 м), иначе — нет. */
-export function statusOf(p: { lat: number; lon: number; speed?: number | null }, places: Place[]): string | null {
+/** Статус для друзей: в пути (скорость), дома / на работе (из «Моих мест», 150 м), иначе — нет.
+ *  Ночью (23:00–07:00 по Алматы, `hour`) дома и без движения — «Спит» (FIX3 Ф10). */
+export function statusOf(p: { lat: number; lon: number; speed?: number | null }, places: Place[], hour?: number): string | null {
   if (p.speed != null && p.speed >= 2.5) return 'moving';
   const near = places.find((x) => distM(x, p) <= 150);
+  if (near?.kind === 'home' && hour != null && (hour >= 23 || hour < 7) && (p.speed ?? 0) < 0.5) return 'sleep';
   return near ? near.kind : null;
 }
 
 const STATUS_TEXT: Record<string, string> = {
-  moving: 'В пути', home: 'Дома', work: 'На работе', study: 'На учёбе', gym: 'В зале', dacha: 'На даче', other: 'В своём месте',
+  moving: 'В пути', sleep: 'Спит', home: 'Дома', work: 'На работе', study: 'На учёбе', gym: 'В зале', dacha: 'На даче', other: 'В своём месте',
 };
 
 /** Подпись под другом: «В пути · 38 км/ч», «Дома», «2 мин», «Давно не в сети». */
@@ -148,6 +150,16 @@ export function fogPolygon(cells: string[]): { type: 'Feature'; properties: Reco
     return [...pts, pts[0]];
   });
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [outer, ...holes] } };
+}
+
+/** Туман для карты: вуаль (Polygon с дырками) + края открытых мест отдельной линией (без внешней рамки вуали). */
+export function fogShape(cells: string[]) {
+  const veil = fogPolygon(cells);
+  const holes = veil.geometry.coordinates.slice(1);
+  return { type: 'FeatureCollection' as const, features: [
+    veil,
+    ...(holes.length ? [{ type: 'Feature' as const, properties: { edge: true }, geometry: { type: 'MultiLineString' as const, coordinates: holes } }] : []),
+  ] };
 }
 
 /** Плитки пробок TomTom (Traffic Flow, относительная скорость). Нет ключа — слоя нет. */

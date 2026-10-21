@@ -1,0 +1,42 @@
+{
+  "base_commit": "1701723298c8107accd51a2af83655ccbb6bd778",
+  "client_changes": "workspace changes on top of the exact merge requested by the owner",
+  "date": "2026-10-20",
+  "server_changed": false,
+  "figma_used": false,
+  "tests": {
+    "jest": {
+      "passed": 329,
+      "total": 329
+    },
+    "typescript": "passed",
+    "lint": "passed without warnings",
+    "sql_reliability": {
+      "passed": 14,
+      "engine": "isolated PostgreSQL WASM, reduced chat schema"
+    },
+    "sql_existing": "passed",
+    "browser": {
+      "group_and_message": "passed",
+      "upright_web_text": "passed",
+      "attachments_320x640": "passed",
+      "date_selection": "passed",
+      "frames_and_boxing_sticker": "passed",
+      "route_with_fixture_response": "passed",
+      "feed_exhaustion_restart_manual_restore": "passed, 12 decisions",
+      "javascript_errors": 0,
+      "missing_map_tiles_fallback_and_retry_button": "passed"
+    },
+    "web_export": {
+      "result": "passed",
+      "mode": "live",
+      "cache": "cleared"
+    }
+  },
+  "limits": [
+    "Live Supabase unavailable through the environment network policy; schema state is unknown.",
+    "Browser scenarios use demo data and a fixture route response.",
+    "Native camera, compression, GPU frame rate and battery have not been measured on a phone.",
+    "External geographic datasets and detailed 3D landmark models have not been imported."
+  ]
+}

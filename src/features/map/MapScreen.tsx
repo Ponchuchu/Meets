@@ -1,4 +1,5 @@
 // Карта — вкладка по умолчанию (design/png/Main.png, MapCalendar.png, MapFilters.png).
+import { useEco } from '../../state/perf';
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -7,7 +8,8 @@ import { Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, Vi
 import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
-import { useApp, useCoverTabBar } from '../../state/app';
+import { useApp, useBackClose, useCoverTabBar } from '../../state/app';
+import { useShallow } from 'zustand/react/shallow';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import {openDirectChat,sendMessage} from '../../data/remote';
@@ -20,11 +22,11 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { CityPin, EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinScale, pxToLat } from '../../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
@@ -42,16 +44,19 @@ import { FiltersSheet } from '../../map/ui/FiltersSheet';
 import { SearchOverlay } from '../../map/ui/SearchOverlay';
 import { TopBar } from '../../map/ui/TopBar';
 import { useMapState } from '../../state/map';
+import { useMapView } from '../../state/mapView';
 import { usePlans } from '../../state/plans';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
 import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
-import { getProfile, sendInvite, getMalls, getPlacesInView, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { MallPin, PlaceCard } from '../../map/ui/VenueSheet';
-import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
-import { startBackground, useMyFix } from '../../live/location';
+import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
+import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
+import { PlacePin } from '../../map/ui/PlacePin';
+import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
+import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
+import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
 import { startCamera } from '../../live/startPoint';
 import { MeDot, useHeading } from '../../map/MeDot';
@@ -103,18 +108,29 @@ export default function MapScreen() {
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [clock, setClock] = useState(clockNow);
-  const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState();
+  const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState(useShallow((s) => ({
+    filters: s.filters, setFilters: s.setFilters, resetFilters: s.resetFilters, selectedId: s.selectedId, select: s.select, focusId: s.focusId,
+    focusFriend: s.focusFriend, inviteOpen: s.inviteOpen, setInviteOpen: s.setInviteOpen })));
   const inviteSending = useRef(false);
   const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
+  // 2D/3D — в «Линзах» (FIX3): кнопка на карте убрана.
+  const view = useMapView((s) => s.view);
+  const setView = useMapView((s) => s.setView);
+  // Экономия заряда: карта всегда плоская и точек меньше.
+  const eco = useEco();
+  const threeD = view === '3d' && !eco;
+  const [mapMode, setMapMode] = useState<'loading' | 'static' | 'mapbox'>('loading');
+  const [mapAttempt, setMapAttempt] = useState(0);
   // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
   const [startCam, setStartCam] = useState<Camera | null>(null);
   // Компас: поворот карты (для стрелки и конуса моей точки) и режим «следовать за мной».
   const bearing = useSharedValue(0);
   const heading = useHeading(focused);
+  usePreciseGps(focused);
   const [follow, setFollow] = useState(false);
   useEffect(() => { void startCamera().then(setStartCam); }, []);
   // Заставка закончилась — камера приближает в 1,22 раза (V6.md §2.1), если я на карте.
@@ -234,6 +250,8 @@ export default function MapScreen() {
     enabled: spots.length > 0,
   });
   const detailsOf = (id: string) => details.find((d) => d?.id === id) ?? undefined;
+  // «Назад» на Android закрывает карточку друга или события, а не выходит из приложения.
+  useBackClose(() => { if (focusId) focusFriend(null); else select(null); }, sheet === null && (!!focusId || !!selectedId));
   const focusSpot = spots.find((x) => x.personId === focusId);
   const focusPerson = people.find((x) => x.id === focusId);
   // Хвост друга: последние 4 точки за 10 минут (только у выбранного).
@@ -245,19 +263,17 @@ export default function MapScreen() {
     queryFn: async () => ((await supabase().from('explore_cells').select('h3').eq('user_id', myId() ?? '')).data ?? []).map((r: { h3: string }) => r.h3),
   });
   const mallsQ = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
+  // Мои места (дом, работа…) — тот же запрос, что в «Профиль → Мои места».
+  const placesQ = useQuery({ queryKey: ['me', 'places', 'list'], enabled: LIVE && !!myId(), staleTime: 10 * 60e3, queryFn: async () => {
+    const r = await supabase().from('user_places_points').select('*').eq('user_id', myId()!);
+    if (r.error) throw r.error;
+    return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number }[];
+  } });
+  const myPlaces = placesQ.data ?? [];
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
-  // Места справочника — с 15-го масштаба, по кадру (центр округляем, чтобы не спрашивать сервер на каждый сдвиг).
-  const [view, setView] = useState<{ lat: number; lon: number } | null>(null);
-  const placesBox = useMemo(() => {
-    if (!view || zoom < 15) return null;
-    const half = (W / 2) * 360 / (256 * 2 ** zoom) * 1.6;
-    const r = (x: number) => Math.round(x * 400) / 400;
-    return { w: r(view.lon - half), e: r(view.lon + half), s: r(view.lat - half * 1.4), n: r(view.lat + half * 1.4) };
-  }, [view, zoom, W]);
-  const placesQ = useQuery({ queryKey: ['places', placesBox], queryFn: () => getPlacesInView(placesBox!.w, placesBox!.s, placesBox!.e, placesBox!.n), enabled: LIVE && !!placesBox, staleTime: 600e3, placeholderData: (p) => p });
-  const places = useMemo(() => (placesBox ? placesQ.data ?? [] : []), [placesBox, placesQ.data]);
+  // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
-  const fog = useMemo(() => (lens === 'explore' ? fogPolygon(cells) : null), [lens, cells]);
+  const fog = useMemo(() => (lens === 'explore' ? fogShape(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
 
   // Тап по другу: карта приближается к нему (он выше карточки), остальное бледнеет.
@@ -288,6 +304,8 @@ export default function MapScreen() {
     if (!meAt || !tscore.data?.points.length) return null;
     return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
   }, [meAt, tscore.data]);
+  // Старше 40 минут — не показываем: раньше застывший ночной балл «1» висел неделю.
+  const trafficFresh = !!tscore.data && clock.getTime() - Date.parse(tscore.data.at) < 40 * 60e3;
   const toAve = useQuery({
     queryKey: ['traffic', 'to', nearAve?.name, meAt && Math.round(meAt.lat * 500), meAt && Math.round(meAt.lon * 500)],
     queryFn: async () => (meAt && nearAve ? (await getRoute(meAt, nearAve)).car?.min ?? null : null),
@@ -310,8 +328,18 @@ export default function MapScreen() {
     setSheet(null);
   }, [zoom, select]);
 
+  // Из «Года в Алматы» нажали на событие с местом — подлетаем к нему (когда карта уже готова).
+  const cityFocus = useMapState((s) => s.cityFocus);
+  useEffect(() => {
+    if (!cityFocus || mapMode !== 'mapbox') return;
+    const c = CITY_YEAR.find((x) => x.id === cityFocus);
+    if (c?.point) mapRef.current?.flyTo(c.point.lat, c.point.lon, 14.5);
+    useMapState.getState().setCityFocus(null);
+  }, [cityFocus, mapMode]);
+
   const markers: MapMarker[] = useMemo(() => {
-    const list: MapMarker[] = groupByPoint(visible).map((group) => {
+    const groups = groupByPoint(visible);
+    const list: MapMarker[] = groups.map((group) => {
       // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
       const e = group.find((x) => x.id === selected?.id)
         ?? group.find((x) => x.id === selectedId)
@@ -330,11 +358,23 @@ export default function MapScreen() {
         ),
       };
     });
-    if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} onPress={() => { setMall(m); setSheet('venue'); }} /> });
+    // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
+    const budget = eco ? Math.max(6, Math.round(pinBudget(zoom) / 2)) : pinBudget(zoom);
+    if (list.length > budget) {
+      const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
+      list.splice(0, list.length, ...keep);
+    }
+    // «Год в Алматы»: большое событие с известным местом — на карте, когда оно идёт или до него меньше двух недель.
+    for (const c of cityYear(clock)) {
+      if (!c.e.point || (c.status !== 'now' && c.status !== 'soon')) continue;
+      list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
+    }
+    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
+    if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
       const own = fix ?? myPos;
-      const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
+      const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, mapShape: myProfile?.map_shape, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
       const ownSpot = own ? { ...own, personId: 'map-self', place: 'Сейчас', state: 'here' as const, minutesAgo: 0 } : null;
       if (!focusId && detail !== 'far') for (const group of closeGroups([...spots.filter(s => { const p = people.find(p => p.id === s.personId); return p && !social.removed[p.id] && (LIVE || !!detailsOf(p.id) && canSee('friend', 'location', detailsOf(p.id)!.privacy)); }), ...(ownSpot ? [ownSpot] : [])])) {
         if (group.length < 2) continue;
@@ -365,7 +405,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -433,11 +473,10 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={() => useIntro.getState().ready()} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
-        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)}
-        places={places} onPlace={(id) => { const p = places.find((x) => x.id === id); if (p) { select(null); setMall(p); setSheet('venue'); } }}
-        onCenter={(lat, lon) => setView({ lat, lon })} />}
-      <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
+      {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+        onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
+      {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
+      {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}
 
       <View style={[styles.top, { top: topY }]}>
         <TopBar
@@ -454,6 +493,9 @@ export default function MapScreen() {
         {geo === 'granted' && !(fix ?? myPos) && (
           <View style={styles.finding} accessibilityLiveRegion="polite"><Text style={styles.findingText}>Ищу тебя на карте…</Text></View>
         )}
+        {mapMode === 'static' && <Pressable onPress={() => { setMapMode('loading'); setMapAttempt(n => n + 1); }} accessibilityRole="button" style={{ marginTop: 6, padding: 10, borderRadius: 14, backgroundColor: colors.paper }}>
+          <Text style={{ fontFamily: fonts.body500, color: colors.ink }}>Показана схема · 3D недоступно · Повторить</Text>
+        </Pressable>}
         {LIVE && (!net.online || net.serverDown) && (
           <View style={{ marginTop: 6 }}>
             <NetPill kind={net.online ? 'server' : 'offline'} onRetry={() => { void pingDb().then((ok) => { if (ok) void queryClient.invalidateQueries(); }); }} />
@@ -463,7 +505,7 @@ export default function MapScreen() {
 
 
       {!focusId && sheet === null && (
-        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 105)} bearing={bearing} follow={follow}
+        <MapControls top={Math.max(topY + 64, (H || winH) / 2 - 125)} bearing={bearing} follow={follow}
           onCompass={() => {
             if (follow) { setFollow(false); return; }
             if (Math.abs(((bearing.get() % 360) + 360) % 360) > 1) mapRef.current?.north();
@@ -533,14 +575,14 @@ export default function MapScreen() {
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть линзы" />
           <BottomSheet onClose={() => setSheet(null)} label="Линзы">
-            <LensSheet lens={lens} onPick={(l) => { setLens(l); setSheet(null); }} />
+            <LensSheet lens={lens} onPick={(l) => { setLens(l); setSheet(null); }} view={view} onView={(v) => { setView(v); setSheet(null); }} canThreeD={mapMode === 'mapbox'} />
           </BottomSheet>
         </>
       )}
 
       {sheet === null && lens !== 'normal' && !focusId && (
-        <View style={[styles.lensInfo, lens === 'traffic' ? { top: topY + 112, bottom: undefined } : { bottom: tabPad + 12 }]} pointerEvents="box-none">
-          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
+        <View style={[styles.lensInfo, { top: topY + 112, bottom: undefined }]} pointerEvents="box-none">
+          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} cells={cells.length} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={trafficFresh ? tscore.data?.score : null} rough={trafficFresh && !tscore.data?.points.length} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
 

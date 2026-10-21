@@ -1,0 +1,43 @@
+{
+  "source_base": "54b62e1",
+  "branch": "codex/oct20-quality-and-frames",
+  "jest": {
+    "suites": 36,
+    "passed": 333
+  },
+  "sql_local": {
+    "reliability": 14,
+    "frames": 22
+  },
+  "typecheck": "passed",
+  "lint": "passed; no warnings",
+  "knip": "passed",
+  "edge_shared_build": "matches committed output",
+  "web_exports": [
+    "demo",
+    "live"
+  ],
+  "browser": {
+    "mode": "demo",
+    "external_network": "blocked by test",
+    "passed": [
+      "Выбранная рамка сохраняется после перезагрузки и используется в профиле.",
+      "Все шесть рисунков открываются для просмотра; закрытая рамка не меняет выбор.",
+      "Прежние четыре варианта доступны в классической коллекции.",
+      "Предпросмотр и кнопки помещаются на 320×640.",
+      "Главные экраны одной сборки сняты; ошибок JavaScript нет."
+    ],
+    "page_errors": []
+  },
+  "phone_feedback_browser": "7 groups passed; route fixture, demo data",
+  "live_supabase": "not accessed; migrations prepared, not applied",
+  "native_device_test": "not performed",
+  "apk": {
+    "status": "workflow in_progress; initial stage checks",
+    "source": "09c277dbc2da2556a7378499a7d9f7449be46bde",
+    "tag": "apk-review-20261020-quality-frames",
+    "run_url": "https://github.com/Ponchuchu/ryadom/actions/runs/39339710148",
+    "result_branch": "build-results/apk-review-20261020-quality-frames",
+    "apk_url": null
+  }
+}

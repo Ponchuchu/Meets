@@ -6,6 +6,9 @@ import type { FriendSpot, Person } from '../../data/types';
 import type { InviteIdea } from '../../people/inviteFor';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
+import { glass } from '../../ui/glass';
+import { AvatarFrame } from '../../profile/frames';
+import { CalendarPlus, ChevronRight, MapPin, MessageCircle, UserRound } from 'lucide-react-native';
 import { Ic, IC } from '../../ui/Ic';
 import { CAT_ICON } from '../icons';
 import { planWhen } from '../../lib/planWhen';
@@ -33,30 +36,47 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
   const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
   const level=stats?.level??1;
   const moving = spot.state === 'moving';
-  const status = spot.state === 'paused' ? 'геолокация на паузе' : updatedText(spot.minutesAgo);
+  const paused = spot.state === 'paused';
+  const status = paused ? 'геолокация на паузе' : updatedText(spot.minutesAgo);
+  // Только открытые стикеры — закрытые в быстрой ленте не нужны (они есть в чате, в «Откроются позже»).
+  const quick = STICKERS.map((st, i) => ({ st, i })).filter(({ st }) => stickerUnlocked(st, level));
   return (
-    <Animated.View entering={cardIn} style={styles.card}>
-      <Pressable onPress={onProfile} style={styles.top} accessibilityRole="link" accessibilityLabel={`Профиль: ${p.name}`}>
-        <Avatar p={p} size={52} ring={ring} style={{ borderWidth: 3 }} />
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={styles.name}>{p.name}</Text>
+    <Animated.View entering={cardIn} style={[styles.card, glass]}>
+      <Pressable onPress={onProfile} style={({ pressed }) => [styles.top, pressed && { opacity: 0.7 }]} accessibilityRole="link" accessibilityLabel={`Профиль: ${p.name}`}>
+        <AvatarFrame frameId={p.mapFrame} shape={p.mapShape} photo={p.photo} initial={p.initial} tint={p.tint} size={58} ring={paused ? '#8C8577' : ring} animate={false} />
+        <View style={{ flex: 1, gap: 5 }}>
+          <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
           <View style={styles.statusRow}>
+            <View style={[styles.placeChip, paused && { backgroundColor: '#D9D3C5' }]}>
+              <MapPin size={12} color={paused ? colors.muted2 : colors.friend} strokeWidth={2.4} />
+              <Text style={[styles.placeText, paused && { color: colors.muted2 }]} numberOfLines={1}>{spot.place}</Text>
+            </View>
             {moving && spot.speedKmh != null && <View style={styles.speed}><Text style={styles.speedText}>{spot.speedKmh} КМ/Ч</Text></View>}
-            <Text style={styles.status}>{status}</Text>
           </View>
+          <Text style={styles.status}>{status}</Text>
         </View>
+        <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
       </Pressable>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
-        {STICKERS.map((st, i) => (
-          <Pressable key={st.label} disabled={!stickerUnlocked(st,level)} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
-            style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.9 : 1 }] })}>
-            <StickerView st={st} />
-          </Pressable>
-        ))}
-      </ScrollView>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Pressable onPress={onWrite} style={[styles.btn, { borderWidth: 1.5, borderColor: colors.ink }]} accessibilityRole="button"><Text style={styles.btnText}>Написать</Text></Pressable>
-        <Pressable onPress={onInvite} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.btnText, { color: colors.paper }]}>Позвать</Text></Pressable>
+      {quick.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
+          {quick.map(({ st, i }) => (
+            <Pressable key={st.id} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
+              style={({ pressed }) => [styles.stickerTile, pressed && { transform: [{ scale: 0.88 }] }]}>
+              <View style={{ transform: [{ scale: 0.72 }] }}><StickerView st={st} /></View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+      <View style={styles.actions}>
+        <Pressable onPress={onWrite} style={({ pressed }) => [styles.act, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Написать ${p.name}`}>
+          <MessageCircle size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.actText}>Написать</Text>
+        </Pressable>
+        <Pressable onPress={onInvite} style={({ pressed }) => [styles.act, styles.actMain, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Позвать ${p.name}`}>
+          <CalendarPlus size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.actText}>Позвать</Text>
+        </Pressable>
+        <Pressable onPress={onProfile} style={({ pressed }) => [styles.act, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Профиль ${p.name}`}>
+          <UserRound size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.actText}>Профиль</Text>
+        </Pressable>
       </View>
     </Animated.View>
   );
@@ -111,10 +131,18 @@ export function InviteFriendSheet({ p, title, ideas, now, onOwn, onSend, busy = 
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.cardAlt, borderRadius: 22, padding: 16, gap: 12, shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  card: { borderRadius: 28, padding: 14, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  name: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink },
+  name: { fontFamily: fonts.display800, fontSize: 21, letterSpacing: -0.4, color: colors.ink },
   place: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
+  placeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: 190, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(36,71,184,0.1)' },
+  placeText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.friend, flexShrink: 1 },
+  stickerTile: { width: 66, height: 72, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.04)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  actions: { flexDirection: 'row', gap: 8 },
+  act: { flex: 1, height: 60, borderRadius: 18, backgroundColor: '#EDE8DD', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  actMain: { backgroundColor: colors.accent },
+  actText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
+  pressed: { transform: [{ scale: 0.96 }] },
   link: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink, textDecorationLine: 'underline' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   speed: { height: 20, paddingHorizontal: 7, borderRadius: 10, backgroundColor: colors.friend, justifyContent: 'center' },

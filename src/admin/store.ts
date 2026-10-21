@@ -16,6 +16,7 @@ interface AdminDemo {
   edit: (id: string, patch: Partial<QueueItem>) => void;
   setSource: (id: string, patch: Partial<SourceItem>) => void;
   addSource: (s: SourceItem) => void;
+  removeSource: (id: string) => void;
   setAutoPublish: (v: boolean) => void;
   setNovelty: (v: boolean) => void;
 }
@@ -33,6 +34,7 @@ export const useAdminDemo = create<AdminDemo>()((set) => ({
   edit: (id, patch) => set((s) => ({ edits: { ...s.edits, [id]: { ...s.edits[id], ...patch } } })),
   setSource: (id, patch) => set((s) => ({ sources: s.sources.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
   addSource: (x) => set((s) => ({ sources: [...s.sources, x] })),
+  removeSource: (id) => set((s) => ({ sources: s.sources.filter((x) => x.id !== id) })),
   setAutoPublish: (v) => set({ autoPublish: v }),
   setNovelty: (v) => set({ novelty: v }),
 }));

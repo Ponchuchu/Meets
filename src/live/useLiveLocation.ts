@@ -8,7 +8,7 @@ import { useProfile } from '../state/profile';
 import { getVisibility } from './api';
 import { myId } from './auth';
 import type { Place } from './geo';
-import { setShareRules, startBackground, stopBackground, watchForeground } from './location';
+import { setShareRules, startBackground, stopBackground, useGpsMode, watchForeground } from './location';
 
 async function getPlaces(): Promise<Place[]> {
   const me = myId();
@@ -58,7 +58,9 @@ export function useLiveLocation() {
     const off = () => { generation++; starting = false; clearTimeout(retry); stop?.(); stop = null; };
     if (active) on();
     const sub = AppState.addEventListener('change', (s) => { active = s === 'active'; if (active) on(); else off(); });
-    return () => { active = false; sub.remove(); off(); };
+    // Открыли или закрыли карту/навигатор — переключаем точность GPS (перезапуск слежения).
+    const mode = useGpsMode.subscribe((s, prev) => { if ((s.precise > 0) !== (prev.precise > 0) && active) { off(); on(); } });
+    return () => { active = false; sub.remove(); mode(); off(); };
   }, [live]);
 
   // Фон: включён, пока не невидимка навсегда. Нет разрешения «Всё время» — просто не запускается.

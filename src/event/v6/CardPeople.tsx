@@ -4,13 +4,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Hand, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import type { EventItem } from '../../data/types';
 import { askCompany, getWhoGoes, setLooking } from '../../live/api';
 import { colors, fonts } from '../../theme';
 
 function Face({ url, name, size }: { url: string | null; name: string; size: number }) {
-  return url ? <Image source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2 }} /> : (
+  return url ? <Image source={{ uri: url }} resizeMethod="resize" style={{ width: size, height: size, borderRadius: size / 2 }} /> : (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#B9A8E8', alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ fontFamily: fonts.display700, fontSize: size * 0.4, color: colors.ink }}>{name[0]?.toUpperCase()}</Text>
     </View>
@@ -25,9 +25,10 @@ export function CardPeople({ e, going, onGo, onInvite, onError }: {
   const [asked, setAsked] = useState<Record<string, boolean>>({});
   const [confirm, setConfirm] = useState(false);
   const pulse = useSharedValue(1);
-  useEffect(() => { pulse.set(withRepeat(withSequence(withTiming(1.03, { duration: 900 }), withTiming(1, { duration: 900 })), -1)); }, [pulse]);
-  const pulseSt = useAnimatedStyle(() => ({ transform: [{ scale: pulse.get() }] }));
   const iLook = !!data?.iLook;
+  // Кнопка «Ищу компанию» дышит несколько раз и замирает; после нажатия — сразу стоп.
+  useEffect(() => { if (iLook) { cancelAnimation(pulse); pulse.set(1); return; } pulse.set(withRepeat(withSequence(withTiming(1.03, { duration: 900 }), withTiming(1, { duration: 900 })), 4)); }, [pulse, iLook]);
+  const pulseSt = useAnimatedStyle(() => ({ transform: [{ scale: pulse.get() }] }));
 
   const toggleLook = async () => {
     if (!iLook && !going && !confirm) { setConfirm(true); return; }

@@ -6,19 +6,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import {
   AtSign, Ban, Bell, CalendarDays, CircleHelp, Clock, Eye, Ghost, Home, Image as ImageIcon, KeyRound, Languages, LogOut, Map, MessageCircle,
-  MessagesSquare, Moon, Phone, ShieldCheck, Smartphone, Star, Sticker, Text as TextIcon, Trash2, User, Users,
+  BatteryMedium, Database, MessagesSquare, Moon, Phone, ShieldCheck, Smartphone, Star, Sticker, Text as TextIcon, Trash2, User, Users,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { deleteAccount, signOut as authSignOut } from '../../auth/service';
 import { setMapTelemetry } from '../../map/telemetry';
 import { supabase } from '../../data/client';
+import { getProfileExtras, saveProfileExtras } from '../../live/profileExtras';
 import { getFriends, getProfile, getSettings, getVisibility, saveProfile, setSetting, setVisibility, type Visibility } from '../../live/api';
 import { myId, useAuth } from '../../live/auth';
 import { queryClient } from '../../live/query';
+import { askPushPermission, savePushPref, usePushStatus, type PushState } from '../../live/push';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Cap, Group, Note, Row, SettingsPage, ToggleRow } from '../../ui/v6/Settings';
+import { ecoReason, useEco, usePerf, type EcoMode } from '../../state/perf';
+import MemoryPage from './MemoryPage';
 
 const VERSION = '0.6.0';
 const maskPhone = (p?: string | null) => { const d = (p ?? '').replace(/\D/g, '').slice(-10); return d.length === 10 ? `+7 ${d.slice(0, 3)} ••• •• ${d.slice(8)}` : ''; };
@@ -57,6 +61,7 @@ export function SettingsRoot() {
   const quiet = get<string>('quiet', '23–08');
   const theme = get<string>('theme', 'system');
   const pl = places.data ?? [];
+  const eco = useEco();
   return (
     <SettingsPage title="Настройки">
       <Cap>АККАУНТ</Cap>
@@ -74,6 +79,8 @@ export function SettingsRoot() {
       </Group>
       <Cap>ЕЩЁ</Cap>
       <Group>
+        <Row Icon={BatteryMedium} title="Экономия заряда" value={eco ? 'включена' : 'выключена'} onPress={() => go('eco')} />
+        <Row Icon={Database} title="Память" onPress={() => go('memory')} />
         <Row Icon={Moon} title="Тема" value={theme === 'light' ? 'светлая' : theme === 'dark' ? 'тёмная' : 'как в системе'} onPress={() => go('theme')} />
         <Row Icon={Languages} title="Язык" value="русский" onPress={() => go('language')} />
         <Row Icon={Map} title="О карте и данных" onPress={() => go('map')} />
@@ -142,6 +149,7 @@ const HOURS = [1, 8, 24];
 function PrivacyPage() {
   const { v, set } = useVis();
   const friends = useQuery({ queryKey: ['friends'], queryFn: getFriends });
+  const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30e3); return () => clearInterval(t); }, []);
   const until = v?.invisible_until ? new Date(v.invisible_until).getTime() : 0;
@@ -184,16 +192,34 @@ function PrivacyPage() {
         <ToggleRow title="Только район" sub="вместо точки — «в Алмалы»" on={!!v?.district_only} onChange={(district_only) => set({ district_only })} />
         <ToggleRow title="Статусы" sub="«на работе», «в кофейне»" on={v?.statuses ?? true} onChange={(statuses) => set({ statuses })} last />
       </Group>
+      <Cap>ВОСПОМИНАНИЯ</Cap>
+      <Group>
+        <ToggleRow title="Друзья видят мои воспоминания" sub="без этого альбомы видишь только ты" on={!!extras.data?.memoriesVisible}
+          onChange={(memoriesVisible) => { queryClient.setQueryData(['me', 'extras'], { ...extras.data, memoriesVisible }); void saveProfileExtras({ memoriesVisible }).finally(() => queryClient.invalidateQueries({ queryKey: ['me', 'extras'] })); }} last />
+      </Group>
       <Note Icon={ShieldCheck}>Незнакомые люди никогда не видят тебя на карте.</Note>
     </SettingsPage>
   );
 }
 
+const PUSH_TEXT: Record<PushState, string | null> = {
+  unknown: 'Проверяю…', ok: 'Пуши подключены', ask: 'Пуши выключены — нажми «Разрешить»', denied: 'Пуши запрещены в настройках телефона',
+  nofirebase: 'Эта сборка не умеет пуши: нет ключа Firebase. Нужна новая APK', error: 'Не получилось подключить пуши. Попробую ещё раз через минуту', unsupported: null,
+};
+
 function NotifyPage() {
   const { get, set } = useSettingsKV();
-  const t = (k: string, def = true) => ({ on: get<boolean>(k, def), onChange: (v: boolean) => set(k, v) });
+  const push = usePushStatus((s) => s.state);
+  const t = (k: string, def = true) => ({ on: get<boolean>(k, def), onChange: (v: boolean) => { set(k, v); void savePushPref(k, v).catch(() => undefined); } });
+  const pushText = PUSH_TEXT[push];
   return (
     <SettingsPage title="Уведомления" sub="Пуши приходят как в Telegram: зажал — ответил, не открывая.">
+      {pushText && (
+        <Group>
+          <Row Icon={Bell} title={pushText} value={push === 'ask' ? 'Разрешить' : push === 'denied' ? 'Открыть' : undefined}
+            onPress={push === 'ask' ? () => void askPushPermission() : push === 'denied' ? () => void Linking.openSettings() : undefined} last />
+        </Group>
+      )}
       <Cap>СООБЩЕНИЯ</Cap>
       <Group>
         <ToggleRow Icon={MessageCircle} title="Сообщения" {...t('n_messages')} />
@@ -265,6 +291,29 @@ function BlackPage() {
   );
 }
 
+function EcoPage() {
+  const mode = usePerf((s) => s.mode);
+  const setMode = usePerf((s) => s.setMode);
+  const on = useEco();
+  const why = usePerf((s) => ecoReason(s));
+  const opts: [EcoMode, string, string][] = [
+    ['auto', 'Авто', 'сама включается при энергосбережении телефона'],
+    ['on', 'Всегда', 'приложение легче и тратит меньше заряда'],
+    ['off', 'Выключена', 'всё живое: рамки, 3D-карта, точная геолокация'],
+  ];
+  return (
+    <SettingsPage title="Экономия заряда" sub={on ? `Сейчас включена${why ? ` — ${why}` : ''}.` : 'Сейчас выключена.'}>
+      <Group>
+        {opts.map(([k, t, sub], i) => (
+          <Row key={k} title={t} sub={sub} last={i === opts.length - 1} onPress={() => setMode(k)}
+            left={<View style={[styles.radio, mode === k && styles.radioOn]}>{mode === k && <View style={styles.radioDot} />}</View>} />
+        ))}
+      </Group>
+      <Note>В экономии рамки не двигаются, карта плоская и показывает меньше точек, геолокация обновляется раз в 10 секунд, шаги — раз в 3 минуты. Сообщения и пуши работают как обычно.</Note>
+    </SettingsPage>
+  );
+}
+
 function ThemePage() {
   const { get, set } = useSettingsKV();
   const cur = get<string>('theme', 'system');
@@ -330,6 +379,8 @@ export function SettingsSubPage({ page }: { page: string }) {
     case 'language': return <LanguagePage />;
     case 'help': return <HelpPage />;
     case 'map': return <MapDataPage />;
+    case 'eco': return <EcoPage />;
+    case 'memory': return <MemoryPage />;
     default: return <SettingsRoot />;
   }
 }

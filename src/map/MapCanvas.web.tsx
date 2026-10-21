@@ -20,8 +20,12 @@ function webglOk(): boolean {
   }
 }
 
+const asUri = (m: unknown) => (typeof m === 'string' ? m : (m as { uri?: string; default?: string })?.uri ?? (m as { default?: string })?.default ?? '');
+const WEB_IMAGES: Record<string, string> = { tree: asUri(require('../../assets/map/tree.png')), pine: asUri(require('../../assets/map/pine.png')) };
+
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
+  const threeD = props.threeD !== false;
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -44,9 +48,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (map.current) map.current.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], { padding, duration:450, maxZoom:18 });
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom: 17, bearing: heading, pitch: 60, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if(map.current)map.current.easeTo({ center: [lon, lat], zoom, bearing: heading, pitch, duration: 500 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 250) => {
-      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: TILT_PITCH, duration: durationMs });
+      if (map.current) map.current.easeTo({ center: [lon, lat], zoom: zoom ?? map.current.getZoom(), pitch: threeD ? TILT_PITCH : 0, duration: durationMs });
       else staticRef.current?.flyTo(lat, lon, zoom);
     },
     zoomBy: (d) => {
@@ -68,10 +72,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       try {
         m = new lib.Map({
           container: host.current,
-          style: mapStyle('paper') as unknown as mapboxgl.Style,
+          style: mapStyle(theme, threeD) as unknown as mapboxgl.Style,
           center: [camera.lon, camera.lat],
           zoom: camera.zoom,
-          pitch: TILT_PITCH,
+          pitch: props.still ? props.still.pitch : threeD ? TILT_PITCH : 0,
+          bearing: props.still?.heading ?? 0,
+          interactive: !props.still,
           attributionControl: false,
           logoPosition: config.mapAttribution ? 'bottom-left' : undefined,
           pitchWithRotate: false,
@@ -93,16 +99,31 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
       m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.({ lat: ev.lngLat.lat, lon: ev.lngLat.lng }); });
       m.on('rotate', () => onBearing?.(m.getBearing()));
+      // Деревья стиля (tree / pine): на web картинки подгружаются по требованию.
+      m.on('styleimagemissing', (ev: { id: string }) => {
+        const src = WEB_IMAGES[ev.id];
+        if (!src || m.hasImage(ev.id)) return;
+        m.loadImage(src, (err, img) => { if (!err && img && !m.hasImage(ev.id)) m.addImage(ev.id, img, { pixelRatio: 2 }); });
+      });
       m.on('click', 'places-dot', (ev) => { const id = ev.features?.[0]?.properties?.id; if (id) onPlaceRef.current?.(String(id)); });
       map.current = m;
       setReady(true);
       const els = elements.current;
-      // Нет сети или токен не пустили: через 8 с без загруженного стиля — подложка.
-      const t = setTimeout(() => { if (!m.isStyleLoaded()) setFailed(true); }, 8000);
-      m.on('load', () => { clearTimeout(t); onMode?.('mapbox'); });
-      m.on('error', (e: { error?: unknown }) => {
+      // Локальный style JSON может загрузиться даже при недоступных тайлах.
+      // Успешным запуском считаем получение самой карты, иначе остаётся пустой фон с пинами.
+      let receivedTile = false;
+      const t = setTimeout(() => { if (!receivedTile) setFailed(true); }, 8000);
+      m.on('sourcedata', e => {
+        if (!receivedTile && e.sourceId === 'streets' && e.sourceDataType === 'content' && e.tile) {
+          receivedTile = true;
+          clearTimeout(t);
+          onMode?.('mapbox');
+        }
+      });
+      m.on('error', (e: { error?: unknown; sourceId?: string }) => {
         const status = (e.error as { status?: number } | undefined)?.status;
-        if (status === 401 || status === 403) setFailed(true);
+        // Отказ необязательного DEM не должен выключать доступную базовую карту.
+        if (!receivedTile && e.sourceId === 'streets' && (status === 401 || status === 403)) setFailed(true);
       });
       cleanup = () => { clearTimeout(t); m.remove(); map.current = null; els.clear(); };
     }).catch(() => { if (!cancelled) setFailed(true); });
@@ -111,7 +132,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failed]);
 
-  useEffect(() => { map.current?.setStyle(mapStyle('paper') as unknown as mapboxgl.Style); }, [theme]);
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    m.setStyle(mapStyle(theme, threeD) as unknown as mapboxgl.Style);
+    m.easeTo({ pitch: threeD ? TILT_PITCH : 0, duration: 450 });
+  }, [theme, threeD]);
 
   // Линзы: пробки (растровые плитки) и туман «Где я был». После смены стиля слои добавляем заново.
   useEffect(() => {
@@ -121,7 +147,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       const style = m.getStyle();
       for (const l of style?.layers ?? []) if (l.id.startsWith('line-')) m.removeLayer(l.id);
       for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
-      for (const id of ['traffic-layer', 'fog-edge', 'fog-layer', 'places-dot', 'places-name']) if (m.getLayer(id)) m.removeLayer(id);
+      for (const id of ['traffic-layer', 'fog-edge', 'fog-glow', 'fog-layer', 'places-dot', 'places-name']) if (m.getLayer(id)) m.removeLayer(id);
       for (const id of ['traffic', 'fog', 'places']) if (m.getSource(id)) m.removeSource(id);
       for (const l of (lines ?? []).filter(l=>l.coords.length>=2)) {
         m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
@@ -135,8 +161,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
         const fogC = '#17161A';
-        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.7, 'fill-antialias': false } });
-        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.7, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': fogC, 'fill-opacity': 0.62 } });
+        m.addLayer({ id: 'fog-glow', type: 'line', source: 'fog', filter: ['==', ['get', 'edge'], true], paint: { 'line-color': '#F0521F', 'line-opacity': 0.28, 'line-blur': 3, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 7] }, layout: { 'line-join': 'round' } });
+        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', filter: ['==', ['get', 'edge'], true], paint: { 'line-color': '#F0521F', 'line-opacity': 0.85, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 1.6] }, layout: { 'line-join': 'round' } });
       }
       if (places.length) {
         m.addSource('places', { type: 'geojson', data: placesGeo(places) as never });

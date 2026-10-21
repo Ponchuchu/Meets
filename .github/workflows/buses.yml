@@ -1,4 +1,4 @@
-# Остановки автобусов Алматы с координатами из OpenStreetMap → data/seed/bus-stops-almaty.json (коммит в main).
+# Остановки автобусов Алматы с координатами из OpenStreetMap → data/seed/bus-stops-almaty.json (коммит в ветку запуска).
 # Запуск только вручную: Actions → buses → Run workflow. Ключи не нужны.
 name: buses
 on:
@@ -21,10 +21,11 @@ jobs:
           git config user.name "ryadom-bot"
           git config user.email "ryadom-bot@users.noreply.github.com"
           cp data/seed/bus-stops-almaty.json /tmp/bus-stops.json
-          git fetch origin main
-          git checkout -B main origin/main
+          # Сохраняем в ту ветку, из которой запустили (FIX3: раньше всегда в main).
+          git fetch origin "$GITHUB_REF_NAME"
+          git checkout -B "$GITHUB_REF_NAME" "origin/$GITHUB_REF_NAME"
           cp /tmp/bus-stops.json data/seed/bus-stops-almaty.json
           git add data/seed/bus-stops-almaty.json
           if git diff --cached --quiet; then echo "Без изменений"; exit 0; fi
           git commit -m "Остановки автобусов из OpenStreetMap"
-          git push origin main
+          git push origin "$GITHUB_REF_NAME"

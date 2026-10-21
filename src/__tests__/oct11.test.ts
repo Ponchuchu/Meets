@@ -119,6 +119,7 @@ describe('панель разработчика: понятные ошибки',
     expect(explainError('Kimi: модели kimi-x нет').kind).toBe('model');
     expect(explainError('Не удалось запустить workflow на GitHub: 404').kind).toBe('github');
     expect(explainError('Kimi: время вышло').kind).toBe('timeout');
+    expect(explainError('Запуск завершился с ошибкой. Журнал: GitHub → Actions → search').kind).toBe('other');
     expect(explainError('что-то странное').kind).toBe('other');
     expect(explainError('что-то странное').title).toBe('Запуск не удался');
   });

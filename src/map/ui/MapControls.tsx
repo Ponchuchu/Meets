@@ -1,18 +1,23 @@
 // Кнопки справа под верхом карты (FIX1 И2 п.5): компас (стрелка на север крутится вместе с картой; тап — север вверх,
 // второй тап — следовать за мной с поворотом), пилюля «+ / −», «ко мне».
 import { LocateFixed, Minus, Plus } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../theme';
 import { glass } from '../../ui/glass';
 
-export function MapControls({ top, bearing, follow, onCompass, onZoom, onMe }: {
+export function MapControls({ top, bearing, follow, onCompass, onZoom, onMe, threeD, onThreeD, threeDDisabled }: {
   top: number; bearing: SharedValue<number>; follow: boolean; onCompass: () => void; onZoom: (d: number) => void; onMe: () => void;
+  threeD?: boolean; onThreeD?: () => void; threeDDisabled?: boolean;
 }) {
   const needle = useAnimatedStyle(() => ({ transform: [{ rotate: `${-bearing.get()}deg` }] }));
   return (
     <View style={[styles.col, { top }]} pointerEvents="box-none">
+      {onThreeD && !threeDDisabled && <Pressable onPress={onThreeD} style={[styles.round, glass]}
+        accessibilityRole="button" accessibilityLabel={threeD ? 'Переключить карту в 2D' : 'Переключить карту в 3D'}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.ink }}>{threeD ? '2D' : '3D'}</Text>
+      </Pressable>}
       <Pressable onPress={onCompass} style={({ pressed }) => [styles.round, glass, follow && styles.on, pressed && styles.pressed]}
         accessibilityRole="button" accessibilityLabel={follow ? 'Компас: карта следует за тобой. Нажми, чтобы выключить' : 'Компас: север вверх, второй тап — следовать за мной'}>
         <Animated.View style={needle}>

@@ -7,11 +7,19 @@ export const TERRAIN_TILES = `${config.supabaseUrl}/storage/v1/object/public/ter
 const TERRAIN_BOUNDS = [76.55, 42.9, 77.4, 43.5];
 /** Дома объёмом — только с этого масштаба: на обзорном масштабе слой не нужен и тяжёл для слабых телефонов. */
 export const BUILDINGS_MIN_ZOOM = 14.5;
+/** Высотки (от 28 м) — объёмом с этого масштаба: город сразу выглядит объёмным при открытии приложения. */
+export const TALL_MIN_ZOOM = 12.6;
+/** Деревья — картинки tree / pine, их регистрирует MapCanvas. */
+export const TREES_MIN_ZOOM = 15;
 
 const FONT = ['DIN Pro Medium', 'Arial Unicode MS Regular'];
 
-export function mapStyle(theme: MapTheme): Record<string, unknown> {
+/** native — свойства Mapbox Maps v11 (свет, мягкие тени, скруглённые рёбра); веб-версия mapbox-gl 2 их не знает. */
+export function mapStyle(theme: MapTheme, threeD = true, native = false): Record<string, unknown> {
   const c = mapPalettes[theme];
+  const night = theme === 'night';
+  const v11 = threeD && native;
+  const trees = threeD;
   return {
     version: 8,
     name: `ryadom-${theme}`,
@@ -19,11 +27,16 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
     sources: {
       streets: { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' },
       terrain: { type: 'vector', url: 'mapbox://mapbox.mapbox-terrain-v2' },
-      dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' },
+      ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
     },
-    // Карта всегда объёмная: горы из рельефа, дымка у горизонта при наклоне.
-    terrain: { source: 'dem', exaggeration: 1.2 },
-    fog: { range: [1.5, 10], color: c.land, 'high-color': c.land, 'space-color': c.land, 'horizon-blend': 0.08 },
+    // В экономном режиме не загружаем DEM и не рисуем объёмную геометрию.
+    // Свет для объёмных домов: мягкий общий и «солнце» с юго-запада (без теней — их считать дорого для Poco M6).
+    ...(v11 ? { lights: [
+      { id: 'ambient', type: 'ambient', properties: { color: night ? '#9AA3C7' : '#FFFFFF', intensity: night ? 0.45 : 0.62 } },
+      { id: 'sun', type: 'directional', properties: { color: night ? '#C9D2FF' : '#FFF4E2', intensity: night ? 0.25 : 0.5, direction: [210, 40], 'cast-shadows': false } },
+    ] } : {}),
+    ...(threeD ? { terrain: { source: 'dem', exaggeration: 1.2 },
+      fog: { range: [1.5, 10], color: c.land, 'high-color': c.land, 'space-color': c.land, 'horizon-blend': 0.08 } } : {}),
     layers: [
       { id: 'land', type: 'background', paint: { 'background-color': c.land } },
       // Горы на юге города — ступени высот (контуры рельефа).
@@ -37,10 +50,10 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
         filter: ['match', ['get', 'class'], ['park', 'pitch', 'grass', 'wood', 'scrub', 'cemetery'], true, false],
         paint: { 'fill-color': c.park },
       },
-      {
+      ...(threeD ? [{
         id: 'hillshade', type: 'hillshade', source: 'dem', maxzoom: 16,
         paint: { 'hillshade-shadow-color': c.label, 'hillshade-highlight-color': c.highway, 'hillshade-accent-color': c.label, 'hillshade-exaggeration': 0.35, 'hillshade-illumination-anchor': 'map' },
-      },
+      }] : []),
       { id: 'water', type: 'fill', source: 'streets', 'source-layer': 'water', paint: { 'fill-color': c.water } },
       { id: 'waterway', type: 'line', source: 'streets', 'source-layer': 'waterway', paint: { 'line-color': c.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 16, 4] } },
       {
@@ -55,16 +68,44 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': c.highway, 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 10, 1.5, 16, 14] },
       },
-      // Дома объёмом с 14,5 масштаба (подрастают из земли), на обзорном масштабе слоя нет — дёшево.
       {
-        id: 'buildings-3d', type: 'fill-extrusion', source: 'streets', 'source-layer': 'building', minzoom: BUILDINGS_MIN_ZOOM,
-        filter: ['all', ['==', ['get', 'extrude'], 'true'], ['!=', ['get', 'underground'], 'true']],
-        paint: {
-          'fill-extrusion-color': c.extrude,
-          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.6, ['get', 'height']],
-          'fill-extrusion-base': ['get', 'min_height'], 'fill-extrusion-opacity': 0.92, 'fill-extrusion-vertical-gradient': true,
-        },
+        id: 'buildings', type: threeD ? 'fill-extrusion' : 'fill', source: 'streets', 'source-layer': 'building', minzoom: BUILDINGS_MIN_ZOOM,
+        ...(v11 ? { layout: { 'fill-extrusion-edge-radius': 0.35 } } : {}),
+        paint: threeD ? {
+          // Цвет по высоте: малоэтажки — прохладный серый, высотки — светлее и теплее (читаются силуэты города).
+          'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'height'], 6],
+            0, night ? '#3F434F' : '#CDD2D8', 30, night ? '#4A4F5E' : '#DCDDDD', 90, night ? '#5A5F72' : '#EBE4D6', 180, night ? '#6B6F86' : '#F3E7D2'],
+          ...(v11 ? { 'fill-extrusion-ambient-occlusion-intensity': 0.35, 'fill-extrusion-ambient-occlusion-radius': 4, 'fill-extrusion-vertical-gradient': true } : {}),
+          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.6, ['max', 3, ['coalesce', ['get', 'height'], 6]]],
+          'fill-extrusion-base': ['min', ['coalesce', ['get', 'min_height'], 0], ['max', 3, ['coalesce', ['get', 'height'], 6]]],
+          // Дома проявляются плавно, пока приближаешься, — без резкого «щелчка» на одном масштабе.
+          'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], BUILDINGS_MIN_ZOOM, 0, BUILDINGS_MIN_ZOOM + 0.9, 0.9],
+        } : { 'fill-color': theme === 'night' ? '#383C46' : '#D5D9DE', 'fill-opacity': 0.65 },
       },
+      // Высотки видно уже с обзорного масштаба (раньше объём появлялся только при сильном приближении).
+      ...(threeD ? [{
+        id: 'buildings-tall', type: 'fill-extrusion', source: 'streets', 'source-layer': 'building', minzoom: TALL_MIN_ZOOM, maxzoom: BUILDINGS_MIN_ZOOM + 0.9,
+        filter: ['>=', ['coalesce', ['get', 'height'], 0], 28],
+        paint: {
+          'fill-extrusion-color': night ? '#5A5F72' : '#E6E1D6',
+          'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], TALL_MIN_ZOOM, 0, TALL_MIN_ZOOM + 0.6, 0.85, BUILDINGS_MIN_ZOOM + 0.5, 0.85, BUILDINGS_MIN_ZOOM + 0.9, 0],
+        },
+      }] : []),
+      // Деревья: картинки «стоят» (обращены к камере) по краям парков и скверов, ели — в лесах и на склонах.
+      // Только вблизи и с пропуском при наложении — на слабом телефоне это десятки значков, а не тысячи.
+      ...(trees ? [
+        { id: 'trees-park', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
+          filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery', 'pitch'], true, false],
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': 34, 'icon-image': 'tree', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.09, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false } ,
+          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1] } },
+        { id: 'trees-wood', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM - 0.5,
+          filter: ['match', ['get', 'class'], ['wood', 'scrub'], true, false],
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': 26, 'icon-image': 'pine', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0.08, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false },
+          paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0, TREES_MIN_ZOOM, 1] } },
+      ] : []),
       {
         id: 'street-labels', type: 'symbol', source: 'streets', 'source-layer': 'road',
         filter: ['match', ['get', 'class'], ['primary', 'secondary', 'trunk'], true, false],
@@ -72,7 +113,7 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
           'symbol-placement': 'line', 'text-field': ['upcase', ['coalesce', ['get', 'name_ru'], ['get', 'name']]],
           'text-font': FONT, 'text-size': 9, 'text-letter-spacing': 0.2, 'text-max-angle': 30,
         },
-        paint: { 'text-color': c.label, 'text-halo-color': c.land, 'text-halo-width': 1 },
+        paint: { 'text-color': c.label, 'text-halo-color': c.land, 'text-halo-width': 1, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 1] },
       },
       {
         id: 'districts', type: 'symbol', source: 'streets', 'source-layer': 'place_label',
@@ -81,7 +122,7 @@ export function mapStyle(theme: MapTheme): Record<string, unknown> {
           'text-field': ['upcase', ['coalesce', ['get', 'name_ru'], ['get', 'name']]],
           'text-font': FONT, 'text-size': 11, 'text-letter-spacing': 0.5, 'text-max-width': 12,
         },
-        paint: { 'text-color': c.district },
+        paint: { 'text-color': c.district, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 11.5, 1, 15, 1, 16, 0] },
       },
     ],
   };

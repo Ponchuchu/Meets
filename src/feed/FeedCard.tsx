@@ -2,6 +2,8 @@
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import type { EventItem, Person } from '../data/types';
 import { eventFacts } from '../event/facts';
@@ -35,6 +37,10 @@ export function FeedCard({ e, people, now, dx, stamp, height }: {
   return (
     <View style={[styles.card, { height }]} accessibilityLabel={`${e.title}. ${f.when}. ${f.place}. ${f.price}. Нажми, чтобы открыть подробности`}>
       <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={{ height: coverH }} iconSize={Math.round(coverH * 0.62)}>
+        <Svg style={styles.gloss} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
+          <Defs><LinearGradient id="cardGloss" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.22} /><Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} /></LinearGradient></Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#cardGloss)" />
+        </Svg>
         <View style={styles.cat}><Text style={styles.catText}>{CAT_LABEL[e.category]}</Text></View>
         <View style={styles.when}><Text style={styles.whenText}>{stampOf(e, now)}</Text></View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ПОЙДУ</Text></Animated.View>
@@ -73,10 +79,12 @@ function Fact({ Icon, text, bad, strong }: { Icon: typeof Clock; text: string; b
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: colors.card },
-  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: 'rgba(251,250,246,0.92)' },
+  // Жидкое стекло (FIX3 Ф12): светлая кромка сверху, блик внутри, глубокая мягкая тень; плашки на фото — полупрозрачные.
+  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
+  gloss: { position: 'absolute', left: 0, right: 0, top: 0, height: '45%' },
+  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px -4px rgba(23,22,26,0.3)' },
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
-  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: 'rgba(23,22,26,0.66)' },
+  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)' },
   whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 3, borderRadius: 12, backgroundColor: 'rgba(251,250,246,0.92)' },
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },

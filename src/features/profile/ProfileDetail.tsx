@@ -8,16 +8,16 @@ import { getEventsByIds, getMeStats, getMyAttendance, getProfile, saveProfile } 
 import { useSession } from '../../state/session';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
-import { SettingsPage, Group, Row, Note } from '../../ui/v6/Settings';
+import { SettingsPage, Group, Row } from '../../ui/v6/Settings';
 import { StickerPicker } from '../../stickers/StickerPicker';
 import { StickerView } from '../../stickers/StickerView';
 import type {Sticker} from '../../stickers/catalog';
 import {useState} from 'react';
-import { MapAvatar, MAP_FRAMES } from '../../map/MapAvatar';
+import { FramePicker } from './FramePicker';
 import { StepsCard } from './StepsCard';
-import { BADGES, badgeIcon } from '../../profile/badges';
-import { BadgeMedal } from '../../ui/BadgeMedal';
-import { plate } from '../../ui/glass';
+import AwardsPage from './AwardsPage';
+import MemoriesPage, { MemoryAlbum } from './MemoriesPage';
+import SleepoversPage from './SleepoversPage';
 
 export default function ProfileDetail() {
   const { page } = useLocalSearchParams<{ page: string }>();
@@ -25,7 +25,8 @@ export default function ProfileDetail() {
   const [frameBusy, setFrameBusy] = useState(false);
   const [frameError, setFrameError] = useState('');
   const [previewTrail, setPreviewTrail] = useState<'none'|'dots'|'comet'>('dots');
-  const [previewFrame, setPreviewFrame] = useState('classic');
+  const previewFrame = useProfile(s => s.mapFrame);
+  const previewShape = useProfile(s => s.mapShape);
   const [badge,setBadge]=useState<string|null>(null);
   const [sticker,setSticker]=useState<Sticker|null>(null);
   const live = config.dataMode !== 'demo';
@@ -45,25 +46,46 @@ export default function ProfileDetail() {
     {link && <Pressable onPress={() => void Share.share({ message: `Добавь меня в Meets: ${link}` })} style={{ padding: 18, borderRadius: 18, backgroundColor: colors.ink }}><Text style={{ color: colors.paper, textAlign: 'center', fontFamily: fonts.body700 }}>Поделиться ссылкой</Text></Pressable>}
     <Pressable onPress={()=>router.push('/scan')} style={{padding:18}}><Text style={{fontFamily:fonts.body700,color:colors.ink,textAlign:'center'}}>Сканировать QR друга</Text></Pressable>
   </SettingsPage>;
-  if (page === 'chronicle') return <SettingsPage title="Хроника" sub="События, на которых ты отметился."><Group>
-    {[...(events.data ?? [])].sort((a,b) => Date.parse(b.startsAt)-Date.parse(a.startsAt)).map((e) => <Row key={e.id} title={e.title} sub={`${new Date(e.startsAt).toLocaleDateString('ru-RU')} · ${e.venueName ?? e.address}`} onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id } })} />)}
-    {!events.data?.length && <Row title={events.isPending ? 'Загружаю…' : 'Пока пусто'} sub="Нажми «Я на месте» в карточке события — оно появится здесь" />}
-  </Group>{events.isError && <Note>Не удалось загрузить хронику. Проверь связь.</Note>}</SettingsPage>;
+  if (page === 'steps') return <SettingsPage title="Шаги" sub="Цель — 10 000 в день. Считаются сами."><StepsCard /></SettingsPage>;
+  if (page === 'awards') return <AwardsPage />;
+  if (page === 'memories' || page === 'chronicle') return <MemoriesPage />;
+  if (page?.startsWith('memory-')) return <MemoryAlbum id={page.slice(7)} />;
+  if (page === 'sleepovers') return <SleepoversPage />;
   const points = stats.data?.points ?? 0;
   const level = stats.data?.level ?? 1;
   const badges = stats.data?.badges ?? [];
-  return <SettingsPage title="Уровень и награды" sub={`Уровень ${level} · ${points} очков`}>
-    <StepsCard />
+  const nextAt = level <= 10 ? level * 1000 : 10000 + (level - 10) * 1500;
+  return <SettingsPage title={`Уровень ${level}`} sub={`${points.toLocaleString('ru-RU')} из ${nextAt.toLocaleString('ru-RU')} очков до ${level + 1}-го. Уровень открывает рамки, след и стикеры.`}>
+    <View style={{ height: 10, borderRadius: 5, backgroundColor: colors.sand, overflow: 'hidden' }}><View style={{ height: 10, width: `${Math.min(100, (points / nextAt) * 100)}%`, backgroundColor: colors.accent }} /></View>
     <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.card, gap: 16 }}>
-      <Text style={{ fontFamily: fonts.display700, fontSize: 22, color: colors.ink }}>Твой значок на карте</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>{MAP_FRAMES.map(f => <Pressable disabled={frameBusy || level < f.level} key={f.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_frame : previewFrame) === f.id, disabled: level < f.level }} onPress={async () => {
-        if (frameBusy) return; setFrameBusy(true); setFrameError('');
-        try { if (live) { await saveProfile({ map_frame: f.id }); await qc.invalidateQueries({ queryKey: ['me', 'profile'] }); } else setPreviewFrame(f.id); }
-        catch { setFrameError('Не удалось сохранить рамку. Проверь связь'); } finally { setFrameBusy(false); }
-      }} style={{ alignItems: 'center', gap: 8, opacity: level >= f.level ? 1 : 0.4 }}>
-        <MapAvatar person={{ id: 'preview', name: draft.name, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', photo: profile.data?.photo_url ?? draft.photo, isFriend: true, mapFrame: f.id }} size={64} />
-        <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>{f.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted }}>{level < f.level ? `Уровень ${f.level}` : (live ? profile.data?.map_frame : previewFrame) === f.id ? 'Выбрано' : 'Выбрать'}</Text>
-      </Pressable>)}</View>
+      <FramePicker shape={(live ? profile.data?.map_shape : previewShape) ?? 'auto'} onShape={async id => {
+          if (frameBusy) return;
+          setFrameBusy(true); setFrameError('');
+          try {
+            if (live) { await saveProfile({ map_shape: id }); await Promise.all([qc.invalidateQueries({ queryKey: ['me', 'profile'] }), qc.invalidateQueries({ queryKey: ['people'] })]); }
+            else useProfile.getState().setMapShape(id);
+          } catch { setFrameError('Не удалось сохранить форму. Проверь связь'); }
+          finally { setFrameBusy(false); }
+        }}
+        selected={(live ? profile.data?.map_frame : previewFrame) ?? 'classic'} level={level} image={profile.data?.photo_url ?? draft.photo} initial={(draft.name?.[0] ?? 'Я').toUpperCase()} busy={frameBusy} error={frameError}
+        onSelect={async id => {
+          if (frameBusy) return;
+          setFrameBusy(true); setFrameError('');
+          try {
+            if (live) {
+              await saveProfile({ map_frame: id });
+              await Promise.all([qc.invalidateQueries({ queryKey: ['me', 'profile'] }), qc.invalidateQueries({ queryKey: ['people'] })]);
+            } else useProfile.getState().setMapFrame(id);
+          } catch (e) {
+            const error = e as { code?: string; message?: string };
+            setFrameError(error.code === '23514' && error.message?.includes('map_frame')
+              ? 'Новая коллекция пока недоступна. Выбери классическую рамку.'
+              : error.message?.includes('frame-locked') ? 'Эта рамка пока закрыта. Обнови страницу с уровнем.'
+              : error.message?.includes('frame-unknown') ? 'Эта рамка появится после обновления сервера.'
+              : 'Не удалось сохранить рамку. Попробуй ещё раз.');
+          }
+          finally { setFrameBusy(false); }
+        }} />
       <Text style={{ fontFamily: fonts.body600, color: colors.ink }}>След движения</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{([{ id: 'none', name: 'Без следа', level: 1 }, { id: 'dots', name: 'Точки', level: 1 }, { id: 'comet', name: 'Комета', level: 3 }] as const).map(t => <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ selected: (live ? profile.data?.map_trail : previewTrail) === t.id, disabled: level < t.level || frameBusy }} disabled={level < t.level || frameBusy} onPress={async () => {
         setFrameBusy(true); setFrameError('');
@@ -73,19 +95,7 @@ export default function ProfileDetail() {
       {!!frameError && <Text accessibilityRole="alert" style={{ color: colors.accentText }}>{frameError}</Text>}
     </View>
     <Group><Row title="Новые места" sub="Открывай клетки города — 5 очков за каждую" /><Row title="Я на месте" sub="Отметься на событии — 30 очков" /><Row title="Друзья рядом" sub="Встречайтесь и знакомьтесь — очки начисляются за новые знакомства" /></Group>
-    <Note>Значки открываются за выполненные задания. Нажми на значок в списке, чтобы увидеть условие.</Note>
-    <View style={{ gap: 12 }}>{(badges.length ? badges : BADGES.map(b => ({ ...b, progress: 0, got: false }))).map(b => {
-      const def = BADGES.find(x => x.id === b.id);
-      return <Pressable onPress={() => setBadge(b.id)} key={b.id} accessibilityRole="button" accessibilityLabel={`${b.name}, ${b.progress} из ${b.goal}`} style={{ padding: 16, borderRadius: 22, ...plate, gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <BadgeMedal id={b.id} icon={def?.icon ?? badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={60} />
-          <View style={{ flex: 1, gap: 4 }}><Text style={{ fontFamily: fonts.display700, fontSize: 17, color: colors.ink }}>{b.name}</Text><Text style={{ fontFamily: fonts.body400, color: colors.muted, lineHeight: 18 }}>{b.how ?? def?.how ?? 'Выполни задание'}</Text></View>
-        </View>
-        <View style={{ height: 5, backgroundColor: colors.sand, borderRadius: 3, overflow: 'hidden' }}><View style={{ height: 5, width: `${Math.min(100, b.progress / Math.max(1, b.goal) * 100)}%`, backgroundColor: colors.accent }} /></View>
-        <Text style={{ fontFamily: fonts.mono600, color: colors.muted }}>{b.got ? 'Открыт' : `${Math.min(b.progress, b.goal)} / ${b.goal}`}</Text>
-      </Pressable>;
-    })}</View>
-    {badge&&<Note>{`${badges.find(b=>b.id===badge)?.name??''} · ${badges.find(b=>b.id===badge)?.how??BADGES.find(b=>b.id===badge)?.how??''}`}</Note>}
+    <Row title="Награды" sub="Медали за задания — в отдельном разделе" onPress={() => router.push('/profile/awards')} />
     {sticker&&<View style={{alignItems:'center',padding:12,backgroundColor:colors.card,borderRadius:24}}><StickerView st={sticker} size="lg"/><Text style={{fontFamily:fonts.body400,color:colors.muted}}>Отправь этот стикер другу в чате</Text></View>}
     <StickerPicker level={level} onSelect={setSticker}/>
     <Group><Row title="Стикеры «Рядом»" sub="Базовая коллекция открыта сразу" value="17" /><Row title="Стикеры «Город»" sub="Открываются на 3 уровне" value={level >= 3 ? 'Открыты' : 'Уровень 3'} /><Row title="Стикеры «После заката»" sub="Открываются на 7 уровне" value={level >= 7 ? 'Открыты' : 'Уровень 7'} /></Group>

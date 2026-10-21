@@ -1,17 +1,20 @@
+import { useChat } from '../state/chat';
 // Настоящая база для альфы v6 (ALPHA §0): только Supabase, без демо-подстановок. Ошибки уходят на экран.
 import { readPoint } from './point';
 import { supabase, withTimeout } from '../data/client';
 import { isLongEvent } from '../data/seed';
-import type { Category, EventItem } from '../data/types';
+import type { Category, EventItem, Message, MessageKind } from '../data/types';
 import { myId } from './auth';
-import { setOutboxSender } from './outbox';
+import { isNetworkError, setOutboxSender, useOutbox } from './outbox';
+import { uploadMedia, sendMessage, editMessage } from '../data/remote';
+import { queryClient } from './query';
 import { reportDb } from './net';
 
 const sb = () => supabase();
 
 async function must<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>, ms = 8000): Promise<T> {
   const { data, error } = await withTimeout(p, ms);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return data as T;
 }
 
@@ -30,11 +33,12 @@ export interface Profile {
   photo_url: string | null;
   map_trail?: 'none' | 'dots' | 'comet';
   map_frame?: string;
+  map_shape?: string;
   about: string | null;
 }
 
 export async function getProfile(id = me()): Promise<Profile | null> {
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').eq('id', id).maybeSingle());
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').eq('id', id).maybeSingle());
 }
 
 export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void> {
@@ -103,7 +107,7 @@ export async function getFriends(): Promise<Friend[]> {
   const rows = await must(sb().from('friendships').select('a,b,created_at').or(`a.eq.${id},b.eq.${id}`)) as { a: string; b: string; created_at: string }[];
   const ids = rows.map((r) => (r.a === id ? r.b : r.a));
   if (!ids.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', ids)) as Profile[];
   return profs.map((p) => ({ ...p, since: rows.find((r) => r.a === p.id || r.b === p.id)!.created_at }));
 }
 
@@ -118,25 +122,29 @@ export async function removeFriend(friendId: string): Promise<void> {
 export async function findByHandle(q: string): Promise<Profile[]> {
   const h = q.replace(/^@/, '').trim().toLowerCase();
   if (h.length < 2) return [];
-  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').ilike('handle', `${h}%`).neq('id', me()).limit(10));
+  return must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').ilike('handle', `${h}%`).neq('id', me()).limit(10));
 }
 
 /** Заявка в друзья. Встречная заявка уже есть — дружба сразу (триггер в базе). */
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function requestFriend(to: string, note?: string): Promise<void> {
-  await must(sb().from('friend_requests').upsert({ from_id: me(), to_id: to, note: note ?? null, status: 'pending' }));
+  await must(sb().rpc('send_friend_request', { other: to, request_note: note ?? null }));
+}
+
+export async function cancelFriendRequest(to: string): Promise<void> {
+  await must(sb().from('friend_requests').delete().eq('from_id', me()).eq('to_id', to).eq('status', 'pending'));
 }
 
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function answerFriend(from: string, accept: boolean): Promise<void> {
-  await must(sb().from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('from_id', from).eq('to_id', me()));
+  await must(sb().from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('from_id', from).eq('to_id', me()).select('from_id').single());
 }
 
 /** @public Друзья: экран «Добавить» (FIX1 И7). */
 export async function getFriendRequests(): Promise<(Profile & { note: string | null })[]> {
   const rows = await must(sb().from('friend_requests').select('from_id,note').eq('to_id', me()).eq('status', 'pending')) as { from_id: string; note: string | null }[];
   if (!rows.length) return [];
-  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', rows.map((r) => r.from_id))) as Profile[];
+  const profs = await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', rows.map((r) => r.from_id))) as Profile[];
   return profs.map((p) => ({ ...p, note: rows.find((r) => r.from_id === p.id)?.note ?? null }));
 }
 
@@ -235,24 +243,30 @@ export async function setAttendance(eventId: string, status: PlanStatus | null):
 
 // ——— Очередь отправок: сообщения уходят, когда появится сеть ———
 setOutboxSender(async (it) => {
-  if (it.kind !== 'message') return;
-  const p = it.payload;
-  if (p.owner && p.owner !== me()) throw new Error('auth: очередь другого аккаунта');
-  const { sendMessage, uploadMedia } = await import('../data/remote');
-  const { useOutbox } = await import('./outbox');
-  const { useChat } = await import('../state/chat');
-  const { queryClient } = await import('./query');
-  let path = typeof p.media_path === 'string' ? p.media_path : undefined;
-  if (!path && typeof p.local_media === 'string') {
-    path = await uploadMedia(it.chatId, p.local_media, (p.kind ?? 'photo') as import('../data/types').MessageKind);
-    useOutbox.getState().updatePayload(it.id, { media_path: path });
+  if (it.kind === 'edit') {
+    try { await editMessage(String(it.payload.message_id), String(it.payload.body ?? '')); }
+    catch (e) { if (!isNetworkError(e)) void queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] }); throw e; }
+    void queryClient.invalidateQueries({ queryKey: ['chats'] });
+    return;
   }
-  if (p.owner && p.owner !== me()) throw new Error('auth: аккаунт изменился');
-  await sendMessage(it.chatId, String(p.body ?? ''), (p.kind ?? 'text') as import('../data/types').MessageKind, path, typeof p.duration_s === 'number' ? p.duration_s : undefined, typeof p.event_id === 'string' ? p.event_id : undefined, it.id);
-  await queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] });
-  void queryClient.invalidateQueries({ queryKey: ['chats'] });
-  useChat.getState().unsend(it.id);
-
+  if (it.kind === 'message') {
+    const owner = me();
+    if (owner !== (it.ownerId ?? it.payload.owner)) throw new Error('auth: очередь другого аккаунта');
+    const { local_uri: localUri, local_media, owner: _owner, ...payload } = it.payload;
+    const local_uri = localUri ?? local_media;
+    if (!payload.media_path && typeof local_uri === 'string') {
+      payload.media_path = await uploadMedia(it.chatId, local_uri, payload.kind as MessageKind);
+      useChat.getState().updateMessage(it.id, { uploadedPath: String(payload.media_path) });
+      useOutbox.getState().updatePayload(it.id, payload);
+    }
+    if (me() !== owner) throw new Error('auth: аккаунт изменился');
+    await sendMessage(it.chatId, String(payload.body ?? ''), payload.kind as MessageKind, payload.media_path as string | undefined, payload.duration_s as number | undefined, payload.event_id as string | undefined, it.id, (payload.reply_to as string | undefined) ?? undefined);
+    const local = useChat.getState().sent.find(m => m.id === it.id);
+    if (local) queryClient.setQueryData<Message[]>(['messages', it.chatId], (old = []) => old.some(m => m.id === it.id) ? old : [...old, { ...local, delivery: undefined }]);
+    useChat.getState().unsend(it.id);
+    void queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] });
+    void queryClient.invalidateQueries({ queryKey: ['chats'] });
+  }
 });
 
 // ——— ТРЦ (V6Venue): пины из venues.kind = 'mall', сеансы кино — если есть в базе ———
@@ -262,10 +276,6 @@ export interface Mall { id: string; name: string; address: string | null; hours:
   kind?: string }
 
 /** Места справочника в кадре карты (docs/MAP-DATA.md). */
-export async function getPlacesInView(w: number, s: number, e: number, n: number): Promise<(Mall & { kind: string })[]> {
-  const rows = await must(sb().rpc('places_in_view', { w, s, e, n, lim: 150 })) as { id: string; name: string; kind: string; address: string | null; lat: number; lon: number }[];
-  return rows.map((r) => ({ ...r, hours: null, cover: null }));
-}
 
 export async function getMalls(): Promise<Mall[]> {
   const rows = await must(sb().from('venues').select('id,name,address,hours,cover_url,geog').eq('kind', 'mall').limit(100)) as
@@ -341,7 +351,7 @@ export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[];
     must(sb().from('company_requests').select('user_id,note').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null }[]>,
   ]);
   const ids = [...new Set([...att.map((a) => a.user_id), ...look.map((l) => l.user_id)])].filter((x) => x !== id);
-  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail').in('id', ids)) as Profile[] : [];
+  const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', ids)) as Profile[] : [];
   const friendIds = new Set(att.map((a) => a.user_id));
   return {
     friends: profs.filter((p) => friendIds.has(p.id)),
@@ -414,9 +424,14 @@ export async function getMeStats(): Promise<MeStats> {
 
 /** «Повторить» на плашке «Нет связи с сервером»: лёгкий запрос к базе (select 1). */
 export async function pingDb(): Promise<boolean> {
-  const { error } = await sb().from('events_live').select('id').limit(1);
-  reportDb(!error);
-  return !error;
+  try {
+    const { error } = await withTimeout(sb().from('events_live').select('id').limit(1));
+    if (error) throw error;
+    reportDb(true);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ——— Балл пробок (функция traffic-score раз в 10 минут) ———

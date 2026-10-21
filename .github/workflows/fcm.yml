@@ -1,0 +1,18 @@
+# Подключает ключ Firebase (FCM V1) к Expo, чтобы на Android приходили пуши.
+# Нужны секреты EXPO_TOKEN и FCM_SERVICE_ACCOUNT_JSON (docs/KEYS.md, «Пуши на Android»).
+name: Ключ пушей Android
+on:
+  workflow_dispatch:
+jobs:
+  fcm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Загрузить ключ FCM в Expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/ci/fcm-key.mjs

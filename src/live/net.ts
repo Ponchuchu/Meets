@@ -4,6 +4,8 @@
 import * as Network from 'expo-network';
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { focusManager, onlineManager } from '@tanstack/react-query';
+import { AppState, Platform } from 'react-native';
 
 interface NetState {
   online: boolean;
@@ -16,7 +18,11 @@ interface NetState {
 export const useNet = create<NetState>((set) => ({
   online: true,
   serverDown: false,
-  setOnline: (online) => set({ online }),
+  setOnline: (online) => {
+    if (!online) fails = [];
+    onlineManager.setOnline(online);
+    set({ online, ...(!online ? { serverDown: false } : {}) });
+  },
   setServerDown: (serverDown) => set({ serverDown }),
 }));
 
@@ -39,18 +45,30 @@ export function reportDb(ok: boolean, now = Date.now()) {
 
 /** Ошибка функции (маршрут, погода, пробки) или входа — не «сервер упал»: её показывает своё место. */
 export function isDbError(err: unknown): boolean {
-  const e = err as { name?: string; message?: string } | null;
+  const e = err as { name?: string; message?: string; code?: string; status?: number } | null;
   if (!e) return false;
   if (e.name?.startsWith('Functions')) return false;
-  return !/auth|JWT|permission|staff-only/i.test(String(e.message));
+  // RLS, отсутствующая миграция, пустой профиль и истёкшая сессия — ошибки конкретного запроса.
+  // Они не доказывают, что сервер недоступен.
+  if (e.status && e.status >= 400 && e.status < 500) return false;
+  if ((e.status ?? 0) >= 500 || /^(08|53|57P)|^PGRST00[0-3]$/.test(e.code ?? '')) return true;
+  if (e.code) return false;
+  return /^(timeout)$|failed to fetch|fetch failed|network request failed|networkerror|load failed|connection (refused|reset)|service unavailable|gateway timeout/i.test(e.message ?? '');
 }
 
 /** Следит за сетью всё время, пока открыто приложение (один раз в корневом layout). */
 export function useNetWatch() {
   useEffect(() => {
+    let live = true;
+    let receivedEvent = false;
     const apply = (s: Network.NetworkState) => useNet.getState().setOnline(s.isConnected !== false && s.isInternetReachable !== false);
-    Network.getNetworkStateAsync().then(apply).catch(() => undefined);
-    const sub = Network.addNetworkStateListener(apply);
-    return () => sub.remove();
+    const refresh = () => Network.getNetworkStateAsync().then(s => { if (live) apply(s); }).catch(() => undefined);
+    Network.getNetworkStateAsync().then(s => { if (live && !receivedEvent) apply(s); }).catch(() => undefined);
+    const sub = Network.addNetworkStateListener(s => { receivedEvent = true; apply(s); });
+    const app = AppState.addEventListener('change', state => {
+      if (Platform.OS !== 'web') focusManager.setFocused(state === 'active');
+      if (state === 'active') void refresh();
+    });
+    return () => { live = false; sub.remove(); app.remove(); };
   }, []);
 }

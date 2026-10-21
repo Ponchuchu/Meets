@@ -29,6 +29,7 @@ export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
   markers: MapMarker[];
+  threeD?: boolean;
   /** Сообщает, получилось ли показать настоящую карту (false — работает подложка). */
   onMode?: (mode: 'mapbox' | 'static') => void;
   /** Отступ снизу для кнопки атрибуции Mapbox — чтобы её не закрывала карточка. */
@@ -63,11 +64,14 @@ export interface MapCanvasProps {
   /** Места в кадре (с 15-го масштаба) и тап по месту. */
   places?: MapPlace[];
   onPlace?: (id: string) => void;
+  /** Неподвижная мини-карта (карточка события): без жестов, с наклоном камеры. */
+  still?: { pitch: number; heading: number };
 }
 
 export interface MapCanvasHandle {
   fitBounds?: (coords: [number, number][], padding: { top: number; right: number; bottom: number; left: number }) => void;
-  navigateTo: (lat: number, lon: number, heading: number) => void;
+  /** Камера навигатора: zoom и pitch — по скорости (FIX3), по умолчанию 17 и 60. */
+  navigateTo: (lat: number, lon: number, heading: number, zoom?: number, pitch?: number) => void;
   flyTo: (lat: number, lon: number, zoom?: number, durationMs?: number) => void;
   /** Кнопки «+» и «−»: приблизить или отдалить на шаг. */
   zoomBy: (delta: number) => void;
