@@ -54,7 +54,8 @@ export function MallPin({ m, onPress, events = 0 }: { m: Mall; onPress: () => vo
   const lift = useSharedValue(0);
   useEffect(() => {
     if (eco) return;
-    lift.set(withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }), -1, true));
+    // Несколько покачиваний при появлении и замирает в воздухе: бесконечная анимация на карте греет телефон.
+    lift.set(withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }), 5, true));
     return () => cancelAnimation(lift);
   }, [eco, lift]);
   const float = useAnimatedStyle(() => ({ transform: [{ translateY: -4 * lift.get() }] }));

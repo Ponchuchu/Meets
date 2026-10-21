@@ -1,5 +1,5 @@
 // Лёгкая погода поверх карты: дождь, снег или падающие листья — чуть-чуть, для ощущения живого города.
-// Не мешает нажатиям, выключается при «уменьшить движение».
+// Не мешает нажатиям, выключается при «уменьшить движение» и сама через ~12 с.
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
@@ -56,8 +56,13 @@ export function WeatherFx({ fx }: { fx: Fx }) {
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduce).catch(() => undefined);
   }, []);
+  // Погода показывается ~12 с после открытия карты и уходит: постоянная анимация поверх карты заставляла
+  // телефон перерисовывать её каждый кадр (на Poco — нагрев и рывки).
+  const [overFor, setOverFor] = useState<Fx>(null);
+  useEffect(() => { const t = setTimeout(() => setOverFor(fx), 12000); return () => clearTimeout(t); }, [fx]);
+  const over = !!fx && overFor === fx;
   const list = useMemo(() => (fx ? Array.from({ length: COUNT[fx] }, (_, i) => i) : []), [fx]);
-  if (!fx || reduce) return null;
+  if (!fx || reduce || over) return null;
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: fx === 'rain' ? 0.45 : 0.75 }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {list.map((i) => <Particle key={`${fx}-${i}`} kind={fx} i={i} w={width} h={height} />)}

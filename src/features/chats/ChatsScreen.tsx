@@ -13,7 +13,7 @@ import { queryClient } from '../../live/query';
 import { uid } from '../../lib/uid';
 import { isFriendNow, useSocial } from '../../state/social';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
-import { Archive, ArchiveRestore, CalendarCheck, EyeOff, Pin, PinOff } from 'lucide-react-native';
+import { Archive, ArchiveRestore, CalendarCheck, EyeOff, HouseHeart, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
 import { friendActivity, previewText } from '../../chat/activity';
 import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
@@ -53,6 +53,9 @@ export default function ChatsScreen() {
     groups: s.groups, hidden: s.hidden, hide: s.hide, pinned: s.pinned, read: s.read, requests: s.requests, sent: s.sent, togglePin: s.togglePin })));
   const social = useSocial(useShallow((s) => ({ answered: s.answered, removed: s.removed })));
   const [group, setGroup] = useState(false);
+  const [compose, setCompose] = useState(false);
+  const [who, setWho] = useState('');
+  const startGroup = (title = '') => { setCompose(false); setGroupTitle(title); setMembers([]); setGroup(true); setError(''); };
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -108,7 +111,7 @@ export default function ChatsScreen() {
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
         <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
-        <Pressable onPress={() => {setGroupTitle('');setMembers([]);setGroup(true);setError('');}} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Создать группу"><Ic d="M8 7a3 3 0 106 0 3 3 0 00-6 0M3 20v-2a6 6 0 0112 0M19 10v8M15 14h8" size={21} color={colors.ink}/></Pressable>
+        <Pressable onPress={() => setCompose(true)} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Новый чат"><SquarePen size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
@@ -253,8 +256,47 @@ export default function ChatsScreen() {
         : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
       )}
     </ScrollView>
+    {compose && <><Backdrop label="Закрыть" onPress={() => setCompose(false)}/><BottomSheet onClose={() => setCompose(false)} label="Новый чат" scroll style={{paddingBottom:24+insets.bottom}}>
+      <Text style={styles.h1}>Новый чат</Text>
+      <TextInput value={who} onChangeText={setWho} placeholder="Имя друга" placeholderTextColor={colors.muted3} accessibilityLabel="Найти друга" style={styles.search} />
+      <View style={styles.composeRow}>
+        <Pressable onPress={() => startGroup()} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+          <View style={[styles.composeIcon, { backgroundColor: colors.friend }]}><Users size={20} color="#FFFFFF" strokeWidth={2} /></View>
+          <Text style={styles.composeText}>Группа</Text>
+          <Text style={styles.composeSub}>друзья и общие планы</Text>
+        </Pressable>
+        <Pressable onPress={() => startGroup('Семья')} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+          <View style={[styles.composeIcon, { backgroundColor: colors.accent }]}><HouseHeart size={20} color={colors.ink} strokeWidth={2} /></View>
+          <Text style={styles.composeText}>Семья</Text>
+          <Text style={styles.composeSub}>куда сходить вместе</Text>
+        </Pressable>
+      </View>
+      {(() => {
+        const t = who.trim().toLowerCase();
+        const f = friends.filter(p => !t || p.name.toLowerCase().includes(t));
+        const rec = people.filter(p => !isFriendNow(p, social) && !chat.blocked[p.id] && (!t || p.name.toLowerCase().includes(t))).slice(0, 8);
+        return <>
+          {f.length > 0 && <Text style={styles.cap}>ДРУЗЬЯ</Text>}
+          {f.map(p => (
+            <Pressable key={p.id} onPress={() => { setCompose(false); open(`dm-${p.id}`); }} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Написать ${p.name}`}>
+              <Avatar p={p} size={46} /><Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{p.name}</Text><Text style={styles.write}>Написать</Text>
+            </Pressable>
+          ))}
+          {rec.length > 0 && <Text style={styles.cap}>МОГУТ БЫТЬ ЗНАКОМЫ</Text>}
+          {rec.map(p => (
+            <Pressable key={p.id} onPress={() => { setCompose(false); router.push({ pathname: '/person/[id]', params: { id: p.id } }); }} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Профиль ${p.name}`}>
+              <Avatar p={p} size={46} />
+              <View style={{ flex: 1 }}><Text style={styles.name} numberOfLines={1}>{p.name}</Text><Text style={styles.sub} numberOfLines={1}>написать можно запросом</Text></View>
+              <Text style={styles.write}>Профиль</Text>
+            </Pressable>
+          ))}
+          {!f.length && !rec.length && <Text style={styles.sub}>{t ? 'Никого не нашлось' : 'Добавь друзей — и пиши им отсюда'}</Text>}
+        </>;
+      })()}
+    </BottomSheet></>}
     {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
-      <Text style={styles.h1}>Новая группа</Text>
+      <Text style={styles.h1}>{groupTitle === 'Семья' ? 'Семья' : 'Новая группа'}</Text>
+      {groupTitle === 'Семья' && <Text style={styles.sub}>Общий чат, куда удобно кидать события на выходные — все увидят и отметят «Иду».</Text>}
       <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
       <Text style={styles.sub}>Выбери хотя бы одного друга</Text>
       <View style={{gap:4}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
@@ -299,6 +341,11 @@ const styles = StyleSheet.create({
   act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#F0C5AE' },
   actText: { flexShrink: 1, fontFamily: fonts.body600, fontSize: 11.5, color: colors.accentText },
   write: { fontFamily: fonts.body700, fontSize: 13, color: colors.friend },
+  composeRow: { flexDirection: 'row', gap: 8 },
+  composeBtn: { flex: 1, padding: 12, borderRadius: 18, ...plate, gap: 4 },
+  composeIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  composeText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  composeSub: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted },
   evIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   time: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted },
   unread: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },

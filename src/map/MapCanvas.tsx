@@ -5,7 +5,7 @@ import { useLowPowerMode } from 'expo-battery';
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
@@ -40,7 +40,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false } = props;
+  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still } = props;
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
@@ -69,7 +69,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   }, [failed, attempt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toStart = () => {
     if (!okPoint([camera.lon, camera.lat]) || !Number.isFinite(camera.zoom)) return;
-    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 });
+    if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, ...(still ? { heading: still.heading } : {}), animationDuration: 0 });
   };
   const checkCenter = (lat: number, lon: number) => {
     if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
@@ -107,7 +107,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
 
-  useEffect(() => { cam.current?.setCamera({ pitch: threeD ? TILT_PITCH : 0, animationDuration: 450 }); }, [threeD, failed]);
+  useEffect(() => { if (!still) cam.current?.setCamera({ pitch: threeD ? TILT_PITCH : 0, animationDuration: 450 }); }, [threeD, failed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (failed || !Mapbox) {
     const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
@@ -123,8 +123,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         styleJSON={styleJSON}
         preferredFramesPerSecond={lowPower ? 30 : 60}
         surfaceView={false}
-        rotateEnabled
-        pitchEnabled={threeD}
+        rotateEnabled={!still}
+        pitchEnabled={threeD && !still}
+        scrollEnabled={!still}
+        zoomEnabled={!still}
         scaleBarEnabled={false}
         compassEnabled={false}
         // Жесты (FIX1 И2 п.5): щипок, двойной тап, тап двумя пальцами, двойной тап с ведением — масштаб одним пальцем, поворот.
@@ -156,7 +158,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       >
         {/* Картинки для стиля: деревья (слои trees-* в src/map/style.ts). */}
         <M.Images images={MAP_IMAGES} />
-        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: okPoint([camera.lon, camera.lat]) ? [camera.lon, camera.lat] : [76.8897, 43.2389], zoomLevel: Number.isFinite(camera.zoom) ? camera.zoom : 12, pitch: threeD ? TILT_PITCH : 0 }} animationMode="none"
+        <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: okPoint([camera.lon, camera.lat]) ? [camera.lon, camera.lat] : [76.8897, 43.2389], zoomLevel: Number.isFinite(camera.zoom) ? camera.zoom : 12, pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, heading: still?.heading ?? 0 }} animationMode="none"
           followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
         {traffic && (
@@ -202,10 +204,12 @@ function UserLayers({ M, me, heading, arrow }: { M: RNMapbox['default']; me: { l
   const last = useSharedValue(0);
   const sent = useSharedValue<number | null>(null);
   const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png'), 'me-arrow': require('../../assets/map/arrow.png'), 'me-puck': require('../../assets/map/puck.png') }), []);
-  useFrameCallback(frame => {
-    const value = heading ? Math.round(heading.get() / 4) * 4 : null;
-    if (value != null && Number.isFinite(value) && value !== sent.get() && (sent.get() == null || frame.timestamp - last.get() >= 100)) {
-      last.set(frame.timestamp); sent.set(value); scheduleOnRN(setDirection, ((value % 360) + 360) % 360);
+  // Только когда компас действительно повернулся (шаг 4°, не чаще 10 раз в секунду). Раньше проверка шла
+  // на каждом кадре всегда, пока открыта карта, — UI-поток не засыпал, и телефон грелся.
+  useAnimatedReaction(() => (heading ? Math.round(heading.get() / 4) * 4 : null), (value) => {
+    const now = Date.now();
+    if (value != null && Number.isFinite(value) && value !== sent.get() && (sent.get() == null || now - last.get() >= 100)) {
+      last.set(now); sent.set(value); scheduleOnRN(setDirection, ((value % 360) + 360) % 360);
     }
   });
   const shape = useMemo(() => ({ type: 'Feature' as const, properties: { heading: direction ?? 0 }, geometry: { type: 'Point' as const, coordinates: [me.lon, me.lat] } }), [me.lon, me.lat, direction]);

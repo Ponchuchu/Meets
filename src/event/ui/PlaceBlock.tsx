@@ -1,8 +1,15 @@
-// Карточка события: «Где» — мини-карта места (Mapbox Static Images), название и адрес, кнопки «Маршрут» и «Скопировать»;
+// Карточка события: «Где» — мини-карта места (наша объёмная карта; в экономии — картинка Mapbox Static Images), название и адрес, кнопки «Маршрут» и «Скопировать»;
 // «Откуда событие» — сайт-источник с цветной плашкой, доменом и кнопкой «Открыть».
-import { ArrowUpRight, Copy, Navigation } from 'lucide-react-native';
-import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ArrowUpRight, Copy, MapPin, Navigation } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, InteractionManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Category } from '../../data/types';
+import { MapCanvas } from '../../map/MapCanvas';
+import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
+import type { MapMarker } from '../../map/types';
+import { useMapView } from '../../state/mapView';
+import { useEco } from '../../state/perf';
+import { Ic } from '../../ui/Ic';
 import { config } from '../../lib/config';
 import { colors, fonts } from '../../theme';
 import { plate } from '../../ui/glass';
@@ -14,16 +21,40 @@ export function staticMapUrl(lat: number, lon: number, w = 640, h = 260): string
   return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/${pin}/${lon.toFixed(5)},${lat.toFixed(5)},15.2,0/${w}x${h}@2x?logo=false&attribution=false&access_token=${config.mapboxToken}`;
 }
 
-export function PlaceBlock({ lat, lon, title, address, dist, exact, onRoute, onCopy }: {
-  lat: number; lon: number; title: string; address: string; dist?: string | null; exact: boolean; onRoute: () => void; onCopy: () => void;
+/** Мини-карта места — наша объёмная карта (тот же стиль, дома и деревья), без жестов, с наклоном.
+ *  Появляется после открытия карточки, чтобы не тормозить её анимацию. В экономии — картинка. */
+function LiveMini({ lat, lon, category }: { lat: number; lon: number; category?: Category }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => { const t = InteractionManager.runAfterInteractions(() => setOn(true)); return () => t.cancel(); }, []);
+  const markers = useMemo<MapMarker[]>(() => [{ id: 'here', lat, lon, z: 10, node: (
+    <View style={styles.pinWrap}>
+      <View style={[styles.pin, { backgroundColor: category ? CAT_COLOR[category] : colors.accent }]}>
+        {category ? <Ic d={CAT_ICON[category]} size={16} color={catFg(category)} w={2.2} /> : <MapPin size={16} color={colors.ink} strokeWidth={2.2} />}
+      </View>
+      <View style={[styles.pinTail, { borderTopColor: category ? CAT_COLOR[category] : colors.accent }]} />
+    </View>
+  ) }], [lat, lon, category]);
+  if (!on) return <View style={styles.map} />;
+  return (
+    <View style={styles.map} pointerEvents="none">
+      <MapCanvas theme="paper" camera={{ lat: lat + 0.00055, lon, zoom: 16.3 }} markers={markers} threeD still={{ pitch: 58, heading: -18 }} />
+    </View>
+  );
+}
+
+export function PlaceBlock({ lat, lon, title, address, dist, exact, category, onRoute, onCopy }: {
+  lat: number; lon: number; title: string; address: string; dist?: string | null; exact: boolean; category?: Category; onRoute: () => void; onCopy: () => void;
 }) {
   const [broken, setBroken] = useState(false);
-  const url = exact && !broken ? staticMapUrl(lat, lon) : null;
+  const eco = useEco();
+  const view3d = useMapView((v) => v.view) === '3d';
+  const live = exact && !eco && view3d && !!config.mapboxToken;
+  const url = exact && !broken && !live ? staticMapUrl(lat, lon) : null;
   return (
     <View style={styles.card}>
-      {url && (
+      {(live || url) && (
         <Pressable onPress={onRoute} accessibilityRole="button" accessibilityLabel={`Карта: ${title}. Маршрут`}>
-          <Image source={{ uri: url }} style={styles.map} resizeMethod="resize" onError={() => setBroken(true)} />
+          {live ? <LiveMini lat={lat} lon={lon} category={category} /> : <Image source={{ uri: url! }} style={styles.map} resizeMethod="resize" onError={() => setBroken(true)} />}
           {dist && <View style={styles.dist}><Text style={styles.distText}>{dist}</Text></View>}
         </Pressable>
       )}
@@ -78,7 +109,10 @@ export function SourceLink({ site, onOpen, onCopy }: { site: string; onOpen: () 
 
 const styles = StyleSheet.create({
   card: { borderRadius: 22, overflow: 'hidden', ...plate },
-  map: { width: '100%', height: 150, backgroundColor: '#D9D3C5' },
+  map: { width: '100%', height: 170, backgroundColor: '#D9D3C5', overflow: 'hidden' },
+  pinWrap: { alignItems: 'center', marginTop: -20 },
+  pin: { width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 12px -4px rgba(23,22,26,0.5)' },
+  pinTail: { width: 0, height: 0, marginTop: -2, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
   dist: { position: 'absolute', right: 10, top: 10, paddingHorizontal: 10, height: 28, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.78)', justifyContent: 'center' },
   distText: { fontFamily: fonts.mono600, fontSize: 12, color: '#FFFFFF' },
   body: { padding: 16, gap: 4 },

@@ -237,7 +237,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           {!!e.about && <AboutBlock text={e.about} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
-          <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist}
+          <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
             onRoute={() => router.push({ pathname: '/route', params: { id: e.id } })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
           {moreHere > 0 && (
