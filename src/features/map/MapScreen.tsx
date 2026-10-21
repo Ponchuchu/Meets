@@ -54,6 +54,9 @@ import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { PlacePin } from '../../map/ui/PlacePin';
+import { ATTRACTIONS, type Attraction } from '../../data/attractions';
+import { AttractionPin } from '../../map/ui/AttractionPin';
+import { AttractionCard } from '../../map/ui/AttractionCard';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
@@ -74,7 +77,7 @@ import { queryClient } from '../../live/query';
 /** Демо (тесты и web-скриншоты): один настоящий ТРЦ в центре, чтобы видеть карточку места. */
 const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. Абылай хана, 62', hours: '10:00–22:00', cover: null, lat: 43.2622, lon: 76.9447 }];
 
-type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue';
+type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue' | 'spot';
 const LIVE = config.dataMode !== 'demo';
 
 function pinKind(e: EventItem, today: number, going: boolean): PinKind {
@@ -273,6 +276,7 @@ export default function MapScreen() {
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
+  const [spotPlace, setSpotPlace] = useState<Attraction | null>(null);
   const fog = useMemo(() => (lens === 'explore' ? fogShape(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
 
@@ -370,6 +374,13 @@ export default function MapScreen() {
       list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
     }
     for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
+    // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
+    for (const a of ATTRACTIONS) {
+      const far = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
+      if (detail === 'far' && !far) continue;
+      if (a.kind === 'photo' && detail !== 'near') continue;
+      list.push({ id: `a-${a.id}`, lat: a.lat, lon: a.lon, z: 9, node: <AttractionPin a={a} label={detail === 'near'} onPress={() => { setSpotPlace(a); setSheet('spot'); }} /> });
+    }
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
@@ -563,6 +574,12 @@ export default function MapScreen() {
             <FiltersSheet f={filters} set={setFilters} reset={resetFilters} onShow={() => setSheet(null)} showText={showText} now={clock} events={upcoming} />
           </BottomSheet>
         </>
+      )}
+
+      {sheet === 'spot' && spotPlace && (
+        <View style={[styles.card, { bottom: tabPad }]}>
+          <AttractionCard key={spotPlace.id} a={spotPlace} onClose={() => setSheet(null)} />
+        </View>
       )}
 
       {sheet === 'venue' && mall && (

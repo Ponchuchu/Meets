@@ -59,7 +59,7 @@ const ADVICE: Record<Mode, string> = {
 
 export default function RouteScreen() {
   const insets = useSafeAreaInsets();
-  const { id, mode: m0 } = useLocalSearchParams<{ id: string; mode?: Mode }>();
+  const { id, mode: m0, lat: pLat, lon: pLon, title: pTitle, address: pAddr } = useLocalSearchParams<{ id: string; mode?: Mode; lat?: string; lon?: string; title?: string; address?: string }>();
   const [mode, setMode] = useState<Mode>(m0 === 'car' || m0 === 'bus' ? m0 : 'walk');
   const [follow, setFollow] = useState(false);
   const [optIdx, setOptIdx] = useState(0);
@@ -90,8 +90,14 @@ export default function RouteScreen() {
   useBackClose(back);
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const known = [...meetups, ...events].find((x) => x.id === id);
-  const detail = useQuery({ queryKey: ['event', id], queryFn: () => getEventsByIds([id]), enabled: config.dataMode !== 'demo' && !known, retry: 1 });
-  const e = known ?? detail.data?.[0];
+  const detail = useQuery({ queryKey: ['event', id], queryFn: () => getEventsByIds([id]), enabled: config.dataMode !== 'demo' && !known && !pLat, retry: 1 });
+  // Маршрут к постоянному месту (Шымбулак, боулинг…): точка из параметров, не событие из базы.
+  const spot = useMemo(() => {
+    const la = Number(pLat), lo = Number(pLon);
+    if (!pLat || !Number.isFinite(la) || !Number.isFinite(lo)) return undefined;
+    return { id, title: pTitle ?? 'Место', lat: la, lon: lo, address: pAddr ?? '', venueName: pTitle ?? null, category: 'hike', startsAt: new Date().toISOString(), endsAt: null } as unknown as NonNullable<typeof known>;
+  }, [id, pLat, pLon, pTitle, pAddr]);
+  const e = spot ?? known ?? detail.data?.[0];
 
   // «В путь»: камера за мной. Маршрут считаем один раз от точки старта, а не заново на каждом шаге.
   useEffect(() => {
@@ -199,7 +205,7 @@ export default function RouteScreen() {
           <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад"><ChevronLeft size={24} color={colors.ink} strokeWidth={2} /></Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.topSub} numberOfLines={1}>до {to}{e.address ? ` · ${e.address.split(',').slice(0, 2).join(',')}` : ''}</Text>
-            <Text style={styles.topTitle} numberOfLines={1}>{e.title} · {hm(e.startsAt)}</Text>
+            <Text style={styles.topTitle} numberOfLines={1}>{e.title}{spot ? '' : ` · ${hm(e.startsAt)}`}</Text>
           </View>
         </View>
       ) : (
