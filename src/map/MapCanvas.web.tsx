@@ -21,7 +21,10 @@ function webglOk(): boolean {
 }
 
 const asUri = (m: unknown) => (typeof m === 'string' ? m : (m as { uri?: string; default?: string })?.uri ?? (m as { default?: string })?.default ?? '');
-const WEB_IMAGES: Record<string, string> = { tree: asUri(require('../../assets/map/tree.png')), pine: asUri(require('../../assets/map/pine.png')) };
+const WEB_IMAGES: Record<string, string> = {
+  tree: asUri(require('../../assets/map/tree.png')), pine: asUri(require('../../assets/map/pine.png')),
+  'tree-gold': asUri(require('../../assets/map/tree-gold.png')), 'tree-amber': asUri(require('../../assets/map/tree-amber.png')),
+};
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
