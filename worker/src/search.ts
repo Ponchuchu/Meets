@@ -12,6 +12,7 @@ import { fetchSxodimFound } from './sites.ts';
 import { CINEMA_SITES, fetchCinemaFound } from './cinema.ts';
 import { robotLog, robotUpdate } from './robot.ts';
 import { fetchYandexFound } from './yandex.ts';
+import { EVENT_SITES, fetchEventSiteFound, type EventSite } from './eventSites.ts';
 import { isKimi, KIMI_DEFAULT_MODEL, kimiPost, type KimiMessage } from './kimi.ts';
 
 export interface Found {
@@ -51,11 +52,15 @@ export const TOPICS = [
   'спорт для зрителей и участников, забеги, велопрогулки, походы в горы, события для детей',
 ];
 
+/** Подборки «куда сходить на выходных» и городские праздники — статьи, их разбирает только ИИ (сайты без разметки событий). */
+export const CITY_TOPIC = 'подборка «куда сходить в выходные» и городские праздники, бесплатные массовые события акимата';
+const CITY_SITES: Record<string, string> = { inform: 'inform.kz', akimat: 'gov.kz/memleket/entities/almaty' };
+
 /** Сайты, на которых ИИ ищет афишу (дешевле и точнее, чем весь интернет). Меняется переменной SEARCH_SITES (через запятую). */
 export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'kassir.kz', 'kino.kz'];
 
-export function topicPrompt(topic: string, from: string, to: string, max = 6): string {
-  const sites = (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
+export function topicPrompt(topic: string, from: string, to: string, max = 6, citySites: string[] = []): string {
+  const sites = topic === CITY_TOPIC && citySites.length ? citySites.join(', ') : (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
   return `Найди через поиск до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
 Ищи на: ${sites}. Нужны дата и время, площадка, адрес, цена (нет — null). url — страница события или афиша площадки, не главная сайта. Не выдумывай, год проверяй. Не больше двух поисков, затем сразу ответ: только JSON-массив без вызовов функций ([] если пусто):
 [{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"полное описание со страницы события, до 1500 символов","url":"","source_name":"","confidence":0.8}]`;
@@ -393,7 +398,7 @@ export interface SearchReport {
 }
 export const newReport = (): SearchReport => ({ window: { from: '', to: '' }, sources: [], outside: 0, merged: 0, kept: 0, photo: 0, noPhoto: 0, siteGeo: 0, price: 0 });
 
-export const SITE_KEYS = ['yandex', 'sxodim', ...Object.keys(CINEMA_SITES)] as const;
+export const SITE_KEYS = ['yandex', 'sxodim', ...Object.keys(CINEMA_SITES), ...Object.keys(EVENT_SITES), 'inform', 'akimat'] as const;
 
 export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, now = new Date(), days = 7, topics: string[] = TOPICS, limit = 40, sources: 'sites' | 'ai' | 'all' = 'all', report: SearchReport = newReport(), sitesOn: readonly string[] = SITE_KEYS): Promise<Found[]> {
   const from = almatyDate(now), to = almatyDate(new Date(now.getTime() + days * 86400e3));
@@ -426,6 +431,7 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
       sitesOn.includes('yandex') ? grab('Яндекс Афиша', () => fetchYandexFound(from)) : Promise.resolve([] as Found[]),
       sitesOn.includes('sxodim') ? grab('Sxodim', () => fetchSxodimFound()) : Promise.resolve([] as Found[]),
       ...Object.entries(CINEMA_SITES).map(([site, config]) => sitesOn.includes(site) ? grab(config.name, () => fetchCinemaFound(site as keyof typeof CINEMA_SITES)) : Promise.resolve([] as Found[])),
+      ...Object.entries(EVENT_SITES).map(([site, config]) => sitesOn.includes(site) ? grab(config.name, () => fetchEventSiteFound(site as EventSite)) : Promise.resolve([] as Found[])),
     ]);
     const all = lists.flat();
     const inside = all.filter((f) => inWindow(f, from, to));
@@ -434,7 +440,9 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
     report.merged = inside.length - fromSites.length;
     console.error(`Сайты: после отсева дублей и дат ${fromSites.length} событий в окне ${from}…${to} (${((Date.now() - t0) / 1000).toFixed(0)} с, токенов 0).`);
   }
-  // 2. ИИ ищет дополнительно, только по заданным сайтам.
+  // 2. ИИ ищет дополнительно, только по заданным сайтам. Включены «Казинформ» или акимат — добавляется раздел подборок.
+  const citySites = Object.entries(CITY_SITES).filter(([k]) => sitesOn.includes(k)).map(([, v]) => v);
+  if (citySites.length && !topics.includes(CITY_TOPIC)) topics = [...topics, CITY_TOPIC];
   let fromAi: Found[] = [];
   if (sources !== 'sites' && !key) {
     const error = isKimi(model) ? 'Нет KIMI_API_KEY' : 'Нет GEMINI_API_KEY';
@@ -452,7 +460,7 @@ export async function runSearch(key: string | undefined, model = DEFAULT_MODEL, 
       return out;
     };
     const answers = await mapTopics(async (topic) => {
-      try { return await askModel(topicPrompt(topic, from, to), key, model); } catch (err) {
+      try { return await askModel(topicPrompt(topic, from, to, 6, citySites), key, model); } catch (err) {
         console.error(`  ✕ ${topic.split(',')[0]}: ${(err as Error).message}`);
         return { found: [] as Found[], usage: { prompt: 0, output: 0, searches: 0, sources: 0 } };
       }

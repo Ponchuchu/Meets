@@ -16,6 +16,9 @@ interface MapState {
   setFilters: (patch: Partial<MapFilters>) => void;
   resetFilters: () => void;
   select: (id: string | null) => void;
+  /** «Год в Алматы»: к какому большому событию подлететь на карте. */
+  cityFocus: string | null;
+  setCityFocus: (id: string | null) => void;
 }
 
 export const useMapState = create<MapState>((set) => ({
@@ -30,4 +33,6 @@ export const useMapState = create<MapState>((set) => ({
   setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
   resetFilters: () => set({ filters: DEFAULT_FILTERS }),
   select: (id) => set({ selectedId: id }),
+  cityFocus: null,
+  setCityFocus: (id) => set({ cityFocus: id }),
 }));

@@ -46,6 +46,14 @@ Deno.serve(async (req) => {
     for (const s of srcs ?? []) {
       const h = String(s.handle).toLowerCase();
       if (s.kind === 'telegram') telegram = true;
+      // Новые афиши (21 окт.) — раньше кино: «kino.kz/ru/concert» — концерты, а не сеансы.
+      else if (h.includes('kino.kz/ru/concert')) sites.push('kino-concert');
+      else if (h.includes('onvibe.me')) sites.push('onvibe');
+      else if (h.includes('topbilet.kz')) sites.push('topbilet');
+      else if (h.includes('portalbilet.kz')) sites.push('portalbilet');
+      else if (h.includes('gorodzovet.ru')) sites.push('gorodzovet');
+      else if (h.includes('inform.kz')) sites.push('inform');
+      else if (h.includes('gov.kz')) sites.push('akimat');
       else if (h.includes('kinopark.kz')) sites.push('kinopark');
       else if (h.includes('kinoafisha.info')) sites.push('kinoafisha');
       else if (h.includes('lyubimiigorod.ru')) sites.push('lyubimiigorod');

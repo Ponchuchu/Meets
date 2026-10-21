@@ -22,7 +22,7 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { CityPin, EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
@@ -54,6 +54,7 @@ import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { PlacePin } from '../../map/ui/PlacePin';
+import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
@@ -327,6 +328,15 @@ export default function MapScreen() {
     setSheet(null);
   }, [zoom, select]);
 
+  // Из «Года в Алматы» нажали на событие с местом — подлетаем к нему (когда карта уже готова).
+  const cityFocus = useMapState((s) => s.cityFocus);
+  useEffect(() => {
+    if (!cityFocus || mapMode !== 'mapbox') return;
+    const c = CITY_YEAR.find((x) => x.id === cityFocus);
+    if (c?.point) mapRef.current?.flyTo(c.point.lat, c.point.lon, 14.5);
+    useMapState.getState().setCityFocus(null);
+  }, [cityFocus, mapMode]);
+
   const markers: MapMarker[] = useMemo(() => {
     const groups = groupByPoint(visible);
     const list: MapMarker[] = groups.map((group) => {
@@ -353,6 +363,11 @@ export default function MapScreen() {
     if (list.length > budget) {
       const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
       list.splice(0, list.length, ...keep);
+    }
+    // «Год в Алматы»: большое событие с известным местом — на карте, когда оно идёт или до него меньше двух недель.
+    for (const c of cityYear(clock)) {
+      if (!c.e.point || (c.status !== 'now' && c.status !== 'soon')) continue;
+      list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
     }
     for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });

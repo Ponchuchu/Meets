@@ -2,7 +2,7 @@
 // дальше по дням — куда я иду: время, кто из друзей тоже, сколько ищут компанию. Тап — событие.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { CalendarDays, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
+import { CalendarDays, CalendarRange, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -130,7 +130,12 @@ export default function PlansTab() {
   return (
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 14 }}>
       <View style={styles.head}>
-        <Text style={styles.h1} accessibilityRole="header">Планы</Text>
+        <Text style={[styles.h1, { flex: 1 }]} accessibilityRole="header">Планы</Text>
+        {/* «Год в Алматы» — большие события города (21 окт.). */}
+        <Pressable onPress={() => router.push('/city-year')} style={styles.yearBtn} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
+          <CalendarRange size={18} color={colors.ink} strokeWidth={2} />
+          <Text style={styles.yearText}>Год в Алматы</Text>
+        </Pressable>
 
       </View>
 
@@ -230,6 +235,8 @@ export default function PlansTab() {
 }
 
 const styles = StyleSheet.create({
+  yearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: 22, ...plate },
+  yearText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, color: colors.ink },

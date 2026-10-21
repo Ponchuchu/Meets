@@ -193,6 +193,12 @@ const styles = StyleSheet.create({
   // вокруг нулевого якоря, а не внутри него (раньше из-за этого нажатие на друга на карте не срабатывало).
   hit: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   hitWide: { width: 120, height: 64, alignItems: 'center', justifyContent: 'center' },
+  city: { width: 56, height: 56, borderRadius: 19, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 10px 20px -6px rgba(23,22,26,0.5)', transform: [{ rotate: '-6deg' }] },
+  cityShine: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', backgroundColor: 'rgba(255,255,255,0.24)' },
+  cityTag: { alignItems: 'center', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(252,251,248,0.96)', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
+  cityTitle: { fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink, maxWidth: 150 },
+  cityWhen: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.3, color: colors.accentText },
   wave: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(240,82,31,0.16)', borderWidth: 2, borderColor: 'rgba(240,82,31,0.45)' },
   together: { flexDirection: 'row', alignItems: 'center', padding: 3, borderRadius: 30, backgroundColor: 'rgba(252,251,248,0.95)',
     boxShadow: '0 8px 18px -6px rgba(23,22,26,0.45), inset 0 1px 1px rgba(255,255,255,0.9)' },
@@ -249,5 +255,27 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
         </Tag>
       )}
     </View>
+  );
+}
+
+/** Большое событие города («Год в Алматы»): крупный значок со своей иконкой, глянцем и мягким ореолом,
+ *  под ним — название и «через 4 дня». Ореол пульсирует несколько раз при появлении и затихает. */
+export function CityPin({ title, when, color, Icon, onPress }: { title: string; when: string; color: string; Icon: import('lucide-react-native').LucideIcon; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}, ${when}`} style={styles.hitWide}>
+      <View style={styles.anchor} pointerEvents="none">
+        <Pulse size={78} color={color} />
+        <View style={[styles.city, { backgroundColor: color }]}>
+          <View style={styles.cityShine} />
+          <Icon size={26} color="#FFFFFF" strokeWidth={2.1} />
+        </View>
+        <Tag x={0} y={33} align="center">
+          <View style={styles.cityTag}>
+            <Text style={styles.cityTitle} numberOfLines={1}>{title}</Text>
+            <Text style={styles.cityWhen} numberOfLines={1}>{when}</Text>
+          </View>
+        </Tag>
+      </View>
+    </Pressable>
   );
 }

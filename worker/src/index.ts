@@ -18,6 +18,7 @@ import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
 import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
 import { geocode, type VenueRow } from './venues.ts';
+import { EVENT_SITES, type EventSite } from './eventSites.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -45,15 +46,19 @@ async function loadSearch(file: string, sourceId: string) {
 }
 
 /** Какой строке «Источников» принадлежит событие: «Яндекс Афиша» → сайт Яндекса, «Sxodim» → Sxodim, остальное — «Поиск». */
-type SiteKey = CinemaSite | 'yandex' | 'sxodim' | 'search';
+type SiteKey = CinemaSite | EventSite | 'yandex' | 'sxodim' | 'search';
 function sourceKeyOf(f: Found): SiteKey {
   const n = (f.source_name ?? '').toLowerCase();
   const cinema = Object.entries(CINEMA_SITES).find(([, c]) => c.name.toLowerCase() === n);
-  return cinema ? cinema[0] as CinemaSite : n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
+  const site = Object.entries(EVENT_SITES).find(([, c]) => c.name.toLowerCase() === n);
+  return cinema ? cinema[0] as CinemaSite : site ? site[0] as EventSite : n.includes('яндекс') || n.includes('yandex') ? 'yandex' : n.includes('sxodim') ? 'sxodim' : 'search';
 }
+/** Строка «Источников» нового сайта-афиши — по адресу её первой страницы (onvibe.me/almaty, kino.kz/ru/concert…). */
+const EVENT_HANDLES: Record<EventSite, string> = { onvibe: 'onvibe.me', topbilet: 'topbilet.kz', portalbilet: 'portalbilet.kz', gorodzovet: 'gorodzovet.ru', 'kino-concert': 'kino.kz/ru/concert' };
 const rowFor = (key: SiteKey, sources: Source[], fallback: Source): Source => {
   if (key === 'search') return fallback;
-  const cinema = key !== 'yandex' && key !== 'sxodim' ? CINEMA_SITES[key] : null;
+  if (key in EVENT_HANDLES) return sources.find(s => s.kind === 'site' && s.handle.toLowerCase().includes(EVENT_HANDLES[key as EventSite])) ?? fallback;
+  const cinema = key !== 'yandex' && key !== 'sxodim' ? CINEMA_SITES[key as CinemaSite] : null;
   const handle = cinema ? cinema.url.replace(/^https?:\/\/(?:www\.)?/, '').replace(/\/$/, '') : key;
   return sources.find(s => s.kind === 'site' && (cinema ? s.handle.toLowerCase().replace(/^www\./, '').replace(/\/$/, '') === handle : s.handle.toLowerCase().includes(key) && !s.handle.includes('/cinema'))) ?? fallback;
 };
