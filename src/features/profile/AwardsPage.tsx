@@ -1,5 +1,5 @@
 // «Награды» (FIX3 Ф8): только медали — уровень и оформление живут в «Уровне», без повторов.
-// Полученную медаль можно поставить рядом с именем (до трёх) — её увидят друзья в профиле.
+// Полученный значок можно поставить рядом с именем — один (21 окт.): его увидят друзья в профиле и чатах.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react-native';
 import { useState } from 'react';
@@ -38,7 +38,7 @@ export default function AwardsPage() {
 
   const toggle = async (a: Award) => {
     if (busy) return;
-    const next = shown.includes(a.id) ? shown.filter(x => x !== a.id) : [...shown, a.id].slice(-3);
+    const next = shown.includes(a.id) ? [] : [a.id];
     setBusy(true); setError('');
     try { await saveProfileExtras({ shown: next }); await qc.invalidateQueries({ queryKey: ['me', 'extras'] }); await qc.invalidateQueries({ queryKey: ['people'] }); }
     catch { setError('Не получилось сохранить. Проверь связь'); }
@@ -46,24 +46,23 @@ export default function AwardsPage() {
   };
 
   return (
-    <SettingsPage title="Награды" sub={`${got.length} из ${all.length}. Полученную можно поставить рядом с именем.`}>
+    <SettingsPage title="Значки" sub={`Собрано ${got.length} из ${all.length}`}>
       <View style={styles.slots}>
-        <Text style={styles.cap}>У ИМЕНИ</Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {[0, 1, 2].map(i => {
-            const id = shown[i];
-            const a = all.find(x => x.id === id);
-            return a ? (
-              <Pressable key={i} onPress={() => setOpen(a)} accessibilityRole="button" accessibilityLabel={`${a.name} у имени`}><BadgeMedal id={a.id} icon={a.icon} got size={46} /></Pressable>
-            ) : <View key={i} style={styles.slotEmpty} />;
-          })}
-        </View>
+        <Text style={styles.cap}>ЗНАЧОК У ИМЕНИ</Text>
+        {(() => {
+          const a = all.find(x => x.id === shown[0]);
+          return a ? (
+            <Pressable onPress={() => setOpen(a)} style={styles.slotRow} accessibilityRole="button" accessibilityLabel={`${a.name} у имени`}>
+              <BadgeMedal id={a.id} got size={52} /><Text style={styles.slotName}>{a.name}</Text>
+            </Pressable>
+          ) : <Text style={styles.slotHint}>Нажми на полученный значок и поставь его рядом с именем</Text>;
+        })()}
       </View>
 
       <View style={styles.grid}>
         {all.map(a => (
           <Pressable key={a.id} onPress={() => setOpen(a)} style={({ pressed }) => [styles.cell, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityLabel={`${a.name}${a.got ? ', получена' : `, ${a.progress} из ${a.goal}`}`}>
-            <BadgeMedal id={a.id} icon={a.icon} got={a.got} progress={a.progress / Math.max(1, a.goal)} size={64} />
+            <BadgeMedal id={a.id} got={a.got} progress={a.progress / Math.max(1, a.goal)} size={72} />
             <Text style={[styles.cellName, !a.got && { color: colors.muted }]} numberOfLines={2}>{a.name}</Text>
             {shown.includes(a.id) && <View style={styles.onName}><Check size={11} color={colors.paper} strokeWidth={3} /></View>}
           </Pressable>
@@ -76,7 +75,7 @@ export default function AwardsPage() {
           {open && (
             <View style={styles.sheet} accessibilityViewIsModal>
               <Pressable onPress={() => setOpen(null)} style={styles.close} accessibilityRole="button" accessibilityLabel="Закрыть"><X size={22} color={colors.ink} /></Pressable>
-              <BadgeMedal id={open.id} icon={open.icon} got={open.got} progress={open.progress / Math.max(1, open.goal)} size={120} />
+              <BadgeMedal id={open.id} got={open.got} progress={open.progress / Math.max(1, open.goal)} size={132} />
               <Text style={styles.name}>{open.name}</Text>
               <Text style={styles.how}>{open.how}</Text>
               {!open.got && (
@@ -87,7 +86,7 @@ export default function AwardsPage() {
               )}
               {open.got && (
                 <Pressable disabled={busy} onPress={() => void toggle(open)} style={[styles.btn, shown.includes(open.id) && styles.btnGhost]} accessibilityRole="button">
-                  <Text style={[styles.btnText, shown.includes(open.id) && { color: colors.ink }]}>{shown.includes(open.id) ? 'Убрать от имени' : shown.length >= 3 ? 'Поставить у имени вместо первой' : 'Поставить у имени'}</Text>
+                  <Text style={[styles.btnText, shown.includes(open.id) && { color: colors.ink }]}>{shown.includes(open.id) ? 'Убрать от имени' : shown.length ? 'Поставить у имени вместо текущего' : 'Поставить у имени'}</Text>
                 </Pressable>
               )}
               {!!error && <Text style={{ color: colors.accentText }}>{error}</Text>}
@@ -102,6 +101,9 @@ export default function AwardsPage() {
 const styles = StyleSheet.create({
   slots: { borderRadius: radii.xl - 4, ...plate, padding: 16, gap: 10, alignItems: 'center' },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
+  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'stretch', justifyContent: 'center' },
+  slotName: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
+  slotHint: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 19, color: colors.muted2, textAlign: 'center' },
   slotEmpty: { width: 46, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: { width: '31%', flexGrow: 1, alignItems: 'center', gap: 6, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 20, ...plate },

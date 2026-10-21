@@ -106,7 +106,7 @@ export default function ProfileScreen() {
   const walk = stepAwards(stepDays.data ?? [], { day: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps });
   const allBadges = [...walk, ...(s?.badges ?? [])];
   const got = allBadges.filter((b) => b.got);
-  const shown = (extras.data?.shown ?? []).slice(0, 3);
+  const shown = (extras.data?.shown ?? []).slice(0, 1);
   const friends = people.filter(x => x.isFriend);
   const friendCount = LIVE ? s?.friends ?? friends.length : friends.length;
   const albums = memories.data ?? [];
@@ -156,7 +156,7 @@ export default function ProfileScreen() {
           </Pressable>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>
-            {shown.map(id => <BadgeMedal key={id} id={id} icon={badgeIcon(id)} got size={24} />)}
+            {shown.map(id => <BadgeMedal key={id} id={id} got size={28} />)}
           </View>
           <Pressable onPress={() => router.push('/profile/awards')} hitSlop={8} accessibilityRole="button">
             <Text style={styles.handle} numberOfLines={1}>{p?.handle ? `@${p.handle}` : ''}{p?.handle && !shown.length ? ' · ' : ''}{!shown.length ? 'добавь награду к имени' : ''}</Text>
