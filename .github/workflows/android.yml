@@ -5,6 +5,12 @@ name: Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      builder:
+        description: 'Где собирать: github — бесплатно на GitHub (~40 мин), expo — облако Expo (лимит бесплатного тарифа)'
+        default: github
+        type: choice
+        options: [github, expo]
   push:
     tags: ['apk-review-*']
 permissions:
@@ -13,7 +19,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      # По тегу или без выбора — бесплатная сборка на GitHub; «expo» — облако Expo.
+      BUILDER: ${{ github.event.inputs.builder || 'github' }}
     steps:
+      - name: Освободить место для сборки Android
+        if: env.BUILDER == 'github'
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/node_modules/@aws-cdk "$AGENT_TOOLSDIRECTORY/CodeQL" || true
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -73,13 +86,36 @@ jobs:
           else
             echo "::warning::Нет секрета FCM_SERVICE_ACCOUNT_JSON — пуши на Android не придут (docs/KEYS.md, «Пуши»)"
           fi
+      - uses: actions/setup-java@v4
+        if: env.BUILDER == 'github'
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Собрать APK на GitHub (тот же ключ подписи из Expo — ставится поверх старой)
+        id: apk-local
+        if: env.BUILDER == 'github'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=2
+        run: npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output meets.apk
+      - name: Выложить APK ссылкой (GitHub Releases)
+        if: env.BUILDER == 'github' && steps.apk-local.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="apk-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" meets.apk --target "$GITHUB_SHA" --prerelease --title "Meets APK ${GITHUB_RUN_NUMBER} (${GITHUB_REF_NAME})" --notes "Сборка для телефонов: открыть на телефоне и скачать meets.apk."
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/meets.apk"
+          echo "APK: $url"
+          printf '## Meets для Android\n\n[Скачать APK](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
       - name: Собрать APK
         id: apk
+        if: env.BUILDER == 'expo'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait --json > /tmp/meets-eas-build.json
       - name: Ссылка на APK
-        if: steps.apk.outcome == 'success'
+        if: env.BUILDER == 'expo' && steps.apk.outcome == 'success'
         run: |
           node --input-type=module <<'JS'
           import { readFileSync, appendFileSync } from 'node:fs';
@@ -94,5 +130,5 @@ jobs:
         if: always() && startsWith(github.ref, 'refs/tags/apk-review-')
         env:
           RESULT_STATUS: ${{ job.status }}
-          RESULT_STAGE: ${{ steps.expo-token.outcome == 'failure' && 'expo-token' || steps.apk.outcome }}
+          RESULT_STAGE: ${{ steps.expo-token.outcome == 'failure' && 'expo-token' || (env.BUILDER == 'github' && steps.apk-local.outcome || steps.apk.outcome) }}
         run: node scripts/report-action.mjs
