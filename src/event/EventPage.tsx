@@ -34,6 +34,7 @@ import { CompanySheet, InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
 import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
+import { TicketBlock } from './ui/TicketBlock';
 import * as WebBrowser from 'expo-web-browser';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useMyPos } from '../live/location';
@@ -246,6 +247,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
             </View>
           )}
+          {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}
             onCopy={() => { void Clipboard.setStringAsync(e.sourceUrl!); show({ text: 'Ссылка скопирована' }, 2000); }} />}

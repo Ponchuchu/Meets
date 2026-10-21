@@ -2,7 +2,7 @@
 // дальше по дням — куда я иду: время, кто из друзей тоже, сколько ищут компанию. Тап — событие.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { CalendarDays, CalendarRange, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
+import { CalendarDays, CalendarRange, User, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -131,8 +131,14 @@ export default function PlansTab() {
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 14 }}>
       <View style={styles.head}>
         <Text style={[styles.h1, { flex: 1 }]} accessibilityRole="header">Планы</Text>
-        {/* «Год в Алматы» — большие события города (21 окт.). */}
-        <Pressable onPress={() => router.push('/city-year')} style={styles.yearBtn} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
+      </View>
+      {/* Куда ещё: одному развеяться и большие события города (21 окт.). */}
+      <View style={styles.extra}>
+        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.yearBtn, styles.soloBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Сходить одному">
+          <User size={18} color={colors.ink} strokeWidth={2} />
+          <Text style={styles.yearText}>Сходить одному</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/city-year')} style={({ pressed }) => [styles.yearBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
           <CalendarRange size={18} color={colors.ink} strokeWidth={2} />
           <Text style={styles.yearText}>Год в Алматы</Text>
         </Pressable>
@@ -235,7 +241,9 @@ export default function PlansTab() {
 }
 
 const styles = StyleSheet.create({
-  yearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: 22, ...plate },
+  extra: { flexDirection: 'row', gap: 8 },
+  yearBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, paddingHorizontal: 12, borderRadius: 23, ...plate },
+  soloBtn: { backgroundColor: '#F7D9C9' },
   yearText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

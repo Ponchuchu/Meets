@@ -54,9 +54,10 @@ import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { PlacePin } from '../../map/ui/PlacePin';
-import { ATTRACTIONS, type Attraction } from '../../data/attractions';
+import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
+import { getSpots } from '../../data/spots';
 import { AttractionPin } from '../../map/ui/AttractionPin';
-import { AttractionCard } from '../../map/ui/AttractionCard';
+import { SpotSheet } from '../../map/ui/SpotSheet';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
@@ -273,6 +274,9 @@ export default function MapScreen() {
     return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number }[];
   } });
   const myPlaces = placesQ.data ?? [];
+  // Постоянные места: из базы (часы и цены от сборщика), без неё — встроенный список.
+  const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
+  const places = spotsQ.data ?? ATTRACTIONS;
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
@@ -375,7 +379,7 @@ export default function MapScreen() {
     }
     for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
     // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
-    for (const a of ATTRACTIONS) {
+    for (const a of topSpots(places)) {
       const far = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
       if (detail === 'far' && !far) continue;
       if (a.kind === 'photo' && detail !== 'near') continue;
@@ -416,7 +420,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -576,11 +580,7 @@ export default function MapScreen() {
         </>
       )}
 
-      {sheet === 'spot' && spotPlace && (
-        <View style={[styles.card, { bottom: tabPad }]}>
-          <AttractionCard key={spotPlace.id} a={spotPlace} onClose={() => setSheet(null)} />
-        </View>
-      )}
+      {sheet === 'spot' && spotPlace && <SpotSheet key={spotPlace.id} a={spotPlace} all={places} onClose={() => setSheet(null)} onOpen={setSpotPlace} />}
 
       {sheet === 'venue' && mall && (
         <View style={[styles.card, { bottom: tabPad }]}>

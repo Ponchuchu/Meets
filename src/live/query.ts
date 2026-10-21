@@ -35,7 +35,7 @@ export const persister = ssr ? undefined : createAsyncStoragePersister({ storage
 /** Что сохраняем на телефон для работы без сети: ленту, чаты, сообщения, людей и свой профиль.
  *  Точки друзей, пробки, погоду, админку не сохраняем — они меняются каждые секунды, и запись всего кэша
  *  раз в 2 с (как было) нагружала телефон. */
-const KEEP = new Set(['events', 'people', 'chats', 'messages', 'me', 'person', 'invites', 'friendRequests', 'plans']);
+const KEEP = new Set(['events', 'people', 'chats', 'messages', 'me', 'person', 'invites', 'friendRequests', 'plans', 'spots']);
 export const shouldPersist = (key: readonly unknown[]) => KEEP.has(String(key[0]));
 /** Сохранённое живёт неделю (стереть раньше — Настройки → Память). */
 export const KEEP_MS = 7 * 24 * 3600e3;
