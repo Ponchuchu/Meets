@@ -56,6 +56,69 @@ export function priceFrom(v: unknown): number | null {
   return Number.isFinite(x) && x >= 100 ? x : null;
 }
 
+const DAY_RU: [RegExp, number][] = [[/^пн|^пон/i, 1], [/^вт/i, 2], [/^ср/i, 3], [/^чт|^чет/i, 4], [/^пт|^пят/i, 5], [/^сб|^суб/i, 6], [/^вс|^вос/i, 7]];
+const dayRu = (w: string) => DAY_RU.find(([re]) => re.test(w.trim()))?.[1] ?? null;
+const T = String.raw`(\d{1,2})[:.](\d{2})`;
+const tm = (h: string, m: string) => `${h.padStart(2, '0')}:${m}`;
+
+/** Текст страницы без разметки (для сайтов без schema.org: «Режим работы: ежедневно с 10:00 до 22:00, перерыв 13:00–14:00»). */
+export function pageText(html: string): string {
+  return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<br\s*\/?>|<\/(p|div|li|tr|h\d)>/gi, '\n').replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/g, ' ').replace(/&mdash;|&ndash;/g, '–').replace(/[ \t]+/g, ' ');
+}
+
+/** Часы из обычного текста: «ежедневно 10:00–22:00», «Пн–Пт с 9:00 до 18:00, Сб–Вс 10:00–20:00», «перерыв 13:00–14:00», «круглосуточно».
+ *  Берём только строки рядом со словами «режим работы / часы работы / работаем / график»: иначе это время сеансов, а не часы места. */
+export function hoursFromText(text: string): Hours | null {
+  const zone = [...text.matchAll(/(режим работы|часы работы|время работы|график работы|работаем|мы открыты)[^\n]{0,220}(\n[^\n]{0,160}){0,3}/gi)].map((m) => m[0]).join('\n');
+  if (!zone) return null;
+  const out: Hours = {};
+  const put = (d: number, a: string, b: string) => (out[String(d)] ??= []).push([a, b]);
+  if (/круглосуточно|24\/7/i.test(zone)) { for (let d = 1; d <= 7; d++) put(d, '00:00', '24:00'); }
+  const range = new RegExp(String.raw`([А-Яа-я]{2,11})\s*[-–—]\s*([А-Яа-я]{2,11})[:\s,]*(?:с\s*)?${T}\s*(?:до|[-–—])\s*${T}`, 'g');
+  for (const m of zone.matchAll(range)) {
+    const a = dayRu(m[1]), b = dayRu(m[2]);
+    if (!a || !b) continue;
+    for (let d = a; ; d = (d % 7) + 1) { put(d, tm(m[3], m[4]), tm(m[5], m[6])); if (d === b) break; }
+  }
+  if (!Object.keys(out).length) {
+    const daily = new RegExp(String.raw`(?:ежедневно|без выходных|каждый день|пн\s*[-–—]\s*вс)?[^\d\n]{0,40}?(?:с\s*)?${T}\s*(?:до|[-–—])\s*${T}`, 'i').exec(zone);
+    if (daily) for (let d = 1; d <= 7; d++) put(d, tm(daily[1], daily[2]), tm(daily[3], daily[4]));
+  }
+  if (!Object.keys(out).length) return null;
+  // Перерыв: режем каждый день на два интервала.
+  const br = new RegExp(String.raw`перерыв[^\d\n]{0,15}(?:с\s*)?${T}\s*(?:до|[-–—])\s*${T}`, 'i').exec(zone);
+  if (br) {
+    const s = tm(br[1], br[2]), e = tm(br[3], br[4]);
+    for (const d of Object.keys(out)) out[d] = out[d].flatMap(([a, b]) => (a < s && e < b ? [[a, s], [e, b]] as [string, string][] : [[a, b]] as [string, string][]));
+  }
+  // «Выходной: понедельник» / «пн — выходной».
+  const off = /(?:выходной(?: день)?[:\s–—-]*([А-Яа-я]{2,11}))|(?:([А-Яа-я]{2,11})\s*[–—-]\s*выходной)/i.exec(zone);
+  const offDay = off ? dayRu(off[1] ?? off[2] ?? '') : null;
+  for (let d = 1; d <= 7; d++) out[String(d)] ??= [];
+  if (offDay) out[String(offDay)] = [];
+  return out;
+}
+
+/** Самая низкая цена в тенге рядом со словами «цена / стоимость / билет / от». */
+export function priceFromText(text: string): number | null {
+  const all = [...text.matchAll(/(?:цена|стоимость|билет|вход|от)[^\n\d]{0,25}(\d[\d\s]{2,7})\s*(?:₸|тг|тенге|kzt)/gi)].map((m) => Number(m[1].replace(/\s/g, ''))).filter((n) => n >= 100 && n < 1e6);
+  return all.length ? Math.min(...all) : null;
+}
+
+/** Ссылки этого сайта на страницы, где обычно часы и цены. */
+export function infoLinks(html: string, base: string): string[] {
+  const host = new URL(base).host.replace(/^www\./, '');
+  const out = new Set<string>();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]{0,120}?)<\/a>/gi)) {
+    const label = m[2].replace(/<[^>]+>/g, ' ');
+    let u: URL; try { u = new URL(m[1], base); } catch { continue; }
+    if (u.host.replace(/^www\./, '') !== host) continue;
+    if (/режим|расписан|график|цен|прайс|тариф|скипасс|ski-?pass|билет|контакт|price|schedule|tariff|contact|ticket|hours/i.test(`${u.pathname} ${label}`)) out.add(`${u.origin}${u.pathname}`);
+  }
+  return [...out].slice(0, 5);
+}
+
 function ldNodes(html: string): Record<string, unknown>[] {
   const out: Record<string, unknown>[] = [];
   const walk = (v: unknown) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') { const n = v as Record<string, unknown>; out.push(n); if (n['@graph']) walk(n['@graph']); } };
@@ -71,13 +134,24 @@ async function from2gis(s: SpotRow, key: string): Promise<{ hours: Hours | null;
   return item ? { hours: hoursFrom2gis(item.schedule), gis_id: item.id ?? null } : null;
 }
 
-async function fromSite(s: SpotRow): Promise<{ hours: Hours | null; price: number | null } | null> {
+const page = async (url: string) => {
+  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(15_000), redirect: 'follow' }).catch(() => null);
+  return r?.ok ? r.text() : null;
+};
+
+/** Сайт места: сначала разметка schema.org, иначе текст главной и страниц «режим работы / цены / контакты». */
+export async function fromSite(s: Pick<SpotRow, 'info_url'>): Promise<{ hours: Hours | null; price: number | null } | null> {
   if (!s.info_url) return null;
-  const res = await fetch(s.info_url, { headers: UA, signal: AbortSignal.timeout(15_000) }).catch(() => null);
-  if (!res?.ok) return null;
-  const nodes = ldNodes(await res.text());
+  const home = await page(s.info_url);
+  if (!home) return null;
+  const nodes = ldNodes(home);
   const place = nodes.find((n) => n.openingHoursSpecification || n.openingHours) ?? nodes.find((n) => n.priceRange);
-  return place ? { hours: hoursFromLd(place), price: priceFrom(place.priceRange) } : null;
+  let hours = place ? hoursFromLd(place) : null;
+  let price = place ? priceFrom(place.priceRange) : null;
+  const texts = [pageText(home)];
+  if (!hours || !price) for (const link of infoLinks(home, s.info_url)) { const h = await page(link); if (h) texts.push(pageText(h)); await new Promise((r) => setTimeout(r, 300)); }
+  for (const t of texts) { hours ??= hoursFromText(t); price ??= priceFromText(t); }
+  return hours || price ? { hours, price } : null;
 }
 
 async function main() {
@@ -101,7 +175,9 @@ async function main() {
     if (site?.price) patch.price_from = site.price;
     const up = await fetch(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(s.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify(patch) });
     if (up.ok && (hours || site?.price)) updated++;
-    console.log(`  ${s.name}: ${hours ? 'часы' : 'без часов'}${site?.price ? `, от ${site.price} ₸` : ''}${g ? ' (2ГИС)' : ''}`);
+    const line = `Места · ${s.name} · ${hours ? 'часы найдены' : 'часов нет'}${site?.price ? ` · от ${site.price} ₸` : ''}${g?.hours ? ' (2ГИС)' : hours ? ' (сайт)' : ''}`;
+    console.log(`  ${line}`);
+    if (process.env.ROBOT_RUN_ID) await fetch(`${url}/rest/v1/robot_log`, { method: 'POST', headers: h, body: JSON.stringify({ run_id: process.env.ROBOT_RUN_ID, text: line, level: hours ? 'ok' : 'info' }) }).catch(() => undefined);
     await new Promise((r) => setTimeout(r, 400));
   }
   console.log(`Места: проверено ${spots.length}, обновлено ${updated}${dgis ? '' : ' (ключа 2ГИС нет — только сайты мест)'}`);
