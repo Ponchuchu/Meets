@@ -33,6 +33,7 @@ import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
 import { setOpenChat } from '../../live/reminders';
+import { useNet } from '../../live/net';
 import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
@@ -351,6 +352,9 @@ export default function ChatScreen() {
   const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
     : details?.online ? 'в сети' : details?.lastSeen ? details.lastSeen : friend ? 'в друзьях' : 'не в друзьях';
+  // Нет сети — «Соединение…» вместо статуса, как в Telegram.
+  const online = useNet((x) => x.online);
+  const shownStatus = online ? status : 'Соединение…';
   const openProfile = () => { if (personId) router.push({ pathname: '/person/[id]', params: { id: personId } }); else setSheet('attachments'); };
   const unreadElsewhere = allChats.reduce((n, c) => c.id === id ? n : n + (c.unread || 0), 0);
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
@@ -419,21 +423,24 @@ export default function ChatScreen() {
           <ChevronLeft size={28} color={colors.ink} strokeWidth={2.2} />
           {unreadElsewhere > 0 && <View style={styles.backBadge}><Text style={styles.backBadgeText}>{unreadElsewhere > 99 ? '99+' : unreadElsewhere}</Text></View>}
         </Pressable>
-        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button"
-          accessibilityLabel={person ? `${person.name}, ${status}. Открыть профиль` : `${title}: участники и вложения`}>
+        {/* Как в Telegram: аватар — профиль, имя — фото, видео и ссылки из чата. */}
+        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} hitSlop={4} style={({ pressed }) => [pressed && { opacity: 0.6 }]} accessibilityRole="button"
+          accessibilityLabel={person ? `${person.name}. Открыть профиль` : `${title}: участники и вложения`}>
           {person ? (
             <View>
               <Avatar p={person} size={42} />
               {details?.online && <View style={styles.onlineDot} />}
             </View>
-          ) : (
+          ) : chatMeta?.photo ? <Image source={{ uri: chatMeta.photo }} style={styles.groupIcon} /> : (
             <View style={[styles.groupIcon, { backgroundColor: isEvent ? colors.accent : colors.friend }]}>
               {isEvent ? <CalendarDays size={20} color="#FFFFFF" strokeWidth={2} /> : <Users size={20} color="#FFFFFF" strokeWidth={2} />}
             </View>
           )}
+        </Pressable>
+        <Pressable onPress={() => setSheet('attachments')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${title}, ${shownStatus}. Фото, видео и ссылки`}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            <Text style={[styles.status, details?.online && !isGroup && !isEvent && { color: colors.ok }]} numberOfLines={1}>{status}</Text>
+            <Text style={[styles.status, details?.online && !isGroup && !isEvent && online && { color: colors.ok }]} numberOfLines={1}>{shownStatus}</Text>
           </View>
         </Pressable>
         {isEvent ? (
@@ -815,7 +822,7 @@ const styles = StyleSheet.create({
   backBtn: { minWidth: 44, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4 },
   backBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   backBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: colors.paper },
-  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4 },
+  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4, paddingLeft: 10 },
   onlineDot: { position: 'absolute', right: 0, bottom: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ok, borderWidth: 2, borderColor: colors.paper },
   groupIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   menuBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
