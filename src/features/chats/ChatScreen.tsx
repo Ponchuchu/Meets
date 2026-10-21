@@ -15,6 +15,7 @@ import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { AttachmentsSheet } from '../../chat/ui/AttachmentsSheet';
+import { AttachTray } from '../../chat/ui/AttachTray';
 import { CircleRecorder, type CircleRecorderHandle } from '../../chat/ui/CircleRecorder';
 import { StickerPicker } from '../../stickers/StickerPicker';
 import { SwipeReply } from '../../chat/ui/SwipeReply';
@@ -31,7 +32,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../chat/rules';
 import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
-import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
 import { setOpenChat } from '../../live/reminders';
 import { useNet } from '../../live/net';
@@ -63,16 +63,8 @@ const ATTACH_IC = 'M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.
 const CIRCLE_IC = 'M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM12 8.2a3.8 3.8 0 100 7.6 3.8 3.8 0 000-7.6zM17.2 6.8h.01';
 const MIC_IC = 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6';
 const SEND_IC = 'M21.5 2.5L10 14M21.5 2.5l-7 19-4.5-7.5L2.5 9.5z';
-const POLL_IC = 'M5 20V10M12 20V4M19 20v-6';
-const CAM_IC = 'M4 8.5A1.5 1.5 0 015.5 7h2.3l1.7-2.5h5l1.7 2.5h2.3A1.5 1.5 0 0120 8.5v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 17.5zM12 9.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z';
-const ALBUMS = [['recent', 'Недавние'], ['photo', 'Фото'], ['video', 'Видео'], ['fav', 'Избранное']] as const;
-type Album = (typeof ALBUMS)[number][0];
 /** Время для длительности записи — вне рендера. */
 const nowMs = () => Date.now();
-const MEDIA = [
-  { id: 'a', src: 'hike', video: true, dur: '0:21' }, { id: 'b', src: 'igor2', video: false }, { id: 'c', src: 'igor3', video: true, dur: '0:12' },
-  { id: 'd', src: 'igor4', video: false }, { id: 'e', src: 'igor1', video: false }, { id: 'f', src: 'krug', video: true, dur: '0:07' },
-];
 // Демо-аккаунт Данила создан давно — правило «первые 24 часа не пишут первыми» на него не действует.
 const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
@@ -127,8 +119,6 @@ export default function ChatScreen() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editing, setEditing] = useState<Message | null>(null);
   const [menu, setMenu] = useState<Message | null>(null);
-  const [album, setAlbum] = useState<Album>('recent');
-  const [albumsOpen, setAlbumsOpen] = useState(false);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
   // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
   const [composerH, setComposerH] = useState(72);
@@ -140,7 +130,6 @@ export default function ChatScreen() {
     return () => { a.remove(); b.remove(); };
   }, []);
   const [poll, setPoll] = useState<null | { q: string; options: string[] }>(null);
-  const [picked, setPicked] = useState<string[]>(trayParam === '1' ? ['b', 'a'] : []);
   const [sheet, setSheet] = useState<null | 'person' | 'menu' | 'attachments' | 'stickers' | 'events'>(sheetParam === '1' ? 'person' : null);
   const [recording, setRecording] = useState<null | 'voice' | 'circle'>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -346,14 +335,6 @@ export default function ChatScreen() {
     setPoll(null);
     setTray(false);
   };
-  const sendPicked = () => {
-    picked.forEach((pid) => {
-      const md = MEDIA.find((x) => x.id === pid)!;
-      push({ kind: md.video ? 'video' : 'photo', media: md.src, duration: md.dur, text: '' });
-    });
-    setPicked([]);
-    setTray(false);
-  };
   const library = async () => {
     const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();
     if(!permission.granted){show({text:'Разреши доступ к фотографиям'});return;}
@@ -385,7 +366,6 @@ export default function ChatScreen() {
   const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
   const iArrived = event && arrived.some((a) => a.eventId === event.id);
-  const shownMedia = MEDIA.filter((m) => album === 'recent' || album === 'fav' ? (album === 'recent' || ['b', 'e'].includes(m.id)) : (album === 'video') === m.video);
 
   const answering = useRef(new Set<string>());
   const answerMessage = async (m: Message, answer: 'yes' | 'no') => {
@@ -436,7 +416,7 @@ export default function ChatScreen() {
     if (recording) void stopRec(false);
     else if (sheet) setSheet(null);
     else if (poll) setPoll(null);
-    else { setTray(false); setAlbumsOpen(false); }
+    else setTray(false);
   }, !!recording || !!sheet || !!poll || tray);
 
   return (
@@ -516,7 +496,7 @@ export default function ChatScreen() {
             listMetrics.current.offset = contentOffset.y;
             setAtBottom(Platform.OS === 'web' ? contentSize.height - layoutMeasurement.height - contentOffset.y < 80 : contentOffset.y < 80);
           }} scrollEventThrottle={100}
-          onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) { setTray(false); setAlbumsOpen(false); } }} />
+          onScrollBeginDrag={() => { Keyboard.dismiss(); if (tray) setTray(false); }} />
       {check.ok && !tray && !poll && (
         <View style={[styles.composer, { paddingBottom: kb ? 8 : Math.max(10, insets.bottom + 4) }]} onLayout={(ev) => setComposerH(ev.nativeEvent.layout.height)} pointerEvents="box-none">
           {/* Лента плавно уходит под капсулу: статичный градиент, без размытия. */}
@@ -551,7 +531,7 @@ export default function ChatScreen() {
             </View>
           )}
           <View style={[styles.capsule, glass]}>
-          <Pressable onPress={() => { setTray(!tray); setAlbumsOpen(false); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
+          <Pressable onPress={() => { Keyboard.dismiss(); setTray(!tray); }} style={[styles.iconBtn, tray && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Вложения: фото, видео, опрос">
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
           </Pressable>
           {recording ? (
@@ -596,59 +576,13 @@ export default function ChatScreen() {
       </View>
 
       {tray && check.ok && !poll && (
-        <Animated.View entering={SlideInDown.duration(240)} exiting={SlideOutDown.duration(180)}>
-        <View style={[styles.tray, { paddingBottom: 12 + insets.bottom }]}>
-          <SwipeDown onClose={() => { setTray(false); setAlbumsOpen(false); }}><View style={styles.grab} /></SwipeDown>
-          <ScrollView style={{ maxHeight: Math.max(96, winH - 240 - insets.bottom) }} contentContainerStyle={{ gap: 10 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
-            <Pressable onPress={() => setAlbumsOpen(!albumsOpen)} style={styles.album} accessibilityRole="button" accessibilityLabel="Выбрать альбом" accessibilityState={{ expanded: albumsOpen }}>
-              <Text style={styles.albumText}>{ALBUMS.find(([k]) => k === album)?.[1]}</Text>
-              <Ic d={albumsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} size={16} color={colors.ink} w={2.2} />
-            </Pressable>
-            <View style={{ flex: 1 }} />
-            <Pressable onPress={()=>{setTray(false);setSheet('stickers');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Стикеры</Text></Pressable>
-            <Pressable onPress={()=>{setTray(false);setSheet('events');}} style={styles.trayBtn}><Text style={styles.trayBtnText}>Событие</Text></Pressable>
-            <Pressable onPress={() => setPoll({ q: '', options: ['', ''] })} style={styles.trayBtn} accessibilityRole="button">
-              <Ic d={POLL_IC} size={16} color={colors.ink} w={2.2} /><Text style={styles.trayBtnText}>Опрос</Text>
-            </Pressable>
-            <Pressable onPress={() => { setTray(false); setAlbumsOpen(false); }} style={styles.trayClose} hitSlop={6} accessibilityRole="button" accessibilityLabel="Закрыть вложения">
-              <Ic d={IC.close} size={15} color={colors.ink} w={2.3} />
-            </Pressable>
-          </ScrollView>
-          {albumsOpen && (
-            <View style={styles.albums}>
-              {ALBUMS.map(([k, label]) => (
-                <Pressable key={k} onPress={() => { setAlbum(k); setAlbumsOpen(false); }} style={[styles.albumRow, album === k && { backgroundColor: colors.sand2 }]} accessibilityRole="menuitem">
-                  <Text style={[styles.albumText, album === k && { fontFamily: fonts.body700 }]}>{label}</Text>
-                  {album === k && <Ic d={IC.check} size={16} color={colors.ink} w={2.4} />}
-                </Pressable>
-              ))}
-            </View>
-          )}
-          <Pressable onPress={()=>void library()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Выбрать из галереи телефона"><Text style={styles.sendAllText}>Выбрать из галереи телефона</Text></Pressable>
-          {config.dataMode!=='demo' && <Pressable onPress={()=>void camera()} style={styles.sendAll} accessibilityRole="button" accessibilityLabel="Камера"><Text style={styles.sendAllText}>Снять фото</Text></Pressable>}
-          {config.dataMode==='demo' && <View style={styles.grid}>
-            <Pressable onPress={camera} style={[styles.thumb, styles.camTile]} accessibilityRole="button" accessibilityLabel="Камера">
-              <View style={styles.camLens}><Ic d={CAM_IC} size={26} color={colors.paper} w={1.8} /></View>
-              <Text style={styles.camText}>Камера</Text>
-            </Pressable>
-            {shownMedia.map((md) => {
-              const pos = picked.indexOf(md.id);
-              const on = pos >= 0;
-              return (
-                <Pressable key={md.id} onPress={() => setPicked(on ? picked.filter((x) => x !== md.id) : [...picked, md.id])} style={styles.thumb} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={md.video ? `Видео, ${md.dur}` : 'Фото'}>
-                  <Image source={photo(md.src)} style={[styles.thumbImg, { opacity: on ? 0.82 : 1 }]} />
-                  <View style={[styles.mark, on ? { backgroundColor: colors.accent } : { borderWidth: 2, borderColor: '#FFFFFF' }]}>{on && <Text style={styles.markText}>{pos + 1}</Text>}</View>
-                  {md.video && <View style={styles.vdur}><Ic d="M3 7h12v10H3zM15 10l6-3v10l-6-3z" size={10} color="#FFFFFF" w={2} /><Text style={styles.vdurText}>{md.dur}</Text></View>}
-                </Pressable>
-              );
-            })}
-          </View>}
-          </ScrollView>
-          {config.dataMode==='demo'&&<Pressable disabled={!picked.length} onPress={sendPicked} style={[styles.sendAll, !picked.length && { backgroundColor: colors.sand }]} accessibilityRole="button">
-            <Text style={[styles.sendAllText, !picked.length && { color: colors.muted3 }]}>{picked.length ? `Отправить · ${picked.length}` : 'Выбери фото или видео'}</Text>
-          </Pressable>}
-        </View>
+        <Animated.View entering={SlideInDown.duration(220)} exiting={SlideOutDown.duration(160)}>
+          <SwipeDown onClose={() => setTray(false)}><View style={styles.grab} /></SwipeDown>
+          <AttachTray height={Math.min(520, Math.max(300, winH * 0.55)) + insets.bottom}
+            onSend={(items) => { setTray(false); void (async () => { for (const a of items) push({ kind: a.video ? 'video' : 'photo', media: a.video ? a.uri : await preparePhoto(a.uri, a.width, a.height), durationS: a.duration ? Math.round(a.duration) : undefined }); })(); }}
+            onCamera={() => void camera()} onGallery={() => void library()}
+            onEvent={() => { setTray(false); setSheet('events'); }} onPoll={() => setPoll({ q: '', options: ['', ''] })}
+            onStickers={() => { setTray(false); setSheet('stickers'); }} onClose={() => setTray(false)} />
         </Animated.View>
       )}
 
