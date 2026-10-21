@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 import { LATER_MS, mayAutoAsk, noDialog, precision, shouldExplain } from '../live/accuracy';
 jest.mock('expo-location', () => ({ getForegroundPermissionsAsync: jest.fn(), getProviderStatusAsync: jest.fn() }));
-jest.mock('react-native', () => ({ Platform: { OS: 'android' }, Linking: { openSettings: jest.fn() } }));
 jest.mock('../state/storage', () => ({ deviceStorage: () => undefined }));
 
 it('системное окно Google «Повысить точность» само не всплывает', () => {
@@ -18,6 +18,8 @@ it('разрешение спрашиваем сами только раз; «Н
   expect(shouldExplain('precise', null, now)).toBe(false);
   expect(shouldExplain('none', null, now)).toBe(false);
 });
+
+beforeAll(() => { Object.defineProperty(Platform, 'OS', { get: () => 'android', configurable: true }); });
 
 it('приблизительно: «Примерно» в разрешении или выключена точность Google', async () => {
   const perm = Location.getForegroundPermissionsAsync as jest.Mock;
