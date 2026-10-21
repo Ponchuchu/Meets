@@ -2,6 +2,7 @@
 // Android: итог дня из Health Connect (туда шаги пишет сам телефон, даже когда приложение закрыто);
 // нет Health Connect — датчик шагов, пока приложение открыто. iPhone: итог дня из «Здоровья» через CoreMotion.
 // Разрешение спрашиваем сами один раз; итог раз в минуту уходит на сервер (record_daily_steps — очки за 3, 6 и 10 тысяч).
+import { isEco } from '../state/perf';
 import { Pedometer } from 'expo-sensors';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
@@ -112,7 +113,7 @@ export function useStepTracking() {
           void sync().catch(() => undefined);
         };
         await read();
-        poll = setInterval(() => void read(), 60000);
+        poll = setInterval(() => void read(), isEco() ? 180000 : 60000);
         return;
       }
       // Датчик: разрешение «Физическая активность» спрашиваем сами.
@@ -138,7 +139,7 @@ export function useStepTracking() {
         last = steps;
         useSteps.getState().record(day, base + steps);
       });
-      poll = setInterval(() => void sync().catch(() => undefined), 60000);
+      poll = setInterval(() => void sync().catch(() => undefined), isEco() ? 180000 : 60000);
       void sync().catch(() => undefined);
     };
     restart = () => void start().catch(() => undefined);

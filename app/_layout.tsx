@@ -14,7 +14,7 @@ import { Splash } from '../src/features/auth/Splash';
 import { useAuthWatch } from '../src/live/auth';
 import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
-import { persister, queryClient } from '../src/live/query';
+import { KEEP_MS, persister, queryClient, shouldPersist } from '../src/live/query';
 import { colors, fonts } from '../src/theme';
 import { installCrashHandler, recordCrash, setCrashScreen } from '../src/lib/crash';
 import { Platform, Pressable, Text, View } from 'react-native';
@@ -62,7 +62,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.paper }}>
       <SafeAreaProvider>
         {persister ? (
-          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 24 * 3600e3, buster: 'v6' }}>
+          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: KEEP_MS, buster: 'v6', dehydrateOptions: { shouldDehydrateQuery: (q) => q.state.status === 'success' && shouldPersist(q.queryKey) } }}>
             <Root />
           </PersistQueryClientProvider>
         ) : (

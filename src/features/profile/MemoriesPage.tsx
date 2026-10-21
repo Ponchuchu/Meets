@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { ImagePlus, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import type { Category } from '../../data/types';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { addMemoryPhoto, createMemory, deleteMemory, getMemories, getPastEvents, getProfileExtras, removeMemoryPhoto, saveMemoryNote, saveProfileExtras, type Memory } from '../../live/profileExtras';

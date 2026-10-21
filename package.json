@@ -102,7 +102,7 @@
     "db:bundle": "node scripts/bundle-sql.mjs",
     "icons": "node scripts/icons.mjs",
     "check:feedback": "NODE_USE_ENV_PROXY=1 node scripts/check-phone-feedback.mjs",
-    "test:db": "node scripts/test-reliability-sql.mjs && node scripts/test-frame-sql.mjs",
+    "test:db": "node scripts/test-reliability-sql.mjs && node scripts/test-frame-sql.mjs && node scripts/test-edit-sql.mjs",
     "diagnose:backend": "NODE_USE_ENV_PROXY=1 node scripts/diagnose-backend.mjs"
   },
   "private": true,

@@ -1,6 +1,7 @@
 import { QueryNotice } from '../../ui/QueryNotice';
 // «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
+import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
 import { StateView } from '../../ui/StateView';
@@ -73,7 +74,8 @@ export default function ChatsScreen() {
   const match = (c: Chat) => !q || c.title.toLowerCase().includes(q) || c.lastText.toLowerCase().includes(q);
   const last = (c: Chat) => {
     const mine = chat.sent.filter((m) => m.chatId === c.id).at(-1);
-    return mine ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true } : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine };
+    return mine ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true, tick: tickOf(mine) }
+      : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine, tick: c.lastMine ? tickOf({ createdAt: c.lastAt }, c.readUpTo) : undefined };
   };
   const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
   const list = sortChats(
@@ -195,6 +197,7 @@ export default function ChatsScreen() {
                   <View style={{ flex: 1, gap: 3 }}>
                     <View style={styles.titleRow}>
                       <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{c.title}</Text>
+                      {c.l.tick && <Tick kind={c.l.tick} color={colors.muted} />}
                       <Text style={styles.time}>{c.l.time}</Text>
                     </View>
                     <View style={styles.titleRow}>

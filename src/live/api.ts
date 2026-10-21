@@ -5,8 +5,8 @@ import { supabase, withTimeout } from '../data/client';
 import { isLongEvent } from '../data/seed';
 import type { Category, EventItem, Message, MessageKind } from '../data/types';
 import { myId } from './auth';
-import { setOutboxSender, useOutbox } from './outbox';
-import { uploadMedia, sendMessage } from '../data/remote';
+import { isNetworkError, setOutboxSender, useOutbox } from './outbox';
+import { uploadMedia, sendMessage, editMessage } from '../data/remote';
 import { queryClient } from './query';
 import { reportDb } from './net';
 
@@ -243,6 +243,12 @@ export async function setAttendance(eventId: string, status: PlanStatus | null):
 
 // ——— Очередь отправок: сообщения уходят, когда появится сеть ———
 setOutboxSender(async (it) => {
+  if (it.kind === 'edit') {
+    try { await editMessage(String(it.payload.message_id), String(it.payload.body ?? '')); }
+    catch (e) { if (!isNetworkError(e)) void queryClient.invalidateQueries({ queryKey: ['messages', it.chatId] }); throw e; }
+    void queryClient.invalidateQueries({ queryKey: ['chats'] });
+    return;
+  }
   if (it.kind === 'message') {
     const owner = me();
     if (owner !== (it.ownerId ?? it.payload.owner)) throw new Error('auth: очередь другого аккаунта');

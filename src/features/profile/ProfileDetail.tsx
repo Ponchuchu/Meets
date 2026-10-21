@@ -8,7 +8,7 @@ import { getEventsByIds, getMeStats, getMyAttendance, getProfile, saveProfile } 
 import { useSession } from '../../state/session';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
-import { SettingsPage, Group, Row, Note } from '../../ui/v6/Settings';
+import { SettingsPage, Group, Row } from '../../ui/v6/Settings';
 import { StickerPicker } from '../../stickers/StickerPicker';
 import { StickerView } from '../../stickers/StickerView';
 import type {Sticker} from '../../stickers/catalog';
@@ -18,9 +18,6 @@ import { StepsCard } from './StepsCard';
 import AwardsPage from './AwardsPage';
 import MemoriesPage, { MemoryAlbum } from './MemoriesPage';
 import SleepoversPage from './SleepoversPage';
-import { BADGES, badgeIcon } from '../../profile/badges';
-import { BadgeMedal } from '../../ui/BadgeMedal';
-import { plate } from '../../ui/glass';
 
 export default function ProfileDetail() {
   const { page } = useLocalSearchParams<{ page: string }>();

@@ -6,10 +6,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import {
   AtSign, Ban, Bell, CalendarDays, CircleHelp, Clock, Eye, Ghost, Home, Image as ImageIcon, KeyRound, Languages, LogOut, Map, MessageCircle,
-  MessagesSquare, Moon, Phone, ShieldCheck, Smartphone, Star, Sticker, Text as TextIcon, Trash2, User, Users,
+  BatteryMedium, Database, MessagesSquare, Moon, Phone, ShieldCheck, Smartphone, Star, Sticker, Text as TextIcon, Trash2, User, Users,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { deleteAccount, signOut as authSignOut } from '../../auth/service';
 import { setMapTelemetry } from '../../map/telemetry';
 import { supabase } from '../../data/client';
@@ -20,6 +20,8 @@ import { askPushPermission, savePushPref, usePushStatus, type PushState } from '
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Cap, Group, Note, Row, SettingsPage, ToggleRow } from '../../ui/v6/Settings';
+import { ecoReason, useEco, usePerf, type EcoMode } from '../../state/perf';
+import { clearData, clearMedia, memoryUse, sizeText } from '../../live/memory';
 
 const VERSION = '0.6.0';
 const maskPhone = (p?: string | null) => { const d = (p ?? '').replace(/\D/g, '').slice(-10); return d.length === 10 ? `+7 ${d.slice(0, 3)} ••• •• ${d.slice(8)}` : ''; };
@@ -58,6 +60,7 @@ export function SettingsRoot() {
   const quiet = get<string>('quiet', '23–08');
   const theme = get<string>('theme', 'system');
   const pl = places.data ?? [];
+  const eco = useEco();
   return (
     <SettingsPage title="Настройки">
       <Cap>АККАУНТ</Cap>
@@ -75,6 +78,8 @@ export function SettingsRoot() {
       </Group>
       <Cap>ЕЩЁ</Cap>
       <Group>
+        <Row Icon={BatteryMedium} title="Экономия заряда" value={eco ? 'включена' : 'выключена'} onPress={() => go('eco')} />
+        <Row Icon={Database} title="Память" onPress={() => go('memory')} />
         <Row Icon={Moon} title="Тема" value={theme === 'light' ? 'светлая' : theme === 'dark' ? 'тёмная' : 'как в системе'} onPress={() => go('theme')} />
         <Row Icon={Languages} title="Язык" value="русский" onPress={() => go('language')} />
         <Row Icon={Map} title="О карте и данных" onPress={() => go('map')} />
@@ -279,6 +284,56 @@ function BlackPage() {
   );
 }
 
+function EcoPage() {
+  const mode = usePerf((s) => s.mode);
+  const setMode = usePerf((s) => s.setMode);
+  const on = useEco();
+  const why = usePerf((s) => ecoReason(s));
+  const opts: [EcoMode, string, string][] = [
+    ['auto', 'Авто', 'сама включается при энергосбережении телефона'],
+    ['on', 'Всегда', 'приложение легче и тратит меньше заряда'],
+    ['off', 'Выключена', 'всё живое: рамки, 3D-карта, точная геолокация'],
+  ];
+  return (
+    <SettingsPage title="Экономия заряда" sub={on ? `Сейчас включена${why ? ` — ${why}` : ''}.` : 'Сейчас выключена.'}>
+      <Group>
+        {opts.map(([k, t, sub], i) => (
+          <Row key={k} title={t} sub={sub} last={i === opts.length - 1} onPress={() => setMode(k)}
+            left={<View style={[styles.radio, mode === k && styles.radioOn]}>{mode === k && <View style={styles.radioDot} />}</View>} />
+        ))}
+      </Group>
+      <Note>В экономии рамки не двигаются, карта плоская и показывает меньше точек, геолокация обновляется раз в 10 секунд, шаги — раз в 3 минуты. Сообщения и пуши работают как обычно.</Note>
+    </SettingsPage>
+  );
+}
+
+function MemoryPage() {
+  const qc = useQueryClient();
+  const use = useQuery({ queryKey: ['memoryUse'], queryFn: memoryUse, gcTime: 0, staleTime: 0 });
+  const [busy, setBusy] = useState<null | 'data' | 'media'>(null);
+  const run = (what: 'data' | 'media') => {
+    const title = what === 'data' ? 'Стереть сохранённые чаты и ленту?' : 'Стереть фото, видео и голосовые?';
+    const go = async () => {
+      setBusy(what);
+      try { await (what === 'data' ? clearData() : clearMedia()); } finally { setBusy(null); void qc.invalidateQueries({ queryKey: ['memoryUse'] }); }
+    };
+    if (Platform.OS === 'web') { void go(); return; }
+    Alert.alert(title, 'Ничего не пропадёт: всё загрузится снова, когда понадобится. Неотправленные сообщения останутся.', [
+      { text: 'Отмена', style: 'cancel' }, { text: 'Стереть', style: 'destructive', onPress: () => void go() },
+    ]);
+  };
+  const d = use.data;
+  return (
+    <SettingsPage title="Память" sub="Как в Telegram: чаты и лента сохраняются на телефоне, чтобы читать без интернета.">
+      <Group>
+        <Row Icon={MessageCircle} title="Чаты и лента" sub="сообщения, события, люди — неделю" value={busy === 'data' ? 'стираю…' : d ? sizeText(d.data) : '…'} onPress={() => run('data')} />
+        <Row Icon={ImageIcon} title="Фото, видео и голосовые" sub="загрузятся снова, когда откроешь чат" value={busy === 'media' ? 'стираю…' : d ? sizeText(d.media) : '…'} onPress={() => run('media')} last />
+      </Group>
+      <Note>{`${d ? `Всего ${sizeText(d.data + d.media)}. ` : ''}Нажми на строку, чтобы очистить. Сообщения, которые ждут интернета, не сотрутся.`}</Note>
+    </SettingsPage>
+  );
+}
+
 function ThemePage() {
   const { get, set } = useSettingsKV();
   const cur = get<string>('theme', 'system');
@@ -344,6 +399,8 @@ export function SettingsSubPage({ page }: { page: string }) {
     case 'language': return <LanguagePage />;
     case 'help': return <HelpPage />;
     case 'map': return <MapDataPage />;
+    case 'eco': return <EcoPage />;
+    case 'memory': return <MemoryPage />;
     default: return <SettingsRoot />;
   }
 }

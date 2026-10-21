@@ -162,9 +162,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         )}
         {/* Туман тоже держим постоянно: «линза» включает и выключает только данные, не источник. */}
         <M.ShapeSource id="fog" shape={(fog ?? EMPTY_FC) as never}>
-            <M.FillLayer id="fog-layer" style={{ fillColor: '#17161A', fillOpacity: 0.70, fillAntialias: false }} />
-            {/* Мягкий край открытых мест: размытая линия того же цвета, что туман (FIX1 И2 п.14). */}
-            <M.LineLayer id="fog-edge" style={{ lineColor: '#17161A', lineOpacity: 0.70, lineWidth: 26, lineBlur: 18, lineJoin: 'round' }} />
+            <M.FillLayer id="fog-layer" filter={['==', ['geometry-type'], 'Polygon'] as never} style={{ fillColor: '#17161A', fillOpacity: 0.62, fillAntialias: true }} />
+            {/* Край открытых мест — тонкая светящаяся линия цвета акцента. Ширина растёт с приближением:
+                прежняя размытая линия 26 px на мелком масштабе превращалась в «чёрную дыру из пикселей». */}
+            <M.LineLayer id="fog-glow" filter={['==', ['get', 'edge'], true] as never} style={{ lineColor: '#F0521F', lineOpacity: 0.28, lineBlur: 3, lineJoin: 'round', lineWidth: ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 7] as never }} />
+            <M.LineLayer id="fog-edge" filter={['==', ['get', 'edge'], true] as never} style={{ lineColor: '#F0521F', lineOpacity: 0.85, lineJoin: 'round', lineWidth: ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 1.6] as never }} />
         </M.ShapeSource>
         {/* Линии маршрута и друзей — один постоянный источник: слои не создаются и не удаляются при смене способа
             (на Android удаление источника во время отрисовки роняло приложение — FIX3 Ф1). */}

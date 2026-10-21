@@ -89,6 +89,8 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     const y = scrollY.get();
     return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / 470 }] } : { transform: [{ translateY: y * 0.35 }] };
   });
+  // Название на обложке тает, пока лист с подробностями наезжает на фото, — текст не налезает на плашки.
+  const titleFade = useAnimatedStyle(() => ({ opacity: Math.max(0, 1 - Math.max(0, scrollY.get()) / 170) }));
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -194,10 +196,10 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <Share2 size={20} color="#FFFFFF" strokeWidth={1.9} />
             </Pressable>
           </View>
-          <View style={styles.coverText}>
+          <Animated.View style={[styles.coverText, titleFade]}>
             <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
-          </View>
+          </Animated.View>
         </EventCover>
         </Animated.View>
 
@@ -416,7 +418,7 @@ const styles = StyleSheet.create({
   topRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   round: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(23,22,26,0.35)', alignItems: 'center', justifyContent: 'center' },
   cover: { height: 470, overflow: 'hidden', justifyContent: 'flex-end' },
-  coverText: { padding: 18, gap: 10 },
+  coverText: { padding: 18, paddingBottom: 38, gap: 10 },
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -446,7 +448,7 @@ const styles = StyleSheet.create({
   bigText: { fontFamily: fonts.display800, letterSpacing: -1.9 },
   strip: { position: 'absolute', left: 20, right: 20, bottom: 14, borderTopWidth: 1.5, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   stripText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.44, flexShrink: 1 },
-  body: { paddingTop: 16, paddingHorizontal: 18, gap: 14 },
+  body: { marginTop: -24, paddingTop: 20, paddingHorizontal: 18, gap: 14, backgroundColor: colors.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 33, color: '#FFFFFF' },
   h2: { fontFamily: fonts.display600, fontSize: 19, color: colors.ink },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },

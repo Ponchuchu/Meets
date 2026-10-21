@@ -108,6 +108,8 @@ export interface Message {
   time: string; // «18:10»
   createdAt?: string;
   delivery?: 'sending' | 'failed';
+  /** Исправлено автором — пометка «изменено». */
+  editedAt?: string;
   durationS?: number;
   uploadedPath?: string;
   media?: string | null;
@@ -137,6 +139,10 @@ export interface Chat {
   meetPoint?: string;
   members?: number;
   memberIds?: string[];
+  /** До какого времени собеседник (в группе — хоть кто-то) прочитал чат: для двух галочек. */
+  readUpTo?: string;
+  /** Время последнего сообщения (ISO) — для галочек в списке чатов. */
+  lastAt?: string;
 }
 
 export interface ChatRequest {

@@ -1,4 +1,5 @@
 import { memo, useId } from 'react';
+import { useEco } from '../state/perf';
 import { View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, Path, Text as SvgText } from 'react-native-svg';
 import { photo } from '../data/photos';
@@ -109,10 +110,11 @@ export const AvatarFrame = memo(function AvatarFrame({ frameId, photo: image, in
   /** Форма аватарки (profiles.map_shape); «auto» — своя форма рамки. */
   shape?: string | null;
 }) {
+  const eco = useEco();
   const id = `portrait-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const frame = frameById(frameId);
   const chosen = shapeOf(shapeId);
-  if (frame.fx) return <FxFrame kind={frame.fx} image={image} initial={initial} tint={tint} size={size} mapPin={mapPin} animate={animate} shape={chosen} />;
+  if (frame.fx) return <FxFrame kind={frame.fx} image={image} initial={initial} tint={tint} size={size} mapPin={mapPin} animate={animate && !eco} shape={chosen} />;
   const form = chosen === 'auto' ? OWN[frame.id] ?? 'circle' : chosen;
   const color = ring ?? frame.color;
   const outline = shapePath(form, 27);

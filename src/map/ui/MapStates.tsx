@@ -1,6 +1,7 @@
 // Состояния карты v6: «Нет интернета» (V6Offline), «Нет связи с сервером», нет геолокации (V6OfflineNoGeo),
 // неточно — круг точности (V6OfflineGps), «Где я был» — процент (V6MapLensExplore), пробки — подпись, фон — «Всё время».
-import { Navigation, WifiOff } from 'lucide-react-native';
+import { ChevronRight, Navigation, WifiOff } from 'lucide-react-native';
+import { glass } from '../../ui/glass';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -31,20 +32,21 @@ export function NoGeoCard({ onEnable, off }: { onEnable: () => void; off?: boole
   );
 }
 
-export function ExploreBadge({ pct, value }: { pct: string; value: number }) {
-  const r = 20;
+export function ExploreBadge({ pct, value, cells }: { pct: string; value: number; cells: number }) {
+  const r = 15;
   const c = 2 * Math.PI * r;
   return (
-    <View style={styles.explore} accessibilityLabel={`Открыто ${pct} города`}>
-      <Svg width={50} height={50} viewBox="0 0 50 50">
-        <Circle cx={25} cy={25} r={r} stroke="#CFC9BB" strokeWidth={5} fill="none" />
-        <Circle cx={25} cy={25} r={r} stroke={colors.accent} strokeWidth={5} fill="none" strokeLinecap="round"
-          strokeDasharray={`${Math.max(2, c * Math.min(1, value))} ${c}`} transform="rotate(-90 25 25)" />
+    <View style={[styles.explore, glass]} accessibilityLabel={`Открыто ${pct} Алматы`}>
+      <Svg width={38} height={38} viewBox="0 0 38 38">
+        <Circle cx={19} cy={19} r={r} stroke="rgba(23,22,26,0.12)" strokeWidth={4} fill="none" />
+        <Circle cx={19} cy={19} r={r} stroke={colors.accent} strokeWidth={4} fill="none" strokeLinecap="round"
+          strokeDasharray={`${Math.max(2, c * Math.min(1, value))} ${c}`} transform="rotate(-90 19 19)" />
       </Svg>
-      <View>
-        <Text style={styles.pct}>{pct.replace(' ', '')}</Text>
-        <Text style={styles.pctSub}>открыто</Text>
+      <View style={{ flexShrink: 1 }}>
+        <Text style={styles.pct}>{pct.replace(' ', '')} <Text style={styles.pctCity}>Алматы</Text></Text>
+        <Text style={styles.pctSub}>{cells ? `${cells} ${plural(cells, 'квартал', 'квартала', 'кварталов')} открыто` : 'Гуляй — туман рассеется'}</Text>
       </View>
+      <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
     </View>
   );
 }
@@ -103,9 +105,10 @@ const styles = StyleSheet.create({
   btn: { alignSelf: 'stretch', height: 54, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body700, fontSize: 16.5, color: colors.paper },
   meDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, borderWidth: 4, borderColor: '#FFFFFF' },
-  explore: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 8, paddingRight: 16, height: 66, borderRadius: 33, backgroundColor: '#EEE9DE', alignSelf: 'flex-start', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
-  pct: { fontFamily: fonts.display800, fontSize: 25, letterSpacing: -0.6, color: colors.ink, lineHeight: 28 },
-  pctSub: { fontFamily: fonts.body600, fontSize: 13, color: colors.muted2 },
+  explore: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 6, paddingRight: 12, height: 52, borderRadius: 26, alignSelf: 'flex-start' },
+  pct: { fontFamily: fonts.display800, fontSize: 18, letterSpacing: -0.4, color: colors.ink, lineHeight: 21 },
+  pctCity: { fontFamily: fonts.body600, fontSize: 13, letterSpacing: 0, color: colors.muted2 },
+  pctSub: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted },
   chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22, backgroundColor: '#EEE9DE', shadowColor: colors.ink, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   legend: { flexDirection: 'row', gap: 3 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },

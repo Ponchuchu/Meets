@@ -75,10 +75,10 @@ export function LazyEventPage({ progress, coverFrom = COVER_H, ...props }: Compo
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   cover: { flex: 1, justifyContent: 'flex-end' },
-  text: { padding: 18, gap: 10 },
+  text: { padding: 18, paddingBottom: 38, gap: 10 },
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
-  body: { paddingTop: 16, paddingHorizontal: 18, gap: 14 },
+  body: { marginTop: -24, paddingTop: 20, paddingHorizontal: 18, gap: 14, backgroundColor: colors.paper, borderTopLeftRadius: 26, borderTopRightRadius: 26 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },
   chipText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },

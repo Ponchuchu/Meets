@@ -1,4 +1,5 @@
 // Карта — вкладка по умолчанию (design/png/Main.png, MapCalendar.png, MapFilters.png).
+import { useEco } from '../../state/perf';
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -51,7 +52,7 @@ import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
-import { distM, exploredPct, fogPolygon, trafficTiles, ALMATY_CELLS } from '../../live/geo';
+import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
 import { startCamera } from '../../live/startPoint';
@@ -114,7 +115,9 @@ export default function MapScreen() {
   // 2D/3D — в «Линзах» (FIX3): кнопка на карте убрана.
   const view = useMapView((s) => s.view);
   const setView = useMapView((s) => s.setView);
-  const threeD = view === '3d';
+  // Экономия заряда: карта всегда плоская и точек меньше.
+  const eco = useEco();
+  const threeD = view === '3d' && !eco;
   const [mapMode, setMapMode] = useState<'loading' | 'static' | 'mapbox'>('loading');
   const [mapAttempt, setMapAttempt] = useState(0);
   // Первый кадр карты — сразу на мне (или центр Алматы), а не пустое поле: MapView ждёт точку ≤ 1 с.
@@ -255,7 +258,7 @@ export default function MapScreen() {
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
-  const fog = useMemo(() => (lens === 'explore' ? fogPolygon(cells) : null), [lens, cells]);
+  const fog = useMemo(() => (lens === 'explore' ? fogShape(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
 
   // Тап по другу: карта приближается к нему (он выше карточки), остальное бледнеет.
@@ -330,7 +333,7 @@ export default function MapScreen() {
       };
     });
     // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
-    const budget = pinBudget(zoom);
+    const budget = eco ? Math.max(6, Math.round(pinBudget(zoom) / 2)) : pinBudget(zoom);
     if (list.length > budget) {
       const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
       list.splice(0, list.length, ...keep);
@@ -438,7 +441,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : lens !== 'normal' ? 76 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />
 
@@ -545,8 +548,8 @@ export default function MapScreen() {
       )}
 
       {sheet === null && lens !== 'normal' && !focusId && (
-        <View style={[styles.lensInfo, lens === 'traffic' ? { top: topY + 112, bottom: undefined } : { bottom: tabPad + 12 }]} pointerEvents="box-none">
-          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
+        <View style={[styles.lensInfo, { top: topY + 112, bottom: undefined }]} pointerEvents="box-none">
+          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} cells={cells.length} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
 

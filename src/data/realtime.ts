@@ -9,6 +9,7 @@ import { isJump, type Pt } from '../live/geo';
 import { config } from '../lib/config';
 import { useAuth } from '../live/auth';
 import { AppState } from 'react-native';
+import { isEco } from '../state/perf';
 import { mapSpot } from './remote';
 import type { Message, FriendSpot } from './types';
 
@@ -39,6 +40,12 @@ export function useLiveChat(chatId: string, focused = true) {
         clearTimeout(refresh);
         refresh = setTimeout(() => void qc.invalidateQueries({ queryKey: ['chats'] }), 350);
       })
+      // Собеседник исправил сообщение — меняем текст на месте, без перезагрузки ленты.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
+        const r = payload.new as MessageRow;
+        if (!alive || !r?.id) return;
+        qc.setQueryData<Message[]>(['messages', chatId], old => old?.map(m => m.id === r.id ? { ...m, text: r.body ?? m.text, editedAt: r.edited_at ?? m.editedAt } : m));
+      })
       .subscribe(status => { if (status === 'SUBSCRIBED' && alive) { void qc.invalidateQueries({ queryKey: ['messages', chatId] }); void qc.invalidateQueries({ queryKey: ['chats'] }); } });
     return () => { alive = false; clearTimeout(refresh); void supabase().removeChannel(ch); };
   }, [chatId, qc, focused]);
@@ -52,6 +59,17 @@ export function useLiveFriends(friendIds: string[]) {
   useEffect(() => {
     if (!key) return;
     const prev = new Map<string, Pt>();
+    // Точки друзей копим и применяем пачкой раз в секунду (в экономии — раз в 3 с): каждая точка отдельно
+    // перерисовывала карту и всё, что подписано на точки друзей.
+    const pending = new Map<string, FriendSpot>();
+    let flushTimer: ReturnType<typeof setTimeout> | undefined;
+    const flush = () => {
+      flushTimer = undefined;
+      if (!pending.size) return;
+      const fresh = [...pending.values()];
+      pending.clear();
+      qc.setQueryData<FriendSpot[]>(['friendSpots'], (old = []) => [...old.filter((s) => !fresh.some((f) => f.personId === s.personId)), ...fresh]);
+    };
     const channels = key.split(',').map((id) =>
       supabase()
         .channel(`locations:${id}`, { config: { private: true } })
@@ -62,13 +80,14 @@ export function useLiveFriends(friendIds: string[]) {
           if (isJump(prev.get(id) ?? null, pt)) return;
           prev.set(id, pt);
           const spot = mapSpot({ user_id: id, lat: p.lat, lon: p.lon, speed: p.speed, heading: p.heading, updated_at: p.updated_at, status: p.status });
-          qc.setQueryData<FriendSpot[]>(['friendSpots'], (old = []) => [...old.filter((s) => s.personId !== id), spot]);
+          pending.set(id, spot);
+          flushTimer ??= setTimeout(flush, isEco() ? 3000 : 1000);
         })
         .subscribe(),
     );
     // Подписи «2 мин» стареют сами — раз в минуту перечитываем с сервера.
     const t = setInterval(() => void qc.invalidateQueries({ queryKey: ['friendSpots'] }), 60000);
-    return () => { clearInterval(t); channels.forEach((c) => void supabase().removeChannel(c)); };
+    return () => { clearInterval(t); clearTimeout(flushTimer); channels.forEach((c) => void supabase().removeChannel(c)); };
   }, [key, qc]);
 }
 

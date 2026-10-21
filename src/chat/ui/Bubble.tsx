@@ -2,7 +2,7 @@
 import { memo, useEffect, useId, useState, type ReactNode } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { photo } from '../../data/photos';
@@ -16,6 +16,7 @@ import { registerPlayback, usePlayback } from '../playback';
 import { VideoPreview } from './VideoPreview';
 import { InteractiveSticker } from '../../stickers/InteractiveSticker';
 import { vote } from '../rules';
+import { Tick, type TickKind } from './Tick';
 
 const WAVE = [6, 10, 14, 9, 16, 12, 18, 8, 13, 17, 10, 6, 12, 15, 9, 11, 7, 13, 10, 6, 9, 5];
 const PLAY = 'M8 5v14l11-7z';
@@ -65,17 +66,26 @@ function CirclePlayer({ uri, id }: { uri: string; id: string }) {
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" surfaceType="textureView" nativeControls={false} />;
 }
 
-/** Текстурный слой Android обрезается кругом; декодер создаётся только после нажатия. */
+/** Текстурный слой Android обрезается кругом; декодер создаётся только после нажатия.
+ *  Как в Telegram: нажал — кружок плавно вырастает почти на ширину экрана, пауза — возвращается. */
 function CircleVideo({ m, blurred, onReveal }: { m: Message; blurred: boolean; onReveal: () => void }) {
   const playing = usePlayback(s => s.active === m.id);
+  const { width } = useWindowDimensions();
+  const big = Math.min(300, width - 64);
+  const grow = useSharedValue(0);
+  useEffect(() => { grow.set(withTiming(playing ? 1 : 0, { duration: 260, easing: Easing.bezier(0.2, 0.9, 0.3, 1) })); }, [playing, grow]);
+  const box = useAnimatedStyle(() => { const d = 176 + (big - 176) * grow.get(); return { width: d, height: d }; });
+  const inner = useAnimatedStyle(() => { const d = 166 + (big - 176) * grow.get(); return { width: d, height: d, borderRadius: d / 2 }; });
   const tap = () => { if (blurred) onReveal(); else usePlayback.getState().play(playing ? null : m.id, !playing); };
-  return <Pressable onPress={tap} style={styles.circleWrap} accessibilityRole="button" accessibilityLabel={`Кружок, ${m.duration ?? ''}. ${playing ? 'Пауза' : 'Воспроизвести'}`}>
-    <Svg width={176} height={176} style={StyleSheet.absoluteFill}><Circle cx={88} cy={88} r={86} stroke={playing ? colors.accent : colors.ink} strokeWidth={3} fill="none" /></Svg>
-    <View style={[styles.circle, { overflow: 'hidden' }]}>
-      {blurred ? <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.ink }]} /> : playing ? <CirclePlayer uri={m.media!} id={m.id} /> : <VideoPreview id={m.id} uri={m.media!} />}
-    </View>
-    <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
-    <View style={[styles.pill, { right: 10 }]}><Text style={styles.durText}>{m.time}</Text></View>
+  return <Pressable onPress={tap} accessibilityRole="button" accessibilityLabel={`Кружок, ${m.duration ?? ''}. ${playing ? 'Пауза' : 'Воспроизвести'}`}>
+    <Animated.View style={[styles.circleWrap, box]}>
+      <Svg width="100%" height="100%" viewBox="0 0 176 176" style={StyleSheet.absoluteFill}><Circle cx={88} cy={88} r={86.5} stroke={playing ? colors.accent : colors.ink} strokeWidth={playing ? 2.4 : 3} fill="none" /></Svg>
+      <Animated.View style={[{ overflow: 'hidden' }, inner]}>
+        {blurred ? <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.ink }]} /> : playing ? <CirclePlayer uri={m.media!} id={m.id} /> : <VideoPreview id={m.id} uri={m.media!} />}
+      </Animated.View>
+      <View style={[styles.pill, { left: 10 }]}><Text style={styles.durText}>{m.duration ?? ''}</Text></View>
+      <View style={[styles.pill, { right: 10 }]}><Text style={styles.durText}>{m.time}</Text></View>
+    </Animated.View>
   </Pressable>;
 }
 
@@ -141,8 +151,8 @@ function MediaBubble({m,mine,blurred,onReveal}:{m:Message;mine:boolean;blurred:b
   </>;
 }
 
-export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onReveal, onInvite, voteState, onVote, onOpenEvent, onAvatar }: {
-  m: Message; author?: Person; mine: boolean; friendChat: boolean; showAuthor?: boolean;
+export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAuthor, revealed, onReveal, onInvite, voteState, onVote, onOpenEvent, onAvatar, tick }: {
+  m: Message; author?: Person; mine: boolean; friendChat: boolean; showAuthor?: boolean; tick?: TickKind;
   revealed: boolean; onReveal: () => void;
   onInvite?: (a: 'yes' | 'no') => void; voteState?: number; onVote?: (i: number) => void; onOpenEvent?: () => void; onAvatar?: () => void;
 }) {
@@ -165,7 +175,10 @@ export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAu
         <View style={[styles.bubble, mine ? styles.me : styles.them]}>
           {authorLine}
           <Text style={[styles.text, mine && { color: colors.paper }]}>{m.text}</Text>
-          <Text style={[styles.time, mine && { color: '#BDB8AD' }]}>{m.time}</Text>
+          <View style={styles.timeRow}>
+            <Text style={[styles.time, mine && { color: '#BDB8AD' }]}>{m.editedAt ? `изменено ${m.time}` : m.time}</Text>
+            {mine && tick && <Tick kind={tick} />}
+          </View>
         </View>,
       );
     case 'voice':
@@ -250,6 +263,7 @@ const styles = StyleSheet.create({
   themBox: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   author: { fontFamily: fonts.body700, fontSize: 13 },
   text: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.ink },
+  timeRow: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 4 },
   time: { alignSelf: 'flex-end', fontFamily: fonts.mono500, fontSize: 10, color: colors.muted },
   voice: { width: 276, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 18 },
   play: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

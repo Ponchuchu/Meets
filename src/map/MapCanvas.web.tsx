@@ -136,7 +136,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       const style = m.getStyle();
       for (const l of style?.layers ?? []) if (l.id.startsWith('line-')) m.removeLayer(l.id);
       for (const id of Object.keys(style?.sources ?? {})) if (id.startsWith('line-')) m.removeSource(id);
-      for (const id of ['traffic-layer', 'fog-edge', 'fog-layer', 'places-dot', 'places-name']) if (m.getLayer(id)) m.removeLayer(id);
+      for (const id of ['traffic-layer', 'fog-edge', 'fog-glow', 'fog-layer', 'places-dot', 'places-name']) if (m.getLayer(id)) m.removeLayer(id);
       for (const id of ['traffic', 'fog', 'places']) if (m.getSource(id)) m.removeSource(id);
       for (const l of (lines ?? []).filter(l=>l.coords.length>=2)) {
         m.addSource(`line-${l.id}`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l.coords } } });
@@ -150,8 +150,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (fog) {
         m.addSource('fog', { type: 'geojson', data: fog as never });
         const fogC = '#17161A';
-        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', paint: { 'fill-color': fogC, 'fill-opacity': 0.7, 'fill-antialias': false } });
-        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', paint: { 'line-color': fogC, 'line-opacity': 0.7, 'line-width': 18, 'line-blur': 12 }, layout: { 'line-join': 'round' } });
+        m.addLayer({ id: 'fog-layer', type: 'fill', source: 'fog', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': fogC, 'fill-opacity': 0.62 } });
+        m.addLayer({ id: 'fog-glow', type: 'line', source: 'fog', filter: ['==', ['get', 'edge'], true], paint: { 'line-color': '#F0521F', 'line-opacity': 0.28, 'line-blur': 3, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 7] }, layout: { 'line-join': 'round' } });
+        m.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', filter: ['==', ['get', 'edge'], true], paint: { 'line-color': '#F0521F', 'line-opacity': 0.85, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 15, 1.6] }, layout: { 'line-join': 'round' } });
       }
       if (places.length) {
         m.addSource('places', { type: 'geojson', data: placesGeo(places) as never });

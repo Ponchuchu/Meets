@@ -12,7 +12,7 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60e3,
-      gcTime: 24 * 3600e3, // кэш живёт сутки — столько же хранит persister
+      gcTime: 7 * 24 * 3600e3, // кэш живёт неделю — столько же хранит persister (KEEP_MS)
       retry: (n, err) => n < 2 && isDbError(err),
       networkMode: 'offlineFirst',
     },
@@ -29,4 +29,13 @@ queryClient.getQueryCache().subscribe((e) => {
   else if (isDbError(e.action.error)) reportDb(false);
 });
 
-export const persister = ssr ? undefined : createAsyncStoragePersister({ storage: AsyncStorage, key: 'ryadom-cache-v6', throttleTime: 2000 });
+export const CACHE_KEY = 'ryadom-cache-v6';
+export const persister = ssr ? undefined : createAsyncStoragePersister({ storage: AsyncStorage, key: CACHE_KEY, throttleTime: 5000 });
+
+/** Что сохраняем на телефон для работы без сети: ленту, чаты, сообщения, людей и свой профиль.
+ *  Точки друзей, пробки, погоду, админку не сохраняем — они меняются каждые секунды, и запись всего кэша
+ *  раз в 2 с (как было) нагружала телефон. */
+const KEEP = new Set(['events', 'people', 'chats', 'messages', 'me', 'person', 'invites', 'friendRequests', 'plans']);
+export const shouldPersist = (key: readonly unknown[]) => KEEP.has(String(key[0]));
+/** Сохранённое живёт неделю (стереть раньше — Настройки → Память). */
+export const KEEP_MS = 7 * 24 * 3600e3;

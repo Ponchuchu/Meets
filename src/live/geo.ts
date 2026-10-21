@@ -152,5 +152,15 @@ export function fogPolygon(cells: string[]): { type: 'Feature'; properties: Reco
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [outer, ...holes] } };
 }
 
+/** Туман для карты: вуаль (Polygon с дырками) + края открытых мест отдельной линией (без внешней рамки вуали). */
+export function fogShape(cells: string[]) {
+  const veil = fogPolygon(cells);
+  const holes = veil.geometry.coordinates.slice(1);
+  return { type: 'FeatureCollection' as const, features: [
+    veil,
+    ...(holes.length ? [{ type: 'Feature' as const, properties: { edge: true }, geometry: { type: 'MultiLineString' as const, coordinates: holes } }] : []),
+  ] };
+}
+
 /** Плитки пробок TomTom (Traffic Flow, относительная скорость). Нет ключа — слоя нет. */
 export const trafficTiles = (key: string) => (key ? `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${key}&tileSize=256` : null);

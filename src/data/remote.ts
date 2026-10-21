@@ -32,6 +32,7 @@ export interface ProfileRow {
 
 export interface MessageRow {
   client_key?: string | null;
+  edited_at?: string | null;
   id: string;
   chat_id: string;
   author_id: string | null;
@@ -86,6 +87,7 @@ export function mapMessage(r: MessageRow, me: string): Message {
     duration: r.duration_s != null ? secs(r.duration_s) : undefined,
     eventId: r.event_id ?? undefined,
     replyTo: r.reply_to ?? undefined,
+    editedAt: r.edited_at ?? undefined,
     sub: r.kind === 'invite' ? r.author_id === me ? 'Ты пригласил · нажми, чтобы открыть' : 'Приглашает тебя · нажми, чтобы открыть' : undefined,
   };
 }
@@ -170,14 +172,18 @@ export async function getChats(): Promise<Chat[]> {
   const ids = rows.map((r) => r.chat_id);
   if (!ids.length) return [];
   const [memberResult, lastResult] = await Promise.all([
-    withTimeout(supabase().from('chat_members').select('chat_id,user_id').in('chat_id', ids)),
+    withTimeout(supabase().from('chat_members').select('chat_id,user_id,last_read_at').in('chat_id', ids)),
     withTimeout(supabase().rpc('my_chat_summaries')),
   ]);
   if (memberResult.error) throw memberResult.error;
   if (lastResult.error) throw lastResult.error;
   const members = memberResult.data, last = lastResult.data;
   const byChat = new Map<string, string[]>();
-  (members as { chat_id: string; user_id: string }[] | null)?.forEach((m) => byChat.set(m.chat_id, [...(byChat.get(m.chat_id) ?? []), m.user_id]));
+  const readBy = new Map<string, string>();
+  (members as { chat_id: string; user_id: string; last_read_at?: string | null }[] | null)?.forEach((m) => {
+    byChat.set(m.chat_id, [...(byChat.get(m.chat_id) ?? []), m.user_id]);
+    if (m.user_id !== me && m.last_read_at && Date.parse(m.last_read_at) > Date.parse(readBy.get(m.chat_id) ?? '1970-01-01')) readBy.set(m.chat_id, m.last_read_at);
+  });
   const people = new Map((await profiles([...new Set([...byChat.values()].flat())])).map((p) => [p.id, p]));
   const msgs = (last as (MessageRow & { unread: number })[] | null) ?? [];
   return rows.map((r) => {
@@ -200,13 +206,15 @@ export async function getChats(): Promise<Chat[]> {
       meetPoint: r.chats.meet_point ?? undefined,
       members: direct ? undefined : others.length + 1,
       memberIds: direct ? undefined : others,
+      readUpTo: readBy.get(r.chat_id),
+      lastAt: top?.created_at,
     };
   });
 }
 
 export async function getMessages(chatId: string, before?: { at: string; id: string }, attachment?: 'media' | 'voice' | 'links'): Promise<Message[]> {
   const me = await requireUser();
-  let query = supabase().from('messages').select('id,chat_id,author_id,kind,body,media_path,duration_s,event_id,reply_to,created_at').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100);
+  let query = supabase().from('messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100);
   if (before) query = query.or(`created_at.lt.${before.at},and(created_at.eq.${before.at},id.lt.${before.id})`);
   if (attachment === 'media') query = query.in('kind', ['photo', 'video', 'circle']);
   if (attachment === 'voice') query = query.eq('kind', 'voice');
@@ -265,6 +273,13 @@ export async function sendMessage(chatId: string, body: string, kind: MessageKin
     const check = await withTimeout(supabase().from('messages').select('id').eq('id', messageId).eq('chat_id', chatId).eq('author_id', me).maybeSingle());
     if (!check.error && check.data) return;
   }
+  if (error) throw error;
+}
+
+/** Исправить свой текст (до 48 часов после отправки — проверяет сервер, миграция 34). */
+export async function editMessage(id: string, body: string): Promise<void> {
+  await requireUser();
+  const { error } = await withTimeout(supabase().from('messages').update({ body }).eq('id', id));
   if (error) throw error;
 }
 

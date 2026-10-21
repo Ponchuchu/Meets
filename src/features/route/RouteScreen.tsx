@@ -183,7 +183,7 @@ export default function RouteScreen() {
   const controlsTop = Math.max(headTop + 84, size.h - size.sheet - 218);
 
   return (
-    <View style={styles.root} onLayout={(ev) => setSize((s) => ({ ...s, h: ev.nativeEvent.layout.height }))}>
+    <View style={styles.root} onLayout={(ev) => { const h = ev.nativeEvent.layout.height; setSize((s) => (s.h === h ? s : { ...s, h })); }}>
       {mountMap && <MapCanvas ref={mapRef} threeD={false} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
         me={me} meHeading={heading} meArrow={follow} bottomInset={size.sheet + 8} topInset={headTop + 80} />}
 
@@ -231,7 +231,7 @@ export default function RouteScreen() {
         </View>
       )}
 
-      <View style={[styles.sheet, glass, { bottom: Math.max(10, insets.bottom) }]} onLayout={(ev) => setSize((s) => ({ ...s, sheet: ev.nativeEvent.layout.height }))}>
+      <View style={[styles.sheet, glass, { bottom: Math.max(10, insets.bottom) }]} onLayout={(ev) => { const sheet = ev.nativeEvent.layout.height; setSize((s) => (s.sheet === sheet ? s : { ...s, sheet })); }}>
         {follow ? (
           <View style={styles.navBar}>
             <View style={styles.navStat}>
