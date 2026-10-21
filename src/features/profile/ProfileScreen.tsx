@@ -4,7 +4,7 @@
 // «Мои места» и «Ночёвки». «События и встречи» и «Хроника» убраны: прошедшие события живут в «Воспоминаниях».
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { BedDouble, ChevronRight, Code2, Footprints, Home, ImagePlus, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
@@ -41,7 +41,9 @@ const DEMO_STATS = { friends: 4, level: 3, points: 2140, cells: Array.from({ len
 const useStill = create<{ still: boolean }>(() => ({ still: false }));
 function HeroFrame(props: { frameId?: string | null; shape?: string | null; photo?: string | null; initial: string }) {
   const still = useStill((s) => s.still);
-  return <AvatarFrame {...props} size={128} animate={!still} />;
+  // Вкладка скрыта — рамка не крутится: замороженный экран всё равно гонял анимацию на каждом кадре.
+  const focused = useIsFocused();
+  return <AvatarFrame {...props} size={128} animate={!still && focused} />;
 }
 
 const Ring = memo(function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {

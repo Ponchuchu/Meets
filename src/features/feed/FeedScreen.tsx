@@ -23,7 +23,7 @@ import { pickSpots, spotCard, weekOf, withSpots } from '../../reco/spots';
 import { ATTRACTIONS, type Attraction } from '../../data/attractions';
 import { getSpots } from '../../data/spots';
 import { SpotSheet } from '../../map/ui/SpotSheet';
-import { useMyPos } from '../../live/location';
+import { useMyArea } from '../../live/location';
 import { useApp, useCoverTabBar } from '../../state/app';
 import { track } from '../../analytics';
 import { useFeed } from '../../state/feed';
@@ -74,7 +74,7 @@ export default function ForYouScreen() {
   const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
   const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
   const allSpots = spotsQ.data ?? ATTRACTIONS;
-  const myPos = useMyPos();
+  const myPos = useMyArea();
   // Места выбираются один раз за открытие ленты (иначе колода «прыгала» бы от каждого свайпа).
   const [spotCards] = useState(() => {
     const st = useFeed.getState();

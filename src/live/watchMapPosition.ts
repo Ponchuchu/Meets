@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { noDialog } from './accuracy';
 
 /** Своя точка на открытой карте. Остановка действует и на ещё создающуюся подписку. */
 export function watchMapPosition(onPoint: (p: { lat: number; lon: number }) => void, onOff: () => void): () => void {
@@ -15,7 +16,7 @@ export function watchMapPosition(onPoint: (p: { lat: number; lon: number }) => v
     if (stopped) return;
     if (last) point(last);
     const created = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 3 }, point,
+      noDialog({ accuracy: Location.Accuracy.Balanced, timeInterval: 2000, distanceInterval: 3 }), point,
     );
     if (stopped) created.remove(); else sub = created;
   })().catch(() => undefined);

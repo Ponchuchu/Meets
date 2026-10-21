@@ -71,9 +71,10 @@ import { useNet } from '../../live/net';
 import { myId } from '../../live/auth';
 import { supabase } from '../../data/client';
 import { LensSheet } from '../../map/ui/LensSheet';
-import { BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
+import { AccuracyAsk, BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
 import { useSmoothSpots } from '../../map/useSmooth';
 import { queryClient } from '../../live/query';
+import { improveAccuracy, mayAutoAsk, noDialog, precision, shouldExplain, useGeoAsk, type Precision } from '../../live/accuracy';
 
 /** Демо (тесты и web-скриншоты): один настоящий ТРЦ в центре, чтобы видеть карточку места. */
 const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. Абылай хана, 62', hours: '10:00–22:00', cover: null, lat: 43.2622, lon: 76.9447 }];
@@ -160,18 +161,27 @@ export default function MapScreen() {
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
   const [geo, setGeo] = useState<'unknown' | 'granted' | 'denied' | 'off'>('unknown');
   const [askBg, setAskBg] = useState(false);
+  const [prec, setPrec] = useState<Precision>('precise');
+  const laterAt = useGeoAsk((s) => s.laterAt);
   const requestedLens = useMapState((s) => s.lens);
   const setRequestedLens = useMapState((s) => s.setLens);
   const lens = requestedLens;
   const setLens = setRequestedLens;
   const net = useNet();
   const fix = useMyFix((s) => s.fix);
-  const ensureGeo = useCallback(async (ask: boolean) => {
+  const ensureGeo = useCallback(async (button: boolean) => {
+    // Системное окно — сам один раз за установку, дальше только по кнопке «Включить» (button = true).
+    // «Нет» уважаем: карта работает без моей точки, настройки сами не открываем.
     const perm = await Location.getForegroundPermissionsAsync();
-    const ok = perm.granted || (ask && perm.canAskAgain && (await Location.requestForegroundPermissionsAsync()).granted);
+    const may = button || mayAutoAsk(useGeoAsk.getState().permAskedAt);
+    let ok = perm.granted;
+    if (!ok && may && perm.canAskAgain) {
+      useGeoAsk.getState().markPermAsked();
+      ok = (await Location.requestForegroundPermissionsAsync()).granted;
+    } else if (!ok && button) void Linking.openSettings();
     setGeo(ok ? 'granted' : 'denied');
     if (ok && !perm.granted) void queryClient.invalidateQueries({ queryKey: ['me', 'visibility'] });
-    if (!ok && ask && !perm.canAskAgain) void Linking.openSettings();
+    if (ok) void precision().then(setPrec);
     return ok;
   }, []);
   // Фон «Всё время»: спрашиваем один раз, карточкой с объяснением (Android откроет настройки).
@@ -196,15 +206,12 @@ export default function MapScreen() {
     if (r?.granted) void startBackground();
   };
   // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
-  const permissionAsked = useRef(false);
   useEffect(() => {
     if (!focused) return;
     let cancelled = false;
     let stop: (() => void) | undefined;
     (async () => {
-      const ask = !permissionAsked.current;
-      permissionAsked.current = true;
-      const ok = await ensureGeo(ask);
+      const ok = await ensureGeo(false);
       if (!ok || cancelled) return;
       stop = watchMapPosition(setMyPos, () => setGeo('off'));
     })().catch(() => undefined);
@@ -214,7 +221,7 @@ export default function MapScreen() {
     try {
       const at0 = fix ?? myPos;
       if (at0) mapRef.current?.flyTo(at0.lat, at0.lon, 15.5);
-      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const p = await Location.getCurrentPositionAsync(noDialog({ accuracy: Location.Accuracy.Balanced }));
       setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
       mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15.5);
     } catch {
@@ -610,6 +617,12 @@ export default function MapScreen() {
       {LIVE && askBg && geo === 'granted' && sheet === null && !focusId && !selected && (
         <View style={[styles.card, { bottom: tabPad }]}>
           <BackgroundAsk onAllow={() => void allowBg()} onLater={() => { setAskBg(false); void setSetting('bg_asked', true).catch(() => undefined); }} />
+        </View>
+      )}
+
+      {LIVE && geo === 'granted' && !askBg && shouldExplain(prec, laterAt) && sheet === null && !focusId && !selected && (
+        <View style={[styles.card, { bottom: tabPad }]}>
+          <AccuracyAsk onAllow={() => void improveAccuracy().then(setPrec)} onLater={() => useGeoAsk.getState().later()} />
         </View>
       )}
 
