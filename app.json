@@ -93,6 +93,18 @@
           "cameraPermission": "Чтобы снять фото или кружок для чата."
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Чтобы показать твои фото и видео прямо в чате — выбирай и отправляй.",
+          "savePhotosPermission": "Чтобы сохранить фото из чата в галерею.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": [
+            "photo",
+            "video"
+          ]
+        }
+      ],
       "expo-apple-authentication",
       "./plugins/with-gradle-name.js",
       [

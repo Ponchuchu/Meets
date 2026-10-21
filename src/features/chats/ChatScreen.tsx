@@ -6,7 +6,8 @@ import { myId } from '../../live/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { track } from '../../analytics';
 import * as ImagePicker from 'expo-image-picker';
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { getRecordingPermissionsAsync, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 import { mergeChatMessages } from '../../chat/messages';
 import { Camera } from 'expo-camera';
 import { usePlayback } from '../../chat/playback';
@@ -242,13 +243,23 @@ export default function ChatScreen() {
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
   // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000 }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000, isMeteringEnabled: true }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
   const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  // Живая волна голоса: последние ~32 значения громкости (дБ → 0…1).
+  const [levels, setLevels] = useState<number[]>([]);
+  const recState = useAudioRecorderState(recorder, 100);
+  const meter = recording === 'voice' && recState.isRecording ? recState.metering : undefined;
+  useEffect(() => {
+    if (meter == null) return;
+    const v = Math.max(0.06, Math.min(1, (meter + 55) / 50));
+    const t = setTimeout(() => setLevels((l) => [...l.slice(-31), v]), 0);
+    return () => clearTimeout(t);
+  }, [meter, recState.durationMillis]);
   useEffect(() => {
     if (!recording) return;
     const timer = setInterval(() => setElapsed(rec.current.started ? Math.floor((nowMs()-rec.current.started)/1000) : 0),200);
@@ -264,26 +275,37 @@ export default function ChatScreen() {
   useEffect(() => { usePlayback.getState().record(!!recording); return () => usePlayback.getState().record(false); }, [recording]);
   const preparing = useRef(false);
   const stopping = useRef(false);
+  // Разрешение на микрофон проверяем заранее (без окна): удержание сразу начинает запись, а не ждёт ответа системы.
+  const micOk = useRef(false);
+  useEffect(() => { if (Platform.OS !== 'web') void getRecordingPermissionsAsync().then((p) => { micOk.current = p.granted; }).catch(() => undefined); }, []);
   const startRec = async () => {
     if(rec.current.active || preparing.current || stopping.current) return;
     usePlayback.getState().play(null);
     rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
-    setLocked(false);setElapsed(0);setCancelling(false);
+    setLocked(false);setElapsed(0);setCancelling(false);setLevels([]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     if (recMode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
       usePlayback.getState().record(true); setRecording('circle'); return;
     }
+    // Полоса записи появляется сразу, пока микрофон готовится (доли секунды) — видно, что нажатие сработало.
+    setRecording('voice');
     preparing.current = true;
     try {
-      const perm = await requestRecordingPermissionsAsync();
-      if (!rec.current.active) return;
-      if (!perm.granted) {rec.current.active=false;show({text:'Разреши микрофон в настройках телефона'});return;}
+      if (!micOk.current) {
+        const perm = await requestRecordingPermissionsAsync();
+        micOk.current = perm.granted;
+        // Окно разрешения забрало палец — эту попытку не пишем, следующее удержание запишет сразу.
+        rec.current.active = false; setRecording(null);
+        if (!perm.granted) show({text:'Разреши микрофон в настройках телефона'});
+        return;
+      }
       usePlayback.getState().record(true);
       await setAudioModeAsync({allowsRecording:true,playsInSilentMode:true});
       await recorder.prepareToRecordAsync();
-      // Отпустил во время диалога разрешений — запись не начинается и ничего не отправляется.
+      // Отпустил, пока готовился микрофон, — запись не начинается и ничего не отправляется.
       if (!rec.current.active) {await recorder.stop().catch(()=>undefined);await setAudioModeAsync({allowsRecording:false});return;}
-      rec.current.started=nowMs();recorder.record();rec.current.ready=true;setRecording('voice');
+      rec.current.started=nowMs();recorder.record();rec.current.ready=true;
     } catch {rec.current.active=false;setRecording(null);void setAudioModeAsync({allowsRecording:false});show({text:'Не получилось включить микрофон'});} finally { preparing.current = false; if (!rec.current.active) usePlayback.getState().record(false); }
   };
   const stopRec = async (send:boolean) => {
@@ -293,7 +315,7 @@ export default function ChatScreen() {
     rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
     if(mode==='circle') {stopping.current = true;if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
     setRecording(null);
-    if(!rec.current.ready)return;
+    if(!rec.current.ready){ if (send && sec < 1) show({text:'Удерживай кнопку, чтобы записать'}); return; }
     stopping.current = true;
     try {
       await recorder.stop();await setAudioModeAsync({allowsRecording:false});
@@ -305,14 +327,16 @@ export default function ChatScreen() {
   /* eslint-disable react-hooks/refs */
   const recHandlers = useRef({ startRec, stopRec, switchRecMode });
   useEffect(() => { recHandlers.current = { startRec, stopRec, switchRecMode }; });
-  const recGesture = useMemo(() => Gesture.Exclusive(
-    Gesture.Pan().activateAfterLongPress(250).runOnJS(true)
-      .onStart(()=>void recHandlers.current.startRec())
-      .onUpdate(e=>{setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80);if(e.translationY < -70 && !rec.current.locked){rec.current.locked=true;setLocked(true);}})
-      .onEnd(e=>{if(!rec.current.locked)void recHandlers.current.stopRec(e.translationX>=-80);})
-      .onFinalize((_e,ok)=>{if(!ok && !rec.current.locked)void recHandlers.current.stopRec(false);}),
-    Gesture.Tap().runOnJS(true).onEnd(() => void recHandlers.current.switchRecMode()),
-  ), []);
+  // Одно касание: держишь 0,18 с — запись (вибрация и полоса сразу), отпустил раньше — смена «голос ↔ кружок».
+  // Раньше запись ждала долгое нажатие без движения: палец чуть сдвинулся — и ничего не происходило.
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recGesture = useMemo(() => Gesture.Pan().minDistance(0).shouldCancelWhenOutside(false).runOnJS(true)
+    .onBegin(() => { hold.current = setTimeout(() => { hold.current = null; void recHandlers.current.startRec(); }, 180); })
+    .onUpdate(e=>{ if (hold.current) return; setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80); if(e.translationY < -70 && !rec.current.locked && rec.current.active){rec.current.locked=true;setLocked(true);void Haptics.selectionAsync().catch(() => undefined);} })
+    .onFinalize((e)=>{
+      if (hold.current) { clearTimeout(hold.current); hold.current = null; void recHandlers.current.switchRecMode(); return; }
+      if (!rec.current.locked) void recHandlers.current.stopRec(e.translationX >= -80);
+    }), []);
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
@@ -532,8 +556,14 @@ export default function ChatScreen() {
           </Pressable>
           {recording ? (
             <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
-              <View style={styles.recDot} />
-              <Text style={[styles.recText, cancelling && { color: colors.accentText }]}>{cancelling ? 'Отпусти — отменить' : `${dur(elapsed)} · ${locked ? 'Запись закреплена' : '← отменить · ↑ закрепить'}`}</Text>
+              <View style={[styles.recDot, !recState.isRecording && recording === 'voice' && { opacity: 0.35 }]} />
+              <Text style={styles.recTime}>{dur(elapsed)}</Text>
+              {cancelling ? <Text style={[styles.recText, { flex: 1 }]}>Отпусти — отменить</Text> : (
+                <View style={styles.wave}>
+                  {(recording === 'voice' ? levels : []).map((v, i) => <View key={i} style={[styles.waveBar, { height: 4 + v * 22 }]} />)}
+                  {recording === 'circle' || !levels.length ? <Text style={styles.recHint} numberOfLines={1}>{locked ? 'Запись закреплена' : '← отмена · ↑ закрепить'}</Text> : null}
+                </View>
+              )}
             </View>
           ) : (
             <ComposerInput ref={input} onHasText={setHasText} onSubmit={sendText} />
@@ -850,6 +880,10 @@ const styles = StyleSheet.create({
   recBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 0, paddingBottom: 0 },
   recDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   recText: { fontFamily: fonts.body500, fontSize: 14, color: colors.accentText },
+  recTime: { fontFamily: fonts.mono600, fontSize: 14, color: colors.ink, minWidth: 40 },
+  wave: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 28, overflow: 'hidden' },
+  waveBar: { width: 3, borderRadius: 2, backgroundColor: colors.accent },
+  recHint: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   album: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   albumText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   albums: { borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
