@@ -15,6 +15,20 @@ export function routeProgress(pos:{lat:number;lon:number},line:[number,number][]
   }
   return best;
 }
+/** «В путь»: точка прилипает к линии маршрута, если GPS рядом (до maxM метров) — не скачет по домам и дворам. */
+export function snapToLine(pos:{lat:number;lon:number},line:[number,number][],maxM=35):{lat:number;lon:number}{
+  if(line.length<2)return pos;
+  const scale=Math.cos(pos.lat*Math.PI/180);
+  let best:{lat:number;lon:number}|null=null,bestD=Infinity;
+  for(let i=1;i<line.length;i++){
+    const [x0,y0]=line[i-1],[x1,y1]=line[i];
+    const dx=(x1-x0)*scale,dy=y1-y0;
+    const t=Math.max(0,Math.min(1,((pos.lon-x0)*scale*dx+(pos.lat-y0)*dy)/(dx*dx+dy*dy||1)));
+    const q={lat:y0+(y1-y0)*t,lon:x0+(x1-x0)*t};const d=distM(pos,q);
+    if(d<bestD){bestD=d;best=q;}
+  }
+  return best&&bestD<=maxM?best:pos;
+}
 export function closestInstruction(pos:{lat:number;lon:number},steps:Instruction[],line:[number,number][]=[]):Instruction|null {
   const valid=steps.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.message);
   if(!valid.length)return null;

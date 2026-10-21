@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { agoShort } from './ago';
 import { MapAvatar } from './MapAvatar';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
@@ -99,16 +100,6 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
       </View>
     </Pressable>
   );
-}
-
-/** «5 мин», «3 ч», «вчера», «4 дн» — вместо «702 МИН». */
-export function agoShort(min: number): string {
-  if (min < 1) return 'сейчас';
-  if (min < 60) return `${Math.round(min)} мин`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `${h} ч`;
-  const d = Math.round(h / 24);
-  return d <= 1 ? 'вчера' : `${d} дн`;
 }
 
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {

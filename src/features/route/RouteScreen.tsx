@@ -4,20 +4,21 @@
 // 2) навигация — сверху крупная инструкция (стрелка, расстояние до манёвра, улица), снизу остаток пути и «Завершить»,
 //    в режиме «машина» ещё скорость. Всё, что не нужно в пути, прячется, поэтому блоки не накладываются.
 // Машина и пешком — функция route (TomTom с пробками), автобус — свой расчёт по остановкам OpenStreetMap.
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, CornerUpLeft, CornerUpRight, Flag, Footprints, Undo2, type LucideIcon } from 'lucide-react-native';
+import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, ChevronRight, CornerUpLeft, CornerUpRight, Flag, Footprints, Undo2, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
-import { bestMode, closestInstruction, maneuverKind, routeProgress, type Mode } from '../../event/navigation';
+import { bestMode, closestInstruction, maneuverKind, routeProgress, snapToLine, type Mode } from '../../event/navigation';
 import { useTrip } from '../../event/v6/WhereSheet';
 import { almaty, now as clockNow } from '../../lib/clock';
 import { config } from '../../lib/config';
 import { getEventsByIds } from '../../live/api';
 import { useMyFix, useMyPos, usePreciseGps } from '../../live/location';
+import { streetPath } from '../../live/osrm';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { MapCanvas } from '../../map/MapCanvas';
 import { MeArrow, MeDot, useHeading } from '../../map/MeDot';
@@ -51,11 +52,6 @@ function Maneuver({ message, size, color }: { message: string; size: number; col
 const METRO_RED = '#D9312B';
 const OPT_TAG = { fast: 'БЫСТРЕЕ', simple: 'МЕНЬШЕ ПЕРЕСАДОК', walk: 'МЕНЬШЕ ИДТИ' } as const;
 
-const ADVICE: Record<Mode, string> = {
-  walk: 'Близко — пешком быстрее всего',
-  car: 'Быстрее на машине, но оставь 5–10 минут на парковку и дорогу пешком до входа',
-  bus: 'Удобнее на автобусе или метро — смотри варианты с пересадками',
-};
 
 export default function RouteScreen() {
   const insets = useSafeAreaInsets();
@@ -111,21 +107,34 @@ export default function RouteScreen() {
     mapRef.current?.navigateTo(fix.lat, fix.lon, Number.isFinite(dir) ? dir : 0, zoom, pitch);
   }, [follow, fix, heading]);
 
-  const me = follow && fix ? fix : pos;
   const trip = useTrip(e ?? ({ id: '', lat: 0, lon: 0, needsPin: true } as never), e ? (origin ?? pos) : null);
   const opt = trip.transit[Math.min(optIdx, Math.max(0, trip.transit.length - 1))];
+  // Пешие участки и автобус — по улицам (открытый маршрутизатор OSM); метро — по прямой между станциями.
+  const legQs = useQueries({ queries: (mode === 'bus' && opt ? opt.legs : []).map((l) => {
+    const profile = l.kind === 'walk' ? 'foot' as const : 'car' as const;
+    const pts = l.kind === 'walk' ? [l.path[0], l.path[l.path.length - 1]] : l.path;
+    return { queryKey: ['street', profile, l.mode ?? 'walk', pts.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(';')], queryFn: () => (l.mode === 'metro' ? Promise.resolve(null) : streetPath(profile, pts)), staleTime: 6 * 3600e3, retry: 0 };
+  }) });
+  // Пешком без ответа TomTom — тоже по улицам, а не по прямой.
+  const walkFallback = useQuery({ queryKey: ['street', 'foot', 'walk', e && pos ? `${pos.lon.toFixed(3)},${pos.lat.toFixed(3)};${e.lon},${e.lat}` : ''],
+    queryFn: () => streetPath('foot', [[pos!.lon, pos!.lat], [e!.lon, e!.lat]]), enabled: !!e && !!pos && mode === 'walk' && !trip.loading && !trip.route?.walk?.line?.length, staleTime: 6 * 3600e3, retry: 0 });
+  const legPaths = legQs.map((q) => q.data ?? null);
+  const legKey = legPaths.map((x) => x?.length ?? 0).join(',');
+  const navLine: [number, number][] = mode === 'car' ? trip.route?.car?.line ?? [] : mode === 'walk' ? trip.route?.walk?.line ?? walkFallback.data ?? [] : (opt?.legs ?? []).flatMap((l, i) => legPaths[i] ?? l.path);
+  // «В путь»: моя точка прилипает к линии маршрута (до 35 м) — не прыгает по дворам.
+  const me = follow && fix ? snapToLine(fix, navLine) : pos;
   const lines = useMemo(() => {
     if (!e || !me) return [];
     const to: [number, number] = [e.lon, e.lat];
     const from: [number, number] = [me.lon, me.lat];
     if (mode === 'car') return [{ id: 'car', coords: trip.route?.car?.line ?? [], color: trip.route?.car?.delayMin ? '#C83A26' : '#2F8F5B', width: 6 }];
-    if (mode === 'walk') return [{ id: 'walk', coords: trip.route?.walk?.line ?? [], color: colors.ink, width: 4, dash: true }];
+    if (mode === 'walk') return [{ id: 'walk', coords: trip.route?.walk?.line ?? walkFallback.data ?? [], color: colors.ink, width: 4, dash: true }];
     const opt = trip.transit[Math.min(optIdx, trip.transit.length - 1)];
     if (!opt) return [];
     void from; void to;
     // Пешком — пунктир, автобус — синий, метро — красный (как на схеме метро Алматы).
-    return opt.legs.map((l, i) => ({ id: `t${i}`, coords: l.path, color: l.kind === 'walk' ? '#8C8577' : l.mode === 'metro' ? METRO_RED : colors.friend, width: l.kind === 'walk' ? 3 : 6, dash: l.kind === 'walk' }));
-  }, [e, me, mode, trip.route, trip.transit, optIdx]);
+    return opt.legs.map((l, i) => ({ id: `t${i}`, coords: legPaths[i] ?? l.path, color: l.kind === 'walk' ? '#8C8577' : l.mode === 'metro' ? METRO_RED : colors.friend, width: l.kind === 'walk' ? 3 : 6, dash: l.kind === 'walk' }));
+  }, [e, me, mode, trip.route, trip.transit, optIdx, walkFallback.data, legKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (follow) { fitted.current = ''; return; }
@@ -147,7 +156,11 @@ export default function RouteScreen() {
     { id: 'to', lat: e.lat, lon: e.lon, z: 20, node: <View style={[styles.dest, { backgroundColor: CAT_COLOR[e.category] }]}><Ic d={CAT_ICON[e.category]} size={18} color={catFg(e.category)} w={2} /></View> },
     // На телефоне моя точка — слои карты (prop me); маркер нужен только в web.
     ...(me && Platform.OS === 'web' ? [{ id: 'me', lat: me.lat, lon: me.lon, z: 30, node: follow ? <MeArrow heading={heading} bearing={bearing} /> : <MeDot heading={heading} bearing={bearing} /> }] : []),
-    ...(mode === 'bus' && opt ? opt.legs.filter(l => l.kind === 'ride').flatMap((l, i) => [l.from!, l.to!].map((st, k) => ({ id: `s${i}-${k}`, lat: st.lat, lon: st.lon, z: 10, node: <View style={[styles.stop, l.mode === 'metro' && { borderColor: METRO_RED }]} /> }))) : []),
+    // Все остановки на линии: видно, где можно выйти раньше (пробка). Посадка и высадка — крупнее.
+    ...(mode === 'bus' && opt ? opt.legs.filter(l => l.kind === 'ride').flatMap((l, i) => l.path.slice(0, 40).map(([lon, lat], k, all) => {
+      const end = k === 0 || k === all.length - 1;
+      return { id: `s${i}-${k}`, lat, lon, z: end ? 11 : 9, node: <View style={[end ? styles.stop : styles.stopSmall, l.mode === 'metro' && { borderColor: METRO_RED }]} /> };
+    })) : []),
   ];
   const cam = me ? { lat: (me.lat + e.lat) / 2 - 0.004, lon: (me.lon + e.lon) / 2, zoom: Math.max(9, Math.min(15, Math.log2(360 / (Math.max(Math.abs(e.lon - me.lon), Math.abs(e.lat - me.lat) * 1.8, 0.005) * 2.6)))) } : { lat: e.lat, lon: e.lon, zoom: 14 };
 
@@ -179,7 +192,6 @@ export default function RouteScreen() {
     }),
   ] : mode === 'car' ? [
     { icon: <Car size={16} color={colors.ink} strokeWidth={2} />, title: trip.route?.car ? `${km1(trip.route.car.km)} км · ${trip.route.car.min} мин` : trip.loading || !me ? 'Считаю маршрут…' : 'Примерно, без учёта пробок', sub: trip.route?.car?.delayMin ? `Пробки +${trip.route.car.delayMin} мин` : trip.route?.car ? 'Дороги свободны' : trip.loading || !me ? 'С учётом пробок' : 'Нет связи с сервисом пробок' },
-    { icon: <Footprints size={16} color={colors.ink} strokeWidth={2} />, title: '+5–10 мин на парковку', sub: `и пешком до ${to}` },
   ] : [
     { icon: <Footprints size={16} color={colors.ink} strokeWidth={2} />, title: trip.route?.walk ? `${km1(trip.route.walk.km)} км · ${trip.route.walk.min} мин` : trip.walkMin != null && !trip.loading ? `~${trip.walkMin} мин по прямой` : me ? 'Считаю маршрут…' : 'Где ты? Включи геолокацию', sub: trip.route?.walk ? 'Пешком по улицам' : 'Примерно' },
   ];
@@ -268,7 +280,6 @@ export default function RouteScreen() {
                 </Pressable>
               ))}
             </View>
-            {best && <Text style={styles.advice}>{ADVICE[best]}</Text>}
             {mode === 'bus' && trip.transit.length > 1 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {trip.transit.map((o, i) => (
@@ -280,6 +291,22 @@ export default function RouteScreen() {
                 ))}
               </ScrollView>
             )}
+            {mode === 'bus' && opt ? (
+              // Автобус проще (21 окт.): одна строка «пешком → № 63 → пешком» и где сесть / выйти.
+              <View style={{ gap: 6 }}>
+                <View style={styles.chain}>
+                  {opt.legs.map((l, i) => (
+                    <View key={i} style={styles.chainItem}>
+                      {i > 0 && <ChevronRight size={14} color={colors.muted} strokeWidth={2.2} />}
+                      {l.kind === 'walk'
+                        ? <View style={styles.chainWalk}><Footprints size={14} color={colors.ink} strokeWidth={2} /><Text style={styles.chainText}>{l.minutes}</Text></View>
+                        : <View style={[styles.optRef, styles.chainRide, { backgroundColor: l.mode === 'metro' ? METRO_RED : colors.friend }]}><Text style={[styles.optRefText, { fontSize: 12 }]}>{l.mode === 'metro' ? 'М' : l.ref}</Text><Text style={styles.chainRideMin}>{l.minutes}</Text></View>}
+                    </View>
+                  ))}
+                </View>
+                {firstRide && <Text style={styles.stepSub} numberOfLines={2}>Сесть на «{firstRide.from?.name}», выйти на «{opt.legs.filter(l => l.kind === 'ride').at(-1)?.to?.name}» · ждать ~{firstRide.wait} мин</Text>}
+              </View>
+            ) : (
             <View style={{ gap: 10 }}>
               {steps.map((s, i) => (
                 <View key={i} style={styles.step}>
@@ -291,7 +318,8 @@ export default function RouteScreen() {
                 </View>
               ))}
             </View>
-            {mode === 'bus' && <Text style={styles.osm}>Примерно, без расписания · остановки © участники OpenStreetMap</Text>}
+            )}
+            {mode === 'bus' && <Text style={styles.osm}>Примерно · © участники OpenStreetMap</Text>}
             <Pressable disabled={!canNavigate} onPress={start} style={[styles.go, !canNavigate && { opacity: 0.5 }]} accessibilityRole="button">
               <Text style={styles.goText}>{canNavigate ? (mode === 'car' ? 'Поехали' : 'В путь') : mapMode === 'static' ? 'Карта недоступна' : trip.loading ? 'Строю маршрут…' : 'Маршрут недоступен'}</Text>
             </Pressable>
@@ -349,5 +377,12 @@ const styles = StyleSheet.create({
   optMin: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   optRef: { minWidth: 22, height: 18, borderRadius: 6, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   optRefText: { fontFamily: fonts.mono600, fontSize: 10, color: '#FFFFFF' },
-  stop: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: colors.friend },
+  chain: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', rowGap: 6 },
+  chainItem: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 4 },
+  chainWalk: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 26, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#E4DED2' },
+  chainText: { fontFamily: fonts.body700, fontSize: 13, color: colors.ink },
+  chainRide: { flexDirection: 'row', gap: 5, height: 26, paddingHorizontal: 8 },
+  chainRideMin: { fontFamily: fonts.body700, fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+  stop: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3.5, borderColor: colors.friend },
+  stopSmall: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: colors.friend },
 });
