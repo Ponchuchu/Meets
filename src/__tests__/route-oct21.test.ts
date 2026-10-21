@@ -22,3 +22,11 @@ it('давно не обновлялся: «12 ч», «вчера», а не «7
   expect(agoShort(26 * 60)).toBe('вчера');
   expect(agoShort(4 * 24 * 60)).toBe('4 дн');
 });
+it('адреса только по-русски: казахские названия улиц приводятся к русским', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ruAddress } = require('../lib/ruAddress') as typeof import('../lib/ruAddress');
+  expect(ruAddress('Әл-Фараби даңғылы, 77/7')).toBe('проспект аль-Фараби, 77/7');
+  expect(ruAddress('Абай көшесі 52')).toBe('улица Абай 52');
+  expect(ruAddress('Самал-2 шағын ауданы, 111')).toBe('микрорайон Самал-2, 111');
+  expect(ruAddress('ул. Жандосова, 1')).toBe('ул. Жандосова, 1');
+});

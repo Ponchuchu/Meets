@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { normalize, similarity } from './dedupe.ts';
 import type { Point } from './types.ts';
+import { ruAddress } from './ruAddress.ts';
 
 export interface VenueRow {
   id: string;
@@ -114,7 +115,8 @@ async function registry(street: string, house: string): Promise<Point | null> {
  * Координаты события. 0) свой справочник адресов, 1) улица + дом в OpenStreetMap, 2) название площадки,
  * 3) Mapbox, только уверенные совпадения. Результаты запоминаем: одна площадка — один запрос.
  */
-export async function geocode(query: string): Promise<Point | null> {
+export async function geocode(raw: string): Promise<Point | null> {
+  const query = ruAddress(raw);
   const key = query.toLowerCase().replace(/\s+/g, ' ').trim();
   if (cache.has(key)) return cache.get(key) ?? null;
   const { venue, street, house } = splitQuery(query);

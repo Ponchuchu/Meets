@@ -1,4 +1,5 @@
 // Черновик карточки из разобранного поста: площадка, точка, флаги, публиковать ли сразу.
+import { ruAddress } from './ruAddress.ts';
 import { isVague, matchVenue, type VenueRow } from './venues.ts';
 import type { Draft, Extraction, Flag, Point, RawPost, Source } from './types.ts';
 
@@ -34,7 +35,7 @@ export async function buildDraft(
     is_long: x.is_long,
     venue_id: venue?.id ?? null,
     venue_name: venue?.name ?? x.venue_name,
-    address: x.address,
+    address: x.address ? ruAddress(x.address) : x.address,
     address_note: x.address_note,
     point: venue ? null : point,
     price_min: x.price_min,

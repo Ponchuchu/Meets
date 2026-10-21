@@ -1,5 +1,5 @@
 // Описания карточек: аккуратная обрезка и работа без ключа Kimi.
-import { polishAbouts, tidy } from '../src/polish.ts';
+import { guessLang, LANG_TAG, polishAbouts, tidy } from '../src/polish.ts';
 
 describe('описания карточек', () => {
   it('обрезка — по границе предложения, без обрыва слова', () => {
@@ -14,5 +14,14 @@ describe('описания карточек', () => {
     const r = await polishAbouts(found, '');
     expect(r.polished).toBe(0);
     expect((found[0] as { about: string }).about.length).toBeLessThanOrEqual(701);
+  });
+});
+
+describe('язык события', () => {
+  it('казахские буквы — на казахском, латиница — на английском', () => {
+    expect(guessLang('Қазақ әні кеші: Абай өлеңдері')).toBe('kk');
+    expect(guessLang('Stand-up comedy night in English with the best comedians of the city, open mic after the show')).toBe('en');
+    expect(guessLang('Джаз во дворе')).toBe('ru');
+    expect(LANG_TAG.kk).toBe('на казахском');
   });
 });

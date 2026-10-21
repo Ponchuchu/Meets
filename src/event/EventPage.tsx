@@ -11,7 +11,7 @@ import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
-import { AboutBlock } from './ui/AboutBlock';
+import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
 import type { EventItem, Person } from '../data/types';
@@ -226,7 +226,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
           </View>}
-          {!!e.about && <AboutBlock text={e.about} />}
+          {!!e.about && <AboutBlock text={e.about} lang={langOf(e.tags)} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
           <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}

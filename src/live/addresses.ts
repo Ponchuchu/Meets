@@ -1,10 +1,11 @@
 import { supabase } from '../data/client';
 import { config } from '../lib/config';
+import { ruAddress } from '../lib/ruAddress';
 
 export interface AddressHit { id: string; label: string; lat: number; lon: number }
 
 /** Mapbox по-русски называет город «Алма-Ата» — у нас везде «Алматы». */
-export const cityFix = (s: string): string => s.replace(/Алма[-\s]?Ата/gi, 'Алматы').replace(/,\s*Казахстан\s*$/i, '');
+export const cityFix = (s: string): string => ruAddress(s.replace(/Алма[-\s]?Ата/gi, 'Алматы').replace(/,\s*Казахстан\s*$/i, ''));
 
 const BBOX = '76.70,43.05,77.20,43.40';
 const dist = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) =>
