@@ -33,7 +33,8 @@ import { Toast, type ToastData } from '../ui/Toast';
 import { CompanySheet, InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
 import { WhereSheet } from './v6/WhereSheet';
-import { ArrowUpRight, ChevronDown, ChevronRight, Clock, Globe, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
+import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import * as WebBrowser from 'expo-web-browser';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useMyPos } from '../live/location';
@@ -236,31 +237,19 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           </View>}
           {!!e.about && <AboutBlock text={e.about} />}
 
-          <View style={styles.list}>
-            {site && (
-              <Pressable onPress={() => e.sourceUrl && WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined))}
-                onLongPress={() => { void Clipboard.setStringAsync(e.sourceUrl!); show({ text: 'Ссылка скопирована' }, 2000); }}
-                style={styles.item} accessibilityRole="link">
-                <View style={[styles.itemIcon, { backgroundColor: colors.ink }]}><Globe size={20} color="#FFFFFF" strokeWidth={1.8} /></View>
-                <View style={{ flex: 1 }}><Text style={styles.itemTitle}>Сайт события</Text><Text style={styles.itemSub} numberOfLines={1}>{site} · билеты и подробности</Text></View>
-                <ArrowUpRight size={18} color={colors.muted} strokeWidth={2} />
-              </Pressable>
-            )}
-            <Pressable onPress={() => setSheet('route')} style={[styles.item, site ? styles.itemSep : null]} accessibilityRole="button" accessibilityLabel={`Адрес: ${e.address}. Маршрут`}>
-              <View style={[styles.itemIcon, { backgroundColor: colors.accent }]}><MapPin size={20} color={colors.ink} strokeWidth={1.9} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle} numberOfLines={1}>{[e.venueName, e.address.split(',').slice(0, 2).join(',')].filter(Boolean).join(' · ')}</Text>
-                <Text style={styles.itemSub} numberOfLines={1}>{dist ? `${dist} · ` : ''}нажми — маршрут в Meets</Text>
-              </View>
-              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-            </Pressable>
-            {moreHere > 0 && (
-              <View style={[styles.item, styles.itemSep]}>
-                <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
-                <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
-              </View>
-            )}
-          </View>
+          {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
+          <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist}
+            title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
+            onRoute={() => setSheet('route')} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
+          {moreHere > 0 && (
+            <View style={[styles.list, styles.item]}>
+              <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
+              <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
+            </View>
+          )}
+          {site && <SourceLink site={site}
+            onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}
+            onCopy={() => { void Clipboard.setStringAsync(e.sourceUrl!); show({ text: 'Ссылка скопирована' }, 2000); }} />}
 
           {canArrive && (
             <Pressable disabled={arrived} onPress={() => {
