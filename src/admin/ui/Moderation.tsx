@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   publishBtn: { minHeight: 52, borderRadius: 16, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   publishBtnText: { fontFamily: fonts.body700, fontSize: 16, color: colors.paper },
   publishHint: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted },
-  rowActions: { flexDirection: 'row', gap: 6 },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   btn: { flex: 1, height: 44, minHeight: 44, minWidth: 44, flexShrink: 0, borderRadius: 12, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   primary: { flex: 2, backgroundColor: colors.ink, borderColor: colors.ink },
   btnText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },

@@ -136,8 +136,8 @@ function Connection({ live }: { live: boolean }) {
 export function SettingsTab({ live }: { live: boolean }) {
   // Порядок по смыслу: откуда события → фото → что публиковать сразу → когда искать → ИИ → подключения.
   return (
-    <View style={{ gap: 10 }}>
-      <Section fold="closed" icon={Rss} title="Источники" hint="Откуда берём события. «Собирать» включает чтение при поиске. «Доверие» разрешает публиковать события оттуда без проверки (только если включено «Публиковать сразу» ниже).">
+    <View style={{ gap: 12 }}>
+      <Section fold="closed" icon={Rss} title="Источники" hint="Откуда берём события.">
         <Sources live={live} />
       </Section>
       <PhotoSettings />

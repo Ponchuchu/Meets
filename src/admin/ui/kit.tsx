@@ -1,7 +1,8 @@
 // Общие кирпичики панели разработчика: карточка, заголовок раздела, кнопки, чипсы.
-import { ChevronDown, ChevronUp, type LucideIcon } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, X, type LucideIcon } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, fonts } from '../../theme';
 
 /**
@@ -156,6 +157,26 @@ export function Progress({ value }: { value: number }) {
   return <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}><View style={[styles.trackFill, { width: `${Math.max(4, Math.min(100, value * 100))}%` }]} /></View>;
 }
 
+/** Шторка снизу: заголовок, крестик, содержимое с прокруткой. Закрывается по фону и «Назад». */
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  return (
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetBack}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрыть" />
+        <Animated.View entering={FadeInDown.duration(200)} style={styles.sheet} accessibilityViewIsModal accessibilityLabel={title}>
+          <View style={styles.sheetHead}>
+            <Text style={styles.sheetTitle} accessibilityRole="header" numberOfLines={2}>{title}</Text>
+            <Pressable onPress={onClose} style={styles.sheetClose} accessibilityRole="button" accessibilityLabel="Закрыть" hitSlop={6}>
+              <X size={20} color={colors.ink} strokeWidth={1.8} />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 /** Подтверждение «Да / Отмена». На телефоне — системный Alert, в web-версии — window.confirm (Alert там не работает). */
 export function confirmAsk(title: string, text: string, yes: string): Promise<boolean> {
   if (Platform.OS === 'web') {
@@ -169,19 +190,24 @@ export function confirmAsk(title: string, text: string, yes: string): Promise<bo
 }
 
 const styles = StyleSheet.create({
+  sheetBack: { flex: 1, backgroundColor: 'rgba(23,22,26,0.4)', justifyContent: 'flex-end', alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 520, maxHeight: '88%', backgroundColor: colors.paper, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 8 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52 },
+  sheetTitle: { flex: 1, fontFamily: fonts.display700, fontSize: 20, color: colors.ink, letterSpacing: -0.3 },
+  sheetClose: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 8, paddingVertical: 28, paddingHorizontal: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   emptyIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   emptyTitle: { fontFamily: fonts.display700, fontSize: 16.5, color: colors.ink, textAlign: 'center' },
   emptyText: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted, textAlign: 'center' },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.sand, overflow: 'hidden' },
   trackFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  section: { gap: 10 },
-  foldWrap: { gap: 10 },
+  section: { gap: 12 },
+  foldWrap: { gap: 12 },
   fold: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   foldOpen: { borderColor: colors.line2 },
   foldIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
   foldTitle: { flex: 1, fontFamily: fonts.display700, fontSize: 16.5, color: colors.ink, letterSpacing: -0.2 },
-  foldBody: { gap: 10, paddingBottom: 6 },
+  foldBody: { gap: 12, paddingBottom: 4 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   sectionTitle: { fontFamily: fonts.display700, fontSize: 22, color: colors.ink, letterSpacing: -0.3, flexShrink: 1 },
   hint: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted },

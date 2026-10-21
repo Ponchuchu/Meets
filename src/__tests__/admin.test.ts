@@ -1,6 +1,6 @@
 import { parseSourceLink } from '../admin/api';
 import { demoQueue, metaLine, parseRuDate, sourceLabel } from '../admin/model';
-import { isReady, plural } from '../admin/rules';
+import { isReady, plural, sourceInfo } from '../admin/rules';
 import { deckRows, modelConfidence, tasteRows } from '../admin/taste';
 import { demoEvents } from '../data/demo';
 import { buildStartTaste } from '../reco/startTaste';
@@ -70,5 +70,18 @@ describe('админка: «Опубликовать всё»', () => {
   });
   it('склонение', () => {
     expect([1, 2, 5, 11, 21, 22].map((n) => plural(n, 'событие', 'события', 'событий'))).toEqual(['событие', 'события', 'событий', 'событий', 'событие', 'события']);
+  });
+});
+
+describe('админка: источники', () => {
+  it('@канал — это Telegram', () => {
+    expect(parseSourceLink('@afisha_almaty')).toEqual({ kind: 'telegram', handle: 'afisha_almaty', title: 'Telegram · @afisha_almaty' });
+  });
+  it('тип и вторая строка', () => {
+    expect(sourceInfo({ kind: 'site', title: 'afisha.yandex.kz', handle: 'afisha.yandex.kz/almaty' })).toEqual({ type: 'yandex', label: 'Яндекс Афиша', line: 'afisha.yandex.kz/almaty' });
+    expect(sourceInfo({ kind: 'site', title: 'sxodim.com', handle: 'sxodim.com/almaty' }).type).toBe('site');
+    expect(sourceInfo({ kind: 'telegram', title: 'Telegram · @afisha_almaty', handle: 'afisha_almaty' }).line).toBe('@afisha_almaty');
+    expect(sourceInfo({ kind: 'threads', title: 'Threads · @almaty.weekend' }).line).toBe('@almaty.weekend');
+    expect(sourceInfo({ kind: 'manual', title: 'Вручную' }).label).toBe('Вручную');
   });
 });

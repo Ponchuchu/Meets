@@ -143,14 +143,14 @@ export function Notifications({ live, go, onClose }: { live: boolean; go: Goto; 
   );
 }
 
-const Sep = () => <View style={{ height: 8 }} />;
+const Sep = () => <View style={{ height: 12 }} />;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 20, paddingRight: 10, minHeight: 52 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 8, minHeight: 52 },
   h: { fontFamily: fonts.display700, fontSize: 24, color: colors.ink, letterSpacing: -0.4 },
   close: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  demo: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, paddingHorizontal: 20, paddingBottom: 4 },
+  demo: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, paddingHorizontal: 16, paddingBottom: 4 },
   list: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 10 },
   card: { backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },

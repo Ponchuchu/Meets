@@ -85,7 +85,7 @@ export default function Admin() {
           <Pressable key={k} onPress={() => router.setParams({ tab: k })} style={[styles.segBtn, tab === k && styles.segOn]} accessibilityRole="tab"
             accessibilityState={{ selected: tab === k }} accessibilityLabel={k === 'events' && waiting > 0 ? `${label}, новых: ${waiting}` : label}>
             <Text style={[styles.segText, tab === k && { color: colors.paper }]} numberOfLines={1}>{label}</Text>
-            {k === 'events' && waiting > 0 && <View style={styles.count}><Text style={styles.countText}>{waiting > 99 ? '99+' : waiting}</Text></View>}
+            {k === 'events' && waiting > 0 && <View style={styles.count} />}
           </Pressable>
         ))}
       </View>
@@ -104,7 +104,7 @@ export default function Admin() {
                 </Pressable>
               )}
               <OverviewBlock live={staff} />
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 12 }}>
                 <Section fold="closed" icon={ChartColumn} title="Рекомендации" hint="Доля «пойду», дошли, возвраты и отмены.">
                   <Metrics live={staff} />
                 </Section>
@@ -146,17 +146,17 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, minHeight: 52 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontFamily: fonts.display700, fontSize: 24, color: colors.ink, letterSpacing: -0.4 },
-  bell: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  bell: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   badge: { position: 'absolute', top: -3, right: -3, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   seg: { flexDirection: 'row', gap: 2, marginHorizontal: 16, marginTop: 6, marginBottom: 8, padding: 4, borderRadius: 16, backgroundColor: colors.sand },
-  segBtn: { flex: 1, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: 2 },
+  segBtn: { flex: 1, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
   segOn: { backgroundColor: colors.ink },
-  segText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink },
-  count: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  countText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
+  segText: { fontFamily: fonts.body700, fontSize: 13, letterSpacing: -0.1, color: colors.ink },
+  // Точка на «События», если есть новые (само число — в «Новые» и в подписи для экранного диктора): подпись не сдвигается, доли вкладок равные.
+  count: { position: 'absolute', top: 7, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   demo: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted, textAlign: 'center', paddingHorizontal: 16, paddingBottom: 4 },
-  page: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 22 },
+  page: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 16 },
   subs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   alertRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#EDC6B2' },
   alertDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
