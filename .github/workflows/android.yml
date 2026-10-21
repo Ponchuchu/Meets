@@ -102,11 +102,12 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=2
-          EAS_LOCAL_BUILD_WORKINGDIR: /mnt/eas
+          EAS_LOCAL_BUILD_WORKINGDIR: /mnt/eas/work
           GRADLE_USER_HOME: /mnt/gradle
           # Только 64-битные ARM — все современные телефоны (Poco, Samsung). Вчетверо меньше сборки и места.
           ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
-        run: npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output meets.apk
+        # Если APK уже готов, а упала только уборка временных файлов — сборка удалась.
+        run: npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output meets.apk || test -s meets.apk
       - name: Выложить APK ссылкой (GitHub Releases)
         if: env.BUILDER == 'github' && steps.apk-local.outcome == 'success'
         env:
