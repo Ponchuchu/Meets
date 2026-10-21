@@ -78,14 +78,14 @@ export function EventSheet({ e, now, people, me, going, onOpen, onGo, onInvite, 
               {!!price && <View style={styles.chip}><Ticket size={15} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{price}</Text></View>}
               {dist && <View style={styles.chip}><MapPin size={15} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
             </View>
-            <View style={styles.who}>
+            {(friends.length > 0 || !!socialLine(e, people)) && <View style={styles.who}>
               {friends.length > 0 && (
                 <View style={{ flexDirection: 'row', marginRight: 2 }}>
                   {friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={28} style={{ marginLeft: i ? -9 : 0, borderWidth: 2, borderColor: '#EEE9DE' }} />)}
                 </View>
               )}
               <Text style={styles.whoText} numberOfLines={1}>{socialLine(e, people)}</Text>
-            </View>
+            </View>}
           </View>
         </Pressable>
         <View style={styles.actions}>

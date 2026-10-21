@@ -41,12 +41,12 @@ describe('тексты события', () => {
 });
 
 describe('маршрут', () => {
-  it('2ГИС, Яндекс, Google; Apple — только на iOS', () => {
+  it('Яндекс, Google; Apple — только на iOS', () => {
     const android = routeLinks(43.25, 76.94, 'Двор', false).map((l) => l.label);
-    expect(android).toEqual(['2ГИС', 'Яндекс Карты', 'Google Maps']);
+    expect(android).toEqual(['Яндекс Карты', 'Google Maps']);
     const ios = routeLinks(43.25, 76.94, 'Двор', true);
     expect(ios.map((l) => l.app)).toContain('apple');
-    expect(ios[0].web).toContain('76.94%2C43.25');
+    expect(ios[0].web).toContain('43.25%2C76.94');
   });
 });
 

@@ -24,7 +24,7 @@ export function spotCard(a: Attraction, now: Date): EventItem {
     id: `spot:${a.id}`, spotId: a.id, spot: a, title: a.name, category: CATEGORY[a.kind] ?? 'meetup', tags: [...(TAGS[a.kind] ?? []), ...(a.solo ? ['можно одному'] : [])],
     startsAt: now.toISOString(), endsAt: null, isLong: true, venueName: a.name, address: a.address ?? a.name, lat: a.lat, lon: a.lon, needsPin: false,
     priceMin: a.free ? 0 : a.priceFrom ?? null, priceMax: null, isFree: !!a.free, about: a.tips?.[0] ?? a.about, organizer: null, sourceUrl: a.buy ?? a.info ?? null,
-    cover: null, visibility: 'public', origin: 'real', friendsGoing: [], lookingCount: 0, goingCount: 0,
+    cover: a.photos?.[0] ?? null, visibility: 'public', origin: 'real', friendsGoing: [], lookingCount: 0, goingCount: 0,
   } as EventItem;
 }
 
@@ -43,6 +43,12 @@ export function pickSpots(all: Attraction[], taste: Taste, mem: SpotMemory, now:
       return { a, score: t + (opts.solo && a.solo ? 0.4 : 0) + (a.free ? 0.05 : 0) + jitter };
     })
     .sort((x, y) => y.score - x.score)
+    .reduce<{ a: Attraction; score: number }[]>((acc, x, _i, list) => {
+      // Каждую неделю одно бесплатное место с фото (Терренкур, Медеу, парк) — идёт первым.
+      if (!acc.length) acc.push(list.find((y) => y.a.free && y.a.photos?.length) ?? x);
+      if (!acc.some((y) => y.a.id === x.a.id)) acc.push(x);
+      return acc;
+    }, [])
     .slice(0, opts.max ?? 2)
     .map((x) => x.a);
 }

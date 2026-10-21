@@ -24,7 +24,14 @@ export async function getSpots(): Promise<Attraction[]> {
   try {
     const { data, error } = await withTimeout(supabase().from('spots').select('*').eq('enabled', true));
     if (error || !data?.length) return ATTRACTIONS;
-    return (data as SpotRow[]).map(toSpot);
+    // Фото, «как попасть» и известные часы — из приложения; часы сборщика главнее.
+    const local = new Map(ATTRACTIONS.map((a) => [a.id, a]));
+    const rows = (data as SpotRow[]).map(toSpot).map((x) => {
+      const l = local.get(x.id);
+      return l ? { ...x, photos: l.photos, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
+    });
+    const missing = ATTRACTIONS.filter((a) => !rows.some((r) => r.id === a.id));
+    return [...rows, ...missing];
   } catch { return ATTRACTIONS; }
 }
 

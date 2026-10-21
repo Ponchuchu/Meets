@@ -1,7 +1,8 @@
 // Карточка ленты (переделана 11 октября): светлая, сверху фото события (или яркий постер раздела), ниже — название и всегда
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
@@ -81,9 +82,11 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
   const a = e.spot ?? ATTRACTIONS.find((x) => x.id === e.spotId) ?? null;
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
+  const [broken, setBroken] = useState(false);
   if (!a) return <View style={[styles.card, { height }]} />;
   const color = KIND_COLOR[a.kind];
   const coverH = Math.round(height * 0.5);
+  const photo = !broken ? a.photos?.[0] : undefined;
   const st = openStatus(a.hours, now);
   return (
     <View style={[styles.card, { height }]} accessibilityLabel={`${a.name}. ${KIND_LABEL[a.kind]}. Свайп вправо — запланировать`}>
@@ -92,9 +95,14 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
           <Defs><LinearGradient id={`spotG${a.id}`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={color} stopOpacity={1} /><Stop offset="1" stopColor={color} stopOpacity={0.6} /></LinearGradient></Defs>
           <Rect x="0" y="0" width="100%" height="100%" fill={`url(#spotG${a.id})`} />
         </Svg>
-        <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
-        <View style={styles.cat}><Text style={styles.catText}>ПОСТОЯННОЕ МЕСТО</Text></View>
-        {a.solo && <View style={styles.when}><Text style={styles.whenText}>МОЖНО ОДНОМУ</Text></View>}
+        {photo ? (
+          <>
+            <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBroken(true)} />
+            <View pointerEvents="none" style={styles.spotCorner}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
+          </>
+        ) : <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
+        <View style={styles.cat}><Text style={styles.catText}>{KIND_LABEL[a.kind].toUpperCase()}</Text></View>
+        {a.free && <View style={[styles.when, photo && { left: undefined, right: 14 }]}><Text style={styles.whenText}>БЕСПЛАТНО</Text></View>}
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ХОЧУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
       </View>
@@ -129,6 +137,7 @@ const styles = StyleSheet.create({
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
   when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
+  spotCorner: { position: 'absolute', left: 4, bottom: -4 },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 3, borderRadius: 12, backgroundColor: 'rgba(251,250,246,0.92)' },
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: 20, borderColor: colors.ink, transform: [{ rotate: '12deg' }] },

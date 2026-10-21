@@ -1,5 +1,6 @@
 // Постоянные места: сезон, подписи и ссылки без выдуманных часов работы.
-import { ATTRACTIONS, gisUrl, inSeason, seasonText } from '../data/attractions';
+import { ATTRACTIONS, commons, inSeason, seasonText } from '../data/attractions';
+import { openStatus, weekLines } from '../data/hours';
 
 const get = (id: string) => ATTRACTIONS.find(a => a.id === id)!;
 const at = (iso: string) => new Date(iso);
@@ -22,6 +23,11 @@ it('у каждого места точка в Алматы и окрестно�
     if (a.buy) expect(a.buy.startsWith('https://')).toBe(true);
   }
 });
-it('часы и цены — карточка 2ГИС по названию и точке', () => {
-  expect(gisUrl(get('medeu'))).toBe('https://2gis.kz/almaty/search/%D0%9C%D0%B5%D0%B4%D0%B5%D1%83/geo/77.05856,43.15755');
+it('фото с Викисклада и Терренкур — всегда открыт', () => {
+  expect(commons('Medeu- 4.jpg')).toBe('https://commons.wikimedia.org/wiki/Special:FilePath/Medeu-%204.jpg?width=1200');
+  for (const id of ['terrenkur', 'koktobe', 'medeu', 'shymbulak']) expect(get(id).photos?.length).toBeGreaterThan(0);
+  const t = get('terrenkur');
+  expect(openStatus(t.hours, new Date('2026-10-21T22:00:00Z')).text).toBe('Открыто круглосуточно');
+  expect(weekLines(t.hours)).toEqual([{ days: 'Каждый день', time: 'круглосуточно' }]);
+  expect(t.free).toBe(true);
 });

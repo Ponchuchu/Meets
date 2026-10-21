@@ -2,7 +2,8 @@
 // и отдельный акцент «сходить одному»: куда пойти развеяться без компании.
 // Это исходный список. В базе он живёт в таблице spots (миграция 37 собрана из этого файла скриптом scripts/spots-sql.mjs);
 // сборщик (worker/src/spots.ts) сам дописывает туда часы работы с перерывами и цены — с официальных сайтов
-// (разметка schema.org) и из 2ГИС, если есть ключ. Пока данных нет — часы не выдумываем: кнопка «Часы и цены» ведёт в 2ГИС.
+// (разметка schema.org и текст страниц). Что известно наверняка (Терренкур, парки — всегда открыты), записано здесь.
+// Фото — с Викисклада (свободная лицензия), грузятся по ссылке и кэшируются; не загрузилось — шапка цвета места.
 // Точки — из справочника Overture, проверены вручную (там много дублей и ошибок).
 
 export type AttractionKind = 'ski' | 'skate' | 'cable' | 'wheel' | 'bowling' | 'trampoline' | 'climb' | 'quest' | 'vr' | 'golf' | 'paintball' | 'aqua' | 'photo' | 'zipline'
@@ -39,7 +40,16 @@ export interface Attraction {
   priceNote?: string | null;
   kaspi?: string | null;
   checkedAt?: string | null;
+  /** Фото для шапки карточки (листаются). */
+  photos?: string[];
+  /** Как попасть бесплатно и прочее, что важно знать до выхода. */
+  howTo?: string;
 }
+
+/** Открыто всегда (парки, тропы). */
+export const ALWAYS: Hours = { 1: [['00:00', '24:00']], 2: [['00:00', '24:00']], 3: [['00:00', '24:00']], 4: [['00:00', '24:00']], 5: [['00:00', '24:00']], 6: [['00:00', '24:00']], 7: [['00:00', '24:00']] };
+/** Фото с Викисклада по имени файла: сервер сам отдаёт уменьшенную копию 1200 px. */
+export const commons = (file: string) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=1200`;
 
 export const KIND_LABEL: Record<AttractionKind, string> = {
   ski: 'Горнолыжный курорт', skate: 'Каток', cable: 'Канатная дорога', wheel: 'Колесо обозрения', bowling: 'Боулинг',
@@ -55,35 +65,39 @@ export const KIND_COLOR: Record<AttractionKind, string> = {
 
 export const ATTRACTIONS: Attraction[] = [
   // ——— Горы ———
-  { id: 'shymbulak', name: 'Шымбулак', kind: 'ski', lat: 43.12786, lon: 77.08092, address: 'ул. Горная, 640', about: 'Горнолыжный курорт: трассы, гондола с Медеу, виды на 3200 м', season: [11, 4], buy: 'https://shymbulak.com', info: 'https://shymbulak.com', solo: true,
+  { id: 'shymbulak', photos: [commons('Shymbulak mountain in February 2024 09.jpg'), commons('Chimbulak automne.JPG'), commons('Shymbulak Alatau mountains in Almaty.jpg')], name: 'Шымбулак', kind: 'ski', lat: 43.12786, lon: 77.08092, address: 'ул. Горная, 640', about: 'Горнолыжный курорт: трассы, гондола с Медеу, виды на 3200 м', season: [11, 4], buy: 'https://shymbulak.com', info: 'https://shymbulak.com', solo: true,
     tips: ['Одному — на кресельной канатке до Талгарского перевала: тишина и облака под ногами', 'Наверху холоднее на 10–15 градусов — возьми куртку и летом'] },
   { id: 'shymbulak-pass', parent: 'shymbulak', name: 'Талгарский перевал, 3200 м', kind: 'view', lat: 43.11294, lon: 77.11521, about: 'Верхняя точка канатки: ледник, облака, панорама' },
   { id: 'shymbulak-swing', parent: 'shymbulak', name: 'Качели у Шымбулака', kind: 'photo', lat: 43.12766, lon: 77.08080, about: 'Качели над ущельем — самый узнаваемый кадр в горах', free: true },
-  { id: 'medeu', name: 'Медеу', kind: 'skate', lat: 43.15755, lon: 77.05856, address: 'ул. Горная, 465', about: 'Высокогорный каток под открытым небом, плотина и тропы в горы', season: [11, 3], solo: true,
+  { id: 'medeu', photos: [commons('Medeu Skating Rink in Almaty Kazakhstan.jpg'), commons('Medeu- 4.jpg')], howTo: 'Лестница к плотине и вид на ущелье — бесплатно в любое время.', name: 'Медеу', kind: 'skate', lat: 43.15755, lon: 77.05856, address: 'ул. Горная, 465', about: 'Высокогорный каток под открытым небом, плотина и тропы в горы', season: [11, 3], solo: true,
     tips: ['На каток можно одному — прокат коньков на месте', 'Вне сезона — лестница к плотине и вид на ущелье, это бесплатно'] },
   { id: 'medeu-dam', parent: 'medeu', name: 'Плотина и лестница', kind: 'view', lat: 43.15755, lon: 77.05856, about: 'Длинная лестница к плотине над Медеу: тренировка и лучший вид на ущелье', free: true },
   { id: 'medeu-gondola', parent: 'medeu', name: 'Гондола Медеу — Шымбулак', kind: 'cable', lat: 43.16306, lon: 77.05164, about: 'Канатная дорога в горы, работает круглый год' },
   { id: 'tabagan', name: 'Табаган', kind: 'ski', lat: 43.21460, lon: 77.09642, about: 'Горнолыжная база и зона отдыха в Талгарском ущелье', season: [12, 3] },
   { id: 'oi-qaragai', name: 'Пейнтбол Ой-Карагай', kind: 'paintball', lat: 43.22729, lon: 77.14919, about: 'Пейнтбол в лесу ущелья Ой-Карагай' },
+  { id: 'bao', name: 'Большое Алматинское озеро', kind: 'view', lat: 43.0507, lon: 76.9850, about: 'Бирюзовое озеро в горах на высоте 2500 м', free: true, solo: true, season: [5, 10],
+    photos: [commons('Big Almaty Lake (Bolshaya Almatinka), Almaty region, Kazakhstan. October 2007.jpg'), commons('Big Almaty Lake from pass.jpg')],
+    howTo: 'Бесплатно. Дорога — по ущелью Большой Алматинки, последние километры пешком; купаться нельзя, это водохранилище.',
+    tips: ['Выезжай утром: к обеду облака закрывают вершины', 'Наверху холодно даже летом — возьми тёплое'] },
   // ——— Кок-Тобе ———
-  { id: 'koktobe', name: 'Кок-Тобе', kind: 'cable', lat: 43.24242, lon: 76.95908, address: 'пр. Достык, 104А', about: 'Канатка на гору: смотровая, аттракционы, кафе и огни города вечером', buy: 'https://koktobe.com', info: 'https://koktobe.com', solo: true,
+  { id: 'koktobe', photos: [commons('Алматы, Кок-Тобе сверху.jpg'), commons('Almaty Skyline from the Kök Töbe hill.jpg')], howTo: 'Подняться можно бесплатно пешком — тропа от Терренкура, 40–50 минут вверх. Канатка — платно.', name: 'Кок-Тобе', kind: 'cable', lat: 43.24242, lon: 76.95908, address: 'пр. Достык, 104А', about: 'Канатка на гору: смотровая, аттракционы, кафе и огни города вечером', buy: 'https://koktobe.com', info: 'https://koktobe.com', solo: true,
     tips: ['Одному лучше всего к закату: подняться на канатке и смотреть, как зажигается город', 'Обратно можно пешком по тропе — 30–40 минут вниз'] },
   { id: 'koktobe-view', parent: 'koktobe', name: 'Смотровая площадка', kind: 'view', lat: 43.23390, lon: 76.97590, about: 'Весь город и горы в одном кадре, вечером — огни', free: true },
   { id: 'koktobe-beatles', parent: 'koktobe', name: 'Памятник The Beatles', kind: 'photo', lat: 43.23390, lon: 76.97590, about: 'Четвёрка на скамейке — можно сесть рядом и сфотографироваться', free: true },
   { id: 'koktobe-rides', parent: 'koktobe', name: 'Аттракционы и колесо', kind: 'wheel', lat: 43.23390, lon: 76.97590, about: 'Колесо обозрения на вершине, горки и тир' },
   // ——— Сходить одному: город ———
-  { id: 'panfilov-park', name: 'Парк 28 панфиловцев', kind: 'park', lat: 43.25883, lon: 76.95413, address: 'ул. Гоголя, 40', about: 'Старый парк в центре: Вознесенский собор, аллеи, кофе с собой', free: true, solo: true,
+  { id: 'panfilov-park', photos: [commons('Алматы, парк 28 панфиловцев сверху (2).jpg'), commons('Zenkov Cathedral Winter.jpg')], hours: ALWAYS, name: 'Парк 28 панфиловцев', kind: 'park', lat: 43.25883, lon: 76.95413, address: 'ул. Гоголя, 40', about: 'Старый парк в центре: Вознесенский собор, аллеи, кофе с собой', free: true, solo: true,
     tips: ['Утром в выходные тихо и красиво', 'Рядом Зелёный базар — можно зайти за фруктами'] },
   { id: 'gorky-park', name: 'Центральный парк', kind: 'park', lat: 43.26128, lon: 76.96327, address: 'ул. Гоголя, 1', about: 'Большой парк с озером, лодками и аттракционами', free: true, solo: true,
     tips: ['Лодку можно взять и одному', 'Вечером на набережной уличные музыканты'] },
-  { id: 'president-park', name: 'Парк Первого Президента', kind: 'park', lat: 43.19366, lon: 76.88679, about: 'Фонтаны и вид на горы — лучшая прогулка на закате', free: true, solo: true,
+  { id: 'president-park', hours: ALWAYS, name: 'Парк Первого Президента', kind: 'park', lat: 43.19366, lon: 76.88679, about: 'Фонтаны и вид на горы — лучшая прогулка на закате', free: true, solo: true,
     tips: ['Лучший свет за час до заката: горы розовые', 'Летом по вечерам работают поющие фонтаны'] },
   { id: 'botanic', name: 'Главный ботанический сад', kind: 'garden', lat: 43.22689, lon: 76.92887, address: 'ул. Тимирязева, 36д', about: 'Тихие аллеи, оранжерея и пруды посреди города', solo: true,
     tips: ['Идеально, чтобы побыть одному: людей мало, телефон можно убрать'] },
-  { id: 'terrenkur', name: 'Терренкур', kind: 'park', lat: 43.22375, lon: 76.96713, address: 'за пр. Достык', about: 'Прогулочная тропа вдоль реки к горам', free: true, solo: true,
+  { id: 'terrenkur', photos: [commons('View of Kok Tobe from Terrenkur.jpg'), commons('The Esentay with the Almaty Towers (AP4M2507 1PS) (29050959892).jpg')], hours: ALWAYS, howTo: 'Бесплатно и круглосуточно — это парковая тропа вдоль реки.', name: 'Терренкур', kind: 'park', lat: 43.22375, lon: 76.96713, address: 'за пр. Достык', about: 'Прогулочная тропа вдоль реки к горам', free: true, solo: true,
     tips: ['Можно идти час в сторону гор и вернуться — маршрут сам ведёт'] },
-  { id: 'arbat', name: 'Арбат', kind: 'photo', lat: 43.2614, lon: 76.9450, address: 'ул. Жибек Жолы', about: 'Пешеходная улица: музыканты, художники, вечерний свет', free: true, solo: true },
-  { id: 'republic-sq', name: 'Площадь Республики', kind: 'photo', lat: 43.2381, lon: 76.9454, about: 'Монумент Независимости и горы за ним', free: true },
+  { id: 'arbat', hours: ALWAYS, name: 'Арбат', kind: 'photo', lat: 43.2614, lon: 76.9450, address: 'ул. Жибек Жолы', about: 'Пешеходная улица: музыканты, художники, вечерний свет', free: true, solo: true },
+  { id: 'republic-sq', hours: ALWAYS, name: 'Площадь Республики', kind: 'photo', lat: 43.2381, lon: 76.9454, about: 'Монумент Независимости и горы за ним', free: true },
   { id: 'kasteev', name: 'Музей искусств им. Кастеева', kind: 'museum', lat: 43.23593, lon: 76.91870, about: 'Казахское и мировое искусство — спокойный вечер наедине с картинами', solo: true,
     tips: ['Возьми аудиогид — с ним интереснее, чем в компании'] },
   { id: 'central-museum', name: 'Центральный государственный музей', kind: 'museum', lat: 43.23582, lon: 76.94966, address: 'мкр. Самал-1, 44', about: 'История Казахстана от саков до наших дней', solo: true },
@@ -123,8 +137,6 @@ export function seasonText(a: Pick<Attraction, 'season'>, now = new Date()): str
   return inSeason(a, now) ? `сезон до ${FROM[a.season[1] - 1]}` : `откроется в ${MONTHS[a.season[0] - 1]}`;
 }
 
-/** Часы, цены и отзывы — в карточке 2ГИС (там их обновляют сами места). */
-export const gisUrl = (a: Pick<Attraction, 'name' | 'lat' | 'lon'>) => `https://2gis.kz/almaty/search/${encodeURIComponent(a.name)}/geo/${a.lon},${a.lat}`;
 
 /** Места на карте — без «частей» (они внутри карточки большого места). */
 export const topSpots = (list: Attraction[]) => list.filter((a) => !a.parent);

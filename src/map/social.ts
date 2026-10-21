@@ -9,5 +9,6 @@ export function socialLine(e: EventItem, people: Person[]): string {
   // «Кто идёт» и «ищут» показываем от 3 человек.
   if (e.lookingCount >= 3) return `Ищут компанию ${e.lookingCount}`;
   if (e.goingCount >= 3) return `Идут ${e.goingCount.toLocaleString('ru-RU')}`;
-  return 'Можно прийти одному';
+  // Никого нет — молчим: «Можно прийти одному» на каждой второй карточке было лишним шумом (владелец, 21 окт.).
+  return '';
 }

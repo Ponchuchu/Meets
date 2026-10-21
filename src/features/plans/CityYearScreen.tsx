@@ -22,7 +22,6 @@ export default function CityYearScreen() {
         <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад"><ChevronLeft size={24} color={colors.ink} strokeWidth={2.2} /></Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.h1} accessibilityRole="header">Год в Алматы</Text>
-          <Text style={styles.sub}>Большие события города — на карте появляются сами, когда подходит время</Text>
         </View>
       </View>
       {list.map((s, i) => {
@@ -54,7 +53,6 @@ export default function CityYearScreen() {
           </View>
         );
       })}
-      <Text style={styles.note}>Даты — ориентир по 2026 году. Как только организаторы объявят точные дни, событие появится в ленте и на карте с билетами.</Text>
     </ScrollView>
   );
 }

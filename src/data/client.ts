@@ -41,3 +41,8 @@ export function withTimeout<T>(p: PromiseLike<T>, ms = 6000): Promise<T> {
   const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), ms); });
   return Promise.race([Promise.resolve(p), timeout]).finally(() => clearTimeout(timer));
 }
+
+let topicSeq = 0;
+/** Своё имя канала на каждую подписку: при одинаковом имени Supabase отдаёт уже подписанный канал,
+ *  и второй экран с тем же каналом падал «cannot add postgres_changes callbacks after subscribe()». */
+export const uniqTopic = (base: string) => `${base}:${Date.now().toString(36)}${(++topicSeq).toString(36)}`;
