@@ -241,7 +241,7 @@ export default function ChatScreen() {
   // Одна кнопка записи, как в Telegram: тап — голос ↔ кружок, удержание — запись, отпустил — отправилось.
   // Демо-запись: настоящий звук и видео — expo-audio / expo-camera в dev build.
   // Настоящая запись: голос — expo-audio, кружок — фронтальная камера (CircleRecorder). Влево — отмена.
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 64000 });
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000 }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
   const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -676,7 +676,7 @@ export default function ChatScreen() {
       {sheet==='stickers'&&<><Backdrop label="Закрыть" onPress={()=>setSheet(null)}/><BottomSheet onClose={()=>setSheet(null)} label="Стикеры"><StickerPicker level={stats?.level??1} onSelect={s=>{push({kind:'sticker',text:s.label});setSheet(null);}}/></BottomSheet></>}
       {sheet === 'attachments' && <AttachmentsSheet chatId={id} messages={messages} title={title} friend={friend || isGroup || isEvent} onClose={() => setSheet(null)} />}
       {recording === 'circle' && (
-        <CircleRecorder ref={circleRef} cancelling={cancelling} onStart={() => { rec.current.started = nowMs(); rec.current.ready = true; }}
+        <CircleRecorder ref={circleRef} cancelling={cancelling} locked={locked} onSend={() => void stopRec(true)} onDiscard={() => void stopRec(false)} onStart={() => { rec.current.started = nowMs(); rec.current.ready = true; }}
           onDone={(uri, sec) => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); push({ kind: 'circle', media: uri, duration: dur(sec), durationS: sec }); }}
           onCancel={() => {stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null);}}
           onDenied={() => { stopping.current = false; rec.current.active=false;rec.current.locked=false;setLocked(false);setRecording(null); show({ text: 'Разреши камеру и микрофон в настройках телефона' }); }} />

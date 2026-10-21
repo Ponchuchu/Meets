@@ -304,7 +304,7 @@ export default function MapScreen() {
     return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
   }, [meAt, tscore.data]);
   // Старше 40 минут — не показываем: раньше застывший ночной балл «1» висел неделю.
-  const trafficFresh = !!tscore.data && Date.now() - Date.parse(tscore.data.at) < 40 * 60e3;
+  const trafficFresh = !!tscore.data && clock.getTime() - Date.parse(tscore.data.at) < 40 * 60e3;
   const toAve = useQuery({
     queryKey: ['traffic', 'to', nearAve?.name, meAt && Math.round(meAt.lat * 500), meAt && Math.round(meAt.lon * 500)],
     queryFn: async () => (meAt && nearAve ? (await getRoute(meAt, nearAve)).car?.min ?? null : null),

@@ -2,6 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
+import { InteractionManager } from 'react-native';
+import { trimCache } from '../../src/live/memory';
 import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
@@ -51,6 +53,8 @@ function Shell() {
   usePlansSync();
   useInvites();
   useNotificationTaps((url) => router.push(url as never));
+  // Кэш кружков и видео не разрастается: раз за запуск, когда всё уже открылось.
+  useEffect(() => { const t = InteractionManager.runAfterInteractions(() => { void trimCache().catch(() => undefined); }); return () => t.cancel(); }, []);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: !demo });
   const draft = useSession((s) => s.draft);
   useEffect(() => {

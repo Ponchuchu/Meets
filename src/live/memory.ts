@@ -79,3 +79,27 @@ export async function clearAll(): Promise<void> {
 }
 
 export const sizeText = (b: number) => (b < 1024 * 1024 ? `${Math.max(0, Math.round(b / 1024))} КБ` : b < 1024 ** 3 ? `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} МБ` : `${(b / 1024 ** 3).toFixed(2).replace('.', ',')} ГБ`);
+
+/** Сама следит за местом (раз за запуск): если медиа и временных файлов в кэше больше 80 МБ, стирает самые старые,
+ *  пока не останется 50 МБ. Неотправленное не трогает. Как в Telegram с ограничением кэша, только без настройки. */
+export async function trimCache(limit = 80e6, keepTo = 50e6): Promise<number> {
+  if (Platform.OS === 'web' || config.dataMode === 'demo') return 0;
+  const keep = pendingFiles();
+  const files: { f: File; size: number; at: number }[] = [];
+  try {
+    walk(Paths.cache, (f) => {
+      if (keep.has(f.uri)) return;
+      const k = kindOfFile(f.name);
+      if (k === 'messages' || k === 'feed' || k === 'people') return;
+      files.push({ f, size: f.size ?? 0, at: (f as unknown as { modificationTime?: number }).modificationTime ?? 0 });
+    });
+  } catch { return 0; }
+  let total = files.reduce((a, x) => a + x.size, 0);
+  if (total <= limit) return 0;
+  let freed = 0;
+  for (const x of files.sort((a, b) => a.at - b.at)) {
+    if (total <= keepTo) break;
+    try { x.f.delete(); total -= x.size; freed += x.size; } catch { /* занят */ }
+  }
+  return freed;
+}

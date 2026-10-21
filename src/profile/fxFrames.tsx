@@ -1,9 +1,10 @@
 // «Живые рамки» (FIX3 Ф11, просьба владельца 20 октября): не только Алматы — пузырь, капля, неон, сияние, космос,
-// «Тесла», лава, корона. Форма у каждой своя; в профиле и выборе — анимация на UI-потоке (поворот, дыхание, мерцание),
+// «Тесла», лава, корона. Форма у каждой своя; в профиле и выборе — анимация на UI-потоке (орбита, дыхание, мерцание,
+// у пузыря — пробегающий радужный блик),
 // на карте и в маленьких аватарках — тот же рисунок без движения, чтобы не тратить батарею.
 import { memo, useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { photo } from '../data/photos';
 import { colors, fonts } from '../theme';
@@ -77,8 +78,6 @@ function Ring({ kind, gid, form }: { kind: FxKind; gid: string; form: Form }) {
       <Stop offset="0" stopColor="#FF9AD5" /><Stop offset="0.3" stopColor="#8EE7FF" /><Stop offset="0.55" stopColor="#FFF29A" /><Stop offset="0.8" stopColor="#B49BFF" /><Stop offset="1" stopColor="#FF9AD5" />
     </LinearGradient></Defs>
     <Path d={ringOf(form, 26)} fill="none" stroke={`url(#${gid}ir)`} strokeWidth={5} opacity={0.85} />
-    <Path d="M14 22Q18 12 28 9" fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" opacity={0.9} />
-    <Circle cx={47} cy={46} r={1.8} fill="#FFFFFF" opacity={0.8} />
   </>;
   if (kind === 'drop') return <>
     <Defs><LinearGradient id={`${gid}dr`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor="#7CC3FF" /><Stop offset="1" stopColor="#2457C9" /></LinearGradient></Defs>
@@ -128,7 +127,8 @@ function useMotion(kind: FxKind, on: boolean) {
   useEffect(() => {
     // Выключили (прокрутка, экономия) — останавливаем на месте, а не просто перестаём запускать.
     if (!on) { cancelAnimation(t); cancelAnimation(p); return; }
-    const turn = { bubble: 9000, drop: 14000, neon: 0, aurora: 11000, cosmos: 10000, tesla: 0, lava: 16000, crown: 0 }[kind];
+    // Вертятся только орбита «Космоса» и поток «Лавы»; пузырь, капля и сияние стоят и переливаются (просьба владельца 21 окт.).
+    const turn = { bubble: 0, drop: 0, neon: 0, aurora: 0, cosmos: 10000, tesla: 0, lava: 16000, crown: 0 }[kind];
     // Продолжаем с того же угла: повтор идёт от s до s+1 (полный оборот), без скачка после паузы.
     if (turn) { const s = t.get() % 1; t.set(s); t.set(withRepeat(withTiming(s + 1, { duration: turn, easing: Easing.linear }), -1, false)); }
     p.set(kind === 'tesla'
@@ -138,9 +138,43 @@ function useMotion(kind: FxKind, on: boolean) {
   return useAnimatedStyle(() => {
     const dir = kind === 'lava' ? -1 : 1;
     const scale = kind === 'bubble' ? 1 + 0.025 * p.get() : kind === 'drop' || kind === 'lava' ? 1 + 0.015 * p.get() : 1;
-    const opacity = kind === 'neon' ? 0.65 + 0.35 * p.get() : kind === 'tesla' ? p.get() : kind === 'crown' ? 0.85 + 0.15 * p.get() : 1;
+    const opacity = kind === 'neon' ? 0.65 + 0.35 * p.get() : kind === 'tesla' ? p.get() : kind === 'crown' ? 0.85 + 0.15 * p.get() : kind === 'aurora' ? 0.7 + 0.3 * p.get() : 1;
     return { opacity: on ? opacity : 1, transform: [{ rotate: `${dir * 360 * t.get()}deg` }, { scale }] };
   });
+}
+
+/** Мыльная плёнка: раз в несколько секунд по пузырю пробегает радужный блик и вспыхивает отражение окна. */
+function Sheen({ gid, on, size, form }: { gid: string; on: boolean; size: number; form: Form }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (!on) { cancelAnimation(t); t.set(0); return; }
+    t.set(withRepeat(withSequence(withDelay(2400, withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) })), withTiming(0, { duration: 0 })), -1, false));
+    return () => cancelAnimation(t);
+  }, [on, t]);
+  const st = useAnimatedStyle(() => ({ opacity: Math.sin(Math.PI * t.get()), transform: [{ translateX: (t.get() - 0.5) * size * 0.35 }, { translateY: (t.get() - 0.5) * size * 0.18 }] }));
+  const glint = useAnimatedStyle(() => ({ opacity: 0.55 + 0.45 * Math.sin(Math.PI * t.get()) }));
+  return <>
+    {/* Постоянное отражение «окна» сверху слева — пузырь читается объёмным и без движения. */}
+    <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, glint]}>
+      <Svg width={size} height={size} viewBox="0 0 64 64">
+        <Path d="M15 21Q19 12 29 9" fill="none" stroke="#FFFFFF" strokeWidth={2.6} strokeLinecap="round" opacity={0.95} />
+        <Path d="M17 26Q17.5 24 18.5 22.5" fill="none" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" opacity={0.8} />
+        <Circle cx={47} cy={46} r={1.9} fill="#FFFFFF" opacity={0.85} />
+      </Svg>
+    </Animated.View>
+    <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, st]}>
+      <Svg width={size} height={size} viewBox="0 0 64 64">
+        <Defs>
+          <ClipPath id={`${gid}sc`}><Path d={ringOf(form, 29)} /></ClipPath>
+          <LinearGradient id={`${gid}sh`} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0.3" stopColor="#FFFFFF" stopOpacity={0} /><Stop offset="0.42" stopColor="#B9F3FF" stopOpacity={0.55} />
+            <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity={0.8} /><Stop offset="0.58" stopColor="#FFC6EA" stopOpacity={0.55} /><Stop offset="0.7" stopColor="#FFFFFF" stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Path d={ringOf(form, 29)} fill={`url(#${gid}sh)`} clipPath={`url(#${gid}sc)`} />
+      </Svg>
+    </Animated.View>
+  </>;
 }
 
 export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size, mapPin, animate, shape }: {
@@ -167,5 +201,6 @@ export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size,
     <Animated.View renderToHardwareTextureAndroid shouldRasterizeIOS style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, motion]}>
       <Svg width={size} height={size} viewBox="0 0 64 64"><Ring kind={kind} gid={gid} form={form} /></Svg>
     </Animated.View>
+    {kind === 'bubble' && <Sheen gid={gid} on={animate && !mapPin && size >= 72} size={size} form={form} />}
   </View>;
 });
