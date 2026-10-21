@@ -5,6 +5,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bug, CalendarX, CircleCheck, CirclePause, CloudOff, ImageOff, Inbox, MapPinOff, SearchX, Tag, X, type LucideIcon } from 'lucide-react-native';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { deviceStorage } from '../../state/storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase, withTimeout } from '../../data/client';
 import { colors, fonts } from '../../theme';
@@ -23,6 +26,13 @@ type Target = { tab: DevTab; sub?: 'queue' | 'map' | 'gaps' } | 'crashes' | 'cle
 export interface AttentionRow { key: string; tone: 'error' | 'warn' | 'info'; icon: LucideIcon; title: string; sub?: string; target?: Target }
 export interface Crash { at: string; fatal: boolean; screen: string | null; message: string; app_version: string | null }
 
+/** Смахнутые уведомления: ключ + текст — изменится текст (стало больше ошибок), уведомление вернётся. */
+const useDismissed = create<{ ids: string[]; hide: (id: string) => void }>()(persist(
+  (set) => ({ ids: [], hide: (id) => set((s) => ({ ids: [...s.ids.slice(-100), id] })) }),
+  { name: 'ryadom-admin-dismissed', storage: deviceStorage(), partialize: (s) => ({ ids: s.ids }) as never },
+));
+const sig = (r: AttentionRow) => `${r.key}:${r.title}`;
+
 /** Что требует внимания. Запросы лёгкие и редкие (сводка — раз в минуту, ошибки приложения — раз в 2 минуты). */
 export function useAttention(live: boolean) {
   const o = useOverview(live);
@@ -38,6 +48,7 @@ export function useAttention(live: boolean) {
     },
   });
   const d = o.data;
+  const dismissed = useDismissed((x) => x.ids);
   const cr = useMemo(() => crashes.data ?? [], [crashes.data]);
   const paused = live && !!sched.data?.paused;
   const rows = useMemo(() => {
@@ -53,8 +64,8 @@ export function useAttention(live: boolean) {
     }
     if (paused) out.push({ key: 'sch', tone: 'info', icon: CirclePause, title: 'Автопоиск выключен', sub: 'События ищутся только по кнопке', target: { tab: 'settings' } });
     if (o.isError) out.push({ key: 'err', tone: 'error', icon: CloudOff, title: 'Сводка не загрузилась', sub: 'Нажми, чтобы повторить', target: 'retry' });
-    return out;
-  }, [robot.state, robot.error, cr, d, paused, o.isError]);
+    return out.filter((r) => !dismissed.includes(sig(r)));
+  }, [robot.state, robot.error, cr, d, paused, o.isError, dismissed]);
   // На колокольчике — только то, что требует действия (ошибки и предупреждения), без справочных строк.
   const count = rows.filter((r) => r.tone !== 'info').length;
   return { rows, count, crashes: cr, loading: o.isLoading, refetch: o.refetch };
@@ -63,6 +74,7 @@ export function useAttention(live: boolean) {
 const DOT = { error: colors.accent, warn: '#D9A93B', info: colors.muted3 } as const;
 
 const Row = memo(function Row({ r, onPress, open }: { r: AttentionRow; onPress?: (r: AttentionRow) => void; open?: boolean }) {
+  const hide = useDismissed((x) => x.hide);
   const Icon = r.icon;
   const body = (
     <View style={styles.row}>
@@ -74,6 +86,7 @@ const Row = memo(function Row({ r, onPress, open }: { r: AttentionRow; onPress?:
         <Text style={[styles.title, r.tone === 'error' && { color: colors.accentText }]}>{r.title}</Text>
         {!!r.sub && <Text style={styles.sub}>{open ? 'Нажми, чтобы скрыть' : r.sub}</Text>}
       </View>
+      <Pressable onPress={() => hide(sig(r))} hitSlop={10} style={styles.hide} accessibilityRole="button" accessibilityLabel="Убрать уведомление"><X size={18} color={colors.muted2} strokeWidth={2} /></Pressable>
     </View>
   );
   return r.target && onPress
@@ -146,6 +159,7 @@ export function Notifications({ live, go, onClose }: { live: boolean; go: Goto; 
 const Sep = () => <View style={{ height: 12 }} />;
 
 const styles = StyleSheet.create({
+  hide: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 8, minHeight: 52 },
   h: { fontFamily: fonts.display700, fontSize: 24, color: colors.ink, letterSpacing: -0.4 },

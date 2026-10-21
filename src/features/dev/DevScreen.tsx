@@ -7,12 +7,11 @@
 // Рисуется только открытая вкладка: запросы других вкладок не идут. Настоящие данные — только команде (таблица staff).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bell, ChartColumn, ChevronLeft, ChevronRight, UserSearch } from 'lucide-react-native';
+import { Bell, ChartColumn, ChevronLeft, UserSearch } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isStaff, loadStats } from '../../admin/api';
-import { plural } from '../../admin/rules';
 import { useRobotView } from '../../admin/useRobot';
 import { Notifications, useAttention, type DevTab, type Goto } from '../../admin/ui/Attention';
 import { EventsList, type ListFilter } from '../../admin/ui/EventsList';
@@ -95,14 +94,7 @@ export default function Admin() {
         <View style={styles.page}>
           {tab === 'overview' && (
             <>
-              {n > 0 && (
-                <Pressable onPress={openAlerts} style={({ pressed }) => [styles.alertRow, pressed && { opacity: 0.8 }]} accessibilityRole="button"
-                  accessibilityLabel={`Открыть уведомления: ${n}`}>
-                  <View style={styles.alertDot} />
-                  <Text style={styles.alertText}>{n} {plural(n, 'вещь требует', 'вещи требуют', 'вещей требуют')} внимания</Text>
-                  <ChevronRight size={18} color={colors.muted2} strokeWidth={1.8} />
-                </Pressable>
-              )}
+              {/* Уведомления — только в колокольчике сверху (21 окт.): в самих вкладках не дублируем. */}
               <OverviewBlock live={staff} />
               <View style={{ gap: 12 }}>
                 <Section fold="closed" icon={ChartColumn} title="Рекомендации" hint="Доля «пойду», дошли, возвраты и отмены.">
@@ -158,7 +150,4 @@ const styles = StyleSheet.create({
   demo: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted, textAlign: 'center', paddingHorizontal: 16, paddingBottom: 4 },
   page: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 16 },
   subs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  alertRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#EDC6B2' },
-  alertDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
-  alertText: { flex: 1, fontFamily: fonts.body700, fontSize: 14.5, color: colors.accentText },
 });
