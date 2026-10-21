@@ -1,5 +1,5 @@
-import { QueryNotice } from '../../ui/QueryNotice';
-// «Чаты»: один список от новых к старым, закреплённые сверху (долгое нажатие). Фильтры — все, события, личные.
+// «Чаты»: один список от новых к старым, закреплённые сверху. Без папок (21 окт.): все чаты и серая строка «Архив» сверху.
+// Связь — как в Telegram: вместо плашки об ошибке заголовок «Соединение…» / «Обновление…».
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
 import { useShallow } from 'zustand/react/shallow';
 import { Tick, tickOf } from '../../chat/ui/Tick';
@@ -13,14 +13,15 @@ import { queryClient } from '../../live/query';
 import { uid } from '../../lib/uid';
 import { isFriendNow, useSocial } from '../../state/social';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
-import { Archive, ArchiveRestore, CalendarCheck, EyeOff, HouseHeart, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
+import { Archive, ArchiveRestore, CalendarCheck, Camera, EyeOff, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { friendActivity, previewText } from '../../chat/activity';
 import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { now as clockNow } from '../../lib/clock';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
 import { data, eventsSnapshot, type Chat } from '../../data';
@@ -34,7 +35,7 @@ import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { plate } from '../../ui/glass';
 
-type Filter = 'all' | 'events' | 'direct' | 'requests' | 'archive';
+type Filter = 'all' | 'requests' | 'archive';
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
@@ -55,7 +56,14 @@ export default function ChatsScreen() {
   const [group, setGroup] = useState(false);
   const [compose, setCompose] = useState(false);
   const [who, setWho] = useState('');
-  const startGroup = (title = '') => { setCompose(false); setGroupTitle(title); setMembers([]); setGroup(true); setError(''); };
+  const startGroup = () => { setCompose(false); setGroupTitle(''); setGroupPhoto(null); setMembers([]); setGroup(true); setError(''); };
+  const [groupPhoto, setGroupPhoto] = useState<string | null>(null);
+  const pickGroupPhoto = async () => {
+    try {
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+      if (!r.canceled && r.assets[0]) setGroupPhoto(r.assets[0].uri);
+    } catch { /* галерея недоступна — без фото */ }
+  };
   const [groupTitle, setGroupTitle] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -66,8 +74,8 @@ export default function ChatsScreen() {
     if (creating.current || !groupTitle.trim() || members.length < 1) return;
     creating.current = true; setBusy(true); setError('');
     try {
-      const id = config.dataMode === 'demo' ? uid('group') : await createFriendGroup(groupTitle.trim(), members);
-      if(config.dataMode === 'demo') chat.addGroup({id,kind:'group',title:groupTitle.trim(),members:members.length+1,memberIds:members,lastText:'Группа создана',lastTime:'',unread:0});
+      const id = config.dataMode === 'demo' ? uid('group') : await createFriendGroup(groupTitle.trim(), members, groupPhoto);
+      if(config.dataMode === 'demo') chat.addGroup({id,kind:'group',title:groupTitle.trim(),members:members.length+1,memberIds:members,lastText:'Группа создана',lastTime:'',unread:0,photo:groupPhoto ?? undefined});
       await queryClient.invalidateQueries({queryKey:['chats']});
       setGroup(false); router.push({pathname:'/chat/[id]',params:{id}});
     } catch { setError('Не удалось создать группу. Проверь связь и список друзей'); }
@@ -91,10 +99,12 @@ export default function ChatsScreen() {
   const list = sortChats(
     [...chats, ...chat.groups.filter(g => !chats.some(c => c.id === g.id))]
       .filter((c) => match(c) && !chat.hidden[c.id] && !(c.personId && chat.blocked[c.personId]) && (filter === 'archive' ? !!chat.archived[c.id] : !chat.archived[c.id]))
-      .filter((c) => filter === 'all' || filter === 'archive' || (filter === 'events' ? c.kind === 'event' : filter === 'direct' ? c.kind === 'direct' || c.kind === 'group' : false))
       .map((c) => ({ ...c, l: last(c), time: last(c).time })),
     chat.pinned,
   );
+  const archivedCount = chats.filter((c) => chat.archived[c.id] && !chat.hidden[c.id]).length;
+  // Как в Telegram: нет сети — «Соединение…», сеть вернулась и список обновляется после сбоя — «Обновление…».
+  const headTitle = !online ? 'Соединение…' : chatsQuery.isFetching && (chatsQuery.isError || chatsQuery.failureCount > 0) ? 'Обновление…' : 'Чаты';
   const goingSet = new Set(Object.keys(plans.going));
   // Друзья, с кем ещё нет диалога: показываем их внизу, чтобы список не был пустым.
   const withChat = new Set(chats.filter((c) => c.kind === 'direct').map((c) => c.personId));
@@ -110,33 +120,30 @@ export default function ChatsScreen() {
   return (
     <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
       <View style={styles.head}>
-        <Text style={[styles.h1,{flex:1}]} accessibilityRole="header">Чаты</Text>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityLiveRegion="polite">
+          {headTitle !== 'Чаты' && <ActivityIndicator size="small" color={colors.muted2} />}
+          <Text style={[styles.h1, headTitle !== 'Чаты' && styles.h1Wait]} accessibilityRole="header" numberOfLines={1}>{headTitle}</Text>
+        </View>
         <Pressable onPress={() => setCompose(true)} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Новый чат"><SquarePen size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
         </Pressable>
       </View>
-      <QueryNotice pending={false} error={chats.length > 0 && chatsQuery.isError} onRetry={() => { void chatsQuery.refetch(); }} />
       {search != null && <TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Найти чат или сообщение" placeholderTextColor={colors.muted3} style={styles.search} accessibilityLabel="Поиск по чатам" />}
-      {filter === 'requests' ? (
+      {filter !== 'all' ? (
         <Pressable onPress={() => setFilter('all')} style={styles.reqHead} accessibilityRole="button" accessibilityLabel="Назад к чатам">
           <Ic d={IC.back} size={20} color={colors.ink} w={2} />
-          <Text style={styles.reqTitle}>Запросы</Text>
+          <Text style={styles.reqTitle}>{filter === 'archive' ? 'Архив' : 'Запросы'}</Text>
         </Pressable>
-      ) : (
-        <View style={styles.filters}>
-          {([['all', 'Все'], ['events', 'События'], ['direct', 'Личные'], ['archive','Архив']] as [Filter, string][]).map(([k, label]) => {
-            const on = filter === k;
-            return (
-              <Pressable key={k} onPress={() => setFilter(k)} style={[styles.chip, on && { backgroundColor: colors.ink, borderColor: colors.ink }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-                <Text style={[styles.chipText, on && { color: colors.paper }]}>{label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      ) : archivedCount > 0 && !q ? (
+        <Pressable onPress={() => setFilter('archive')} style={({ pressed }) => [styles.archiveRow, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Архив: ${archivedCount}`}>
+          <View style={styles.archiveIcon}><Archive size={20} color="#FFFFFF" strokeWidth={1.9} /></View>
+          <Text style={styles.archiveText}>Архив</Text>
+          <Text style={styles.archiveCount}>{archivedCount}</Text>
+        </Pressable>
+      ) : null}
 
-      {filter !== 'requests' && pending.length > 0 && (
+      {filter === 'all' && pending.length > 0 && (
         <Pressable onPress={() => setFilter('requests')} style={({ pressed }) => [styles.reqRow, pressed && { opacity: 0.75 }]} accessibilityRole="button" accessibilityLabel={`Запросы: ${pending.length}`}>
           <View style={{ flexDirection: 'row' }}>
             {pending.slice(0, 3).map((r, i) => {
@@ -199,7 +206,7 @@ export default function ChatsScreen() {
                 <Pressable onPress={() => open(c.id)}
                   style={({ pressed }) => [styles.row, n > 0 && styles.rowNew, pressed && { opacity: 0.7 }]}
                   accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
-                  {p ? <Avatar p={p} size={56} /> : (
+                  {p ? <Avatar p={p} size={56} /> : c.photo ? <Image source={{ uri: c.photo }} style={styles.groupPhoto} /> : (
                     <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
                       <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
                     </View>
@@ -263,12 +270,7 @@ export default function ChatsScreen() {
         <Pressable onPress={() => startGroup()} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
           <View style={[styles.composeIcon, { backgroundColor: colors.friend }]}><Users size={20} color="#FFFFFF" strokeWidth={2} /></View>
           <Text style={styles.composeText}>Группа</Text>
-          <Text style={styles.composeSub}>друзья и общие планы</Text>
-        </Pressable>
-        <Pressable onPress={() => startGroup('Семья')} style={({ pressed }) => [styles.composeBtn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
-          <View style={[styles.composeIcon, { backgroundColor: colors.accent }]}><HouseHeart size={20} color={colors.ink} strokeWidth={2} /></View>
-          <Text style={styles.composeText}>Семья</Text>
-          <Text style={styles.composeSub}>куда сходить вместе</Text>
+          <Text style={styles.composeSub}>друзья, название и фото</Text>
         </Pressable>
       </View>
       {(() => {
@@ -295,10 +297,14 @@ export default function ChatsScreen() {
       })()}
     </BottomSheet></>}
     {group && <><Backdrop label="Закрыть" onPress={() => setGroup(false)}/><BottomSheet onClose={() => setGroup(false)} label="Новая группа" scroll style={{paddingBottom:24+insets.bottom}}>
-      <Text style={styles.h1}>{groupTitle === 'Семья' ? 'Семья' : 'Новая группа'}</Text>
-      {groupTitle === 'Семья' && <Text style={styles.sub}>Общий чат, куда удобно кидать события на выходные — все увидят и отметят «Иду».</Text>}
-      <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название" accessibilityLabel="Название группы" style={styles.search} maxLength={60}/>
-      <Text style={styles.sub}>Выбери хотя бы одного друга</Text>
+      <Text style={styles.h1}>Новая группа</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Pressable onPress={() => void pickGroupPhoto()} style={styles.photoPick} accessibilityRole="button" accessibilityLabel={groupPhoto ? 'Сменить фото группы' : 'Выбрать фото группы'}>
+          {groupPhoto ? <Image source={{ uri: groupPhoto }} style={StyleSheet.absoluteFill} /> : <Camera size={24} color={colors.muted2} strokeWidth={1.9} />}
+        </Pressable>
+        <TextInput value={groupTitle} onChangeText={setGroupTitle} placeholder="Название группы" placeholderTextColor={colors.muted3} accessibilityLabel="Название группы" style={[styles.search, { flex: 1 }]} maxLength={60}/>
+      </View>
+      <Text style={styles.cap}>{members.length ? `ВЫБРАНО: ${members.length}` : 'КОГО ДОБАВИТЬ'}</Text>
       <View style={{gap:4}}>{friends.map(p => <Pressable key={p.id} style={styles.row} onPress={() => setMembers(s => s.includes(p.id)?s.filter(x=>x!==p.id):[...s,p.id])} accessibilityRole="checkbox" accessibilityState={{checked:members.includes(p.id)}}>
         <Avatar p={p}/><Text style={[styles.name,{flex:1}]}>{p.name}</Text>{members.includes(p.id)&&<Ic d={IC.check} size={20} color={colors.accent}/>}
       </Pressable>)}</View>
@@ -322,6 +328,13 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.body500, fontSize: 13.5, color: colors.ink },
   badge: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
+  h1Wait: { fontSize: 22, color: colors.muted2 },
+  archiveRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: '#E9E4D9' },
+  archiveIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#A9A294', alignItems: 'center', justifyContent: 'center' },
+  archiveText: { flex: 1, fontFamily: fonts.body600, fontSize: 15, color: colors.muted2 },
+  archiveCount: { fontFamily: fonts.mono600, fontSize: 12, color: colors.muted },
+  groupPhoto: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.sand },
+  photoPick: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
   reqHead: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44 },
   reqTitle: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink },
   reqRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },

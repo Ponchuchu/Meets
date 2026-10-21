@@ -163,11 +163,14 @@ export async function getFriendSpots(): Promise<FriendSpot[]> {
 
 export async function getChats(): Promise<Chat[]> {
   const me = await requireUser();
-  const { data: mine, error } = await withTimeout(
-    supabase().from('chat_members').select('chat_id,last_read_at,chats(id,kind,title,event_id,meet_point,events(title))').eq('user_id', me),
+  // Фото группы (миграция 39): пока сервер без колонки — читаем без неё, список чатов не ломается.
+  const pick = (withPhoto: boolean) => withTimeout(
+    supabase().from('chat_members').select(`chat_id,last_read_at,chats(id,kind,title,event_id,meet_point,${withPhoto ? 'photo_url,' : ''}events(title))`).eq('user_id', me),
   );
+  let { data: mine, error } = await pick(true);
+  if (error && /photo_url/.test(error.message)) ({ data: mine, error } = await pick(false));
   if (error) throw error;
-  type Row = { chat_id: string; last_read_at: string | null; chats: { id: string; kind: 'direct' | 'event' | 'group'; title: string | null; event_id: string | null; meet_point: string | null; events: { title: string } | null } };
+  type Row = { chat_id: string; last_read_at: string | null; chats: { id: string; kind: 'direct' | 'event' | 'group'; title: string | null; event_id: string | null; meet_point: string | null; photo_url?: string | null; events: { title: string } | null } };
   const rows = mine as unknown as Row[];
   const ids = rows.map((r) => r.chat_id);
   if (!ids.length) return [];
@@ -204,6 +207,7 @@ export async function getChats(): Promise<Chat[]> {
       lastMine: top ? top.author_id === me : undefined,
       unread,
       meetPoint: r.chats.meet_point ?? undefined,
+      photo: r.chats.photo_url ?? undefined,
       members: direct ? undefined : others.length + 1,
       memberIds: direct ? undefined : others,
       readUpTo: readBy.get(r.chat_id),

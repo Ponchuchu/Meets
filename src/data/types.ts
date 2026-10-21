@@ -146,6 +146,8 @@ export interface Chat {
   readUpTo?: string;
   /** Время последнего сообщения (ISO) — для галочек в списке чатов. */
   lastAt?: string;
+  /** Фото группы. */
+  photo?: string;
 }
 
 export interface ChatRequest {

@@ -447,8 +447,21 @@ export async function createMeetup(e: EventItem): Promise<string> {
   return must(sb().rpc('create_friend_meetup', { payload: { request_key: e.id, title: e.title, category: e.category, starts_at: e.startsAt, address: e.address, about: e.about, lat: e.lat, lon: e.lon, invited: e.meetup?.invited ?? [], details:e.meetup } }));
 }
 
-export async function createFriendGroup(title: string, friends: string[]): Promise<string> {
-  return must(sb().rpc('create_friend_group', { group_title: title, friends }));
+export async function createFriendGroup(title: string, friends: string[], photoUri?: string | null): Promise<string> {
+  const chat = await must(sb().rpc('create_friend_group', { group_title: title, friends })) as string;
+  // Фото — после создания: не загрузилось — группа всё равно есть, фото можно поставить позже.
+  if (photoUri) await setGroupPhoto(chat, photoUri).catch(() => undefined);
+  return chat;
+}
+
+export async function setGroupPhoto(chat: string, uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).arrayBuffer();
+  const path = `${me()}/group-${chat}-${Date.now()}.jpg`;
+  const { error } = await withTimeout(sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' }), 30000);
+  if (error) throw new Error(error.message);
+  const url = sb().storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  await must(sb().rpc('set_group_photo', { chat, url }));
+  return url;
 }
 
 export async function resetUserTaste(userId: string): Promise<void> {
