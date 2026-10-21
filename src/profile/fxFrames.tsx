@@ -3,7 +3,7 @@
 // на карте и в маленьких аватарках — тот же рисунок без движения, чтобы не тратить батарею.
 import { memo, useEffect, useId } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Image as SvgImage, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { photo } from '../data/photos';
 import { colors, fonts } from '../theme';
@@ -126,7 +126,8 @@ function useMotion(kind: FxKind, on: boolean) {
   const t = useSharedValue(0);
   const p = useSharedValue(0);
   useEffect(() => {
-    if (!on) return;
+    // Выключили (прокрутка, экономия) — останавливаем на месте, а не просто перестаём запускать.
+    if (!on) { cancelAnimation(t); cancelAnimation(p); return; }
     const turn = { bubble: 9000, drop: 14000, neon: 0, aurora: 11000, cosmos: 10000, tesla: 0, lava: 16000, crown: 0 }[kind];
     if (turn) t.set(withRepeat(withTiming(1, { duration: turn, easing: Easing.linear }), -1, false));
     p.set(kind === 'tesla'
@@ -161,7 +162,8 @@ export const FxFrame = memo(function FxFrame({ kind, image, initial, tint, size,
         : <SvgText x={32} y={39} textAnchor="middle" fontFamily={fonts.body700} fontSize={20} fill={colors.ink}>{initial}</SvgText>}
       <Path d={ringOf(form, r)} fill="none" stroke="#FFFCF4" strokeWidth={1.4} />
     </Svg>
-    <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, motion]}>
+    {/* Кольцо рисуется один раз в текстуру, дальше видеокарта только поворачивает её: без перерисовки SVG каждый кадр. */}
+    <Animated.View renderToHardwareTextureAndroid shouldRasterizeIOS style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, motion]}>
       <Svg width={size} height={size} viewBox="0 0 64 64"><Ring kind={kind} gid={gid} form={form} /></Svg>
     </Animated.View>
   </View>;

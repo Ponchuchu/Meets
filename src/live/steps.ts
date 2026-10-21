@@ -91,6 +91,7 @@ export function useStepTracking() {
     let sub: ReturnType<typeof Pedometer.watchStepCount> | null = null;
     let poll: ReturnType<typeof setInterval> | undefined;
     let sent = '';
+    let flush: ReturnType<typeof setTimeout> | undefined;
     const sync = async () => {
       if (!userId || useAuth.getState().session?.user.id !== userId || config.dataMode === 'demo') return;
       const s = useSteps.getState();
@@ -99,7 +100,7 @@ export function useStepTracking() {
       const { error } = await supabase().rpc('record_daily_steps', { step_day: s.day, step_count: Math.min(100000, s.count) });
       if (!error) { sent = key; void queryClient.invalidateQueries({ queryKey: ['me', 'stats'] }); void queryClient.invalidateQueries({ queryKey: ['me', 'steps'] }); }
     };
-    const stop = () => { generation++; sub?.remove(); sub = null; clearInterval(poll); poll = undefined; void sync().catch(() => undefined); };
+    const stop = () => { generation++; clearTimeout(flush); flush = undefined; sub?.remove(); sub = null; clearInterval(poll); poll = undefined; void sync().catch(() => undefined); };
     const start = async () => {
       stop(); const run = generation;
       const fresh = () => live && run === generation;
@@ -137,7 +138,8 @@ export function useStepTracking() {
         if (today() !== day) { void start().catch(() => undefined); return; }
         if (!Number.isFinite(steps) || steps < last) return;
         last = steps;
-        useSteps.getState().record(day, base + steps);
+        // Датчик присылает каждый шаг; экран и запись на телефон — не чаще раза в 3 с (каждый шаг перерисовывал профиль).
+        if (!flush) flush = setTimeout(() => { flush = undefined; if (fresh()) useSteps.getState().record(day, base + last); }, isEco() ? 8000 : 3000);
       });
       poll = setInterval(() => void sync().catch(() => undefined), isEco() ? 180000 : 60000);
       void sync().catch(() => undefined);

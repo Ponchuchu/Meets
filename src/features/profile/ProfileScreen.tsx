@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { BedDouble, ChevronRight, Code2, Footprints, Home, ImagePlus, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -103,6 +103,12 @@ export default function ProfileScreen() {
   const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
   const heroH = insets.top + 270;
+  // Пока листаешь — живая рамка замирает (на слабых телефонах анимация и прокрутка вместе давали ~3 кадра в секунду).
+  const [still, setStill] = useState(false);
+  const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const scrollStart = () => { clearTimeout(settle.current); if (!still) setStill(true); };
+  const scrollEnd = () => { clearTimeout(settle.current); settle.current = setTimeout(() => setStill(false), 400); };
+  useEffect(() => () => clearTimeout(settle.current), []);
 
   const pickPhoto = async () => {
     if (uploading) return;
@@ -121,7 +127,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}
+      onScrollBeginDrag={scrollStart} onScrollEndDrag={scrollEnd} onMomentumScrollBegin={scrollStart} onMomentumScrollEnd={scrollEnd}>
       <View style={{ height: heroH, paddingTop: insets.top }}>
         <Aura color={frame.color} height={heroH} />
         <View style={[styles.topBtns, { top: insets.top + 10 }]}>
@@ -136,7 +143,7 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.head}>
           <Pressable onPress={() => void pickPhoto()} onLongPress={() => router.push('/profile/level')} style={({ pressed }) => [pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка «${frame.name}»`}>
-            <AvatarFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={128} />
+            <AvatarFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} size={128} animate={!still} />
           </Pressable>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -211,9 +218,15 @@ export default function ProfileScreen() {
               <ImagePlus size={26} color={colors.muted2} strokeWidth={1.8} />
               <Text style={styles.albumNewText}>Новый{'\n'}альбом</Text>
             </Pressable>
+            {!albums.length && (
+              <View style={styles.memEmpty}>
+                <Text style={styles.memEmptyTitle}>Здесь будут твои вечера</Text>
+                <Text style={styles.memEmptyText}>Сходи на событие и добавь пару фото — получится альбом. Кто его видит, решаешь ты.</Text>
+              </View>
+            )}
             {albums.slice(0, 8).map(m => (
               <Pressable key={m.id} onPress={() => router.push({ pathname: '/profile/[page]', params: { page: `memory-${m.id}` } })} style={styles.album} accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}`}>
-                {m.cover ? <Image source={{ uri: m.cover }} style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: CAT_COLOR.music, alignItems: 'center', justifyContent: 'center' }]}><Ic d={CAT_ICON.music} size={34} color={catFg('music')} w={1.6} /></View>}
+                {m.cover ? <Image source={{ uri: m.cover }} style={StyleSheet.absoluteFill} resizeMethod="resize" /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: CAT_COLOR.music, alignItems: 'center', justifyContent: 'center' }]}><Ic d={CAT_ICON.music} size={34} color={catFg('music')} w={1.6} /></View>}
                 <View style={styles.albumShade} />
                 <Text style={styles.albumTitle} numberOfLines={2}>{m.title}</Text>
                 <Text style={styles.albumMeta}>{m.photos.length} фото</Text>
@@ -243,6 +256,9 @@ function Row({ Icon, title, value, onPress, last }: { Icon: LucideIcon; title: s
 }
 
 const styles = StyleSheet.create({
+  memEmpty: { width: 210, justifyContent: 'center', gap: 4, paddingRight: 8 },
+  memEmptyTitle: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
+  memEmptyText: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted },
   root: { flex: 1, backgroundColor: colors.paper },
   topBtns: { position: 'absolute', right: 16, top: 0, flexDirection: 'row', gap: 8, zIndex: 2 },
   topBtn: { width: 44, height: 44, borderRadius: 22, ...plate, alignItems: 'center', justifyContent: 'center' },
