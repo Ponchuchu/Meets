@@ -9,8 +9,10 @@ import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
 import { plate } from '../../ui/glass';
 
+const NONE: string[] = [];
+
 export function TicketBlock({ eventId }: { eventId: string }) {
-  const list = usePlans((s) => s.tickets?.[eventId] ?? []);
+  const list = usePlans((s) => s.tickets?.[eventId]) ?? NONE;
   const add = usePlans((s) => s.addTicket);
   const remove = usePlans((s) => s.removeTicket);
   const [full, setFull] = useState<string | null>(null);
