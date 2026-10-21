@@ -93,7 +93,7 @@ export default function MemoriesPage() {
               <Cover uri={t.cover} category={t.category} size={44} />
               <View style={styles.shade} />
               <Text style={styles.albumTitle} numberOfLines={2}>{t.title}</Text>
-              <Text style={styles.albumMeta}>{dateRu(t.at).toUpperCase()}{t.count ? ` · ${t.count} ФОТО` : ' · ДОБАВЬ ФОТО'}</Text>
+              <Text style={styles.albumMeta}>{dateRu(t.at).toUpperCase()}{t.count ? ` · ${t.count} ФОТО` : ''}</Text>
             </Pressable>
           ))}
         </View>
