@@ -26,7 +26,12 @@ jobs:
     steps:
       - name: Освободить место для сборки Android
         if: env.BUILDER == 'github'
-        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/node_modules/@aws-cdk "$AGENT_TOOLSDIRECTORY/CodeQL" || true
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/local/share/powershell /usr/local/share/chromium /usr/share/swift /opt/microsoft /usr/local/lib/node_modules/@aws-cdk "$AGENT_TOOLSDIRECTORY/CodeQL" || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          # Сборка и кэш Gradle — на большой диск /mnt (на основном места не хватало: «Disk quota exceeded»).
+          sudo mkdir -p /mnt/eas /mnt/gradle && sudo chown -R "$USER" /mnt/eas /mnt/gradle
+          df -h / /mnt
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -97,6 +102,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=2
+          EAS_LOCAL_BUILD_WORKINGDIR: /mnt/eas
+          GRADLE_USER_HOME: /mnt/gradle
+          # Только 64-битные ARM — все современные телефоны (Poco, Samsung). Вчетверо меньше сборки и места.
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
         run: npx eas-cli@latest build --platform android --profile preview --local --non-interactive --output meets.apk
       - name: Выложить APK ссылкой (GitHub Releases)
         if: env.BUILDER == 'github' && steps.apk-local.outcome == 'success'
