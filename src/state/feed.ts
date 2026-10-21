@@ -18,6 +18,10 @@ interface FeedState {
   decided: Record<string, 'go' | 'skip'>;
   history: Decision[];
   undosLeft: number; // за сессию, не сохраняется
+  /** Места в ленте: неделя, когда показали, и неделя «Мимо» (тогда не показываем 4 недели). */
+  spotSeen: Record<string, number>;
+  spotSkipped: Record<string, number>;
+  markSpot: (id: string, week: number, skipped?: boolean) => void;
   decide: (d: Decision, s: Signal) => void;
   addSignal: (s: Signal) => void;
   removeSignal: (id: string) => void;
@@ -36,6 +40,9 @@ export const useFeed = create<FeedState>()(
       decided: {},
       history: [],
       undosLeft: MAX_UNDO_PER_SESSION,
+      spotSeen: {},
+      spotSkipped: {},
+      markSpot: (id, week, skipped = false) => set((st) => ({ spotSeen: { ...st.spotSeen, [id]: week }, ...(skipped ? { spotSkipped: { ...st.spotSkipped, [id]: week } } : {}) })),
       decide: (d, s) => {
         pushSignal(s);
         if (d.kind === 'skip' || d.kind === 'go') pushAttendance(d.eventId, d.kind === 'go' ? 'going' : 'skipped');

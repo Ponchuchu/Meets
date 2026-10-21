@@ -101,6 +101,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
           KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
+      # Постоянные места: часы с перерывами и цены (2ГИС по ключу DGIS_KEY, иначе сайты мест). Сбой не роняет запуск.
+      - name: Постоянные места — часы и цены
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: node worker/src/spots.ts --run
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DGIS_KEY: ${{ secrets.DGIS_KEY }}
       - name: Результат запуска
         if: always()
         run: node worker/src/robot.ts finish

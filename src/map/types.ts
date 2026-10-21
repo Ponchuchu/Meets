@@ -64,6 +64,8 @@ export interface MapCanvasProps {
   /** Места в кадре (с 15-го масштаба) и тап по месту. */
   places?: MapPlace[];
   onPlace?: (id: string) => void;
+  /** Карту двигают пальцем (true) / остановилась (false) — булавка «Новой встречи» приподнимается. */
+  onMoving?: (moving: boolean) => void;
   /** Неподвижная мини-карта (карточка события): без жестов, с наклоном камеры. */
   still?: { pitch: number; heading: number };
 }

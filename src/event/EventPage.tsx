@@ -9,7 +9,7 @@ import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { AboutBlock } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,12 +34,14 @@ import { CompanySheet, InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
 import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
+import { TicketBlock } from './ui/TicketBlock';
+import { ShareCardSheet } from './ui/ShareCard';
 import * as WebBrowser from 'expo-web-browser';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useMyPos } from '../live/location';
 import { distM } from '../live/geo';
 import { kmText, stampOf } from '../map/ui/EventSheet';
-import { eventLink, shareText, shareUrl, type ShareTarget } from './share';
+import { eventLink, shareText } from './share';
 import { plural, whenTitle } from './text';
 import { occurrencesOf } from './occurrences';
 import { eventStatusLabel } from './availability';
@@ -148,16 +150,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
 
   const link = eventLink(e.id);
   const text = shareText(e.title, whenTitle(e, now).toLowerCase());
-  const shareTo = async (t: ShareTarget | 'copy' | 'more') => {
-    setSheet(null);
-    if (t === 'more') { Share.share({ message: `${text} ${link}` }).catch(() => {}); return; }
-    if (t === 'copy' || t === 'instagram') {
-      await Clipboard.setStringAsync(`${text} ${link}`).catch(() => {});
-      show({ text: t === 'copy' ? 'Ссылка скопирована' : 'Ссылка скопирована — вставь её в директ' }, 2500);
-      if (t === 'copy') return;
-    }
-    Linking.openURL(shareUrl(t, text, link)).catch(() => {});
-  };
   const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
   const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
@@ -246,6 +238,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
             </View>
           )}
+          {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}
             onCopy={() => { void Clipboard.setStringAsync(e.sourceUrl!); show({ text: 'Ссылка скопирована' }, 2000); }} />}
@@ -340,7 +333,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
                 finally{sendingInvite.current=false;setInviting(false);}
               }} />
             )}
-            {sheet === 'share' && <ShareSheet onPick={shareTo} />}
+            {sheet === 'share' && <ShareCardSheet e={e} now={now} link={link} text={text} onDone={(msg) => { setSheet(null); if (msg) show({ text: msg }, 2000); }} />}
             {sheet === 'going' && (LIVE ? (
               <CardPeople e={e} going={going} onGo={() => { if (!going) toggleGo(); }} onInvite={() => setSheet('invite')} onError={(t) => show({ text: t })} />
             ) : goingInfo && (
@@ -354,31 +347,8 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   );
 }
 
-const SHARE_TARGETS: [ShareTarget | 'copy' | 'more', string, string, string][] = [
-  ['telegram', 'Telegram', '#2AABEE', 'M21 4L3 11l6 2 2 6 3-4 5 4z'],
-  ['whatsapp', 'WhatsApp', '#25D366', 'M4 20l1.3-4A8 8 0 1112 20a8 8 0 01-3.9-1z'],
-  ['instagram', 'Instagram', '#E1306C', 'M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zM12 8a4 4 0 100 8 4 4 0 000-8z'],
-  ['threads', 'Threads', '#17161A', 'M15.5 11.5c-.5-2.5-2-3.5-3.8-3.5-2.3 0-3.7 1.6-3.7 4s1.5 4 4 4c2 0 3.5-1 3.5-3 0-2-1.8-2.8-4-2.3M12 21a9 9 0 119-9c0 3-1.5 5-4 5'],
-  ['copy', 'Ссылка', '#6B675F', 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1'],
-  ['more', 'Ещё', '#D5CFC1', 'M5 12h.01M12 12h.01M19 12h.01'],
-];
 
 
-function ShareSheet({ onPick }: { onPick: (t: ShareTarget | 'copy' | 'more') => void }) {
-  return (
-    <>
-      <Text style={styles.sheetTitle} accessibilityRole="header">Поделиться</Text>
-      <View style={styles.shareGrid}>
-        {SHARE_TARGETS.map(([k, label, bg, d]) => (
-          <Pressable key={k} onPress={() => onPick(k)} style={styles.shareItem} accessibilityRole="button" accessibilityLabel={`Отправить в ${label}`}>
-            <View style={[styles.shareIcon, { backgroundColor: bg }]}><Ic d={d} size={24} color={k === 'more' ? colors.ink : '#FFFFFF'} w={k === 'more' ? 3 : 1.9} /></View>
-            <Text style={styles.shareLabel}>{label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </>
-  );
-}
 
 function GoingSheet({ friends, others, onPerson }: { friends: Person[]; others: number; onPerson: (id: string) => void }) {
   return (

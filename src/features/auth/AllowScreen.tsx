@@ -1,5 +1,6 @@
 // Разрешения — design/png/V5LoginAllow.png: геолокация и уведомления. Можно пропустить — «Готово».
 import * as Location from 'expo-location';
+import { useGeoAsk } from '../../live/accuracy';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -44,6 +45,7 @@ export default function Allow() {
   const askGeo = async () => {
     try {
       if (geo === 'no') { await Linking.openSettings(); return; }
+      useGeoAsk.getState().markPermAsked();
       const p = await Location.requestForegroundPermissionsAsync();
       setLocationAsked();
       if (p.granted) {

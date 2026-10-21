@@ -7,11 +7,12 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { create } from 'zustand';
 import { supabase } from '../data/client';
 import { coarse } from '../data/realtime';
+import { noDialog } from './accuracy';
 import { myId } from './auth';
 import { isEco } from '../state/perf';
 import { cellOf, distM, isJump, sendInterval, statusOf, type Place, type Pt } from './geo';
@@ -123,7 +124,7 @@ export async function startBackground(): Promise<boolean> {
   const bg = await Location.getBackgroundPermissionsAsync();
   if (!bg.granted) return false;
   const every = sendInterval(false, await battery(), true);
-  await Location.startLocationUpdatesAsync(BG_TASK, {
+  await Location.startLocationUpdatesAsync(BG_TASK, noDialog({
     accuracy: Location.Accuracy.Balanced,
     timeInterval: every,
     distanceInterval: 40,
@@ -135,7 +136,7 @@ export async function startBackground(): Promise<boolean> {
       notificationBody: 'Друзья видят, где ты. Выключить — «Невидимка» в профиле.',
       notificationColor: '#F0521F',
     },
-  });
+  }));
   return true;
 }
 
@@ -149,9 +150,9 @@ export async function watchForeground(precise = useGpsMode.getState().precise > 
   const perm = await Location.getForegroundPermissionsAsync();
   if (!perm.granted) return null;
   const sub = await Location.watchPositionAsync(
-    precise && !isEco()
+    noDialog(precise && !isEco()
       ? { accuracy: Location.Accuracy.High, timeInterval: sendInterval(true, await battery()), distanceInterval: 2 }
-      : { accuracy: Location.Accuracy.Balanced, timeInterval: isEco() ? 15000 : 10000, distanceInterval: 15 },
+      : { accuracy: Location.Accuracy.Balanced, timeInterval: isEco() ? 15000 : 10000, distanceInterval: 15 }),
     (l) => { void sendPoint(l.coords, l.timestamp).catch(() => undefined); },
   );
   return () => sub.remove();
@@ -167,10 +168,19 @@ export function useMyPos(): { lat: number; lon: number } | null {
     (async () => {
       const perm = await Location.getForegroundPermissionsAsync().catch(() => null);
       if (!perm?.granted) return;
-      const p = await Location.getLastKnownPositionAsync().catch(() => null) ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
+      const p = await Location.getLastKnownPositionAsync().catch(() => null) ?? await Location.getCurrentPositionAsync(noDialog({ accuracy: Location.Accuracy.Balanced })).catch(() => null);
       if (p && live) setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
     })();
     return () => { live = false; };
   }, [fix]);
   return fix ? { lat: fix.lat, lon: fix.lon } : pos;
+}
+
+/** Где я — с точностью ~300 м: для ленты и подборок. Не меняется на каждом шаге, поэтому колода
+ *  не пересчитывается и экран не перерисовывается каждые 1,5 с, пока идёшь. */
+export function useMyArea(): { lat: number; lon: number } | null {
+  const p = useMyPos();
+  const lat = p ? Math.round(p.lat * 300) / 300 : null;
+  const lon = p ? Math.round(p.lon * 220) / 220 : null;
+  return useMemo(() => (lat == null || lon == null ? null : { lat, lon }), [lat, lon]);
 }

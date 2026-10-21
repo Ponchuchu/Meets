@@ -113,7 +113,8 @@ export function useLiveFriends(friendIds: string[]) {
         .subscribe(),
     );
     // Подписи «2 мин» стареют сами — раз в минуту перечитываем с сервера.
-    const t = setInterval(() => void qc.invalidateQueries({ queryKey: ['friendSpots'] }), 60000);
+    // Приложение свёрнуто (процесс жив из-за фоновой геолокации) — не ходим в сеть зря.
+    const t = setInterval(() => { if (AppState.currentState === 'active') void qc.invalidateQueries({ queryKey: ['friendSpots'] }); }, 60000);
     return () => { clearInterval(t); clearTimeout(flushTimer); channels.forEach((c) => void supabase().removeChannel(c)); };
   }, [key, qc]);
 }

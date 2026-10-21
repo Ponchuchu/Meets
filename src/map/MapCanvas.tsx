@@ -40,7 +40,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still } = props;
+  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving } = props;
+  const movingRef = useRef(false);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
@@ -137,7 +138,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         attributionEnabled={config.mapAttribution}
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
-          if (st.gestures?.isGestureActive) moved.current = true;
+          if (st.gestures?.isGestureActive) { moved.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
           // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
           if (!Number.isFinite(st.properties.zoom)) return;
@@ -147,7 +148,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
-        onMapIdle={(st: { properties: { center: number[] } }) => { onCenter?.(st.properties.center[1], st.properties.center[0]); checkCenter(st.properties.center[1], st.properties.center[0]); }}
+        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => { loaded.current = true; toStart(); setReady(true); onMode?.('mapbox'); }}
         onMapLoadingError={() => {

@@ -22,7 +22,7 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { CityPin, EventPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { CityPin, EventPin, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
@@ -54,6 +54,10 @@ import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
 import { PlacePin } from '../../map/ui/PlacePin';
+import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
+import { getSpots } from '../../data/spots';
+import { AttractionPin } from '../../map/ui/AttractionPin';
+import { SpotSheet } from '../../map/ui/SpotSheet';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
@@ -67,14 +71,15 @@ import { useNet } from '../../live/net';
 import { myId } from '../../live/auth';
 import { supabase } from '../../data/client';
 import { LensSheet } from '../../map/ui/LensSheet';
-import { BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
+import { AccuracyAsk, BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
 import { useSmoothSpots } from '../../map/useSmooth';
 import { queryClient } from '../../live/query';
+import { improveAccuracy, mayAutoAsk, noDialog, precision, shouldExplain, useGeoAsk, type Precision } from '../../live/accuracy';
 
 /** Демо (тесты и web-скриншоты): один настоящий ТРЦ в центре, чтобы видеть карточку места. */
 const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. Абылай хана, 62', hours: '10:00–22:00', cover: null, lat: 43.2622, lon: 76.9447 }];
 
-type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue';
+type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue' | 'spot';
 const LIVE = config.dataMode !== 'demo';
 
 function pinKind(e: EventItem, today: number, going: boolean): PinKind {
@@ -156,18 +161,27 @@ export default function MapScreen() {
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
   const [geo, setGeo] = useState<'unknown' | 'granted' | 'denied' | 'off'>('unknown');
   const [askBg, setAskBg] = useState(false);
+  const [prec, setPrec] = useState<Precision>('precise');
+  const laterAt = useGeoAsk((s) => s.laterAt);
   const requestedLens = useMapState((s) => s.lens);
   const setRequestedLens = useMapState((s) => s.setLens);
   const lens = requestedLens;
   const setLens = setRequestedLens;
   const net = useNet();
   const fix = useMyFix((s) => s.fix);
-  const ensureGeo = useCallback(async (ask: boolean) => {
+  const ensureGeo = useCallback(async (button: boolean) => {
+    // Системное окно — сам один раз за установку, дальше только по кнопке «Включить» (button = true).
+    // «Нет» уважаем: карта работает без моей точки, настройки сами не открываем.
     const perm = await Location.getForegroundPermissionsAsync();
-    const ok = perm.granted || (ask && perm.canAskAgain && (await Location.requestForegroundPermissionsAsync()).granted);
+    const may = button || mayAutoAsk(useGeoAsk.getState().permAskedAt);
+    let ok = perm.granted;
+    if (!ok && may && perm.canAskAgain) {
+      useGeoAsk.getState().markPermAsked();
+      ok = (await Location.requestForegroundPermissionsAsync()).granted;
+    } else if (!ok && button) void Linking.openSettings();
     setGeo(ok ? 'granted' : 'denied');
     if (ok && !perm.granted) void queryClient.invalidateQueries({ queryKey: ['me', 'visibility'] });
-    if (!ok && ask && !perm.canAskAgain) void Linking.openSettings();
+    if (ok) void precision().then(setPrec);
     return ok;
   }, []);
   // Фон «Всё время»: спрашиваем один раз, карточкой с объяснением (Android откроет настройки).
@@ -192,15 +206,12 @@ export default function MapScreen() {
     if (r?.granted) void startBackground();
   };
   // Своя точка: сразу последняя известная, дальше — живая подписка на телефон (не зависит от отправки точки на сервер).
-  const permissionAsked = useRef(false);
   useEffect(() => {
     if (!focused) return;
     let cancelled = false;
     let stop: (() => void) | undefined;
     (async () => {
-      const ask = !permissionAsked.current;
-      permissionAsked.current = true;
-      const ok = await ensureGeo(ask);
+      const ok = await ensureGeo(false);
       if (!ok || cancelled) return;
       stop = watchMapPosition(setMyPos, () => setGeo('off'));
     })().catch(() => undefined);
@@ -210,7 +221,7 @@ export default function MapScreen() {
     try {
       const at0 = fix ?? myPos;
       if (at0) mapRef.current?.flyTo(at0.lat, at0.lon, 15.5);
-      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const p = await Location.getCurrentPositionAsync(noDialog({ accuracy: Location.Accuracy.Balanced }));
       setMyPos({ lat: p.coords.latitude, lon: p.coords.longitude });
       mapRef.current?.flyTo(p.coords.latitude, p.coords.longitude, 15.5);
     } catch {
@@ -270,9 +281,13 @@ export default function MapScreen() {
     return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number }[];
   } });
   const myPlaces = placesQ.data ?? [];
+  // Постоянные места: из базы (часы и цены от сборщика), без неё — встроенный список.
+  const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
+  const places = spotsQ.data ?? ATTRACTIONS;
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
+  const [spotPlace, setSpotPlace] = useState<Attraction | null>(null);
   const fog = useMemo(() => (lens === 'explore' ? fogShape(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
 
@@ -352,8 +367,8 @@ export default function MapScreen() {
         id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: isSel ? 34 : kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
         node: (
           <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-          <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? pinLabel(e) : undefined} selected={isSel}
-            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)} />
+          {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? pinLabel(e) : undefined} selected={isSel}
+            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)} />}
           </View>
         ),
       };
@@ -370,6 +385,17 @@ export default function MapScreen() {
       list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
     }
     for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
+    // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
+    // Каждый значок — отдельный слой поверх карты, а их перерисовка при движении дорогая на слабых телефонах:
+    // издалека — только горы и канатки, с района — ещё парки и музеи, всё остальное — вблизи; в экономии — вдвое меньше.
+    for (const a of topSpots(places)) {
+      const big = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
+      const mid = big || a.kind === 'park' || a.kind === 'garden' || a.kind === 'museum' || a.kind === 'zoo';
+      if (detail === 'far' && !big) continue;
+      if (detail === 'mid' && (!mid || (eco && !big))) continue;
+      if (detail === 'near' && eco && !mid) continue;
+      list.push({ id: `a-${a.id}`, lat: a.lat, lon: a.lon, z: 9, node: <AttractionPin a={a} label={detail === 'near'} onPress={() => { setSpotPlace(a); setSheet('spot'); }} /> });
+    }
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
@@ -405,7 +431,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -565,6 +591,8 @@ export default function MapScreen() {
         </>
       )}
 
+      {sheet === 'spot' && spotPlace && <SpotSheet key={spotPlace.id} a={spotPlace} all={places} onClose={() => setSheet(null)} onOpen={setSpotPlace} />}
+
       {sheet === 'venue' && mall && (
         <View style={[styles.card, { bottom: tabPad }]}>
           <PlaceCard key={mall.id} m={mall} events={upcoming} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} />
@@ -589,6 +617,12 @@ export default function MapScreen() {
       {LIVE && askBg && geo === 'granted' && sheet === null && !focusId && !selected && (
         <View style={[styles.card, { bottom: tabPad }]}>
           <BackgroundAsk onAllow={() => void allowBg()} onLater={() => { setAskBg(false); void setSetting('bg_asked', true).catch(() => undefined); }} />
+        </View>
+      )}
+
+      {LIVE && geo === 'granted' && !askBg && shouldExplain(prec, laterAt) && sheet === null && !focusId && !selected && (
+        <View style={[styles.card, { bottom: tabPad }]}>
+          <AccuracyAsk onAllow={() => void improveAccuracy().then(setPrec)} onLater={() => useGeoAsk.getState().later()} />
         </View>
       )}
 

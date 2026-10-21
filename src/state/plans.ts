@@ -51,6 +51,10 @@ interface PlansState {
   withdrawCompany: (eventId: string) => void;
   invite: (eventId: string, friendIds: string[]) => void;
   addMeetup: (e: EventItem) => void;
+  /** Билеты, купленные где угодно (Kaspi, Ticketon…): снимки и QR, только на этом телефоне. */
+  tickets: Record<string, string[]>;
+  addTicket: (eventId: string, uri: string) => void;
+  removeTicket: (eventId: string, uri: string) => void;
   /** Начать разговор с незнакомым: false, если лимит на сегодня исчерпан. */
   startChat: (personId: string, today: string) => boolean;
 }
@@ -96,6 +100,9 @@ export const usePlans = create<PlansState>()(
       }),
       invite: (eventId, friendIds) => set((s) => ({ invites: [...s.invites, { id: `inv-${Date.now()}`, eventId, friendIds, at: new Date().toISOString() }] })),
       addMeetup: (e) => set((s) => ({ meetups: [...s.meetups, e], going: { ...s.going, [e.id]: new Date().toISOString() } })),
+      tickets: {},
+      addTicket: (id, uri) => set((s) => ({ tickets: { ...s.tickets, [id]: [...(s.tickets[id] ?? []).filter((u) => u !== uri), uri].slice(-6) } })),
+      removeTicket: (id, uri) => set((s) => ({ tickets: { ...s.tickets, [id]: (s.tickets[id] ?? []).filter((u) => u !== uri) } })),
       startChat: (personId, today) => {
         const { newChats } = get();
         const people = newChats.day === today ? newChats.people : [];

@@ -48,11 +48,12 @@ export function useLiveLocation() {
         if (!active || run !== generation) { s?.(); return; }
         starting = false;
         if (s) { stop = s; if (!hiddenRef.current) void startBackground().catch(() => undefined); }
-        else retry = setTimeout(on, 5000);
+        // Разрешения нет — тихо проверяем раз в 30 с (никаких окон: спрашивает только карта, один раз).
+        else retry = setTimeout(on, 30000);
       }).catch(() => {
         if (!active || run !== generation) return;
         starting = false;
-        retry = setTimeout(on, 5000);
+        retry = setTimeout(on, 15000);
       });
     };
     const off = () => { generation++; starting = false; clearTimeout(retry); stop?.(); stop = null; };

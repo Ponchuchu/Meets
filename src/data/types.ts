@@ -8,6 +8,9 @@ export type Visibility = 'public' | 'friends';
 
 export interface EventItem {
   id: string;
+  /** Карточка постоянного места в ленте (Кок-Тобе, боулинг…): id места из spots, а не событие. */
+  spotId?: string;
+  spot?: import('./attractions').Attraction;
   sessions?: { id: string; startsAt: string; endsAt: string | null }[];
   createdBy?: string;
   title: string;

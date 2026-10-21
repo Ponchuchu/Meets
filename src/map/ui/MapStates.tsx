@@ -91,6 +91,20 @@ export function BackgroundAsk({ onAllow, onLater }: { onAllow: () => void; onLat
   );
 }
 
+/** Геолокация приблизительная: мягко объясняем, без системного окна. «Не сейчас» — на 30 дней. */
+export function AccuracyAsk({ onAllow, onLater }: { onAllow: () => void; onLater: () => void }) {
+  return (
+    <View style={styles.ask}>
+      <Text style={styles.askTitle}>Геолокация сейчас приблизительная</Text>
+      <Text style={styles.askText}>Точка может «прыгать» на сотни метров, маршрут и «рядом» будут неточными. Батарею это почти не тратит: точно — только пока открыта карта или навигатор, в фоне — редко.</Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        <Pressable onPress={onAllow} style={[styles.askBtn, { backgroundColor: colors.ink }]} accessibilityRole="button"><Text style={[styles.askBtnText, { color: colors.paper }]}>Включить точность</Text></Pressable>
+        <Pressable onPress={onLater} style={[styles.askBtn, { backgroundColor: colors.sand }]} accessibilityRole="button"><Text style={styles.askBtnText}>Не сейчас</Text></Pressable>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   score: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   scoreText: { fontFamily: fonts.body700, fontSize: 14, color: '#FFFFFF' },

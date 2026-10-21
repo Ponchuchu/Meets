@@ -105,14 +105,9 @@ it('в демо есть все, кто ищет компанию на джаз�
 
 describe('поделиться событием', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { eventLink, shareText, shareUrl } = require('../event/share') as typeof import('../event/share');
-  it('ссылки для мессенджеров', () => {
-    const link = eventLink('jazz');
-    const text = shareText('Джаз во дворе', 'сегодня в 19:30');
-    expect(link).toMatch(/\/event\/jazz$/);
-    expect(shareUrl('telegram', text, link)).toBe(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
-    expect(shareUrl('whatsapp', text, link)).toContain('https://wa.me/?text=');
-    expect(shareUrl('threads', text, link)).toContain('threads.net/intent/post');
-    expect(shareUrl('instagram', text, link)).toContain('instagram.com');
+  const { eventLink, shareText } = require('../event/share') as typeof import('../event/share');
+  it('ссылка на событие и подпись', () => {
+    expect(eventLink('jazz')).toMatch(/\/event\/jazz$/);
+    expect(shareText('Джаз во дворе', 'сегодня в 19:30')).toBe('Джаз во дворе — сегодня в 19:30. Пойдём?');
   });
 });

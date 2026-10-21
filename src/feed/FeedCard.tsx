@@ -1,7 +1,7 @@
 // Карточка ленты (переделана 11 октября): светлая, сверху фото события (или яркий постер раздела), ниже — название и всегда
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
@@ -12,6 +12,9 @@ import { stampOf } from '../map/ui/EventSheet';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { EventCover } from '../ui/EventCover';
+import { ATTRACTIONS, inSeason, KIND_COLOR, KIND_LABEL, seasonText } from '../data/attractions';
+import { openStatus } from '../data/hours';
+import { AttractionPin } from '../map/ui/AttractionPin';
 
 export function feedSocial(e: EventItem, people: Person[]): { text: string; faces: { p: Person; ring?: string }[] } {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -25,7 +28,11 @@ export function feedSocial(e: EventItem, people: Person[]): { text: string; face
   return { text: '', faces: [] };
 }
 
-export function FeedCard({ e, people, now, dx, stamp, height }: {
+export function FeedCard(props: { e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number }) {
+  return props.e.spotId ? <SpotFeedCard {...props} /> : <EventFeedCard {...props} />;
+}
+
+function EventFeedCard({ e, people, now, dx, stamp, height }: {
   e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number;
 }) {
   const coverH = Math.round(height * 0.5);
@@ -69,6 +76,41 @@ export function FeedCard({ e, people, now, dx, stamp, height }: {
   );
 }
 
+/** Карточка постоянного места: шапка цвета места с крупным объёмным значком, «постоянное место», статус и совет. */
+function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number }) {
+  const a = e.spot ?? ATTRACTIONS.find((x) => x.id === e.spotId) ?? null;
+  const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
+  const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
+  if (!a) return <View style={[styles.card, { height }]} />;
+  const color = KIND_COLOR[a.kind];
+  const coverH = Math.round(height * 0.5);
+  const st = openStatus(a.hours, now);
+  return (
+    <View style={[styles.card, { height }]} accessibilityLabel={`${a.name}. ${KIND_LABEL[a.kind]}. Свайп вправо — запланировать`}>
+      <View style={{ height: coverH, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+          <Defs><LinearGradient id={`spotG${a.id}`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={color} stopOpacity={1} /><Stop offset="1" stopColor={color} stopOpacity={0.6} /></LinearGradient></Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#spotG${a.id})`} />
+        </Svg>
+        <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
+        <View style={styles.cat}><Text style={styles.catText}>ПОСТОЯННОЕ МЕСТО</Text></View>
+        {a.solo && <View style={styles.when}><Text style={styles.whenText}>МОЖНО ОДНОМУ</Text></View>}
+        <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ХОЧУ</Text></Animated.View>
+        <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.title} numberOfLines={2}>{a.name}</Text>
+        <View style={styles.facts}>
+          <Fact Icon={Clock} text={inSeason(a, now) ? (st.state === 'unknown' ? 'каждый день · часы в карточке' : st.text) : seasonText(a, now)} />
+          <Fact Icon={MapPin} text={a.address ?? KIND_LABEL[a.kind]} />
+          <Fact Icon={Ticket} text={a.free ? 'бесплатно' : a.priceFrom ? `от ${a.priceFrom.toLocaleString('ru-RU')} ₸` : 'цена в карточке'} strong={!!a.free || !!a.priceFrom} />
+        </View>
+        <Text style={styles.about} numberOfLines={3}>{a.tips?.[0] ?? a.about}</Text>
+      </View>
+    </View>
+  );
+}
+
 function Fact({ Icon, text, bad, strong }: { Icon: typeof Clock; text: string; bad?: boolean; strong?: boolean }) {
   return (
     <View style={styles.fact}>
@@ -80,11 +122,12 @@ function Fact({ Icon, text, bad, strong }: { Icon: typeof Clock; text: string; b
 
 const styles = StyleSheet.create({
   // Жидкое стекло (FIX3 Ф12): светлая кромка сверху, блик внутри, глубокая мягкая тень; плашки на фото — полупрозрачные.
-  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
+  // Карточка движется под пальцем каждый кадр — на Android без внутренней тени и с одной внешней (дешевле).
+  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: Platform.OS === 'android' ? '0 20px 40px -20px rgba(23,22,26,0.5)' : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
   gloss: { position: 'absolute', left: 0, right: 0, top: 0, height: '45%' },
-  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px -4px rgba(23,22,26,0.3)' },
+  cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)' },
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
-  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)' },
+  when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 3, borderRadius: 12, backgroundColor: 'rgba(251,250,246,0.92)' },
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
