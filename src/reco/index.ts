@@ -83,14 +83,23 @@ export interface ScoreContext {
   now: Date;
   /** Похожим понравилось: 0..1 (пока — популярность в городе). */
   similar?: (e: EventItem) => number;
+  /** Где я: ближе — лучше (до 2 км — полный балл, дальше 15 км — ноль). Нет точки — не учитываем. */
+  me?: { lat: number; lon: number } | null;
 }
 
 export interface Score {
   total: number;
-  parts: { taste: number; friends: number; time: number; price: number; soon: number; similar: number; novelty: number };
+  parts: { taste: number; friends: number; time: number; price: number; soon: number; similar: number; novelty: number; near: number };
 }
 
-const WEIGHTS = { taste: 0.35, friends: 0.2, time: 0.15, price: 0.1, soon: 0.1, similar: 0.05, novelty: 0.05 };
+// 21 окт.: добавлено «рядом» (расстояние до места) — далёкое событие при прочих равных теперь ниже.
+const WEIGHTS = { taste: 0.32, friends: 0.18, time: 0.13, price: 0.1, soon: 0.1, near: 0.08, similar: 0.05, novelty: 0.04 };
+
+/** Расстояние по прямой, км. */
+function km(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const dLat = (b.lat - a.lat) * 111.32, dLon = (b.lon - a.lon) * 111.32 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.hypot(dLat, dLon);
+}
 
 function dayPartOf(iso: string): { wd: number; part: DayPart } {
   const a = almaty(iso);
@@ -113,7 +122,8 @@ export function scoreEvent(taste: Taste, e: EventItem, ctx: ScoreContext): Score
   const soon = Math.max(0, 1 - days / 14);
   const similar = ctx.similar ? ctx.similar(e) : Math.min(1, Math.log10(1 + e.goingCount) / Math.log10(5000));
   const novelty = positive.length === 0 ? 1 : 0;
-  const parts = { taste: tasteScore, friends, time, price, soon, similar, novelty };
+  const near = ctx.me && !e.noPoint && !e.needsPin && Number.isFinite(e.lat) ? Math.max(0, Math.min(1, 1 - (km(ctx.me, e) - 2) / 13)) : 0.5;
+  const parts = { taste: tasteScore, friends, time, price, soon, similar, novelty, near };
   const total = (Object.keys(WEIGHTS) as (keyof typeof WEIGHTS)[]).reduce((sum, k) => sum + WEIGHTS[k] * parts[k], 0);
   return { total, parts };
 }
@@ -149,6 +159,9 @@ export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHi
     const pos = deck.length;
     const last2 = deck.slice(-2).map((e) => e.category);
     const blocked = last2.length === 2 && last2[0] === last2[1] ? last2[0] : null;
+    // Не два события одной площадки подряд (раньше кинотеатр мог занять полколоды).
+    const lastVenue = deck.at(-1)?.venueName?.toLowerCase() ?? null;
+    const sameVenue = (e: EventItem) => !!lastVenue && e.venueName?.toLowerCase() === lastVenue;
     const recent = new Set(deck.slice(-3).map((e) => e.category));
     const free = pool.filter((x) => !used.has(x.e.id));
     let pick: { e: EventItem } | undefined;
@@ -158,7 +171,7 @@ export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHi
         .find((x) => x.e.category !== blocked);
     }
     if (!pick && calibrating && pos >= 3) pick = free.find((x) => !recent.has(x.e.category) && x.s.parts.taste > 0);
-    if (!pick) pick = free.find((x) => x.e.category !== blocked) ?? free[0];
+    if (!pick) pick = free.find((x) => x.e.category !== blocked && !sameVenue(x.e)) ?? free.find((x) => x.e.category !== blocked) ?? free[0];
     if (!pick) break;
     used.add(pick.e.id);
     deck.push(pick.e);

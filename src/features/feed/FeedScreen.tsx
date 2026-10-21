@@ -19,6 +19,11 @@ import { QuickButtons } from '../../feed/SwipeHints';
 import { UndoBar } from '../../feed/UndoBar';
 import { now as clockNow } from '../../lib/clock';
 import { buildDeck, makeSignal, tasteFrom } from '../../reco';
+import { pickSpots, spotCard, weekOf, withSpots } from '../../reco/spots';
+import { ATTRACTIONS, type Attraction } from '../../data/attractions';
+import { getSpots } from '../../data/spots';
+import { SpotSheet } from '../../map/ui/SpotSheet';
+import { useMyPos } from '../../live/location';
 import { useApp, useCoverTabBar } from '../../state/app';
 import { track } from '../../analytics';
 import { useFeed } from '../../state/feed';
@@ -67,10 +72,21 @@ export default function ForYouScreen() {
   // Вкус = ответы регистрации + свайпы. Колода пересчитывается после каждого решения.
   const answers = { interests: draft.interests ?? INITIAL_DRAFT.interests, times: draft.times ?? INITIAL_DRAFT.times, withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' };
   const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
+  const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
+  const allSpots = spotsQ.data ?? ATTRACTIONS;
+  const myPos = useMyPos();
+  // Места выбираются один раз за открытие ленты (иначе колода «прыгала» бы от каждого свайпа).
+  const [spotCards] = useState(() => {
+    const st = useFeed.getState();
+    return pickSpots(allSpots, tasteFrom(answers, st.signals, clockNow()), { seen: st.spotSeen ?? {}, skipped: st.spotSkipped ?? {} }, clockNow(), { solo: answers.withWho === 'alone' }).map((a) => spotCard(a, clockNow()));
+  });
+  const [spotDone, setSpotDone] = useState<Set<string>>(() => new Set());
+  const [spotOpen, setSpotOpen] = useState<Attraction | null>(null);
+  const markSpot = useFeed((s) => s.markSpot);
   const deck = useMemo(() => {
     const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
     const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
-    let d = buildDeck(taste, events, { decided: dec, swipes }, { now }, { size: 10 });
+    let d = buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 });
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
@@ -80,8 +96,9 @@ export default function ForYouScreen() {
       const preview = events.find(x => x.id === previewId);
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
-    return d;
-  }, [taste, events, decided, goingIds, signals, now, enter, previewId]);
+    // Постоянные места (Кок-Тобе, боулинг…) — раз в неделю, не больше двух на колоду.
+    return withSpots(d, spotCards.filter((c) => !spotDone.has(c.id)));
+  }, [taste, events, decided, goingIds, signals, now, enter, previewId, spotCards, spotDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
@@ -106,9 +123,19 @@ export default function ForYouScreen() {
   const [rounds, setRounds] = useState<Record<string, number>>({});
   const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
-    bump(e.id);
     setPreviewId(null);
-    if (kind === 'go' && (e.sessions?.length || (e.isLong && e.endsAt && new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime() > 24 * 3600e3))) { openCard(e); return; }
+    // Место: «Хочу» — сразу карточка с планом на день и время, «Мимо» — не показывать месяц. Вкус учится и на местах.
+    if (e.spotId) {
+      setSpotDone((d) => new Set(d).add(e.id));
+      markSpot(e.spotId, weekOf(clockNow()), kind === 'skip');
+      addSignal(makeSignal(e, kind === 'go' ? 'save' : 'skip', clockNow()));
+      track(kind, e.id);
+      if (kind === 'go') { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); }
+      return;
+    }
+    // Новый экземпляр карточки нужен только когда она возвращается в колоду (выбор даты, «Вернуть»).
+    // Раньше он создавался при каждом свайпе: улетевшая карточка на миг снова появлялась по центру и пропадала.
+    if (kind === 'go' && (e.sessions?.length || (e.isLong && e.endsAt && new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime() > 24 * 3600e3))) { bump(e.id); openCard(e); return; }
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
@@ -135,7 +162,11 @@ export default function ForYouScreen() {
 
   const top = deck[0];
   useEffect(() => track('feed_open'), []);
-  useEffect(() => { if (top) track('card_shown', top.id); }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!top) return;
+    track('card_shown', top.id);
+    if (top.spotId) markSpot(top.spotId, weekOf(clockNow()));
+  }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Раскрытие события из прямоугольника карточки и обратно (FIX3 Ф2): окно-маска растёт из карточки на весь экран,
   // фото внутри растёт из фото карточки, сама карточка растворяется в первой трети — без скачка картинки.
@@ -202,7 +233,7 @@ export default function ForYouScreen() {
             enterFrom={enter?.id === e.id ? enter.from : null}
             onDecide={(kind) => onDecide(e, kind)}
             onLand={() => useTabBadges.getState().landPlans()}
-            onTap={() => openCard(e)}
+            onTap={() => { if (e.spotId) { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); } else openCard(e); }}
             expand={p} onReveal={() => openCard(e, true)}
             onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, OPEN())); else closeCard(); }}
             onUndo={doUndo}
@@ -213,7 +244,7 @@ export default function ForYouScreen() {
 
       {top && !open && (
         <View style={[styles.hints, { top: hintsTop, left: cardX - 6, width: cardW + 12 }]}>
-          <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => openCard(top)} />
+          <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => { if (top.spotId) { const a = allSpots.find((x) => x.id === top.spotId); if (a) setSpotOpen(a); } else openCard(top); }} />
         </View>
       )}
 
@@ -241,6 +272,7 @@ export default function ForYouScreen() {
         </View>
       )}
 
+      {spotOpen && <SpotSheet key={spotOpen.id} a={spotOpen} all={allSpots} onClose={() => setSpotOpen(null)} onOpen={setSpotOpen} />}
       {undoBar && !open && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (

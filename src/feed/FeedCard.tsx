@@ -12,6 +12,9 @@ import { stampOf } from '../map/ui/EventSheet';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { EventCover } from '../ui/EventCover';
+import { ATTRACTIONS, inSeason, KIND_COLOR, KIND_LABEL, seasonText } from '../data/attractions';
+import { openStatus } from '../data/hours';
+import { AttractionPin } from '../map/ui/AttractionPin';
 
 export function feedSocial(e: EventItem, people: Person[]): { text: string; faces: { p: Person; ring?: string }[] } {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -25,7 +28,11 @@ export function feedSocial(e: EventItem, people: Person[]): { text: string; face
   return { text: '', faces: [] };
 }
 
-export function FeedCard({ e, people, now, dx, stamp, height }: {
+export function FeedCard(props: { e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number }) {
+  return props.e.spotId ? <SpotFeedCard {...props} /> : <EventFeedCard {...props} />;
+}
+
+function EventFeedCard({ e, people, now, dx, stamp, height }: {
   e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number;
 }) {
   const coverH = Math.round(height * 0.5);
@@ -64,6 +71,41 @@ export function FeedCard({ e, people, now, dx, stamp, height }: {
             <Text style={styles.social} numberOfLines={1}>{social.text}</Text>
           </View>
         ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Карточка постоянного места: шапка цвета места с крупным объёмным значком, «постоянное место», статус и совет. */
+function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number }) {
+  const a = e.spot ?? ATTRACTIONS.find((x) => x.id === e.spotId) ?? null;
+  const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
+  const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
+  if (!a) return <View style={[styles.card, { height }]} />;
+  const color = KIND_COLOR[a.kind];
+  const coverH = Math.round(height * 0.5);
+  const st = openStatus(a.hours, now);
+  return (
+    <View style={[styles.card, { height }]} accessibilityLabel={`${a.name}. ${KIND_LABEL[a.kind]}. Свайп вправо — запланировать`}>
+      <View style={{ height: coverH, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+          <Defs><LinearGradient id={`spotG${a.id}`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={color} stopOpacity={1} /><Stop offset="1" stopColor={color} stopOpacity={0.6} /></LinearGradient></Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#spotG${a.id})`} />
+        </Svg>
+        <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
+        <View style={styles.cat}><Text style={styles.catText}>ПОСТОЯННОЕ МЕСТО</Text></View>
+        {a.solo && <View style={styles.when}><Text style={styles.whenText}>МОЖНО ОДНОМУ</Text></View>}
+        <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ХОЧУ</Text></Animated.View>
+        <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.title} numberOfLines={2}>{a.name}</Text>
+        <View style={styles.facts}>
+          <Fact Icon={Clock} text={inSeason(a, now) ? (st.state === 'unknown' ? 'каждый день · часы в карточке' : st.text) : seasonText(a, now)} />
+          <Fact Icon={MapPin} text={a.address ?? KIND_LABEL[a.kind]} />
+          <Fact Icon={Ticket} text={a.free ? 'бесплатно' : a.priceFrom ? `от ${a.priceFrom.toLocaleString('ru-RU')} ₸` : 'цена в карточке'} strong={!!a.free || !!a.priceFrom} />
+        </View>
+        <Text style={styles.about} numberOfLines={3}>{a.tips?.[0] ?? a.about}</Text>
       </View>
     </View>
   );
