@@ -303,6 +303,8 @@ export default function MapScreen() {
     if (!meAt || !tscore.data?.points.length) return null;
     return tscore.data.points.filter((p) => distM(meAt, p) > 300).sort((a, b) => distM(meAt, a) - distM(meAt, b))[0] ?? null;
   }, [meAt, tscore.data]);
+  // Старше 40 минут — не показываем: раньше застывший ночной балл «1» висел неделю.
+  const trafficFresh = !!tscore.data && Date.now() - Date.parse(tscore.data.at) < 40 * 60e3;
   const toAve = useQuery({
     queryKey: ['traffic', 'to', nearAve?.name, meAt && Math.round(meAt.lat * 500), meAt && Math.round(meAt.lon * 500)],
     queryFn: async () => (meAt && nearAve ? (await getRoute(meAt, nearAve)).car?.min ?? null : null),
@@ -565,7 +567,7 @@ export default function MapScreen() {
 
       {sheet === null && lens !== 'normal' && !focusId && (
         <View style={[styles.lensInfo, { top: topY + 112, bottom: undefined }]} pointerEvents="box-none">
-          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} cells={cells.length} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={tscore.data?.score} toName={nearAve?.name} toMin={toAve.data ?? null} />}
+          {lens === 'explore' ? <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="Открытые места, уровень и значки"><ExploreBadge pct={exploredPct(cells)} value={cells.length / ALMATY_CELLS} cells={cells.length} /></Pressable> : <TrafficChip hasKey={!!config.tomtomKey} score={trafficFresh ? tscore.data?.score : null} rough={trafficFresh && !tscore.data?.points.length} toName={nearAve?.name} toMin={toAve.data ?? null} />}
         </View>
       )}
 

@@ -52,14 +52,14 @@ export function ExploreBadge({ pct, value, cells }: { pct: string; value: number
 }
 
 /** «Пробки 6 баллов · до Абая 25 мин» (V6MapLensTraffic). Нет балла — легенда цветов. */
-export function TrafficChip({ hasKey, score, toName, toMin }: { hasKey: boolean; score?: number | null; toName?: string | null; toMin?: number | null }) {
+export function TrafficChip({ hasKey, score, toName, toMin, rough }: { hasKey: boolean; score?: number | null; toName?: string | null; toMin?: number | null; rough?: boolean }) {
   if (score) {
     const bg = score <= 3 ? '#2F8F5B' : score <= 6 ? '#E2A21B' : '#C83A26';
     const text = `Пробки ${score} ${plural(score, 'балл', 'балла', 'баллов')}${toName && toMin ? ` · до ${toName} ${toMin} мин` : ''}`;
     return (
       <View style={styles.chip} accessibilityLabel={text}>
         <View style={[styles.score, { backgroundColor: bg }]}><Text style={styles.scoreText}>{score}</Text></View>
-        <Text style={styles.chipText}>{score} {plural(score, 'балл', 'балла', 'баллов')}</Text>
+        <Text style={styles.chipText}>{rough ? '≈ ' : ''}{score} {plural(score, 'балл', 'балла', 'баллов')}{rough ? ' · примерно' : ''}</Text>
       </View>
     );
   }

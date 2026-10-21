@@ -45,3 +45,6 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.person_card(uuid) from public, anon;
 grant execute on function public.person_card(uuid) to authenticated;
+
+-- Пробки: реже (раз в 15 минут) — квота TomTom общая с плитками пробок на карте.
+select cron.schedule('traffic-score', '*/15 * * * *', $$select public.call_function('traffic-score')$$);

@@ -1,6 +1,6 @@
 import { useLowPowerMode } from 'expo-battery';
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
-// Android: пины и своя точка в рамке 72×72 (нулевые виды MarkerView пропускает),
+// Android: пины и своя точка в рамке 128×128 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
@@ -32,7 +32,8 @@ const LOAD_TIMEOUT_MS = 8000;
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
 
-const PIN_BOX = 72;
+// Коробка пина шире самого большого значка («вместе» — до трёх аватарок): Android не передаёт касания за её край.
+const PIN_BOX = 128;
 const MAP_IMAGES = { tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png') };
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
