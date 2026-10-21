@@ -1,6 +1,6 @@
 // «В сети» / «был …» в шапке чата и профиле друга (21 октября, вечер).
-jest.mock('../data/client', () => ({ supabase: () => ({}), requireUser: async () => 'me', withTimeout: (p: unknown) => p }));
 import { seenText } from '../data/remote';
+jest.mock('../data/client', () => ({ supabase: () => ({}), requireUser: async () => 'me', withTimeout: (p: unknown) => p }));
 
 const at = (iso: string) => Date.parse(iso);
 

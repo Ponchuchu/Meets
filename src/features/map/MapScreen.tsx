@@ -53,6 +53,7 @@ import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
+import { PlacePin } from '../../map/ui/PlacePin';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
 import { watchMapPosition } from '../../live/watchMapPosition';
@@ -261,6 +262,13 @@ export default function MapScreen() {
     queryFn: async () => ((await supabase().from('explore_cells').select('h3').eq('user_id', myId() ?? '')).data ?? []).map((r: { h3: string }) => r.h3),
   });
   const mallsQ = useQuery({ queryKey: ['malls'], queryFn: getMalls, enabled: LIVE, staleTime: 3600e3 });
+  // Мои места (дом, работа…) — тот же запрос, что в «Профиль → Мои места».
+  const placesQ = useQuery({ queryKey: ['me', 'places', 'list'], enabled: LIVE && !!myId(), staleTime: 10 * 60e3, queryFn: async () => {
+    const r = await supabase().from('user_places_points').select('*').eq('user_id', myId()!);
+    if (r.error) throw r.error;
+    return (r.data ?? []) as { id: string; kind: string; title: string; lat: number; lon: number }[];
+  } });
+  const myPlaces = placesQ.data ?? [];
   const malls = LIVE ? mallsQ.data ?? [] : DEMO_MALLS;
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
@@ -344,6 +352,7 @@ export default function MapScreen() {
       const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
       list.splice(0, list.length, ...keep);
     }
+    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} label={zoom >= 14.5} /> });
     if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
     if (filters.friends) {
       const grouped = new Set<string>();
@@ -379,7 +388,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return list;
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);

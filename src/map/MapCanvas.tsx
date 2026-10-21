@@ -33,6 +33,7 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
 
 const PIN_BOX = 72;
+const MAP_IMAGES = { tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png') };
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const lowPower = useLowPowerMode();
@@ -152,6 +153,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onMode?.('static');
         }}
       >
+        {/* Картинки для стиля: деревья (слои trees-* в src/map/style.ts). */}
+        <M.Images images={MAP_IMAGES} />
         <M.Camera ref={cam as never} defaultSettings={{ centerCoordinate: okPoint([camera.lon, camera.lat]) ? [camera.lon, camera.lat] : [76.8897, 43.2389], zoomLevel: Number.isFinite(camera.zoom) ? camera.zoom : 12, pitch: threeD ? TILT_PITCH : 0 }} animationMode="none"
           followUserLocation={follow} followUserMode={'compass' as never} followZoomLevel={Math.max(15, followZoom)}
           onUserTrackingModeChange={(e: { nativeEvent: { payload: { followUserLocation: boolean } } }) => { if (!e.nativeEvent.payload.followUserLocation) onFollowEnd?.(); }} />
@@ -197,7 +200,7 @@ function UserLayers({ M, me, heading, arrow }: { M: RNMapbox['default']; me: { l
   const [direction, setDirection] = useState<number | null>(null);
   const last = useSharedValue(0);
   const sent = useSharedValue<number | null>(null);
-  const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png'), 'me-arrow': require('../../assets/map/arrow.png') }), []);
+  const images = useMemo(() => ({ 'me-beam': require('../../assets/map/beam.png'), 'me-arrow': require('../../assets/map/arrow.png'), 'me-puck': require('../../assets/map/puck.png') }), []);
   useFrameCallback(frame => {
     const value = heading ? Math.round(heading.get() / 4) * 4 : null;
     if (value != null && Number.isFinite(value) && value !== sent.get() && (sent.get() == null || frame.timestamp - last.get() >= 100)) {
@@ -211,10 +214,11 @@ function UserLayers({ M, me, heading, arrow }: { M: RNMapbox['default']; me: { l
     <M.Images images={images} />
     <M.ShapeSource id="me-src" shape={shape}>
       <M.SymbolLayer id="me-beam-layer" style={{ iconImage: 'me-beam', iconSize: 0.5, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: direction == null || arrow ? 0 : 1 }} />
-      <M.CircleLayer id="me-halo" style={{ circleRadius: arrow ? 28 : 24, circleColor: '#F0521F', circleOpacity: arrow ? 0.1 : 0.16, circlePitchAlignment: 'map' }} />
-      <M.CircleLayer id="me-ring" style={{ circleOpacity: arrow ? 0 : 1, circleStrokeOpacity: arrow ? 0 : 1, circleRadius: 11.5, circleColor: '#EEE9DE', circleStrokeColor: 'rgba(23,22,26,0.22)', circleStrokeWidth: 1 }} />
-      <M.CircleLayer id="me-dot" style={{ circleRadius: 8, circleColor: '#F0521F', circleOpacity: arrow ? 0 : 1 }} />
-      <M.SymbolLayer id="me-arrow-layer" style={{ iconImage: 'me-arrow', iconSize: 0.26, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'map', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: arrow ? 1 : 0 }} />
+      <M.CircleLayer id="me-halo" style={{ circleRadius: arrow ? 30 : 26, circleColor: '#F0521F', circleOpacity: arrow ? 0.1 : 0.15, circleBlur: 0.4, circlePitchAlignment: 'map' }} />
+      {/* Объёмная точка: глянцевый шар в белом кольце с тенью (assets/map/puck.png); стоит к камере и при наклоне. */}
+      <M.SymbolLayer id="me-puck-layer" style={{ iconImage: 'me-puck', iconSize: 0.15, iconPitchAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: arrow ? 0 : 1 }} />
+      {/* Стрелка навигатора с двумя гранями и белой кромкой лежит на карте и смотрит по ходу. */}
+      <M.SymbolLayer id="me-arrow-layer" style={{ iconImage: 'me-arrow', iconSize: 0.13, iconRotate: ['get', 'heading'], iconRotationAlignment: 'map', iconPitchAlignment: 'map', iconAllowOverlap: true, iconIgnorePlacement: true, iconOpacity: arrow ? 1 : 0 }} />
     </M.ShapeSource>
   </>;
 }

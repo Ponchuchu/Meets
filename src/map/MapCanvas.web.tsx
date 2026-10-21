@@ -20,6 +20,9 @@ function webglOk(): boolean {
   }
 }
 
+const asUri = (m: unknown) => (typeof m === 'string' ? m : (m as { uri?: string; default?: string })?.uri ?? (m as { default?: string })?.default ?? '');
+const WEB_IMAGES: Record<string, string> = { tree: asUri(require('../../assets/map/tree.png')), pine: asUri(require('../../assets/map/pine.png')) };
+
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
   const threeD = props.threeD !== false;
@@ -94,6 +97,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
       m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.({ lat: ev.lngLat.lat, lon: ev.lngLat.lng }); });
       m.on('rotate', () => onBearing?.(m.getBearing()));
+      // Деревья стиля (tree / pine): на web картинки подгружаются по требованию.
+      m.on('styleimagemissing', (ev: { id: string }) => {
+        const src = WEB_IMAGES[ev.id];
+        if (!src || m.hasImage(ev.id)) return;
+        m.loadImage(src, (err, img) => { if (!err && img && !m.hasImage(ev.id)) m.addImage(ev.id, img, { pixelRatio: 2 }); });
+      });
       m.on('click', 'places-dot', (ev) => { const id = ev.features?.[0]?.properties?.id; if (id) onPlaceRef.current?.(String(id)); });
       map.current = m;
       setReady(true);

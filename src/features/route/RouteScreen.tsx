@@ -24,6 +24,8 @@ import { MeArrow, MeDot, useHeading } from '../../map/MeDot';
 import type { MapCanvasHandle, MapMarker } from '../../map/types';
 import { MapControls } from '../../map/ui/MapControls';
 import { useBackClose } from '../../state/app';
+import { useMapView } from '../../state/mapView';
+import { useEco } from '../../state/perf';
 import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
 import { Ic } from '../../ui/Ic';
@@ -72,6 +74,10 @@ export default function RouteScreen() {
     const task = InteractionManager.runAfterInteractions(() => setTimeout(() => setMountMap(true), 120));
     return () => task.cancel();
   }, []);
+  // Навигатор объёмный, как и главная карта (просьба владельца 21 окт.); в «Простой» карте и экономии — плоский.
+  const view3d = useMapView((v) => v.view) === '3d';
+  const eco = useEco();
+  const threeD = view3d && !eco;
   const fitted = useRef('');
   const mapRef = useRef<MapCanvasHandle>(null);
   usePreciseGps(true);
@@ -185,7 +191,7 @@ export default function RouteScreen() {
 
   return (
     <View style={styles.root} onLayout={(ev) => { const h = ev.nativeEvent.layout.height; setSize((s) => (s.h === h ? s : { ...s, h })); }}>
-      {mountMap && <MapCanvas ref={mapRef} threeD={false} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
+      {mountMap && <MapCanvas ref={mapRef} threeD={threeD} onMode={mode => { setMapMode(mode); setMapReady(true); }} theme="paper" onBearing={(d) => bearing.set(d)} camera={cam} markers={markers} lines={lines} showUser={!!fix}
         me={me} meHeading={heading} meArrow={follow} bottomInset={size.sheet + 8} topInset={headTop + 80} />}
 
       {!follow ? (

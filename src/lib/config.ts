@@ -2,8 +2,9 @@
 import keys from '../../config/public-keys.json';
 
 export const config = {
-  // Атрибуция включена по умолчанию; проверь переменные выпуска.
-  mapAttribution: process.env.EXPO_PUBLIC_MAP_ATTRIBUTION !== 'false',
+  // Логотип и подпись Mapbox скрыты до публикации в Google Play (решение владельца 21 окт.).
+  // Перед выпуском включить: EXPO_PUBLIC_MAP_ATTRIBUTION=true — условия Mapbox требуют знак на опубликованной карте (docs/STORE.md).
+  mapAttribution: process.env.EXPO_PUBLIC_MAP_ATTRIBUTION === 'true',
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || keys.supabaseUrl,
   supabaseKey: process.env.EXPO_PUBLIC_SUPABASE_KEY || keys.supabasePublishableKey,
   mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN || keys.mapboxPublicToken,

@@ -32,7 +32,6 @@ import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { CompanySheet, InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { WhereSheet } from './v6/WhereSheet';
 import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import * as WebBrowser from 'expo-web-browser';
@@ -240,7 +239,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
           <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
-            onRoute={() => setSheet('route')} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
+            onRoute={() => router.push({ pathname: '/route', params: { id: e.id } })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
           {moreHere > 0 && (
             <View style={[styles.list, styles.item]}>
               <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
@@ -341,7 +340,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
                 finally{sendingInvite.current=false;setInviting(false);}
               }} />
             )}
-            {sheet === 'route' && <WhereSheet e={e} me={me} onCopied={() => { setSheet(null); show({ text: 'Адрес скопирован' }, 2000); }} />}
             {sheet === 'share' && <ShareSheet onPick={shareTo} />}
             {sheet === 'going' && (LIVE ? (
               <CardPeople e={e} going={going} onGo={() => { if (!going) toggleGo(); }} onInvite={() => setSheet('invite')} onError={(t) => show({ text: t })} />

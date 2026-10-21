@@ -1,5 +1,6 @@
-// Описание события (FIX3): абзацы как у редактора, «Важно: …» — отдельной плашкой, длинный текст раскрывается плавно.
-import { ChevronDown, Info } from 'lucide-react-native';
+// Описание события (FIX3): абзацы как у редактора, длинный текст раскрывается плавно.
+// «Важно: …» больше не показываем (21 окт.): там повторялись время, место и цена, которые уже есть на плашках выше.
+import { ChevronDown } from 'lucide-react-native';
 import { useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
 import { colors, fonts } from '../../theme';
@@ -16,19 +17,13 @@ export function splitAbout(text: string): { paragraphs: string[]; note: string |
 }
 
 export function AboutBlock({ text }: { text: string }) {
-  const { paragraphs, note } = splitAbout(text);
+  const { paragraphs } = splitAbout(text);
   const long = text.length > 360 || paragraphs.length > 2;
   const [open, setOpen] = useState(!long);
   const shown = open ? paragraphs : paragraphs.slice(0, 1);
   return (
     <View style={{ gap: 10 }}>
       {shown.map((p, i) => <Text key={i} style={[styles.p, i === 0 && styles.lead]} numberOfLines={!open && i === 0 ? 4 : undefined}>{p}</Text>)}
-      {open && note && (
-        <View style={styles.note}>
-          <Info size={17} color={colors.accentText} strokeWidth={2} />
-          <Text style={styles.noteText}><Text style={{ fontFamily: fonts.body700 }}>Важно: </Text>{note}</Text>
-        </View>
-      )}
       {long && (
         <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity')); setOpen(v => !v); }} style={styles.more} accessibilityRole="button" accessibilityState={{ expanded: open }}>
           <Text style={styles.moreText}>{open ? 'Свернуть' : 'Читать полностью'}</Text>
@@ -42,8 +37,6 @@ export function AboutBlock({ text }: { text: string }) {
 const styles = StyleSheet.create({
   p: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 23, color: colors.muted2 },
   lead: { fontFamily: fonts.body500, fontSize: 16.5, lineHeight: 24, color: colors.ink },
-  note: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 16, ...plate, alignItems: 'flex-start' },
-  noteText: { flex: 1, fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, color: colors.ink },
   more: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 14, borderRadius: 22, ...plate },
   moreText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
 });
