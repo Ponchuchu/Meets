@@ -33,6 +33,7 @@ export default function SoloScreen() {
   const all = spotsQ.data ?? ATTRACTIONS;
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const [open, setOpen] = useState<Attraction | null>(null);
+  const [broken, setBroken] = useState<string[]>([]);
   const solo = topSpots(all).filter((a) => inSeason(a, now));
   const free = solo.filter((a) => a.free).slice(0, 10);
   // Только где часы известны (их дописывает сборщик): «открыто» без данных было бы догадкой.
@@ -44,8 +45,8 @@ export default function SoloScreen() {
     const st = openStatus(a.hours, now);
     return (
       <Pressable onPress={() => setOpen(a)} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${a.name}, ${KIND_LABEL[a.kind]}`}>
-        {a.photos?.[0]
-          ? <Image source={{ uri: a.photos[0] }} style={styles.tilePhoto} resizeMode="cover" />
+        {a.photos?.[0] && !broken.includes(a.id)
+          ? <Image source={{ uri: a.photos[0] }} style={styles.tilePhoto} resizeMode="cover" onError={() => setBroken((b) => [...b, a.id])} />
           : <View style={styles.tileIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
         <Text style={styles.tileName} numberOfLines={2}>{a.name}</Text>
         <Text style={[styles.tileSub, st.state === 'open' && { color: colors.ok }]} numberOfLines={1}>{a.free ? 'бесплатно' : st.state === 'unknown' ? KIND_LABEL[a.kind].toLowerCase() : st.text.toLowerCase()}</Text>
