@@ -57,7 +57,7 @@ const Ring = memo(function Ring({ value, size, stroke, color, track }: { value: 
 });
 
 /** Свечение за аватаркой — цвет выбранной рамки, мягко растворяется в бумаге. */
-const Aura = memo(function Aura({ color, height }: { color: string; height: number }) {
+export const Aura = memo(function Aura({ color, height }: { color: string; height: number }) {
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height={height} pointerEvents="none">
       <Defs>

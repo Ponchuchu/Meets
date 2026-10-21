@@ -244,19 +244,27 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   if (error) throw error;
   if (!data) return null;
   const r = data as ProfileRow;
-  const friends = await friendIds(me);
+  const [friends, card] = await Promise.all([friendIds(me), personCard(id)]);
+  const seen = card?.seen_at ? seenText(card.seen_at) : null;
   return {
     id: r.id,
     about: r.about ?? '',
     interests: [],
     badges: [],
     gallery: r.photo_url ? [r.photo_url] : [],
-    online: false,
+    online: seen?.online ?? false,
+    lastSeen: seen?.text,
+    seenAt: card?.seen_at ?? undefined,
+    stepsToday: card?.steps_today ?? undefined,
+    memoriesCount: card?.memories_count ?? undefined,
+    frame: card?.frame ?? (r as { map_frame?: string | null }).map_frame ?? null,
+    shape: card?.shape ?? (r as { map_shape?: string | null }).map_shape ?? null,
+    photo: r.photo_url,
     instagram: r.instagram ?? undefined,
-    commonFriends: [],
-    friendsCount: 0,
-    commonCount: 0,
-    friendIds: [],
+    commonFriends: card?.common_ids ?? [],
+    friendsCount: card?.friends_count ?? 0,
+    commonCount: card?.common_count ?? 0,
+    friendIds: card?.common_ids ?? [],
     plans: [],
     privacy: { ...DEFAULT_PRIVACY, plansVisible: r.plans_visible ?? 'friends', achievements: r.achievements_visible ?? 'friends' },
     interestKeys: [],
@@ -264,12 +272,44 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   };
 }
 
+interface PersonCardRow { friends_count: number; common_count: number; common_ids: string[]; seen_at: string | null; steps_today: number | null; memories_count: number | null; frame: string | null; shape: string | null }
+/** Сводка для страницы друга (миграция 35). Нет функции на сервере — страница просто без этих цифр. */
+async function personCard(id: string): Promise<PersonCardRow | null> {
+  try {
+    const { data, error } = await withTimeout(supabase().rpc('person_card', { p: id }));
+    if (error) return null;
+    return ((data as PersonCardRow[] | null) ?? [])[0] ?? null;
+  } catch { return null; }
+}
+
+/** «в сети» — заходил за последние 2 минуты; иначе «был 5 мин назад», «был в 14:20», «был вчера», «был 3 окт.». */
+export function seenText(at: string, now = Date.now()): { online: boolean; text: string } {
+  const t = Date.parse(at);
+  if (!Number.isFinite(t)) return { online: false, text: 'был недавно' };
+  const min = Math.floor((now - t) / 60000);
+  if (min < 2) return { online: true, text: 'в сети' };
+  if (min < 60) return { online: false, text: `был ${min} мин назад` };
+  const day = (x: number) => new Date(x + 5 * 3600e3).toISOString().slice(0, 10);
+  const hm = new Date(t + 5 * 3600e3).toISOString().slice(11, 16);
+  if (day(t) === day(now)) return { online: false, text: `был в ${hm}` };
+  if (day(t) === day(now - 86400e3)) return { online: false, text: `был вчера в ${hm}` };
+  const d = new Date(t + 5 * 3600e3);
+  const MON = ['янв.', 'февр.', 'марта', 'апр.', 'мая', 'июня', 'июля', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
+  return { online: false, text: `был ${d.getUTCDate()} ${MON[d.getUTCMonth()]}` };
+}
+
+/** Отметка «я в приложении» — раз в минуту, пока оно открыто. */
+export async function touchPresence(): Promise<void> {
+  await withTimeout(supabase().rpc('touch_presence'), 5000);
+}
+
 // ——— Запись ———
 
 export async function sendMessage(chatId: string, body: string, kind: MessageKind = 'text', mediaPath?: string, durationS?: number, eventId?: string, messageId?: string, replyTo?: string): Promise<void> {
   const me = await requireUser();
   const { error } = await withTimeout(supabase().from('messages').insert({ ...(messageId ? { id: messageId } : {}), chat_id: chatId, author_id: me, kind, body, media_path: mediaPath ?? null, duration_s: durationS ?? null, event_id: eventId ?? null, ...(replyTo ? { reply_to: replyTo } : {}) }));
-  if (error?.code === '23505' && messageId) {
+  // Повтор после потерянного ответа: сервер уже сохранил это сообщение (409 / 23505) — это успех, а не «Не отправилось».
+  if (error && messageId) {
     const check = await withTimeout(supabase().from('messages').select('id').eq('id', messageId).eq('chat_id', chatId).eq('author_id', me).maybeSingle());
     if (!check.error && check.data) return;
   }

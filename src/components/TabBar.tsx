@@ -1,16 +1,16 @@
 // Нижняя панель v6 (V6.md §1.1, design/screens/V6TabBar): плавающая пилюля 366×64 в стиле iOS, только иконки без подписей.
-// Плашка: градиентная кромка, внутренний блик и мягкая тень (src/ui/glass.ts); под выбранной вкладкой — тёплая подложка,
-// она переезжает к новой вкладке (одна анимация transform — дёшево и на слабых телефонах).
-// Выбранная: заливка чернилами 420 мс + «пружина» 0.84 → 1.12 → 1 за 520 мс; у Профиля — кольцо вокруг аватарки.
+// Плашка: градиентная кромка, внутренний блик и мягкая тень (src/ui/glass.ts).
+// Выбранная: значок сплошной (без наложения слоёв) + «пружина» 0.84 → 1.12 → 1; у Профиля — тонкое тёмное кольцо.
+// Под выбранной — нейтральная стеклянная линза, переезжает пружиной, как в iOS.
 // Бейджи: Планы (зовут + новые), Чаты (непрочитанные) — оранжевые, цифра прокручивается вверх при смене.
 // Повторный тап обрабатывают экраны (событие tabPress). Долгое нажатие — подсказка с названием вкладки.
 // Панель уезжает вниз (−130 px, 300 мс), когда открыта шторка, раскрытая карточка или клавиатура.
 import * as Haptics from 'expo-haptics';
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Image, Keyboard, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useApp } from '../state/app';
@@ -68,46 +68,41 @@ function Badge({ n, label }: { n: number; label: string }) {
   );
 }
 
-function TabIcon({ name, on, pop }: { name: string; on: boolean; pop: SharedValue<number> }) {
+/** Значок рисуется сразу в нужном состоянии — без наложения двух слоёв с прозрачностью: раньше на слабом телефоне
+ *  затухание старого слоя иногда «застревало», и чёрной оставалась вкладка, с которой уже ушли. */
+const TabIcon = memo(function TabIcon({ name, on, pop }: { name: string; on: boolean; pop: SharedValue<number> }) {
   const d = TABS[name];
-  const fill = useSharedValue(on ? 1 : 0);
-  useEffect(() => { fill.set(withTiming(on ? 1 : 0, { duration: on ? 420 : 160 })); }, [on, fill]);
-  const filled = useAnimatedStyle(() => ({ opacity: fill.get() }));
-  const outline = useAnimatedStyle(() => ({ opacity: 1 - fill.get() }));
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }] }));
   return (
     <Animated.View style={[{ width: 28, height: 28 }, bounce]}>
-      <Animated.View style={[StyleSheet.absoluteFill, outline]}>
-        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-          <Path d={d.shape} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={d.details} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          {d.back ? <Path d={d.back} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
-        </Svg>
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, filled]}>
+      {on ? (
         <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
           <Path d={d.shape} fill={colors.ink} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
           <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={d.back ? ON_DETAIL : 'none'} />
           {d.back ? <Path d={d.back} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </Svg>
-      </Animated.View>
+      ) : (
+        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+          <Path d={d.shape} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          <Path d={d.details} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          {d.back ? <Path d={d.back} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
+        </Svg>
+      )}
     </Animated.View>
   );
-}
+});
 
-function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
+const MeIcon = memo(function MeIcon({ on, pop }: { on: boolean; pop: SharedValue<number> }) {
   const avatar = useTabBadges((s) => s.avatar);
-  const ring = useSharedValue(on ? 1 : 0);
-  useEffect(() => { ring.set(withTiming(on ? 1 : 0, { duration: 420 })); }, [on, ring]);
-  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }], borderColor: `rgba(${Math.round(23 + 217 * ring.get())},${Math.round(22 + 60 * ring.get())},${Math.round(26 + 5 * ring.get())},${0.16 + 0.84 * ring.get()})` }));
+  const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }] }));
   return (
-    <Animated.View style={[styles.meRing, st]}>
+    <Animated.View style={[styles.meRing, on && styles.meRingOn, st]}>
       {avatar.url ? <Image source={{ uri: avatar.url }} resizeMethod="resize" style={styles.meFace} /> : (
         <View style={[styles.meFace, styles.meEmpty]}><Text style={styles.meLetter}>{avatar.letter || '·'}</Text></View>
       )}
     </Animated.View>
   );
-}
+});
 
 function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boolean; badge: number; land: number; onPress: () => void; onLong: () => void }) {
   const pop = useSharedValue(1);
@@ -166,7 +161,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const activeIdx = Math.max(0, routes.findIndex((r) => r.name === activeKey));
   const [cell, setCell] = useState(0);
   const slide = useSharedValue(activeIdx);
-  useEffect(() => { slide.set(withTiming(activeIdx, { duration: 320, easing: Easing.bezier(0.25, 1, 0.5, 1) })); }, [activeIdx, slide]);
+  useEffect(() => { slide.set(withSpring(activeIdx, { damping: 19, stiffness: 210, mass: 0.8 })); }, [activeIdx, slide]);
   const pill = useAnimatedStyle(() => ({ transform: [{ translateX: slide.get() * (cell + GAP) }] }));
   const onBar = (e: LayoutChangeEvent) => setCell((e.nativeEvent.layout.width - PAD * 2 - GAP * 4) / 5);
   return (
@@ -198,17 +193,20 @@ const styles = StyleSheet.create({
   bar: {
     width: 366, maxWidth: '94%', height: BAR_H, padding: PAD, borderRadius: BAR_H / 2, flexDirection: 'row', gap: GAP,
   },
-  pill: { position: 'absolute', top: PAD, left: PAD, bottom: PAD, borderRadius: (BAR_H - PAD * 2) / 2, backgroundColor: 'rgba(240,82,31,0.12)' },
+  // Линза под выбранной вкладкой — нейтральное стекло, как в iOS: светлая заливка, тонкая кромка и мягкая тень.
+  pill: { position: 'absolute', top: PAD, left: PAD, bottom: PAD, borderRadius: (BAR_H - PAD * 2) / 2, backgroundColor: 'rgba(23,22,26,0.065)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.9)' },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: 6, left: '50%', marginLeft: 5, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FCFBF8',
   },
   badgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
-  flash: { position: 'absolute', width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  flash: { position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(240,82,31,0.18)', alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   // Аватар на панели не меньше соседних значков (28): кольцо 36, лицо 30.
-  meRing: { width: 36, height: 36, borderRadius: 18, padding: 1.5, borderWidth: 1.5 },
+  meRing: { width: 36, height: 36, borderRadius: 18, padding: 1.5, borderWidth: 1.5, borderColor: 'transparent' },
+  meRingOn: { borderColor: colors.ink },
   meFace: { width: 30, height: 30, borderRadius: 15, overflow: 'hidden' },
   meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   meLetter: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },

@@ -238,6 +238,14 @@ export interface PersonDetails {
   suggestNote?: string;
   /** Строка плана в карточке на карте: «Вечером идёт на джаз — ты тоже». */
   planLine?: { text: string; eventId?: string; color: string };
+  /** Когда последний раз был в приложении (видят друзья). */
+  seenAt?: string;
+  /** Шаги сегодня и число альбомов — если человек это открыл. */
+  stepsToday?: number;
+  memoriesCount?: number;
+  frame?: string | null;
+  shape?: string | null;
+  photo?: string | null;
 }
 
 export interface DataSource {

@@ -75,12 +75,16 @@ export default function ChatsScreen() {
   const pending = requests.filter((r) => !chat.requests[r.id]);
   const q = (search ?? '').trim().toLowerCase();
   const match = (c: Chat) => !q || c.title.toLowerCase().includes(q) || c.lastText.toLowerCase().includes(q);
+  // Своё неотправленное показываем, только если оно новее того, что уже на сервере: раньше одно застрявшее сообщение
+  // навсегда закрывало собой всю переписку в списке.
   const last = (c: Chat) => {
-    const mine = chat.sent.filter((m) => m.chatId === c.id).at(-1);
-    return mine ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true, tick: tickOf(mine) }
+    const mine = chat.sent.filter((m) => m.chatId === c.id && m.delivery).at(-1);
+    const newer = mine && (!c.lastAt || !mine.createdAt || Date.parse(mine.createdAt) > Date.parse(c.lastAt));
+    return newer ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true, tick: tickOf(mine) }
       : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine, tick: c.lastMine ? tickOf({ createdAt: c.lastAt }, c.readUpTo) : undefined };
   };
-  const unread = (c: Chat) => Math.max(0, c.unread - (chat.read[c.id] ?? 0));
+  // В настоящей базе непрочитанные считает сервер (после «прочитал» он сам отдаёт 0); локальная поправка — только для демо.
+  const unread = (c: Chat) => config.dataMode === 'demo' ? Math.max(0, c.unread - (chat.read[c.id] ?? 0)) : c.unread;
   const list = sortChats(
     [...chats, ...chat.groups.filter(g => !chats.some(c => c.id === g.id))]
       .filter((c) => match(c) && !chat.hidden[c.id] && !(c.personId && chat.blocked[c.personId]) && (filter === 'archive' ? !!chat.archived[c.id] : !chat.archived[c.id]))
@@ -190,24 +194,24 @@ export default function ChatsScreen() {
             return (
               <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
                 <Pressable onPress={() => open(c.id)}
-                  style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.row, n > 0 && styles.rowNew, pressed && { opacity: 0.7 }]}
                   accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
-                  {p ? <Avatar p={p} size={54} ring={p.isFriend ? colors.friend : undefined} /> : (
+                  {p ? <Avatar p={p} size={56} /> : (
                     <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
                       <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
                     </View>
                   )}
                   <View style={{ flex: 1, gap: 3 }}>
                     <View style={styles.titleRow}>
-                      <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{c.title}</Text>
-                      {c.l.tick && <Tick kind={c.l.tick} color={colors.muted} />}
-                      <Text style={styles.time}>{c.l.time}</Text>
+                      <Text style={[styles.name, { flex: 1 }, n > 0 && { fontFamily: fonts.display700 }]} numberOfLines={1}>{c.title}</Text>
+                      {c.l.tick && c.l.mine && <Tick kind={c.l.tick} color={colors.muted} size={14} />}
+                      <Text style={[styles.time, n > 0 && styles.timeNew]}>{c.l.time}</Text>
                     </View>
                     <View style={styles.titleRow}>
                       <Text style={[styles.sub, { flex: 1 }, n > 0 && { color: colors.ink, fontFamily: fonts.body600 }]} numberOfLines={1}>
                         {c.l.text ? `${c.l.mine ? 'Ты: ' : ''}${c.l.text}` : 'Напиши первым'}
                       </Text>
-                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n}</Text></View>
+                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n > 99 ? '99+' : n}</Text></View>
                         : pin ? <Pin size={14} color={colors.muted} strokeWidth={2} /> : null}
                     </View>
                     {act && (
@@ -287,7 +291,9 @@ const styles = StyleSheet.create({
   btn: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 13, paddingHorizontal: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 20 },
+  rowNew: { backgroundColor: '#FBEFE6' },
+  timeNew: { color: colors.accentText, fontFamily: fonts.mono600 },
   card: { borderRadius: 20, ...plate },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   act: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#F0C5AE' },
@@ -295,6 +301,6 @@ const styles = StyleSheet.create({
   write: { fontFamily: fonts.body700, fontSize: 13, color: colors.friend },
   evIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   time: { fontFamily: fonts.mono500, fontSize: 11, color: colors.muted },
-  unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  unreadText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
+  unread: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  unreadText: { fontFamily: fonts.body700, fontSize: 12, color: colors.ink },
 });

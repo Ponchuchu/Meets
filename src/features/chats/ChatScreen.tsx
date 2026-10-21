@@ -19,7 +19,7 @@ import { StickerPicker } from '../../stickers/StickerPicker';
 import { SwipeReply } from '../../chat/ui/SwipeReply';
 import { Tick, tickOf, type TickKind } from '../../chat/ui/Tick';
 import * as Clipboard from 'expo-clipboard';
-import { Sticker as StickerIcon } from 'lucide-react-native';
+import { CalendarDays, ChevronLeft, MoreVertical, Sticker as StickerIcon, Users } from 'lucide-react-native';
 import { getMeStats, answerInvite, getInvites } from '../../live/api';
 import { config } from '../../lib/config';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
@@ -32,6 +32,7 @@ import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { photo } from '../../data/photos';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
+import { setOpenChat } from '../../live/reminders';
 import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
@@ -101,16 +102,17 @@ export default function ChatScreen() {
     }).catch(() => undefined);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useLiveChat(id, focused);
+  useEffect(() => { if (!focused) return; setOpenChat(id); return () => setOpenChat(null); }, [id, focused]);
   const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
   const base = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId });
+  const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId, refetchInterval: focused ? 60e3 : false });
   // Только точка собеседника: обновления точек других друзей (каждые несколько секунд) не перерисовывают чат.
   const { data: spot } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), select: (all: FriendSpot[]) => all.find((x) => x.personId === personId) ?? null, enabled: !!personId });
   // Только нужные части хранилищ: чужие изменения (другой чат, другие планы) экран не перерисовывают.
   const chat = useChat(useShallow(s => ({ sent: s.sent, answers: s.answers, revealed: s.revealed, votes: s.votes, blocked: s.blocked, reported: s.reported,
-    markRead: s.markRead, updateMessage: s.updateMessage, send: s.send, reveal: s.reveal, vote: s.vote, report: s.report, block: s.block })));
+    markRead: s.markRead, updateMessage: s.updateMessage, send: s.send, unsend: s.unsend, reveal: s.reveal, vote: s.vote, report: s.report, block: s.block })));
   const plans = usePlans(useShallow(s => ({ meetups: s.meetups, going: s.going, newChats: s.newChats, startChat: s.startChat, go: s.go })));
   const arrive = useProfile((s) => s.arrive);
   const arrived = useProfile((s) => s.arrivals);
@@ -167,6 +169,12 @@ export default function ChatScreen() {
     } catch { show({ text: 'Не получилось загрузить историю. Потяни список ещё раз' }); }
     finally { setLoadingOlder(false); }
   };
+  // Сервер вернул сообщение — локальная копия (в том числе с ошибкой) больше не нужна.
+  useEffect(() => {
+    if (!isRemoteId(id) || !base.length) return;
+    const ids = new Set(base.map(m => m.id));
+    chat.sent.forEach(m => { if (m.chatId === id && ids.has(m.id)) chat.unsend(m.id); });
+  }, [base, id]); // eslint-disable-line react-hooks/exhaustive-deps
   const listData = useMemo(() => Platform.OS === 'web' ? messages : [...messages].reverse(), [messages]);
   const { data: invites = [] } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
   const byId = (pid: string) => people.find((p) => p.id === pid);
@@ -342,7 +350,9 @@ export default function ChatScreen() {
   const title = isGroup ? chatMeta?.title ?? 'Группа' : isEvent ? chatMeta?.title ?? event?.title ?? 'Чат события' : person?.name ?? 'Чат';
   const status = isGroup ? `${chatMeta?.members ?? 0} участников` : isEvent
     ? `${chatMeta?.members ?? 0} участников · ${event ? startsIn(event.startsAt, event.endsAt, now) : ''}`
-    : friend ? (details?.online ? 'в друзьях · онлайн' : 'в друзьях') : `${details?.online ? 'онлайн' : details?.lastSeen?.toLowerCase() ?? ''} · не в друзьях`;
+    : details?.online ? 'в сети' : details?.lastSeen ? details.lastSeen : friend ? 'в друзьях' : 'не в друзьях';
+  const openProfile = () => { if (personId) router.push({ pathname: '/person/[id]', params: { id: personId } }); else setSheet('attachments'); };
+  const unreadElsewhere = allChats.reduce((n, c) => c.id === id ? n : n + (c.unread || 0), 0);
   // Геолокация у друзей работает всегда (кроме невидимки) — плашка «делится до …» больше не нужна.
   const banner = isGroup || isEvent || friend ? null
     : `ВЫ ОБА ИДЁТЕ НА «${(events.find((e) => (e.lookers ?? []).some((l) => l.personId === personId) && e.id === 'jazz') ?? events.find((e) => e.id === details?.lookingFor?.eventId))?.title.toUpperCase() ?? 'ОДНО СОБЫТИЕ'}» — ПОЭТОМУ МОЖНО ПИСАТЬ`;
@@ -403,18 +413,28 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior="padding">
-      <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 6) }]}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/chats'))} style={styles.round} accessibilityRole="button" accessibilityLabel="Назад">
-          <Ic d={IC.back} size={20} color={colors.ink} w={2} />
+      {/* Шапка как в Telegram: назад · аватар · имя и «в сети» / «был …»; нажатие — профиль собеседника. */}
+      <View style={[styles.header, { paddingTop: Math.max(44, insets.top + 4) }]}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/chats'))} style={styles.backBtn} hitSlop={6} accessibilityRole="button" accessibilityLabel="Назад">
+          <ChevronLeft size={28} color={colors.ink} strokeWidth={2.2} />
+          {unreadElsewhere > 0 && <View style={styles.backBadge}><Text style={styles.backBadgeText}>{unreadElsewhere > 99 ? '99+' : unreadElsewhere}</Text></View>}
         </Pressable>
-        {person && (
-          <Pressable onPress={() => setSheet('person')} accessibilityRole="button" accessibilityLabel={friend ? `${person.name}: профиль и где сейчас` : `${person.name}: профиль`}>
-            <Avatar p={person} size={40} ring={friend ? colors.friend : undefined} />
-          </Pressable>
-        )}
-        <Pressable onPress={() => setSheet('attachments')} style={{ flex: 1, gap: 1 }} accessibilityRole="button" accessibilityLabel={`${title}: участники и вложения`}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.status} numberOfLines={2}>{status}</Text>
+        <Pressable onPress={openProfile} onLongPress={() => person && setSheet('person')} style={({ pressed }) => [styles.who, pressed && { opacity: 0.6 }]} accessibilityRole="button"
+          accessibilityLabel={person ? `${person.name}, ${status}. Открыть профиль` : `${title}: участники и вложения`}>
+          {person ? (
+            <View>
+              <Avatar p={person} size={42} />
+              {details?.online && <View style={styles.onlineDot} />}
+            </View>
+          ) : (
+            <View style={[styles.groupIcon, { backgroundColor: isEvent ? colors.accent : colors.friend }]}>
+              {isEvent ? <CalendarDays size={20} color="#FFFFFF" strokeWidth={2} /> : <Users size={20} color="#FFFFFF" strokeWidth={2} />}
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={[styles.status, details?.online && !isGroup && !isEvent && { color: colors.ok }]} numberOfLines={1}>{status}</Text>
+          </View>
         </Pressable>
         {isEvent ? (
           <View style={{ flexDirection: 'row' }}>
@@ -422,8 +442,8 @@ export default function ChatScreen() {
             {(chatMeta?.members ?? 0) > 2 && <View style={styles.plus}><Text style={styles.plusText}>+{(chatMeta?.members ?? 0) - 3}</Text></View>}
           </View>
         ) : (
-          <Pressable onPress={() => setSheet('menu')} style={styles.round} accessibilityRole="button" accessibilityLabel="Ещё: пожаловаться, заблокировать">
-            <Ic d="M5 12h.01M12 12h.01M19 12h.01" size={22} color={colors.ink} w={3} />
+          <Pressable onPress={() => setSheet(person ? 'menu' : 'attachments')} style={styles.menuBtn} accessibilityRole="button" accessibilityLabel="Ещё: вложения, пожаловаться, заблокировать">
+            <MoreVertical size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
         )}
       </View>
@@ -632,6 +652,9 @@ export default function ChatScreen() {
               onMap={() => { focusFriend(person.id); router.dismissTo('/'); }} onAdd={() => social.toggleRequest(person.id)} /> : (
               <>
                 <Text style={styles.sheetTitle}>{person.name}</Text>
+                <Pressable onPress={() => setSheet('attachments')} style={styles.menuRow} accessibilityRole="button">
+                  <Text style={styles.menuText}>Фото, видео и ссылки</Text>
+                </Pressable>
                 <Pressable onPress={() => { chat.report(person.id); setSheet(null); show({ text: 'Жалоба отправлена. Команда проверит в течение суток' }); }} style={styles.menuRow} accessibilityRole="button">
                   <Text style={styles.menuText}>{chat.reported[person.id] ? 'Жалоба отправлена' : 'Пожаловаться'}</Text>
                 </Pressable>
@@ -787,10 +810,18 @@ const styles = StyleSheet.create({
 
   stickerBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.paper },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4, paddingRight: 8, paddingBottom: 8, backgroundColor: colors.paper, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line2,
+    shadowColor: '#17161A', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3, zIndex: 2 },
+  backBtn: { minWidth: 44, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4 },
+  backBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
+  backBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: colors.paper },
+  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingRight: 4 },
+  onlineDot: { position: 'absolute', right: 0, bottom: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ok, borderWidth: 2, borderColor: colors.paper },
+  groupIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  menuBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
-  status: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
+  title: { fontFamily: fonts.display700, fontSize: 17, letterSpacing: -0.2, color: colors.ink },
+  status: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, marginTop: 1 },
   plus: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
   plusText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
   banner: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: colors.sand },

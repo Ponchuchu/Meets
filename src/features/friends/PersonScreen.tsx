@@ -4,11 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StateView } from '../../ui/StateView';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Footprints, Images, Lock, MapPin, MessageCircle, UserMinus, UserPlus, Users, type LucideIcon } from 'lucide-react-native';
+import { AvatarFrame, frameById } from '../../profile/frames';
+import { Aura } from '../profile/ProfileScreen';
+import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
 import { MY_SPOT } from '../../data/demo';
-import { photo } from '../../data/photos';
 import { now as clockNow } from '../../lib/clock';
 import { CAT_ICON } from '../../map/icons';
 import { canSee, distanceM } from '../../people/visibility';
@@ -17,7 +20,6 @@ import { getShownBadges } from '../../live/profileExtras';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
-import { useSession } from '../../state/session';
 import { isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
@@ -25,7 +27,20 @@ import { Ic, IC } from '../../ui/Ic';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { Toast, type ToastData } from '../../ui/Toast';
 
-const INSTA = 'M7 3.5h10A3.5 3.5 0 0120.5 7v10a3.5 3.5 0 01-3.5 3.5H7A3.5 3.5 0 013.5 17V7A3.5 3.5 0 017 3.5zM12 8a4 4 0 100 8 4 4 0 000-8z';
+const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
+
+type IconLike = (p: { size: number; color: string; strokeWidth: number }) => React.ReactNode;
+const INSTA = 'M7 3.5h10A3.5 3.5 0 0120.5 7v10a3.5 3.5 0 01-3.5 3.5H7A3.5 3.5 0 013.5 17V7A3.5 3.5 0 017 3.5zM12 8a4 4 0 100 8 4 4 0 000-8zM17.2 6.8h.01';
+const Instagram: IconLike = ({ size, color }) => <Ic d={INSTA} size={size} color={color} w={1.9} />;
+
+function Action({ Icon, label, onPress, dark }: { Icon: LucideIcon | IconLike; label: string; onPress: () => void; dark?: boolean }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.action, dark && styles.actionDark, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={label}>
+      <Icon size={22} color={dark ? colors.paper : colors.ink} strokeWidth={1.9} />
+      <Text style={[styles.actionText, dark && { color: colors.paper }]} numberOfLines={1}>{label}</Text>
+    </Pressable>
+  );
+}
 const REASONS = ['Спам или реклама', 'Оскорбления', 'Фейковый профиль', 'Неприемлемые фото', 'Младше 18', 'Другое'];
 
 export default function PersonScreen() {
@@ -45,7 +60,6 @@ export default function PersonScreen() {
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
-  const myPhoto = useSession((s) => s.draft.photo);
   const p = people.find((x) => x.id === id);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
@@ -69,75 +83,71 @@ export default function PersonScreen() {
   const write = () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${id}` } });
   const genitive = p.name.endsWith('ь') ? `${p.name.slice(0, -1)}я` : p.name.endsWith('а') ? `${p.name.slice(0, -1)}ы` : `${p.name}а`;
 
+  const frame = frameById(d.frame);
+  const heroH = insets.top + 300;
+  const seen = d.online ? 'в сети' : d.lastSeen ?? (friend ? 'в друзьях' : 'не в друзьях');
+  const where = friend && d.now && canSee('friend', 'location', d.privacy) ? d.now : null;
+  const stats: { key: string; n: string; label: string; Icon: LucideIcon; color: string; onPress?: () => void }[] = [];
+  if (friend) stats.push({ key: 'friends', n: String(d.friendsCount), label: `${plural(d.friendsCount, 'друг', 'друга', 'друзей')}${d.commonCount ? ` · ${d.commonCount} общих` : ''}`, Icon: Users, color: colors.friend });
+  if (d.stepsToday != null) stats.push({ key: 'steps', n: d.stepsToday.toLocaleString('ru-RU'), label: 'шагов сегодня', Icon: Footprints, color: colors.ok });
+  if (d.memoriesCount) stats.push({ key: 'mem', n: String(d.memoriesCount), label: plural(d.memoriesCount, 'воспоминание', 'воспоминания', 'воспоминаний'), Icon: Images, color: colors.accent });
+  if (!friend && common.length) stats.push({ key: 'common', n: String(common.length), label: plural(common.length, 'общий друг', 'общих друга', 'общих друзей'), Icon: Users, color: colors.friend });
+
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
-        <View style={styles.hero}>
-          {gallery.length ? (
-            <Image source={photo(gallery[pic])} style={styles.heroImg} resizeMode="cover" accessibilityLabel={`Фото: ${p.name}`} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: p.tint, alignItems: 'center', justifyContent: 'center' }]}><Text style={styles.heroLetter}>{p.initial}</Text></View>
-          )}
-          <Pressable onPress={back} style={[styles.back, { top: Math.max(50, insets.top + 6) }]} accessibilityRole="button" accessibilityLabel="Назад">
-            <Ic d={IC.back} size={20} color={colors.ink} w={2} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
+        <View style={{ height: heroH, paddingTop: insets.top }}>
+          <Aura color={frame.color} height={heroH} />
+          <Pressable onPress={back} style={[styles.back, { top: insets.top + 10 }]} accessibilityRole="button" accessibilityLabel="Назад">
+            <ChevronLeft size={24} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
-          {friend && gallery.length > 1 && (
-            <View style={styles.thumbs}>
-              {gallery.map((g, i) => (
-                <Pressable key={g} onPress={() => setPic(i)} accessibilityRole="button" accessibilityLabel={`Фото ${i + 1}`}>
-                  <Image source={photo(g)} style={[styles.thumb, i === pic && { borderColor: '#FFFFFF' }]} />
-                </Pressable>
-              ))}
+          <View style={styles.head}>
+            <Pressable onPress={() => gallery.length > 1 && setPic((pic + 1) % gallery.length)} accessibilityRole="image" accessibilityLabel={`Фото: ${p.name}`}>
+              <AvatarFrame frameId={d.frame} shape={d.shape} photo={gallery[pic] ?? d.photo ?? p.photo} initial={p.initial} size={132} animate />
+            </Pressable>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
+              {shownBadges.map(b => <BadgeMedal key={b} id={b} icon={badgeIcon(b)} got size={24} />)}
             </View>
-          )}
+            <View style={styles.seenRow}>
+              {d.online && <View style={styles.dot} />}
+              <Text style={[styles.seen, d.online && { color: colors.ok }]}>{seen}</Text>
+              {!friend && <><Text style={styles.seen}> · </Text><Lock size={12} color={colors.muted} strokeWidth={2.2} /><Text style={styles.seen}> не в друзьях</Text></>}
+            </View>
+          </View>
         </View>
 
         <View style={styles.body}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-            {shownBadges.map(b => <BadgeMedal key={b} id={b} icon={badgeIcon(b)} got size={22} />)}
-            {d.online ? (<><View style={styles.dot} /><Text style={styles.seen}>онлайн</Text></>) : <Text style={styles.seen}>{d.lastSeen}</Text>}
+          {/* Действия — квадратные кнопки, как в карточке контакта iPhone. */}
+          <View style={styles.actions}>
+            <Action Icon={MessageCircle} label="Написать" dark onPress={write} />
+            {friend
+              ? <Action Icon={CalendarPlus} label="Позвать" onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} />
+              : <Action Icon={social.sent[id] ? Check : UserPlus} label={social.sent[id] ? 'Заявка ушла' : 'В друзья'} onPress={() => social.toggleRequest(id)} />}
+            {friend && spot && <Action Icon={MapPin} label="На карте" onPress={showOnMap} />}
+            {!!d.instagram && <Action Icon={Instagram} label="Instagram" onPress={() => { Linking.openURL(`https://instagram.com/${d.instagram!.replace(/^@/, '')}`).catch(() => undefined); }} />}
           </View>
-          {!friend && (
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <View style={styles.tag}><Ic d={IC.lock} size={13} color={colors.ink} w={2} /><Text style={styles.tagText}>Не в друзьях</Text></View>
-              {common.length > 0 && (
-                <View style={styles.tag}>
-                  <View style={{ flexDirection: 'row' }}>{common.slice(0, 2).map((c) => <Avatar key={c!.id} p={c!} size={18} style={{ marginRight: -6 }} />)}</View>
-                  <Text style={[styles.tagText, { marginLeft: 6 }]}>{common.length} {common.length === 1 ? 'общий друг' : 'общих друга'}</Text>
-                </View>
-              )}
-            </View>
+
+          {where && (
+            <Pressable onPress={showOnMap} style={({ pressed }) => [styles.now, pressed && styles.pressed]} accessibilityRole="button">
+              <View style={styles.nowIcon}><MapPin size={20} color="#FFFFFF" strokeWidth={2} /></View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.nowTitle}>Сейчас: {where.place}</Text>
+                <Text style={styles.sub}>{spot ? `${(distanceM(MY_SPOT, spot) / 1000).toFixed(1).replace('.', ',')} км от тебя` : 'показать на карте'}</Text>
+              </View>
+              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+            </Pressable>
           )}
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable onPress={write} style={[styles.btn, { backgroundColor: colors.ink }]} accessibilityRole="button">
-              <Ic d="M4 5h16v11H9l-5 4z" size={18} color={colors.paper} />
-              <Text style={[styles.btnText, { color: colors.paper }]}>Написать</Text>
-            </Pressable>
-            {friend ? (
-              <Pressable onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} style={[styles.btn, styles.outline]} accessibilityRole="button">
-                <Ic d={IC.plus} size={18} color={colors.ink} w={2} /><Text style={styles.btnText}>Позвать</Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => social.toggleRequest(id)} style={[styles.btn, styles.outline, social.sent[id] && { backgroundColor: colors.sand, borderColor: colors.sand }]} accessibilityRole="button">
-                <Ic d={social.sent[id] ? IC.check : IC.userPlus} c={social.sent[id] ? [] : [[9, 8, 3.5]]} size={18} color={colors.ink} />
-                <Text style={styles.btnText}>{social.sent[id] ? 'Заявка ушла' : 'В друзья'}</Text>
-              </Pressable>
-            )}
-            <Pressable onPress={() => d.instagram && Linking.openURL(`https://instagram.com/${d.instagram.slice(1)}`).catch(() => {})} style={styles.insta} accessibilityRole="link" accessibilityLabel="Instagram">
-              <Ic d={INSTA} size={20} color={colors.ink} />
-            </Pressable>
-          </View>
-
-          {friend && d.now && canSee('friend', 'location', d.privacy) && (
-            <View style={styles.now}>
-              <View style={styles.nowIcon}><Ic d={IC.pin} c={[[12, 9, 2.5]]} size={18} color="#FFFFFF" w={2} /></View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.nowTitle}>Сейчас: {d.now.place}</Text>
-                <Text style={styles.sub}>{spot ? `${(distanceM(MY_SPOT, spot) / 1000).toFixed(1).replace('.', ',')} км от тебя · ` : ''}делится до {d.now.sharingUntil}</Text>
-              </View>
-              <Pressable onPress={showOnMap} style={styles.darkPill} accessibilityRole="button"><Text style={styles.darkPillText}>На карте</Text></Pressable>
+          {stats.length > 0 && (
+            <View style={styles.grid}>
+              {stats.map(t => (
+                <View key={t.key} style={styles.tile}>
+                  <View style={[styles.tileIcon, { backgroundColor: t.color }]}><t.Icon size={18} color="#FFFFFF" strokeWidth={2} /></View>
+                  <Text style={styles.tileN}>{t.n}</Text>
+                  <Text style={styles.tileL} numberOfLines={1}>{t.label}</Text>
+                </View>
+              ))}
             </View>
           )}
 
@@ -156,63 +166,64 @@ export default function PersonScreen() {
           )}
 
           {friend && canSee('friend', 'plans', d.privacy) && d.plans.length > 0 && (
-            <>
-              <Text style={styles.h2}>Планы {genitive}</Text>
-              <View style={styles.list}>
-                {d.plans.map((pl, i) => (
-                  <Pressable key={pl.title} onPress={() => pl.eventId && router.push({ pathname: '/event/[id]', params: { id: pl.eventId } })} style={[styles.planRow, i < d.plans.length - 1 && styles.line]} accessibilityRole="button">
-                    <Text style={[styles.planWhen, pl.when === 'СЕГОДНЯ' && { color: colors.accentText }]}>{pl.when}</Text>
-                    <View style={{ flex: 1 }}><Text style={styles.planTitle}>{pl.title}</Text><Text style={styles.sub}>{pl.note}</Text></View>
-                    <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Планы {genitive}</Text>
+              {d.plans.map((pl, i) => (
+                <Pressable key={pl.title} onPress={() => pl.eventId && router.push({ pathname: '/event/[id]', params: { id: pl.eventId } })} style={[styles.planRow, i < d.plans.length - 1 && styles.line]} accessibilityRole="button">
+                  <Text style={[styles.planWhen, pl.when === 'СЕГОДНЯ' && { color: colors.accentText }]}>{pl.when}</Text>
+                  <View style={{ flex: 1 }}><Text style={styles.planTitle}>{pl.title}</Text><Text style={styles.sub}>{pl.note}</Text></View>
+                  <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          {friend && common.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Общие друзья</Text>
+              <View style={styles.faces}>
+                {common.slice(0, 5).map((fp) => (
+                  <Pressable key={fp!.id} onPress={() => router.push({ pathname: '/person/[id]', params: { id: fp!.id } })} style={styles.face} accessibilityRole="button" accessibilityLabel={fp!.name}>
+                    <Avatar p={fp!} size={52} /><Text style={styles.faceName} numberOfLines={1}>{fp!.name}</Text>
                   </Pressable>
                 ))}
               </View>
-            </>
+            </View>
           )}
 
-          {friend && (
-            <>
-              <View style={styles.rowBetween}><Text style={styles.h2}>Друзья {genitive} · {d.friendsCount}</Text><Text style={styles.sub}>{d.commonCount} общих</Text></View>
-              <View style={styles.faces}>
-                {d.friendIds.slice(0, 4).map((fid) => {
-                  const fp = fid === 'me' ? { id: 'me', name: 'Ты', photo: myPhoto ?? 'danil', initial: 'Д', tint: colors.sand } : people.find((x) => x.id === fid);
-                  if (!fp) return null;
-                  return <View key={fid} style={styles.face}><Avatar p={fp} size={56} ring={colors.friend} /><Text style={styles.faceName}>{fp.name}</Text></View>;
-                })}
-                <View style={styles.face}><View style={styles.more}><Text style={styles.moreText}>+{Math.max(0, d.friendsCount - 4)}</Text></View><Text style={styles.faceName}>Все</Text></View>
-              </View>
-            </>
+          {(d.about.trim() || d.interests.length > 0) && (
+            <View style={styles.card}>
+              {!!d.about.trim() && <><Text style={styles.cardTitle}>О себе</Text><Text style={styles.about}>{d.about}</Text></>}
+              {d.interests.length > 0 && (
+                <View style={styles.chips}>
+                  {d.interests.map((x) => (
+                    <View key={x.label} style={[styles.chip, x.common || friend ? { backgroundColor: colors.ink } : { borderWidth: 1, borderColor: colors.line2 }]}>
+                      <Text style={[styles.chipText, (x.common || friend) && { color: colors.paper }]}>{x.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           )}
-
-          <Text style={styles.h2}>Интересы</Text>
-          <View style={styles.chips}>
-            {d.interests.map((x) => (
-              <View key={x.label} style={[styles.chip, x.common || friend ? { backgroundColor: colors.ink } : { borderWidth: 1, borderColor: colors.line2 }]}>
-                <Text style={[styles.chipText, (x.common || friend) && { color: colors.paper }]}>{x.label}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.h2}>О себе</Text>
-          <Text style={styles.about}>{d.about}</Text>
 
           {badges.length > 0 && canSee(rel, 'achievements', d.privacy) && (
-            <>
-              <View style={styles.rowBetween}><Text style={styles.h2}>Достижения</Text>{d.badgeLine && <Text style={styles.badgeLine}>{d.badgeLine}</Text>}</View>
+            <View style={styles.card}>
+              <View style={styles.rowBetween}><Text style={styles.cardTitle}>Награды</Text>{d.badgeLine && <Text style={styles.badgeLine}>{d.badgeLine}</Text>}</View>
               <View style={{ flexDirection: 'row' }}>
                 {badges.slice(0, 4).map((b) => (
                   <View key={b!.id} style={styles.badge}><BadgeMedal id={b!.id} icon={b!.icon} got size={52} /><Text style={styles.badgeName}>{b!.name}</Text></View>
                 ))}
               </View>
-            </>
+            </View>
           )}
 
           <View style={styles.footer}>
             {friend ? (
-              <Pressable onPress={() => setSheet('remove')} accessibilityRole="button"><Text style={styles.footText}>Убрать из друзей</Text></Pressable>
+              <Pressable onPress={() => setSheet('remove')} style={styles.footBtn} accessibilityRole="button"><UserMinus size={16} color={colors.muted} strokeWidth={2} /><Text style={styles.footText}>Убрать из друзей</Text></Pressable>
             ) : (
-              <Pressable onPress={() => { social.hide(id); show({ text: `${p.name} больше не будет в подборках людей` }); }} accessibilityRole="button"><Text style={styles.footText}>{social.hidden[id] ? 'Профиль скрыт' : 'Скрыть профиль'}</Text></Pressable>
+              <Pressable onPress={() => { social.hide(id); show({ text: `${p.name} больше не будет в подборках людей` }); }} style={styles.footBtn} accessibilityRole="button"><EyeOff size={16} color={colors.muted} strokeWidth={2} /><Text style={styles.footText}>{social.hidden[id] ? 'Профиль скрыт' : 'Скрыть профиль'}</Text></Pressable>
             )}
-            <Pressable onPress={() => setSheet('report')} accessibilityRole="button"><Text style={styles.footText}>{social.reported[id] ? 'Жалоба отправлена' : 'Пожаловаться'}</Text></Pressable>
+            <Pressable onPress={() => setSheet('report')} style={styles.footBtn} accessibilityRole="button"><Flag size={16} color={colors.muted} strokeWidth={2} /><Text style={styles.footText}>{social.reported[id] ? 'Жалоба отправлена' : 'Пожаловаться'}</Text></Pressable>
           </View>
         </View>
       </ScrollView>
@@ -250,29 +261,30 @@ export default function PersonScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
-  hero: { height: 500, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden', backgroundColor: colors.sand },
-  heroImg: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' },
-  heroLetter: { fontFamily: fonts.display800, fontSize: 160, color: colors.ink },
-  back: { position: 'absolute', left: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(251,250,246,0.9)', alignItems: 'center', justifyContent: 'center' },
-  thumbs: { position: 'absolute', right: 16, bottom: 16, flexDirection: 'row', gap: 8 },
-  thumb: { width: 42, height: 52, borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  body: { paddingHorizontal: 16, paddingTop: 18, gap: 14 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.6, color: colors.ink },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ok, marginLeft: 2 },
-  seen: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
-  tag: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.sand },
-  tagText: { fontFamily: fonts.body500, fontSize: 13, color: colors.ink },
-  btn: { flex: 1, height: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  outline: { borderWidth: 1.5, borderColor: colors.ink },
-  btnText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
-  insta: { width: 52, height: 52, borderRadius: 16, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  now: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: colors.friend, backgroundColor: colors.card },
-  nowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
+  back: { position: 'absolute', left: 16, width: 44, height: 44, borderRadius: 22, ...plate, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  head: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 8, gap: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, marginTop: 6 },
+  name: { fontFamily: fonts.display800, fontSize: 28, letterSpacing: -0.8, color: colors.ink, flexShrink: 1 },
+  seenRow: { flexDirection: 'row', alignItems: 'center' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ok, marginRight: 6 },
+  seen: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
+  body: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
+  actions: { flexDirection: 'row', gap: 8 },
+  action: { flex: 1, height: 66, borderRadius: 18, ...plate, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  actionDark: { backgroundColor: colors.ink, borderTopColor: 'rgba(255,255,255,0.18)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.4)' },
+  actionText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+  now: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, ...plate },
+  nowIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
   nowTitle: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
-  darkPill: { height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.ink, justifyContent: 'center' },
-  darkPillText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  tile: { width: '48.4%', flexGrow: 1, minHeight: 116, borderRadius: 22, ...plate, padding: 14, justifyContent: 'flex-end' },
+  tileIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 'auto' },
+  tileN: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.6, color: colors.ink, marginTop: 10 },
+  tileL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
+  card: { borderRadius: 22, ...plate, padding: 16, gap: 10 },
+  cardTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   look: { padding: 16, borderRadius: 22, backgroundColor: colors.accent, gap: 14 },
   lookHead: { flexDirection: 'row', justifyContent: 'space-between' },
   lookCap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.6, color: colors.ink },
@@ -283,23 +295,24 @@ const styles = StyleSheet.create({
   lookBtnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.paper },
   h2: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink, marginTop: 4 },
   list: { borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
-  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   line: { borderBottomWidth: 1, borderBottomColor: colors.sand },
   planWhen: { width: 72, fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   planTitle: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  faces: { flexDirection: 'row', justifyContent: 'space-between' },
-  face: { alignItems: 'center', gap: 6 },
+  faces: { flexDirection: 'row', gap: 14 },
+  face: { alignItems: 'center', gap: 6, width: 56 },
   faceName: { fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
-  more: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
-  moreText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 38, paddingHorizontal: 14, borderRadius: 19, justifyContent: 'center' },
+  chip: { height: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center' },
   chipText: { fontFamily: fonts.body500, fontSize: 14, color: colors.ink },
   about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 22.5, color: colors.muted2 },
   badgeLine: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.5, color: colors.ink },
   badge: { flex: 1, alignItems: 'center', gap: 6 },
   badgeName: { textAlign: 'center', fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
-  footer: { flexDirection: 'row', justifyContent: 'center', gap: 28, paddingVertical: 12 },
-  footText: { fontFamily: fonts.body400, fontSize: 14, color: colors.muted },
+  btn: { height: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  btnText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: 10, paddingTop: 8 },
+  footBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.sand },
+  footText: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted2 },
 });

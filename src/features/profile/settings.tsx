@@ -13,6 +13,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 're
 import { deleteAccount, signOut as authSignOut } from '../../auth/service';
 import { setMapTelemetry } from '../../map/telemetry';
 import { supabase } from '../../data/client';
+import { getProfileExtras, saveProfileExtras } from '../../live/profileExtras';
 import { getFriends, getProfile, getSettings, getVisibility, saveProfile, setSetting, setVisibility, type Visibility } from '../../live/api';
 import { myId, useAuth } from '../../live/auth';
 import { queryClient } from '../../live/query';
@@ -148,6 +149,7 @@ const HOURS = [1, 8, 24];
 function PrivacyPage() {
   const { v, set } = useVis();
   const friends = useQuery({ queryKey: ['friends'], queryFn: getFriends });
+  const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30e3); return () => clearInterval(t); }, []);
   const until = v?.invisible_until ? new Date(v.invisible_until).getTime() : 0;
@@ -189,6 +191,11 @@ function PrivacyPage() {
       <Group>
         <ToggleRow title="Только район" sub="вместо точки — «в Алмалы»" on={!!v?.district_only} onChange={(district_only) => set({ district_only })} />
         <ToggleRow title="Статусы" sub="«на работе», «в кофейне»" on={v?.statuses ?? true} onChange={(statuses) => set({ statuses })} last />
+      </Group>
+      <Cap>ВОСПОМИНАНИЯ</Cap>
+      <Group>
+        <ToggleRow title="Друзья видят мои воспоминания" sub="без этого альбомы видишь только ты" on={!!extras.data?.memoriesVisible}
+          onChange={(memoriesVisible) => { queryClient.setQueryData(['me', 'extras'], { ...extras.data, memoriesVisible }); void saveProfileExtras({ memoriesVisible }).finally(() => queryClient.invalidateQueries({ queryKey: ['me', 'extras'] })); }} last />
       </Group>
       <Note Icon={ShieldCheck}>Незнакомые люди никогда не видят тебя на карте.</Note>
     </SettingsPage>

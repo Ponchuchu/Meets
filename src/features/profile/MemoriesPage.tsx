@@ -1,18 +1,19 @@
 // «Воспоминания» (FIX3 Ф9): альбомы прошедших событий, где ты был, плюс свои альбомы. Как «сохранёнки» ВКонтакте,
-// только привязаны к событиям. Видишь только ты; друзьям — если включишь внизу (profiles.memories_visible).
+// только привязаны к событиям. Прошедшие события сами становятся альбомами — ничего включать не нужно.
+// Видишь только ты; друзьям — если разрешишь в «Приватности» (profiles.memories_visible).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { ImagePlus, Plus, Trash2, X } from 'lucide-react-native';
+import { Camera, ImagePlus, Sparkles, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Image, Modal, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import type { Category } from '../../data/types';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
-import { addMemoryPhoto, createMemory, deleteMemory, getMemories, getPastEvents, getProfileExtras, removeMemoryPhoto, saveMemoryNote, saveProfileExtras, type Memory } from '../../live/profileExtras';
+import { addMemoryPhoto, createMemory, deleteMemory, getMemories, getPastEvents, removeMemoryPhoto, saveMemoryNote, type Memory } from '../../live/profileExtras';
 import { colors, fonts, radii } from '../../theme';
 import { Ic } from '../../ui/Ic';
 import { plate } from '../../ui/glass';
-import { Group, Note, SettingsPage, ToggleRow } from '../../ui/v6/Settings';
+import { Note, SettingsPage } from '../../ui/v6/Settings';
 
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const dateRu = (iso: string) => { const d = new Date(new Date(iso).getTime() + 5 * 3600e3); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`; };
@@ -29,7 +30,6 @@ export default function MemoriesPage() {
   const { width } = useWindowDimensions();
   const memories = useQuery({ queryKey: ['me', 'memories'], queryFn: () => getMemories() });
   const past = useQuery({ queryKey: ['me', 'past-events'], queryFn: getPastEvents });
-  const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const [naming, setNaming] = useState(false);
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState('');
@@ -50,54 +50,63 @@ export default function MemoriesPage() {
     finally { setBusy(''); }
   };
 
+  // Свои альбомы (без события) — сверху и отдельно; альбомы событий и ещё не открытые прошедшие события — одной сеткой.
+  const own = albums.filter(a => !a.event_id);
+  const tiles = [
+    ...albums.filter(a => a.event_id).map(a => ({ key: a.id, title: a.title, at: a.happened_at, cover: a.cover, count: a.photos.length, category: past.data?.find(p => p.event_id === a.event_id)?.category, open: () => router.push({ pathname: '/profile/[page]', params: { page: `memory-${a.id}` } }) })),
+    ...fresh.map(p => ({ key: `past-${p.event_id}`, title: p.title, at: p.starts_at, cover: p.cover_url, count: 0, category: p.category, open: () => void make({ event_id: p.event_id, title: p.title, happened_at: p.starts_at }) })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
   return (
     <SettingsPage title="Воспоминания" sub="Фото с событий, где ты был. Пусть останутся.">
-      {albums.length > 0 && (
+      <View style={styles.moments}>
+        <View style={styles.momentsGlow} />
+        <View style={styles.momentsHead}>
+          <View style={styles.momentsIcon}><Sparkles size={20} color="#FFFFFF" strokeWidth={2} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.momentsTitle}>Свои моменты</Text>
+            <Text style={styles.momentsSub}>{own.length ? `${own.length} ${own.length === 1 ? 'альбом' : own.length < 5 ? 'альбома' : 'альбомов'} без события` : 'Поездки, лето, просто хороший день'}</Text>
+          </View>
+        </View>
+        {own.length > 0 && (
+          <View style={styles.momentsRow}>
+            {own.slice(0, 3).map(m => (
+              <Pressable key={m.id} onPress={() => router.push({ pathname: '/profile/[page]', params: { page: `memory-${m.id}` } })} style={styles.momentTile} accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}`}>
+                <Cover uri={m.cover} size={22} />
+                <View style={styles.shade} />
+                <Text style={styles.momentTileText} numberOfLines={2}>{m.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+        <Pressable onPress={() => setNaming(true)} style={styles.momentsBtn} accessibilityRole="button" accessibilityLabel="Новый свой момент">
+          <Camera size={18} color={colors.accent} strokeWidth={2.2} />
+          <Text style={styles.momentsBtnText}>Новый момент</Text>
+        </Pressable>
+      </View>
+
+      {tiles.length > 0 && <Text style={styles.cap}>С СОБЫТИЙ</Text>}
+      {tiles.length > 0 && (
         <View style={styles.grid}>
-          {albums.map(m => (
-            <Pressable key={m.id} onPress={() => router.push({ pathname: '/profile/[page]', params: { page: `memory-${m.id}` } })} style={[styles.album, { width: tileW, height: tileW * 1.2 }]} accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}, ${m.photos.length} фото`}>
-              <Cover uri={m.cover} category={past.data?.find(p => p.event_id === m.event_id)?.category} size={44} />
+          {tiles.map(t => (
+            <Pressable key={t.key} disabled={!!busy} onPress={t.open} style={[styles.album, { width: tileW, height: tileW * 1.2 }]} accessibilityRole="button" accessibilityLabel={`Альбом ${t.title}, ${t.count} фото`}>
+              <Cover uri={t.cover} category={t.category} size={44} />
               <View style={styles.shade} />
-              <Text style={styles.albumTitle} numberOfLines={2}>{m.title}</Text>
-              <Text style={styles.albumMeta}>{dateRu(m.happened_at).toUpperCase()} · {m.photos.length} ФОТО</Text>
+              <Text style={styles.albumTitle} numberOfLines={2}>{t.title}</Text>
+              <Text style={styles.albumMeta}>{dateRu(t.at).toUpperCase()}{t.count ? ` · ${t.count} ФОТО` : ' · ДОБАВЬ ФОТО'}</Text>
             </Pressable>
           ))}
         </View>
       )}
-      {!albums.length && !memories.isPending && (
+      {!tiles.length && !memories.isPending && !past.isPending && (
         <View style={styles.empty}>
           <ImagePlus size={34} color={colors.muted2} strokeWidth={1.6} />
           <Text style={styles.emptyTitle}>Здесь будут твои вечера</Text>
-          <Text style={styles.emptySub}>Сходи на событие — оно появится ниже. Добавь фото, и альбом останется навсегда.</Text>
+          <Text style={styles.emptySub}>Сходи на событие — альбом появится сам. Добавь фото, и он останется навсегда.</Text>
         </View>
       )}
-
-      {fresh.length > 0 && (
-        <View style={{ gap: 8 }}>
-          <Text style={styles.cap}>ГДЕ ТЫ БЫЛ — СДЕЛАЙ АЛЬБОМ</Text>
-          {fresh.slice(0, 12).map(p => (
-            <Pressable key={p.event_id} disabled={!!busy} onPress={() => void make({ event_id: p.event_id, title: p.title, happened_at: p.starts_at })} style={styles.pastRow} accessibilityRole="button" accessibilityLabel={`Сделать альбом: ${p.title}`}>
-              <View style={styles.pastCover}><Cover uri={p.cover_url} category={p.category} size={20} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.pastTitle} numberOfLines={1}>{p.title}</Text>
-                <Text style={styles.pastSub} numberOfLines={1}>{dateRu(p.starts_at)}{p.venue_name ? ` · ${p.venue_name}` : ''}{p.arrived ? ' · был на месте' : ''}</Text>
-              </View>
-              <View style={styles.addBtn}><Plus size={18} color={colors.paper} strokeWidth={2.4} /></View>
-            </Pressable>
-          ))}
-        </View>
-      )}
-
-      <Pressable onPress={() => setNaming(true)} style={styles.own} accessibilityRole="button">
-        <Plus size={18} color={colors.ink} strokeWidth={2.2} />
-        <Text style={styles.ownText}>Свой альбом — без события</Text>
-      </Pressable>
       {!!error && <Text style={{ color: colors.accentText }}>{error}</Text>}
-
-      <Group>
-        <ToggleRow title="Друзья видят мои воспоминания" sub="Без этого альбомы видишь только ты" on={!!extras.data?.memoriesVisible}
-          onChange={v => { void saveProfileExtras({ memoriesVisible: v }).then(() => qc.invalidateQueries({ queryKey: ['me', 'extras'] })).catch(() => setError('Не получилось сохранить. Проверь связь')); }} last />
-      </Group>
+      <Note>Кто видит альбомы, меняется в «Настройки → Кто видит, где я».</Note>
 
       <Modal visible={naming} transparent animationType="fade" onRequestClose={() => setNaming(false)}>
         <View style={styles.modalBack}>
@@ -196,8 +205,17 @@ const styles = StyleSheet.create({
   pastTitle: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   pastSub: { fontFamily: fonts.body400, fontSize: 12.5, color: colors.muted },
   addBtn: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  own: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 52, borderRadius: 17, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2 },
-  ownText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  moments: { borderRadius: 26, padding: 16, gap: 14, backgroundColor: colors.ink, overflow: 'hidden' },
+  momentsGlow: { position: 'absolute', width: 220, height: 220, borderRadius: 110, right: -70, top: -110, backgroundColor: colors.accent, opacity: 0.35 },
+  momentsHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  momentsIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  momentsTitle: { fontFamily: fonts.display700, fontSize: 20, color: '#FFFFFF' },
+  momentsSub: { fontFamily: fonts.body400, fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  momentsRow: { flexDirection: 'row', gap: 8 },
+  momentTile: { flex: 1, height: 92, borderRadius: 16, overflow: 'hidden', justifyContent: 'flex-end', padding: 8 },
+  momentTileText: { fontFamily: fonts.body700, fontSize: 12.5, lineHeight: 15, color: '#FFFFFF' },
+  momentsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, borderRadius: 16, backgroundColor: '#FFFFFF' },
+  momentsBtnText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   modalBack: { flex: 1, backgroundColor: 'rgba(23,22,26,0.45)', justifyContent: 'center', padding: 24 },
   modal: { borderRadius: 26, backgroundColor: colors.paper, padding: 20, gap: 14 },
   modalTitle: { fontFamily: fonts.display700, fontSize: 21, color: colors.ink },
