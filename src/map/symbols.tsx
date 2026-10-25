@@ -34,9 +34,13 @@ const RATIO = 140 / 120;
 
 /** Событие в известном месте получает значок места: каток Медеу — конёк, Шымбулак — лыжи. */
 const PLACE_ICON: [RegExp, SpriteName][] = [
-  [/медеу|medeu|каток|ледов|ice ?arena/i, 'pl-skate'], [/шымбулак|shymbulak|горнолыж|лыж/i, 'pl-ski'],
-  [/кок-?тобе|kok-?tobe|канатн/i, 'pl-cable'], [/боулинг|bowling/i, 'pl-bowling'], [/батут/i, 'pl-trampoline'],
-  [/скалодром/i, 'pl-climb'], [/квест/i, 'pl-quest'], [/зоопарк/i, 'pl-zoo'], [/музей/i, 'pl-museum'],
+  [/медеу|medeu|каток|ледов|ice ?arena/i, 'pl-skate'], [/сноуборд|snowboard/i, 'ev-snowboard'], [/шымбулак|shymbulak|горнолыж|лыж/i, 'pl-ski'],
+  [/кок-?тобе|kok-?tobe/i, 'pl-koktobe'], [/канатн/i, 'pl-cable'], [/чарын|charyn|каньон/i, 'pl-charyn'], [/кемпинг|палатк|camping|с ночёвкой|с ночевкой/i, 'ev-camping'],
+  [/боулинг|bowling/i, 'pl-bowling'], [/батут/i, 'pl-trampoline'], [/скалодром/i, 'pl-climb'], [/квест|escape/i, 'pl-quest'], [/зоопарк/i, 'pl-zoo'], [/музей/i, 'pl-museum'],
+  [/джаз|jazz|саксофон|блюз|blues/i, 'ev-jazz'], [/баскетбол|basketball|стритбол/i, 'ev-basket'], [/теннис|tennis|падел|padel/i, 'ev-tennis'],
+  [/хакатон|hackathon|\bit\b|айти|tech|стартап|startup|программир|ai-|нейросет/i, 'ev-tech'], [/волонт|субботник|благотвор|volunteer|приют/i, 'ev-volunteer'],
+  [/косплей|cosplay|аниме|anime|комик-?кон|comic/i, 'ev-cosplay'], [/выпечк|пекар|круассан|бейкер|bakery|бранч|завтрак/i, 'ev-bakery'], [/мороженое|десерт|ice ?cream/i, 'ev-icecream'],
+  [/маркет|market|ярмарк|барахолк|бутик|pop-?up/i, 'pl-boutique'],
 ];
 
 export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName'>): SpriteName {
@@ -45,6 +49,13 @@ export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName
 }
 
 export const placeSprite = (kind: AttractionKind): SpriteName => `pl-${kind}` as SpriteName;
+
+/** Значок постоянного места: известные места — свой рисунок (Кок-Тобе — телебашня, Шымбулак — гора, Чарын — каньон). */
+export function spotSprite(a: { kind: AttractionKind; name: string }): SpriteName {
+  if (/кок-?тобе/i.test(a.name)) return 'pl-koktobe';
+  if (/чарын/i.test(a.name)) return 'pl-charyn';
+  return placeSprite(a.kind);
+}
 
 const MALL_ICON: [RegExp, SpriteName][] = [
   [/dostyk|достык/i, 'mall-dostyk'], [/esentai|есентай/i, 'mall-esentai'], [/mega park|мега парк/i, 'mall-megapark'],

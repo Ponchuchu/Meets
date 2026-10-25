@@ -42,5 +42,18 @@ export const SPRITES = {
   'mall-aport': require('../../assets/map/sprites/mall-aport.png'),
   'mall-forum': require('../../assets/map/sprites/mall-forum.png'),
   'mall-mall': require('../../assets/map/sprites/mall-mall.png'),
+  'ev-bakery': require('../../assets/map/sprites/ev-bakery.png'),
+  'ev-basket': require('../../assets/map/sprites/ev-basket.png'),
+  'ev-camping': require('../../assets/map/sprites/ev-camping.png'),
+  'ev-cosplay': require('../../assets/map/sprites/ev-cosplay.png'),
+  'ev-icecream': require('../../assets/map/sprites/ev-icecream.png'),
+  'ev-jazz': require('../../assets/map/sprites/ev-jazz.png'),
+  'ev-snowboard': require('../../assets/map/sprites/ev-snowboard.png'),
+  'ev-tech': require('../../assets/map/sprites/ev-tech.png'),
+  'ev-tennis': require('../../assets/map/sprites/ev-tennis.png'),
+  'ev-volunteer': require('../../assets/map/sprites/ev-volunteer.png'),
+  'pl-boutique': require('../../assets/map/sprites/pl-boutique.png'),
+  'pl-charyn': require('../../assets/map/sprites/pl-charyn.png'),
+  'pl-koktobe': require('../../assets/map/sprites/pl-koktobe.png'),
 } as const;
 export type SpriteName = keyof typeof SPRITES;

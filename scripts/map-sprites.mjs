@@ -2,7 +2,7 @@
 // который парит над точкой с мягкой тенью на земле. Рисуется векторно (градиенты, блики, тёмный контур, как в мобильных играх)
 // и переводится в PNG ×3 через Chromium. Картинки кладутся в assets/map/sprites/, список — в src/map/sprites.ts.
 // Запуск: node scripts/map-sprites.mjs
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 import { H, O, W, lg, rg, shine, sprite, stroke } from './map-sprites-kit.mjs';
@@ -145,6 +145,17 @@ if (process.argv.includes('--html')) {
   for (const [name, svg] of Object.entries(all)) {
     await page.setContent(`<html><body style="margin:0;background:transparent">${svg}</body></html>`);
     await page.locator('svg').screenshot({ path: `assets/map/sprites/${name}.png`, omitBackground: true });
+  }
+  // Значки владельца (assets/map/icons-v2, 64×70 pt в @3x, 26 октября) важнее нарисованных здесь: тем же холстом 120×140,
+  // тень — на месте нашей (якорь «низ» + сдвиг 15 px в MapCanvas), поэтому точка на карте — центр тени.
+  const RENAME = { 'ev-burger': 'ev-food', 'ev-club': 'ev-party', 'pl-shymbulak': 'pl-ski', 'mall-columns': 'mall-forum', 'pl-shopping': 'mall-mall' };
+  for (const file of readdirSync('assets/map/icons-v2').filter((f) => f.endsWith('.png')).sort()) {
+    const src = file.replace(/\.png$/, '');
+    const name = RENAME[src] ?? src;
+    const data = readFileSync(`assets/map/icons-v2/${file}`).toString('base64');
+    await page.setContent(`<html><body style="margin:0;background:transparent"><div id="c" style="width:${W}px;height:${H}px;position:relative"><img src="data:image/png;base64,${data}" style="position:absolute;left:0;top:${H - 131}px;width:${W}px;height:131px"></div></body></html>`);
+    await page.locator('#c').screenshot({ path: `assets/map/sprites/${name}.png`, omitBackground: true });
+    all[name] = 'v2';
   }
   await browser.close();
   const lines = Object.keys(all).map((k) => `  '${k}': require('../../assets/map/sprites/${k}.png'),`);

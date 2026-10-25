@@ -27,7 +27,7 @@ import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard
 import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pinTime, placeLabels, pxToLat, showPinLabel } from '../../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
 import { whenTitle } from '../../event/text';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
@@ -55,7 +55,7 @@ import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
 import { insideMall, mallLook, PlaceCard } from '../../map/ui/VenueSheet';
-import { eventSprite, mallSprite, placeSprite, timeColor, type MapSymbol } from '../../map/symbols';
+import { eventSprite, mallSprite, spotSprite, type MapSymbol } from '../../map/symbols';
 import { CAT_COLOR } from '../../map/icons';
 import { PlacePin } from '../../map/ui/PlacePin';
 import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
@@ -92,14 +92,6 @@ function pinKind(e: EventItem, today: number, going: boolean): PinKind {
   if (e.goingCount >= 1000 && !e.isLong) return 'popular';
   if ((e.friendsGoing.length || mine) && !e.isLong) return 'labeled';
   return 'plain';
-}
-
-/** Подпись только у выбранной точки: короткое название, без даты — дата есть в карточке. */
-/** Короткое имя события для подписи на карте вблизи. */
-function shortName(e: EventItem): string {
-  // Короткое имя из базы бывает ЗАГЛАВНЫМИ («ДЖАЗ ВО ДВОРЕ») — на карте пишем обычными буквами.
-  const t = (e.short && e.short !== e.short.toUpperCase() ? e.short : e.title.split(/[:(]/)[0]).trim();
-  return t.length > 34 ? `${t.slice(0, 32)}…` : t;
 }
 
 
@@ -360,23 +352,6 @@ export default function MapScreen() {
 
   const { markers, symbols, taps } = useMemo(() => {
     const groups = groupByPoint(visible);
-    // Подписи событий — только там, где им хватает места (не налезают на друзей, места и друг на друга).
-    const rank = { hot: 0, popular: 1, labeled: 2, plain: 3 } as const;
-    const mains = groups.map((g) => g.find((x) => pinKind(x, today, going.has(x.id)) === 'hot') ?? g[0]);
-    const named = detail === 'far' ? new Set<string>() : placeLabels(
-      mains.filter((e) => !e.meetup && showPinLabel(detail, pinKind(e, today, going.has(e.id)) !== 'plain'))
-        .sort((a, b) => rank[pinKind(a, today, going.has(a.id))] - rank[pinKind(b, today, going.has(b.id))])
-        .map((e) => ({ id: e.id, lat: e.lat, lon: e.lon, w: Math.min(118, shortName(e).length * 6.4) })),
-      [
-        ...mains.map((e) => ({ lat: e.lat, lon: e.lon, r: 26 })),
-        // Лицо друга стоит над точкой на хвостике — препятствие и в точке, и выше неё.
-        ...(filters.friends ? spots.flatMap((x) => [{ lat: x.lat, lon: x.lon, r: 22 }, { lat: x.lat + pxToLat(45, zoom, x.lat), lon: x.lon, r: 40 }]) : []),
-        ...topSpots(places).map((a) => ({ lat: a.lat, lon: a.lon, r: 18 })),
-        ...malls.map((m) => ({ lat: m.lat, lon: m.lon, r: 26 })),
-        ...myPlaces.map((x) => ({ lat: x.lat, lon: x.lon, r: 22 })),
-      ],
-      zoom,
-    );
     const list: MapMarker[] = [];
     // Объёмные значки (FIX5) — слой самой карты; маркером остаётся только выбранное событие и встречи.
     const syms: (MapSymbol & { z: number })[] = [];
@@ -405,10 +380,7 @@ export default function MapScreen() {
         continue;
       }
       const compact = (kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot');
-      const time = detail === 'far' ? null : pinTime(e, clock);
-      const friend = people.find((x) => x.isFriend && e.friendsGoing.includes(x.id));
-      const name = named.has(e.id) ? shortName(e) : undefined;
-      const bits = [friend ? friend.name.split(' ')[0] : null, time?.text, group.length > 1 ? `+${group.length - 1}` : null].filter(Boolean).join(' · ');
+      // Только значок (26 октября, решение владельца): без времени, даты и цифр — всё видно по нажатию.
       const id = `e-${e.id}`;
       // eslint-disable-next-line react-hooks/refs -- вызывается только по тапу, не при отрисовке
       taps.set(id, () => openPin(e, group));
@@ -416,8 +388,6 @@ export default function MapScreen() {
         id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId,
         size: Math.round((kind === 'hot' ? 54 : kind === 'popular' ? 50 : kind === 'labeled' ? 46 : 42) * scale),
         dot: compact ? CAT_COLOR[e.category] : undefined,
-        text: [name, bits].filter(Boolean).join('\n') || undefined,
-        textColor: time?.live ? colors.accentText : timeColor(e.category, dark), halo: dark ? '#1C1D21' : '#FCFBF8',
       });
     }
     // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
@@ -443,15 +413,13 @@ export default function MapScreen() {
       if (detail === 'near' && eco && !mid) continue;
       const id = `a-${a.id}`;
       taps.set(id, () => { setSpotPlace(a); setSheet('spot'); });
-      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: placeSprite(a.kind), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId,
-        text: detail === 'near' ? a.name : undefined, textColor: dark ? '#CFC9BD' : '#5A564E', halo: dark ? '#1C1D21' : '#FCFBF8' });
+      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId });
     }
     if (detail !== 'far') for (const m of malls) {
       const id = `v-${m.id}`;
-      const n = insideMall(m, upcoming).length;
       taps.set(id, () => { setMall(m); setSheet('venue'); });
       syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId,
-        text: detail === 'near' ? `${mallLook(m.name).short}${n ? ` · ${n}` : ''}` : undefined, textColor: dark ? '#CFC9BD' : '#5A564E', halo: dark ? '#1C1D21' : '#FCFBF8' });
+        text: detail === 'near' ? mallLook(m.name).short : undefined, textColor: dark ? '#CFC9BD' : '#5A564E', halo: dark ? '#1C1D21' : '#FCFBF8' });
     }
     if (filters.friends) {
       const grouped = new Set<string>();

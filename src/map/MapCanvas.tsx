@@ -224,8 +224,9 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: 5, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: 2, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'map' }} />
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
             iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom', iconOffset: [0, 15],
-            iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport', iconAllowOverlap: true, iconIgnorePlacement: true,
-            iconOpacity: ['get', 'op'] as never, symbolSortKey: ['get', 'sort'] as never,
+            iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',
+            // Налезают — карта оставляет важный (меньший ключ ставится первым), остальные появляются при приближении.
+            iconAllowOverlap: false, iconPadding: 1, iconOpacity: ['get', 'op'] as never, symbolSortKey: ['-', 0, ['get', 'sort']] as never,
             // Подпись маленькая и тихая; не помещается — прячется, значок остаётся.
             textField: ['get', 'text'] as never, textSize: 10, textColor: ['get', 'tc'] as never, textHaloColor: ['get', 'th'] as never, textHaloWidth: 1.4,
             textAnchor: 'top', textOffset: [0, 0.25], textOptional: true, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,

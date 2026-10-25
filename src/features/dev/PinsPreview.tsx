@@ -8,7 +8,7 @@ import { demoEvents, FRIEND_SPOTS, PEOPLE } from '../../data/demo';
 import { EventPin, FocusPin, FriendPin, TogetherPin } from '../../map/pins';
 import { PlacePin } from '../../map/ui/PlacePin';
 import { SPRITES, type SpriteName } from '../../map/sprites';
-import { eventSprite, SymbolPin, timeColor, type MapSymbol } from '../../map/symbols';
+import { eventSprite, SymbolPin, type MapSymbol } from '../../map/symbols';
 import { CAT_COLOR } from '../../map/icons';
 import { colors, fonts } from '../../theme';
 
@@ -39,20 +39,12 @@ function Ground({ h }: { h: number }) {
 }
 
 /** Точки сцены: доля ширины/высоты, событие или готовый значок, подпись. */
-const SPOTS: { x: number; y: number; id?: string; icon?: SpriteName; text?: string; live?: boolean; size?: number }[] = [
-  { x: 0.16, y: 0.14, id: 'concert', text: 'идёт', live: true, size: 50 },
-  { x: 0.42, y: 0.12, id: 'games', text: '20:00' },
-  { x: 0.72, y: 0.18, id: 'food', text: '12:00' },
-  { x: 0.9, y: 0.34, id: 'standup', text: '21:00' },
-  { x: 0.3, y: 0.33, id: 'jazz', text: 'Джаз во дворе\nИгорь · 19:30', size: 54 },
-  { x: 0.12, y: 0.47, id: 'bike', text: '26.10' },
-  { x: 0.45, y: 0.58, id: 'hike', text: 'Поход на Кок-Жайляу\n26.10' },
-  { x: 0.84, y: 0.62, icon: 'mall-dostyk', text: 'Dostyk Plaza · 5', size: 58 },
-  { x: 0.24, y: 0.75, icon: 'pl-skate', text: 'Медеу', size: 50 },
-  { x: 0.6, y: 0.8, id: 'food', text: 'Антон · 19:00' },
-  { x: 0.9, y: 0.9, icon: 'mall-mega', size: 58 },
-  { x: 0.1, y: 0.93, id: 'standup', text: '21:30' },
-  { x: 0.42, y: 0.95, icon: 'pl-cable', size: 48 },
+const SPOTS: { x: number; y: number; id?: string; icon?: SpriteName; text?: string; size?: number }[] = [
+  { x: 0.16, y: 0.14, icon: 'ev-jazz', size: 50 }, { x: 0.42, y: 0.12, id: 'games' }, { x: 0.72, y: 0.18, icon: 'ev-food' },
+  { x: 0.9, y: 0.34, id: 'standup' }, { x: 0.3, y: 0.33, icon: 'ev-party', size: 54 }, { x: 0.12, y: 0.47, icon: 'ev-basket' },
+  { x: 0.45, y: 0.58, icon: 'pl-charyn' }, { x: 0.84, y: 0.62, icon: 'mall-dostyk', text: 'Dostyk Plaza', size: 58 },
+  { x: 0.24, y: 0.75, icon: 'pl-skate', size: 50 }, { x: 0.6, y: 0.8, icon: 'ev-movie' }, { x: 0.9, y: 0.9, icon: 'mall-mega', text: 'MEGA', size: 58 },
+  { x: 0.1, y: 0.93, icon: 'ev-tech' }, { x: 0.42, y: 0.95, icon: 'pl-koktobe', size: 48 }, { x: 0.62, y: 0.12, icon: 'ev-icecream' },
 ];
 
 function Scene({ far, ev, person, spot }: { far?: boolean; ev: (id: string) => EventItem; person: (id: string) => Person; spot: (id: string) => FriendSpot }) {
@@ -63,7 +55,7 @@ function Scene({ far, ev, person, spot }: { far?: boolean; ev: (id: string) => E
       {SPOTS.map((p, i) => {
         const e = p.id ? ev(p.id) : null;
         const s: MapSymbol = { id: String(i), lat: 0, lon: 0, sort: 0, icon: p.icon ?? eventSprite(e!), size: p.size ?? 44, text: p.text,
-          textColor: p.live ? colors.accentText : e ? timeColor(e.category, false) : '#5A564E', dot: far && e ? CAT_COLOR[e.category] : undefined };
+          textColor: '#5A564E', dot: far && e ? CAT_COLOR[e.category] : undefined };
         return <View key={i} style={[styles.at, { left: `${p.x * 100}%`, top: p.y * h }]}><SymbolPin s={far ? { ...s, text: undefined, size: s.size * 0.8 } : s} onPress={noop} /></View>;
       })}
       {!far && <>
