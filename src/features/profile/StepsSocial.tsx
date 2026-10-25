@@ -7,7 +7,6 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { ART, MEDALS } from '../../ui/art';
 import { data } from '../../data';
 import { answerChallenge, createChallenge, getChallenges, getFriendsStepsDays, type Challenge } from '../../live/profileExtras';
-import { AvatarFrame } from '../../profile/frames';
 import { challengeState, rankFor, weekDays } from '../../profile/stepsSocial';
 import { colors, fonts, radii } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
@@ -83,7 +82,7 @@ export function StepsLeaderboard() {
         return (
           <View key={r.user_id} style={[styles.rank, r.me && styles.rankMe]}>
             <View style={styles.place}><Text style={styles.placeText}>{i + 1}</Text></View>
-            <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={40} animate={false} />
+            <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={40} />
             <View style={{ flex: 1, gap: 5 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
                 <Text style={styles.name} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
@@ -111,7 +110,7 @@ function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: st
           <View key={r.user_id} style={styles.podCol}>
             {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -2 }} />}
             <View style={[styles.podFace, { borderColor: tone[i] }]}>
-              <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={i === 0 ? 62 : 50} animate={false} />
+              <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={i === 0 ? 62 : 50} />
             </View>
             <Text style={styles.podName} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
             <Text style={styles.podSteps}>{fmt(r.total)}</Text>

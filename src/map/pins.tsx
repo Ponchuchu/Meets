@@ -5,7 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
 import { friendMark, type FriendMark } from './social';
-import { BatteryLow, Bike, Car, Clock3, Footprints, Zap } from 'lucide-react-native';
+import { BatteryLow, Clock3, Zap } from 'lucide-react-native';
 import { Avatar } from '../ui/Avatar';
 import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
@@ -206,18 +206,14 @@ export function FriendBubble({ person, size = 46, ring, faded, badge }: { person
   );
 }
 
-/** Чем едет друг — по скорости: до 7 км/ч пешком, до 25 — велосипед или самокат, быстрее — машина. */
-export const vehicleOf = (kmh: number): 'walk' | 'bike' | 'car' => (kmh < 7 ? 'walk' : kmh < 25 ? 'bike' : 'car');
-const VEHICLE_ICON = { walk: Footprints, bike: Bike, car: Car };
-
-/** Плашка на кольце аватарки: в пути — транспорт и скорость; мало заряда — красная батарейка; заряжается — молния; давно — часы. */
+/** Плашка на кольце аватарки: в пути — скорость; мало заряда — красная батарейка; заряжается — молния; давно — часы. */
 export function StatusChip({ mark, big }: { mark: NonNullable<FriendMark>; big?: boolean }) {
-  const kmh = parseInt(mark.text, 10) || 0;
-  const Icon = mark.kind === 'speed' ? VEHICLE_ICON[vehicleOf(kmh)] : mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : Clock3;
+  // В пути — только скорость, без значка транспорта (26 окт.: «лишняя информация»).
+  const Icon = mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : mark.kind === 'ago' ? Clock3 : null;
   const fg = mark.kind === 'ago' ? colors.muted2 : '#FFFFFF';
   return (
     <View style={[styles.chip, MARK_BG[mark.kind], big && styles.chipBig]}>
-      <Icon size={big ? 12 : 10.5} color={fg} strokeWidth={2.6} />
+      {Icon && <Icon size={big ? 12 : 10.5} color={fg} strokeWidth={2.6} />}
       <Text style={[styles.chipText, big && { fontSize: 11 }, { color: fg }]}>{mark.text}</Text>
     </View>
   );

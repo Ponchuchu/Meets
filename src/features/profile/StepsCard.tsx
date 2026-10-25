@@ -27,8 +27,8 @@ const AWARD_ART: Record<string, number> = { 'steps-first': ART.sneaker, 'steps-s
 function Walker({ done }: { done: boolean }) {
   const t = useSharedValue(0);
   useEffect(() => { t.set(withRepeat(withSequence(withTiming(1, { duration: 360, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 360, easing: Easing.in(Easing.quad) })), -1, false)); }, [t]);
-  const st = useAnimatedStyle(() => ({ transform: [{ translateY: -t.get() * 8 }, { rotate: `${-8 + t.get() * 12}deg` }] }));
-  return <Animated.View style={[{ alignSelf: 'center' }, st]}><Image source={done ? ART.trophy : ART.sneaker} style={{ width: 96, height: 96 }} accessibilityIgnoresInvertColors /></Animated.View>;
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: -t.get() * 6 }, { rotate: `${-6 + t.get() * 10}deg` }] }));
+  return <View style={{ height: 84, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' }}><Animated.View style={st}><Image source={done ? ART.trophy : ART.sneaker} style={{ width: 76, height: 76 }} accessibilityIgnoresInvertColors /></Animated.View></View>;
 }
 
 export function StepsCard() {
@@ -56,8 +56,7 @@ export function StepsCard() {
     <View style={{ gap: 12 }}>
       {/* Главное за сегодня (26 окт., картинки из Figma): зелёная карточка, кольцо до цели, шагающий кроссовок, километры и калории. */}
       <View style={styles.hero}>
-        <View style={styles.heroGlow} />
-        <View style={{ width: 150, height: 150, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 150, height: 150, flexShrink: 0, alignItems: 'center', justifyContent: 'center' }}>
           <Svg width={150} height={150} style={StyleSheet.absoluteFill}>
             <Circle cx={75} cy={75} r={r} stroke="rgba(255,255,255,0.18)" strokeWidth={12} fill="none" />
             <Circle cx={75} cy={75} r={r} stroke="#C8F56A" strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${Math.max(1, len * Math.min(1, steps / STEP_GOAL))} ${len}`} transform="rotate(-90 75 75)" />
@@ -146,7 +145,6 @@ export function StepsCard() {
 const styles = StyleSheet.create({
   card: { borderRadius: radii.xl - 4, ...plate, padding: 16, gap: 12 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: radii.xl - 4, backgroundColor: '#1F6B45', overflow: 'hidden', boxShadow: '0 14px 24px -14px rgba(31,107,69,0.7)' },
-  heroGlow: { position: 'absolute', right: -60, top: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(200,245,106,0.1)' },
   big: { fontFamily: fonts.display800, fontSize: 32, letterSpacing: -1, color: '#FFFFFF' },
   of: { fontFamily: fonts.body500, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
   stats: { flexDirection: 'row', justifyContent: 'space-around' },

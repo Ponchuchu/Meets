@@ -35,10 +35,10 @@ import { Toast, type ToastData } from '../../ui/Toast';
 
 type Sheet = null | 'add' | 'bump' | { rename: Person };
 
-/** Где друг сейчас — одной строкой: «едет · 14 км/ч», «Бостандыкский · сейчас», «был 2 ч назад», «не делится местом». */
+/** Где друг сейчас — одной строкой: «в пути · 14 км/ч», «Бостандыкский · сейчас», «был 2 ч назад», «не делится местом». */
 function whereText(sp?: FriendSpot): string {
   if (!sp) return 'не делится местом';
-  if (sp.state === 'moving') return `в пути${sp.speedKmh ? ` · ${sp.speedKmh} км/ч` : ''}${sp.doing ? ` · ${sp.doing}` : ''}`;
+  if (sp.state === 'moving') return `в пути${sp.speedKmh ? ` · ${sp.speedKmh} км/ч` : ''}`;
   const ago = sp.minutesAgo ?? 0;
   if (ago >= 10) return `был ${agoShort(ago)} назад · ${sp.place}`;
   return sp.doing ? `${sp.place} · ${sp.doing}` : `${sp.place} · сейчас`;
