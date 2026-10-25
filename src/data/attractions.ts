@@ -5,6 +5,7 @@
 // (разметка schema.org и текст страниц). Что известно наверняка (Терренкур, парки — всегда открыты), записано здесь.
 // Фото — с Викисклада (свободная лицензия), грузятся по ссылке и кэшируются; не загрузилось — шапка цвета места.
 // Точки — из справочника Overture, проверены вручную (там много дублей и ошибок).
+import { COMMONS_HASH } from './commonsHash';
 
 export type AttractionKind = 'ski' | 'skate' | 'cable' | 'wheel' | 'bowling' | 'trampoline' | 'climb' | 'quest' | 'vr' | 'golf' | 'paintball' | 'aqua' | 'photo' | 'zipline'
   | 'park' | 'museum' | 'zoo' | 'garden' | 'view';
@@ -49,7 +50,12 @@ export interface Attraction {
 /** Открыто всегда (парки, тропы). */
 export const ALWAYS: Hours = { 1: [['00:00', '24:00']], 2: [['00:00', '24:00']], 3: [['00:00', '24:00']], 4: [['00:00', '24:00']], 5: [['00:00', '24:00']], 6: [['00:00', '24:00']], 7: [['00:00', '24:00']] };
 /** Фото с Викисклада по имени файла: сервер сам отдаёт уменьшенную копию 1200 px. */
-export const commons = (file: string) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=1200`;
+/** Фото Викисклада: прямая ссылка на уменьшенную копию 960 px (без переадресации); неизвестный файл — через Special:FilePath. */
+export const commons = (file: string) => {
+  const name = encodeURIComponent(file.replace(/ /g, '_'));
+  const h = COMMONS_HASH[file];
+  return h ? `https://upload.wikimedia.org/wikipedia/commons/thumb/${h}/${name}/960px-${name}` : `https://commons.wikimedia.org/wiki/Special:FilePath/${name}?width=960`;
+};
 
 export const KIND_LABEL: Record<AttractionKind, string> = {
   ski: 'Горнолыжный курорт', skate: 'Каток', cable: 'Канатная дорога', wheel: 'Колесо обозрения', bowling: 'Боулинг',

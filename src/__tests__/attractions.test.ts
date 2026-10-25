@@ -24,7 +24,7 @@ it('у каждого места точка в Алматы и окрестно�
   }
 });
 it('фото с Викисклада и Терренкур — всегда открыт', () => {
-  expect(commons('Medeu- 4.jpg')).toBe('https://commons.wikimedia.org/wiki/Special:FilePath/Medeu-%204.jpg?width=1200');
+  expect(commons('Medeu- 4.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Medeu-_4.jpg/960px-Medeu-_4.jpg');
   for (const id of ['terrenkur', 'koktobe', 'medeu', 'shymbulak']) expect(get(id).photos?.length).toBeGreaterThan(0);
   const t = get('terrenkur');
   expect(openStatus(t.hours, new Date('2026-10-21T22:00:00Z')).text).toBe('Открыто круглосуточно');

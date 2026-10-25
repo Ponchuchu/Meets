@@ -114,3 +114,16 @@ describe('колода', () => {
     expect(pos(now2)).toBeLessThanOrEqual(pos(before));
   });
 });
+
+import { hintDue } from '../state/feed';
+describe('подсказка жестов (FIX5)', () => {
+  it('сразу, через 5 дней, через месяц и больше никогда', () => {
+    const d = 86400e3;
+    expect(hintDue([], 0)).toBe(true);
+    expect(hintDue([0], 4 * d)).toBe(false);
+    expect(hintDue([0], 5 * d)).toBe(true);
+    expect(hintDue([0, 5 * d], 20 * d)).toBe(false);
+    expect(hintDue([0, 5 * d], 35 * d)).toBe(true);
+    expect(hintDue([0, 5 * d, 35 * d], 400 * d)).toBe(false);
+  });
+});

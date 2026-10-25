@@ -2,7 +2,8 @@
 // как верх настоящей страницы), а саму тяжёлую страницу события монтируем, когда раскрытие почти закончено.
 // Раньше страница монтировалась в середине жеста, и анимация дёргалась.
 import { useState, type ComponentProps } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Extrapolation, interpolate, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -13,13 +14,14 @@ import { formatPrice } from '../lib/format';
 import { whenTitle } from './text';
 import { colors, fonts } from '../theme';
 import { plate } from '../ui/glass';
-import { EventCover } from '../ui/EventCover';
+import { EventCover, openCoverH } from '../ui/EventCover';
 import { EventPage } from './EventPage';
 
-const COVER_H = 470;
 
-/** Фото растёт из высоты фото карточки до 470, текст проявляется и поднимается — «шапка» как у настоящей страницы. */
+/** Фото растёт из высоты фото карточки до высоты на странице, текст проявляется и поднимается — «шапка» как у настоящей страницы. */
 function Hero({ e, now, progress, coverFrom }: { e: EventItem; now: Date; progress: SharedValue<number>; coverFrom: number }) {
+  const { width } = useWindowDimensions();
+  const COVER_H = openCoverH(width, useSafeAreaInsets().top);
   const cover = useAnimatedStyle(() => ({ height: interpolate(progress.get(), [0, 1], [coverFrom, COVER_H], Extrapolation.CLAMP) }));
   const text = useAnimatedStyle(() => ({
     opacity: interpolate(progress.get(), [0.3, 0.85], [0, 1], Extrapolation.CLAMP),
@@ -58,7 +60,7 @@ function Hero({ e, now, progress, coverFrom }: { e: EventItem; now: Date; progre
   );
 }
 
-export function LazyEventPage({ progress, coverFrom = COVER_H, ...props }: ComponentProps<typeof EventPage> & { progress: SharedValue<number>; coverFrom?: number }) {
+export function LazyEventPage({ progress, coverFrom, ...props }: ComponentProps<typeof EventPage> & { progress: SharedValue<number>; coverFrom?: number }) {
   const [ready, setReady] = useState(false);
   const shown = useSharedValue(false);
   // Раскрылась — настоящая страница; начала сворачиваться — снова лёгкая шапка, чтобы страница не сжималась кадр за кадром.
@@ -69,7 +71,7 @@ export function LazyEventPage({ progress, coverFrom = COVER_H, ...props }: Compo
       else if (shown.get() && prev != null && v < prev && v < 0.97) { shown.set(false); scheduleOnRN(setReady, false); }
     },
   );
-  return ready ? <EventPage {...props} /> : <Hero e={props.e} now={props.now} progress={progress} coverFrom={coverFrom} />;
+  return ready ? <EventPage {...props} /> : <Hero e={props.e} now={props.now} progress={progress} coverFrom={coverFrom ?? 300} />;
 }
 
 const styles = StyleSheet.create({

@@ -1,5 +1,6 @@
 // Карточка ленты (переделана 11 октября): светлая, сверху фото события (или яркий постер раздела), ниже — название и всегда
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
+import { remote } from '../data/photos';
 import { Clock, MapPin, Ticket } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
@@ -82,11 +83,11 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
   const a = e.spot ?? ATTRACTIONS.find((x) => x.id === e.spotId) ?? null;
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
-  const [broken, setBroken] = useState(false);
+  const [bad, setBad] = useState(0);
   if (!a) return <View style={[styles.card, { height }]} />;
   const color = KIND_COLOR[a.kind];
   const coverH = Math.round(height * 0.5);
-  const photo = !broken ? a.photos?.[0] : undefined;
+  const photo = a.photos?.[bad];
   const st = openStatus(a.hours, now);
   return (
     <View style={[styles.card, { height }]} accessibilityLabel={`${a.name}. ${KIND_LABEL[a.kind]}. Свайп вправо — запланировать`}>
@@ -97,7 +98,7 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
         </Svg>
         {photo ? (
           <>
-            <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBroken(true)} />
+            <Image source={remote(photo)} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBad((b) => b + 1)} />
             <View pointerEvents="none" style={styles.spotCorner}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
           </>
         ) : <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}

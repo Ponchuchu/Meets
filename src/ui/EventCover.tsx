@@ -18,6 +18,11 @@ export function shade(hex: string, amt: number): string {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => ch(v).toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** Высота фото на открытой странице события: пропорции фото карточки ленты (~3:2) плюс полоса под статус-бар. */
+export function openCoverH(width: number, top: number): number {
+  return Math.round(width * 0.66) + Math.round(top);
+}
+
 export function EventCover({ cover, category, color, style, iconSize = 150, children }: {
   cover?: string | null; category: Category; color?: string; style?: StyleProp<ViewStyle>; iconSize?: number; children?: ReactNode;
 }) {
