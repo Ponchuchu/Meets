@@ -11,11 +11,12 @@ import { EventIcon } from '../../ui/EventIcon';
 
 export interface PlanCardItem { key: string; title: string; when: string; today?: boolean; note?: string; e?: EventItem; eventId?: string }
 
-export function PlansStrip({ title, items, onAll }: { title: string; items: PlanCardItem[]; onAll?: () => void }) {
-  if (!items.length) return null;
+export function PlansStrip({ title, items, onAll, total, empty }: { title: string; items: PlanCardItem[]; onAll?: () => void; total?: number; empty?: ReactNode }) {
+  if (!items.length) return empty ? <View style={{ gap: 10 }}><SectionHead title={title} />{empty}</View> : null;
+  const n = total ?? items.length;
   return (
     <View style={{ gap: 10 }}>
-      <SectionHead title={title} n={items.length} onPress={onAll} />
+      <SectionHead title={title} n={n} onPress={onAll} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
         {items.map((it) => (
           <Pressable key={it.key} onPress={() => it.eventId && router.push({ pathname: '/event/[id]', params: { id: it.eventId } })} disabled={!it.eventId}
@@ -28,7 +29,24 @@ export function PlansStrip({ title, items, onAll }: { title: string; items: Plan
             {!!it.note && <Text style={styles.note} numberOfLines={1}>{it.note}</Text>}
           </Pressable>
         ))}
+        {onAll && n > 3 && (
+          <Pressable onPress={onAll} style={({ pressed }) => [styles.card, styles.all, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button" accessibilityLabel="Все планы">
+            <View style={styles.allIcon}><ChevronRight size={22} color={colors.ink} strokeWidth={2} /></View>
+            <Text style={styles.title}>{n > items.length ? `Ещё ${n - items.length}` : 'Все планы'}</Text>
+          </Pressable>
+        )}
       </ScrollView>
+    </View>
+  );
+}
+
+/** Пустое место в профиле: картинка, пара слов и кнопка — вместо пустоты. */
+export function EmptyRow({ icon, text, action, onAction }: { icon: ReactNode; text: string; action?: string; onAction?: () => void }) {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIcon}>{icon}</View>
+      <Text style={styles.emptyText}>{text}</Text>
+      {action && <Pressable onPress={onAction} style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.7 }]} accessibilityRole="button"><Text style={styles.emptyBtnText}>{action}</Text></Pressable>}
     </View>
   );
 }
@@ -45,11 +63,12 @@ export function SectionHead({ title, n, onPress }: { title: string; n?: number; 
 }
 
 /** Друзья одной строкой: лица внахлёст, «6 друзей · 3 общих», шеврон. */
-export function FriendsPill({ faces, title, sub, onPress, extra }: { faces: Pick<Person, 'id' | 'photo' | 'initial' | 'tint'>[]; title: string; sub?: string; onPress: () => void; extra?: ReactNode }) {
+export function FriendsPill({ faces, title, sub, onPress, extra, total }: { faces: Pick<Person, 'id' | 'photo' | 'initial' | 'tint'>[]; title: string; sub?: string; onPress: () => void; extra?: ReactNode; total?: number }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.pill, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityLabel={`${title}${sub ? `, ${sub}` : ''}`}>
       <View style={styles.faces}>
         {faces.slice(0, 4).map((f, i) => <Avatar key={f.id} p={f} size={36} style={{ marginLeft: i ? -12 : 0, borderWidth: 2.5, borderColor: '#F4F0E7', zIndex: 4 - i }} />)}
+        {(total ?? faces.length) > 4 && faces.length >= 4 && <View style={[styles.more, { zIndex: 0 }]}><Text style={styles.moreText}>+{Math.min(99, (total ?? faces.length) - 4)}</Text></View>}
         {!faces.length && <View style={styles.noFace}><Users size={18} color={colors.ink} strokeWidth={1.9} /></View>}
       </View>
       <View style={{ flex: 1 }}>
@@ -73,6 +92,15 @@ const styles = StyleSheet.create({
   whenText: { fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink },
   title: { fontFamily: fonts.body700, fontSize: 14.5, lineHeight: 18, color: colors.ink },
   note: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted },
+  all: { alignItems: 'flex-start', justifyContent: 'flex-end', width: 112, backgroundColor: colors.sand },
+  allIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center', marginBottom: 'auto' },
+  more: { width: 36, height: 36, borderRadius: 18, marginLeft: -12, backgroundColor: colors.ink, borderWidth: 2.5, borderColor: '#F4F0E7', alignItems: 'center', justifyContent: 'center' },
+  moreText: { fontFamily: fonts.body700, fontSize: 11.5, color: '#FFFFFF' },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 24, backgroundColor: '#F4F0E7' },
+  emptyIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(23,22,26,0.06)', alignItems: 'center', justifyContent: 'center' },
+  emptyText: { flex: 1, fontFamily: fonts.body500, fontSize: 14, lineHeight: 19, color: colors.muted2 },
+  emptyBtn: { minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.ink, justifyContent: 'center' },
+  emptyBtnText: { fontFamily: fonts.body700, fontSize: 13.5, color: '#FFFFFF' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 14, borderRadius: 24, backgroundColor: '#F4F0E7' },
   faces: { flexDirection: 'row', alignItems: 'center' },
   noFace: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(23,22,26,0.07)', alignItems: 'center', justifyContent: 'center' },

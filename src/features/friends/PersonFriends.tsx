@@ -30,7 +30,8 @@ export default function PersonFriends() {
 
   return (
     <SettingsPage title={who ? `Друзья ${genitive(who.name)}` : 'Друзья'}>
-      <View style={styles.seg} accessibilityRole="tablist">
+      {!friend && <Text style={styles.note}>Общих друзей: {common.length}. Остальных видят только {who ? `друзья ${genitive(who.name)}` : 'его друзья'}.</Text>}
+      {friend && <View style={styles.seg} accessibilityRole="tablist">
         {tabs.map((t) => {
           const on = (friend ? tab : 'common') === t.k;
           return (
@@ -40,7 +41,7 @@ export default function PersonFriends() {
             </Pressable>
           );
         })}
-      </View>
+      </View>}
 
       {q.isPending ? null : list.length === 0 ? (
         <View style={styles.empty}>
@@ -72,6 +73,7 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: colors.ink },
   segText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   segN: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
+  note: { fontFamily: fonts.body500, fontSize: 14, lineHeight: 19, color: colors.muted, marginBottom: 6 },
   group: { borderRadius: 22, backgroundColor: colors.card, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, paddingHorizontal: 14 },
   sep: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line2 },

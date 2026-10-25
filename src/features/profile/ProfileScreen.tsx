@@ -6,20 +6,19 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
-import { BedDouble, Cake, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, type LucideIcon } from 'lucide-react-native';
+import { BedDouble, Cake, CalendarDays, Camera, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, UserPlus, type LucideIcon } from 'lucide-react-native';
 import { goAwards, goLevel, Showcase } from './Showcase';
-import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileNum, TileSub } from './ProfileKit';
-import { FriendsPill, PlansStrip } from './PlansStrip';
+import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard } from './ProfileKit';
+import { EmptyRow, FriendsPill, PlansStrip } from './PlansStrip';
 import { birthdayText } from '../../lib/format';
 import { planWhen } from '../../lib/planWhen';
 import { now as clockNow } from '../../lib/clock';
 import { usePlans } from '../../state/plans';
-import { eventsSnapshot } from '../../data';
+import { eventsSnapshot , data } from '../../data';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
-import { data } from '../../data';
 import { config } from '../../lib/config';
 import { getMeStats, getMyPhotos, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
@@ -29,9 +28,7 @@ import { stepAwards } from '../../profile/stepAwards';
 import { useSession } from '../../state/session';
 import { useMapState } from '../../state/map';
 import { colors, fonts, radii } from '../../theme';
-import { badgeIcon } from '../../profile/badges';
 import { BadgeMedal } from '../../ui/BadgeMedal';
-import { Avatar } from '../../ui/Avatar';
 import { frameById } from '../../profile/frames';
 import { useProfile } from '../../state/profile';
 import { plate } from '../../ui/glass';
@@ -87,8 +84,10 @@ export default function ProfileScreen() {
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   // Мои планы: на что я иду, ближайшие сначала; прошедшие не показываем.
-  const myPlans = events.filter((e) => going[e.id] && new Date(e.endsAt ?? e.startsAt).getTime() > now.getTime() - 3 * 3600e3)
-    .sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, 8)
+  const myPlansAll = events.filter((e) => going[e.id] && new Date(e.endsAt ?? e.startsAt).getTime() > now.getTime() - 3 * 3600e3)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const myPlansTotal = myPlansAll.length;
+  const myPlans = myPlansAll.slice(0, 8)
     .map((e) => { const w = planWhen(e, now); return { key: e.id, title: e.title, when: (w.today ? w.text.split(' · ')[1] : w.text.split(' · ')[0]).toLowerCase(), today: w.today, e, eventId: e.id }; });
   const myPhotosQ = useQuery({ queryKey: ['me', 'photos'], queryFn: getMyPhotos, enabled: LIVE });
   const demoPhotos = useProfile((x) => x.photos);
@@ -151,6 +150,7 @@ export default function ProfileScreen() {
         </>}
         meta={<>
           {!!p?.handle && <HeroChip>{`@${p.handle}`}</HeroChip>}
+          {!photos.length && <Pressable onPress={() => void pickPhoto()} accessibilityRole="button"><HeroChip icon={<Camera size={14} color="#FFFFFF" strokeWidth={2.1} />}>добавь фото</HeroChip></Pressable>}
           {!!birthday && <HeroChip icon={<Cake size={14} color="#FFFFFF" strokeWidth={2.1} />}>{birthday}</HeroChip>}
           <Pressable onPress={goLevel} accessibilityRole="button"><HeroChip>{`уровень ${level}`}</HeroChip></Pressable>
           {!shown.length && <Pressable onPress={() => router.push('/profile/awards')} accessibilityRole="button"><HeroChip>+ награда к имени</HeroChip></Pressable>}
@@ -170,21 +170,22 @@ export default function ProfileScreen() {
         {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
 
         {/* Друзья — одной строкой, планы — лентой вбок, ниже плитки (bento): шаги и город, витрина наград. */}
-        <FriendsPill faces={friends} onPress={() => router.push('/friends')} title={friendCount ? `${friendCount} ${plural(friendCount, 'друг', 'друга', 'друзей')}` : 'Друзья'}
-          sub={!friendCount ? 'добавь первого друга' : onMap ? `${onMap} сейчас на карте` : 'посмотреть всех'} />
+        {/* Друзья: нет никого — зовём найти; много — лица и «+N». */}
+        {friendCount ? (
+          <FriendsPill faces={friends} total={friendCount} onPress={() => router.push('/friends')} title={`${friendCount} ${plural(friendCount, 'друг', 'друга', 'друзей')}`}
+            sub={onMap ? `${onMap} сейчас на карте` : 'посмотреть всех'} />
+        ) : (
+          <EmptyRow icon={<UserPlus size={20} color={colors.ink} strokeWidth={1.9} />} text="Друзей пока нет. Добавь по номеру, QR-коду или рядом" action="Найти" onAction={() => router.push('/friends')} />
+        )}
 
-        <PlansStrip title="Мои планы" items={myPlans} onAll={() => router.navigate('/plans')} />
+        <PlansStrip title="Мои планы" items={myPlans} total={myPlansTotal} onAll={() => router.navigate('/plans')}
+          empty={<EmptyRow icon={<CalendarDays size={20} color={colors.ink} strokeWidth={1.9} />} text="Планов пока нет. Свайпни пару событий в «Для тебя»" action="Смотреть" onAction={() => router.navigate('/foryou')} />} />
 
-        <View style={kit.row}>
-          <Tile accent="#DDEBD7" onPress={() => router.push('/profile/steps')} label={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
-            <View style={styles.ringBox}><Ring value={steps / STEP_GOAL} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
-            <View><TileNum>{steps.toLocaleString('ru-RU')}</TileNum><TileSub>{`шагов · ${km.replace('.', ',')} км всего`}</TileSub></View>
-          </Tile>
-          <Tile accent="#F6D5C4" onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} label="Где я был">
-            <View style={styles.ringBox}><Ring value={pct} size={44} stroke={5} color={colors.accent} track="rgba(23,22,26,0.1)" /><MapIcon size={18} color={colors.accentText} strokeWidth={2} style={{ position: 'absolute' }} /></View>
-            <View><TileNum>{exploredPct(s?.cells ?? []).replace(' ', '')}</TileNum><TileSub>Алматы открыто</TileSub></View>
-          </Tile>
-        </View>
+        <StatsCard items={[
+          { key: 'steps', icon: <Footprints size={19} color={colors.ok} strokeWidth={2} />, value: steps.toLocaleString('ru-RU'), label: 'шагов сегодня', progress: steps / STEP_GOAL, color: colors.ok, onPress: () => router.push('/profile/steps') },
+          { key: 'km', icon: <Route size={19} color={colors.friend} strokeWidth={2} />, value: km.replace('.', ','), label: 'км пешком', color: colors.friend, onPress: () => router.push('/profile/steps') },
+          { key: 'city', icon: <MapIcon size={19} color={colors.accentText} strokeWidth={2} />, value: exploredPct(s?.cells ?? []).replace(' ', ''), label: 'Алматы открыто', progress: pct, color: colors.accent, onPress: () => { useMapState.getState().setLens('explore'); router.navigate('/'); } },
+        ]} />
 
         <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
 

@@ -183,6 +183,42 @@ export function Ring({ value, size, stroke, color, track }: { value: number; siz
   );
 }
 
+/** «Активность» (26 окт.): одна спокойная карточка вместо цветных плиток — до трёх цифр в ряд.
+ *  У каждой — значок в тонком кольце (кольцо — прогресс, если он есть), число и подпись. Нажатие — подробности. */
+export interface StatItem { key: string; icon: ReactNode; value: string; label: string; progress?: number; color: string; onPress?: () => void }
+export function StatsCard({ items }: { items: StatItem[] }) {
+  if (!items.length) return null;
+  // Одна цифра — строкой, а не огромной пустой карточкой.
+  if (items.length === 1) {
+    const it = items[0];
+    return (
+      <Pressable onPress={it.onPress} disabled={!it.onPress} style={({ pressed }) => [styles.stats, styles.statsOne, pressed && { opacity: 0.7 }]} accessibilityRole={it.onPress ? 'button' : 'text'} accessibilityLabel={`${it.value} ${it.label}`}>
+        <View style={styles.statRing}>
+          <Ring value={it.progress ?? 1} size={46} stroke={3.5} color={it.progress == null ? 'rgba(23,22,26,0.08)' : it.color} track="rgba(23,22,26,0.08)" />
+          <View style={StyleSheet.absoluteFill}><View style={styles.statIcon}>{it.icon}</View></View>
+        </View>
+        <Text style={styles.statN}>{it.value}</Text>
+        <Text style={[styles.statL, { flex: 1, fontSize: 14 }]} numberOfLines={1}>{it.label}</Text>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={styles.stats}>
+      {items.slice(0, 3).map((it, k) => (
+        <Pressable key={it.key} onPress={it.onPress} disabled={!it.onPress} style={({ pressed }) => [styles.stat, k > 0 && styles.statSep, pressed && { opacity: 0.6 }]}
+          accessibilityRole={it.onPress ? 'button' : 'text'} accessibilityLabel={`${it.value} ${it.label}`}>
+          <View style={styles.statRing}>
+            <Ring value={it.progress ?? 1} size={46} stroke={3.5} color={it.progress == null ? 'rgba(23,22,26,0.08)' : it.color} track="rgba(23,22,26,0.08)" />
+            <View style={StyleSheet.absoluteFill}><View style={styles.statIcon}>{it.icon}</View></View>
+          </View>
+          <Text style={styles.statN} numberOfLines={1} adjustsFontSizeToFit>{it.value}</Text>
+          <Text style={styles.statL} numberOfLines={1}>{it.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export const kit = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   actions: { flexDirection: 'row', gap: 10, marginTop: -26, paddingHorizontal: 16 },
@@ -217,6 +253,14 @@ const styles = StyleSheet.create({
   dotOn: { backgroundColor: '#FFFFFF', width: 18 },
   viewerBtn: { position: 'absolute', left: 24, right: 24, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   viewerBtnText: { fontFamily: fonts.body700, fontSize: 16, color: '#FFFFFF' },
+  stats: { flexDirection: 'row', borderRadius: 26, backgroundColor: '#FBFAF6', paddingVertical: 14, boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
+  statsOne: { alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  stat: { flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 6, minHeight: 44 },
+  statSep: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line2 },
+  statRing: { width: 46, height: 46, marginBottom: 2 },
+  statIcon: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  statN: { fontFamily: fonts.display800, fontSize: 21, letterSpacing: -0.5, color: colors.ink },
+  statL: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted },
   tile: { flex: 1, minHeight: 148, borderRadius: 28, padding: 16, backgroundColor: '#F4F0E7', justifyContent: 'space-between', overflow: 'hidden' },
   tileDark: { backgroundColor: '#1D1C22' },
   cap: { fontFamily: fonts.body600, fontSize: 13, color: colors.muted },

@@ -41,7 +41,7 @@ const CATEGORY_ICON: Record<Category, SpriteName> = {
 /** Места Алматы со своим значком — и для событий там, и для самих мест на карте. */
 const PLACE_WORDS: [RegExp, SpriteName][] = [
   [/терренкур/i, 'pl-terrenkur'], [/медеу|medeu/i, 'pl-medeu'], [/(^|\s)бао(\s|$)|большое алматинское озеро/i, 'pl-bao'], [/шымбулак|shymbulak|чимбулак/i, 'pl-shymbulak'],
-  [/кок-?тобе|kok-?tobe/i, 'pl-koktobe'], [/канатк|канатн|гондол/i, 'pl-cable'], [/чарын|charyn|каньон/i, 'pl-charyn'], [/панфилов/i, 'pl-panfilov'],
+  [/кок-?тобе|kok-?tobe/i, 'pl-koktobe'], [/канатк|канатн|гондол/i, 'pl-cable'], [/чарын|charyn|каньон/i, 'pl-charyn'], [/панфиловц|парк 28/i, 'pl-panfilov'],
   [/парк (им\.? )?горького|центральн\w* парк|парк гоголя/i, 'pl-gogol'], [/ботаническ|ботсад/i, 'pl-garden'], [/зоопарк/i, 'pl-zoo'],
   [/базар/i, 'pl-bazaar'], [/фудкорт|food ?court/i, 'pl-foodcourt'],
 ];
@@ -86,11 +86,12 @@ const WORD_ICON: [RegExp, SpriteName][] = [
 ];
 
 export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName'>): SpriteName {
-  // Известное место (Медеу, Шымбулак) — значок места; иначе сначала по названию события, потом по категории:
-  // «Стендап» в баре — микрофон, а не коктейль.
+  // Сначала по названию события («Стендап» в баре — микрофон, «Велопрогулка» в парке — велосипед),
+  // потом известное место (Медеу, Шымбулак), потом категория.
+  const byTitle = WORD_ICON.find(([re]) => re.test(e.title))?.[1];
+  if (byTitle) return byTitle;
   const byVenue = WORD_ICON.find(([re]) => re.test(e.venueName ?? ''))?.[1];
-  if (byVenue?.startsWith('pl-')) return byVenue;
-  return WORD_ICON.find(([re]) => re.test(e.title))?.[1] ?? CATEGORY_ICON[e.category] ?? byVenue ?? 'ev-business';
+  return (byVenue?.startsWith('pl-') ? byVenue : undefined) ?? CATEGORY_ICON[e.category] ?? byVenue ?? 'ev-business';
 }
 
 /** Значок постоянного места по виду. */

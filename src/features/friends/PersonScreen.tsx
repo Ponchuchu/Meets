@@ -10,19 +10,18 @@ import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
 import { birthdayText } from '../../lib/format';
 import { EventIcon } from '../../ui/EventIcon';
-import { FriendsPill, PlansStrip } from '../profile/PlansStrip';
-import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileCap, TileNum, TileSub } from '../profile/ProfileKit';
+import { EmptyRow, FriendsPill, PlansStrip } from '../profile/PlansStrip';
+import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard, Tile, TileCap, type StatItem } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
-import { DEFAULT_PRIVACY } from '../../people/visibility';
-import { Cake, CalendarPlus, Check, Hand, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
+import { DEFAULT_PRIVACY , canSee } from '../../people/visibility';
+import { Award, Cake, CalendarDays, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
 import { now as clockNow } from '../../lib/clock';
-import { canSee } from '../../people/visibility';
 import { BADGES } from '../../profile/badges';
 import { getShownBadges } from '../../live/profileExtras';
 import { BadgeMedal } from '../../ui/BadgeMedal';
@@ -30,7 +29,6 @@ import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
 import { isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
-import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { Toast, type ToastData } from '../../ui/Toast';
@@ -105,23 +103,13 @@ export default function PersonScreen() {
   const showFriends = friend ? fCount > 0 : common.length > 0;
   const showSteps = d.stepsToday != null;
 
-  // Плитки (bento) парами: друзья, шаги, воспоминания, планы — что есть у человека. Нечётная последняя — во всю ширину.
-  const tiles = [
-    showSteps ? (<Tile key="steps" accent="#DDEBD7" label={`Шаги сегодня: ${d.stepsToday}`}>
-        <View style={styles.ringBox}><Ring value={(d.stepsToday ?? 0) / 10000} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
-        <View>
-          <TileNum>{(d.stepsToday ?? 0).toLocaleString('ru-RU')}</TileNum>
-          <TileSub>шагов сегодня</TileSub>
-        </View>
-      </Tile>
-    ) : null,
-    (d.memoriesCount ?? 0) > 0 ? (<Tile key="mem" accent="#F3D9C9" label="Воспоминания">
-        <Images size={24} color={colors.accentText} strokeWidth={1.9} />
-        <View><TileNum>{String(d.memoriesCount)}</TileNum><TileSub>{plural(d.memoriesCount ?? 0, 'воспоминание', 'воспоминания', 'воспоминаний')}</TileSub></View>
-      </Tile>
-    ) : null,
-  ].filter(Boolean);
-  const pairs = tiles.reduce<React.ReactNode[][]>((acc, t, i) => (i % 2 ? acc[acc.length - 1].push(t) : acc.push([t]), acc), []);
+  // «Активность» друга — та же спокойная карточка, что у меня: шаги сегодня и воспоминания (что разрешено видеть).
+  // Планы и награды уже видны своими блоками — здесь не повторяем.
+  const plansOpen = friend && canSee('friend', 'plans', d.privacy);
+  const statItems: StatItem[] = [
+    ...(showSteps ? [{ key: 'steps', icon: <Footprints size={19} color={colors.ok} strokeWidth={2} />, value: (d.stepsToday ?? 0).toLocaleString('ru-RU'), label: 'шагов сегодня', progress: (d.stepsToday ?? 0) / 10000, color: colors.ok }] : []),
+    ...((d.memoriesCount ?? 0) > 0 ? [{ key: 'mem', icon: <Images size={19} color={colors.accentText} strokeWidth={2} />, value: String(d.memoriesCount), label: plural(d.memoriesCount ?? 0, 'воспоминание', 'воспоминания', 'воспоминаний'), color: colors.accent }] : []),
+  ];
 
   return (
     <View style={styles.root}>
@@ -169,19 +157,21 @@ export default function PersonScreen() {
 
         <View style={styles.body}>
           {showFriends && (
-            <FriendsPill faces={common.map((x) => x!)} onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })}
+            <FriendsPill faces={common.map((x) => x!)} total={friend ? fCount : common.length} onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })}
               title={friend ? `${fCount} ${plural(fCount, 'друг', 'друга', 'друзей')}` : `${common.length} ${plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}`}
               sub={friend && cCount ? `${cCount} ${plural(cCount, 'общий', 'общих', 'общих')} с тобой` : friend ? 'посмотреть всех' : undefined} />
           )}
 
-          {friend && canSee('friend', 'plans', d.privacy) && (
+          {friend && !preview && (plansOpen ? (
             <PlansStrip title={`Планы ${genitive}`} items={d.plans.map((pl, i) => {
               const ev = events.find((x) => x.id === pl.eventId);
               return { key: `${pl.title}-${i}`, title: pl.title, when: pl.when === 'СЕГОДНЯ' ? 'сегодня' : pl.when.toLowerCase(), today: pl.when === 'СЕГОДНЯ', note: pl.note, e: ev, eventId: pl.eventId };
-            })} />
-          )}
+            })} empty={<EmptyRow icon={<CalendarDays size={20} color={colors.ink} strokeWidth={1.9} />} text={`У ${genitive} пока нет планов. Позови куда-нибудь первым`} action="Позвать" onAction={() => { focusFriend(id, true); router.dismissTo('/'); }} />} />
+          ) : (
+            <EmptyRow icon={<Lock size={18} color={colors.ink} strokeWidth={1.9} />} text={`${p.name} показывает планы только себе`} />
+          ))}
 
-          {pairs.map((pr, i) => <View key={i} style={kit.row}>{pr}</View>)}
+          <StatsCard items={statItems} />
 
           {medals.length > 0 && (
             <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
