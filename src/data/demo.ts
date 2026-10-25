@@ -278,12 +278,14 @@ export function demoProfile(): MyProfile {
 // Профили людей — тексты из макетов Person / PersonFriend / Friends.
 const sharing = { ...DEFAULT_PRIVACY, sharingLocation: true, achievements: 'friends' as const };
 const i = (label: string, common = true) => ({ label, common });
+const isFriendDemo = (id: string) => !!PEOPLE.find((p) => p.id === id)?.isFriend;
+
 export const PERSON_DETAILS: Record<string, PersonDetails> = {
   igor: {
     id: 'igor', about: 'Люблю смотреть на город сверху и живую музыку. Всегда за движ, особенно если там есть еда.',
     interests: [i('Живая музыка'), i('Горы'), i('Настолки'), i('Стритфуд'), i('Тату')], interestKeys: ['music', 'hike', 'games', 'food'],
     badges: ['above', 'jazz', 'soul', 'night'], gallery: ['igor', 'igor2', 'igor3', 'igor4'], online: true, device: 'ios', status: 'Ищу компанию на джаз в субботу', instagram: '@igor.almaty',
-    commonFriends: ['denis', 'anton', 'timur'], friendsCount: 34, commonCount: 7, friendIds: ['denis', 'anton', 'me', 'timur'],
+    commonFriends: ['denis', 'anton', 'timur'], friendsCount: 34, commonCount: 7, friendIds: ['denis', 'anton', 'me', 'timur', 'ainura', 'erlan', 'sasha'],
     plans: [{ eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }, { title: 'Ужин у Данила', when: 'ПТ 2.10', note: 'несёт напитки' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'для друзей · ты тоже приглашён' }],
     now: { place: 'кофейня на Панфилова', sharingUntil: '18:40' }, privacy: sharing,
     planLine: { text: 'Вечером идёт на джаз — ты тоже', eventId: 'jazz', color: '#F0521F' },
@@ -369,6 +371,12 @@ export function createDemoSource(): DataSource {
     getMySpot: async () => MY_SPOT,
     getMyProfile: async () => demoProfile(),
     getPersonDetails: async (id) => PERSON_DETAILS[id] ?? null,
+    getPersonFriends: async (id) => {
+      const d = PERSON_DETAILS[id];
+      if (!d) return [];
+      const ids = [...new Set([...d.commonFriends, ...(isFriendDemo(id) ? d.friendIds : [])])].filter((x) => x !== 'me');
+      return ids.map((x) => PEOPLE.find((p) => p.id === x)).filter((p): p is Person => !!p).map((person) => ({ person, common: d.commonFriends.includes(person.id) }));
+    },
     getForecast: async () => DEMO_FORECAST,
     getWeatherNow: async () => DEMO_FORECAST[0],
   };

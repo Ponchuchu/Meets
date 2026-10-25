@@ -4,10 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StateView } from '../../ui/StateView';
-import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { APP_URL } from '../../lib/config';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { ART } from '../../ui/art';
 import { Showcase } from '../profile/Showcase';
 import { useSession } from '../../state/session';
@@ -38,11 +37,8 @@ import { Toast, type ToastData } from '../../ui/Toast';
 
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
 
-type IconLike = (p: { size: number; color: string; strokeWidth: number }) => React.ReactNode;
-const INSTA = 'M7 3.5h10A3.5 3.5 0 0120.5 7v10a3.5 3.5 0 01-3.5 3.5H7A3.5 3.5 0 013.5 17V7A3.5 3.5 0 017 3.5zM12 8a4 4 0 100 8 4 4 0 000-8zM17.2 6.8h.01';
-const Instagram: IconLike = ({ size, color }) => <Ic d={INSTA} size={size} color={color} w={1.9} />;
 
-function Action({ Icon, label, onPress, dark }: { Icon: LucideIcon | IconLike; label: string; onPress: () => void; dark?: boolean }) {
+function Action({ Icon, label, onPress, dark }: { Icon: LucideIcon; label: string; onPress: () => void; dark?: boolean }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.action, dark && styles.actionDark, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={label}>
       <Icon size={22} color={dark ? colors.paper : colors.ink} strokeWidth={1.9} />
@@ -50,17 +46,10 @@ function Action({ Icon, label, onPress, dark }: { Icon: LucideIcon | IconLike; l
     </Pressable>
   );
 }
-/** Значок устройства: яблоко (iPhone) или голова Android-робота. */
-function DeviceMark({ os }: { os: 'ios' | 'android' }) {
-  return os === 'ios'
-    ? <Svg width={13} height={13} viewBox="0 0 24 24"><Path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4zM14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z" fill={colors.muted2} /></Svg>
-    : <Svg width={14} height={14} viewBox="0 0 24 24"><Path d="M5 15a7 7 0 0114 0z" fill="#3DDC84" /><Path d="M7.5 7.5L6 5M16.5 7.5L18 5" stroke="#3DDC84" strokeWidth={1.6} strokeLinecap="round" /><Circle cx={9.5} cy={12} r={0.9} fill="#FFFFFF" /><Circle cx={14.5} cy={12} r={0.9} fill="#FFFFFF" /></Svg>;
-}
-
 /** Свой профиль в демо для «Как видят другие»: то, что заполнено в «Редактировать профиль». */
 function selfDetails(card: MyCard, frame: string): PersonDetails {
-  return { id: 'me', about: card.about, interests: card.tags.map((label) => ({ label, common: true })), badges: ['opener', 'night'], gallery: [], online: true, instagram: card.instagram || undefined,
-    commonFriends: [], friendsCount: 4, commonCount: 0, friendIds: [], plans: [], privacy: DEFAULT_PRIVACY, status: card.status || undefined, device: 'ios', stepsToday: 6240, frame, interestKeys: [] } as unknown as PersonDetails;
+  return { id: 'me', about: card.about, interests: [], badges: ['opener', 'night'], gallery: [], online: true,
+    commonFriends: [], friendsCount: 4, commonCount: 0, friendIds: [], plans: [], privacy: DEFAULT_PRIVACY, stepsToday: 6240, frame, interestKeys: [] } as unknown as PersonDetails;
 }
 
 const REASONS = ['Спам или реклама', 'Оскорбления', 'Фейковый профиль', 'Неприемлемые фото', 'Младше 18', 'Другое'];
@@ -86,6 +75,7 @@ export default function PersonScreen() {
   // Награды, которые человек поставил у имени (FIX3 Ф8).
   const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: theirFriends } = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id), enabled: !(preview && id === 'me') });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
@@ -108,6 +98,9 @@ export default function PersonScreen() {
   const look = d.lookingFor && canSee(rel, 'lookingForCompany', d.privacy) ? { ...d.lookingFor, e: events.find((e) => e.id === d.lookingFor!.eventId) } : null;
   const badges = d.badges.map((b) => BADGES.find((x) => x.id === b)).filter(Boolean);
   const common = d.commonFriends.map((cid) => people.find((x) => x.id === cid)).filter(Boolean);
+  // Числа — из того же списка, что откроется по нажатию, чтобы «34 друга» не расходилось с экраном друзей.
+  const fCount = theirFriends ? theirFriends.length : d.friendsCount;
+  const cCount = theirFriends ? theirFriends.filter((x) => x.common).length : d.commonCount;
   const showOnMap = () => { focusFriend(id); router.dismissTo('/'); };
   const write = () => router.push({ pathname: '/chat/[id]', params: { id: `dm-${id}` } });
   const profileLink = `${APP_URL}/person/${id}`;
@@ -119,11 +112,9 @@ export default function PersonScreen() {
   const where = friend && d.now && canSee('friend', 'location', d.privacy) ? d.now : null;
   // Плитки с картинками (26 окт.): у друга всегда есть что показать — друзья, шаги, планы, альбомы.
   const stats: { key: string; n: string; label: string; art: number }[] = [];
-  if (friend) stats.push({ key: 'friends', n: String(d.friendsCount), label: d.commonCount ? `друзей · ${d.commonCount} общих` : plural(d.friendsCount, 'друг', 'друга', 'друзей'), art: ART.highfive });
   if (d.stepsToday != null) stats.push({ key: 'steps', n: d.stepsToday.toLocaleString('ru-RU'), label: 'шагов сегодня', art: ART.sneaker });
   if (friend && d.plans.length) stats.push({ key: 'plans', n: String(d.plans.length), label: plural(d.plans.length, 'план', 'плана', 'планов'), art: ART.route });
   if (d.memoriesCount) stats.push({ key: 'mem', n: String(d.memoriesCount), label: plural(d.memoriesCount, 'воспоминание', 'воспоминания', 'воспоминаний'), art: ART.heart });
-  if (!friend && common.length) stats.push({ key: 'common', n: String(common.length), label: plural(common.length, 'общий друг', 'общих друга', 'общих друзей'), art: ART.highfive });
 
   return (
     <View style={styles.root}>
@@ -149,10 +140,8 @@ export default function PersonScreen() {
             <View style={styles.seenRow}>
               {d.online && <View style={styles.dot} />}
               <Text style={[styles.seen, d.online && { color: colors.ok }]}>{seen}</Text>
-              {friend && d.device && <><Text style={styles.seen}> · </Text><DeviceMark os={d.device} /><Text style={styles.seen}>{d.device === 'ios' ? ' iPhone' : ' Android'}</Text></>}
               {!friend && <><Text style={styles.seen}> · </Text><Lock size={12} color={colors.muted} strokeWidth={2.2} /><Text style={styles.seen}> не в друзьях</Text></>}
             </View>
-            {!!d.status && <View style={styles.status}><Text style={styles.statusText} numberOfLines={2}>{d.status}</Text></View>}
           </View>
         </View>
 
@@ -170,7 +159,6 @@ export default function PersonScreen() {
               ? <Action Icon={CalendarPlus} label="Позвать" onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} />
               : <Action Icon={social.sent[id] ? Check : UserPlus} label={social.sent[id] ? 'Заявка ушла' : 'В друзья'} onPress={() => social.toggleRequest(id)} />}
             {friend && spot && <Action Icon={MapPin} label="На карте" onPress={showOnMap} />}
-            {!!d.instagram && <Action Icon={Instagram} label="Instagram" onPress={() => { Linking.openURL(`https://instagram.com/${d.instagram!.replace(/^@/, '')}`).catch(() => undefined); }} />}
           </View>}
 
           {where && (
@@ -179,6 +167,22 @@ export default function PersonScreen() {
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.nowTitle}>Сейчас: {where.place}</Text>
                 <Text style={styles.sub}>{spot ? `${(distanceM(MY_SPOT, spot) / 1000).toFixed(1).replace('.', ',')} км от тебя` : 'показать на карте'}</Text>
+              </View>
+              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+            </Pressable>
+          )}
+
+          {/* Друзья — одна строка; по нажатию отдельный экран с вкладками «Все» и «Общие» (26 окт.). */}
+          {(friend ? fCount > 0 : common.length > 0) && (
+            <Pressable onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })} style={({ pressed }) => [styles.friendsRow, pressed && styles.pressed]}
+              accessibilityRole="button" accessibilityLabel="Друзья">
+              <View style={styles.stack}>
+                {common.slice(0, 3).map((fp, i) => <View key={fp!.id} style={[styles.stackItem, { marginLeft: i ? -12 : 0, zIndex: 3 - i }]}><Avatar p={fp!} size={34} /></View>)}
+                {!common.length && <Users size={22} color={colors.ink} strokeWidth={1.9} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.friendsTitle}>{friend ? `${fCount} ${plural(fCount, 'друг', 'друга', 'друзей')}` : `${common.length} ${plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}`}</Text>
+                {friend && cCount > 0 && <Text style={styles.sub}>{cCount} {plural(cCount, 'общий', 'общих', 'общих')}</Text>}
               </View>
               <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
             </Pressable>
@@ -218,38 +222,16 @@ export default function PersonScreen() {
             </View>
           )}
 
-          {friend && common.length > 0 && (
+          {!!d.about.trim() && (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Общие друзья</Text>
-              <View style={styles.faces}>
-                {common.slice(0, 5).map((fp) => (
-                  <Pressable key={fp!.id} onPress={() => router.push({ pathname: '/person/[id]', params: { id: fp!.id } })} style={styles.face} accessibilityRole="button" accessibilityLabel={fp!.name}>
-                    <Avatar p={fp!} size={52} /><Text style={styles.faceName} numberOfLines={1}>{fp!.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
+              <Text style={styles.cardTitle}>О себе</Text><Text style={styles.about}>{d.about}</Text>
             </View>
           )}
 
-          {(d.about.trim() || d.interests.length > 0) && (
-            <View style={styles.card}>
-              {!!d.about.trim() && <><Text style={styles.cardTitle}>О себе</Text><Text style={styles.about}>{d.about}</Text></>}
-              {d.interests.length > 0 && (
-                <View style={styles.chips}>
-                  {d.interests.map((x) => (
-                    <View key={x.label} style={[styles.chip, x.common || friend ? { backgroundColor: colors.ink } : { borderWidth: 1, borderColor: colors.line2 }]}>
-                      <Text style={[styles.chipText, (x.common || friend) && { color: colors.paper }]}>{x.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-
-          {!d.about.trim() && !d.interests.length && (
+          {!d.about.trim() && (
             <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
               <Image source={ART.wave} style={{ width: 64, height: 64 }} />
-              <Text style={[styles.sub, { flex: 1, fontSize: 14 }]}>{preview ? 'Расскажи о себе и добавь интересы — так друзьям проще позвать тебя куда-то.' : `${p.name} пока ничего не рассказал${p.name.endsWith('а') ? 'а' : ''} о себе. Позови куда-нибудь — узнаешь лично.`}</Text>
+              <Text style={[styles.sub, { flex: 1, fontSize: 14 }]}>{preview ? 'Расскажи пару слов о себе — так друзьям проще позвать тебя куда-то.' : `${p.name} пока ничего не рассказал${p.name.endsWith('а') ? 'а' : ''} о себе. Позови куда-нибудь — узнаешь лично.`}</Text>
             </View>
           )}
 
@@ -333,8 +315,10 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: { width: '48.4%', flexGrow: 1, minHeight: 116, borderRadius: 22, ...plate, padding: 14, justifyContent: 'flex-end' },
   tileArt: { width: 46, height: 46, marginBottom: 'auto' },
-  status: { marginTop: 6, maxWidth: 300, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: '#FBFAF6', boxShadow: '0 4px 12px -6px rgba(23,22,26,0.3)' },
-  statusText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink, textAlign: 'center' },
+  friendsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: colors.card },
+  stack: { flexDirection: 'row', alignItems: 'center', minWidth: 34 },
+  stackItem: { borderRadius: 19, borderWidth: 2, borderColor: colors.card },
+  friendsTitle: { fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
   previewBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 16, borderRadius: 18, backgroundColor: colors.ink },
   previewText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: colors.paper },
   previewBtn: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.paper, justifyContent: 'center' },
@@ -360,12 +344,6 @@ const styles = StyleSheet.create({
   planWhen: { width: 72, fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   planTitle: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  faces: { flexDirection: 'row', gap: 14 },
-  face: { alignItems: 'center', gap: 6, width: 56 },
-  faceName: { fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center' },
-  chipText: { fontFamily: fonts.body500, fontSize: 14, color: colors.ink },
   about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 22.5, color: colors.muted2 },
   badgeLine: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.5, color: colors.ink },
   badge: { flex: 1, alignItems: 'center', gap: 6 },

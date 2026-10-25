@@ -16,8 +16,6 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { useTabInset } from '../../components/TabBar';
 import { data } from '../../data';
 import { config } from '../../lib/config';
-import { supabase } from '../../data/client';
-import { myId } from '../../live/auth';
 import { getMeStats, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
 import { getMemories, getProfileExtras, getSleepovers, learnMyPlaces } from '../../live/profileExtras';
@@ -88,7 +86,6 @@ export default function ProfileScreen() {
   const [uploading, setUploading] = useState(false);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
   // Статус под именем (миграция 46); база ещё без колонки — просто без статуса.
-  const statusQ = useQuery({ queryKey: ['me', 'status'], enabled: LIVE, queryFn: async () => ((await supabase().from('profiles').select('status_line').eq('id', myId() ?? '').maybeSingle()).data as { status_line?: string | null } | null)?.status_line ?? '' });
   const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, enabled: LIVE, staleTime: 30e3 });
   const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const memories = useQuery({ queryKey: ['me', 'memories'], queryFn: () => getMemories() });
@@ -118,8 +115,6 @@ export default function ProfileScreen() {
   const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
   const heroH = insets.top + 270;
-  const localCard = useProfile((x) => x.card);
-  const myStatus = LIVE ? statusQ.data ?? '' : localCard.status;
   // Пока листаешь — живая рамка замирает (на слабых телефонах анимация и прокрутка вместе давали ~3 кадра в секунду).
   // Флаг живёт в маленьком хранилище: меняется только рамка, а не весь экран.
   const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -178,7 +173,6 @@ export default function ProfileScreen() {
         {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
 
         {/* Статус и две кнопки (26 окт.): редактировать профиль и посмотреть, как его видят друзья. */}
-        {!!myStatus && <View style={styles.myStatus}><Text style={styles.myStatusText} numberOfLines={2}>{myStatus}</Text></View>}
         <View style={styles.editRow}>
           <Pressable onPress={() => router.push('/profile/edit')} style={({ pressed }) => [styles.editBtn, pressed && styles.pressed]} accessibilityRole="button">
             <PenLine size={17} color={colors.paper} strokeWidth={2} /><Text style={styles.editText}>Редактировать профиль</Text>
@@ -268,8 +262,6 @@ function Row({ Icon, title, value, onPress, last }: { Icon: LucideIcon; title: s
 }
 
 const styles = StyleSheet.create({
-  myStatus: { alignSelf: 'center', maxWidth: 320, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: '#FBFAF6', boxShadow: '0 4px 12px -6px rgba(23,22,26,0.3)' },
-  myStatusText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink, textAlign: 'center' },
   editRow: { flexDirection: 'row', gap: 8 },
   editBtn: { flex: 1, flexDirection: 'row', gap: 8, minHeight: 48, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   editText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },

@@ -1,45 +1,52 @@
-// «Редактировать профиль» (26 октября): фото, имя, @ник, статус под именем, о себе, интересы, Instagram, рамка на карте.
-// Внизу — «Как видят другие»: твой профиль глазами друга. В демо всё хранится на телефоне, в живой версии — в profiles.
+// «Редактировать профиль» (26 октября, новый дизайн): сверху фото в своей рамке на мягком фоне, ниже — одна карточка
+// «Имя · Ник · О себе» и строка «Рамка и метка на карте». «Сохранить» — в шапке справа и внизу, активна, только когда есть изменения.
+// Статус, интересы и Instagram пока убраны (просьба владельца) — в базе поля остаются, экран их не трогает.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { Camera, Check, Eye, Sparkles } from 'lucide-react-native';
+import { Camera, ChevronLeft, ChevronRight, Eye } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../data/client';
 import { config } from '../../lib/config';
 import { uploadAvatar } from '../../live/api';
 import { myId } from '../../live/auth';
-import { useProfile, type MyCard } from '../../state/profile';
+import { AvatarFrame, frameById } from '../../profile/frames';
+import { useBackClose } from '../../state/app';
+import { useProfile } from '../../state/profile';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
-import { Avatar } from '../../ui/Avatar';
-import { SettingsPage } from '../../ui/v6/Settings';
+import { Aura } from './ProfileScreen';
 
 const LIVE = config.dataMode !== 'demo';
-/** Интересы, которые можно показать в профиле (до 8). */
-export const PROFILE_TAGS = ['Живая музыка', 'Стендап', 'Горы', 'Походы', 'Настолки', 'Кино', 'Театр', 'Выставки', 'Фото', 'Стритфуд', 'Кофе', 'Вечеринки',
-  'Бег', 'Велосипед', 'Йога', 'Футбол', 'Танцы', 'Книги', 'Аниме', 'Путешествия', 'Собаки', 'Кошки', 'Языки', 'IT'];
-const STATUS_IDEAS = ['Ищу компанию на выходные', 'Свободен вечером', 'Хочу в горы', 'Зову на кофе'];
 
-interface Row { name: string; handle: string | null; photo_url: string | null; about: string | null; instagram: string | null; status_line: string | null; tags: string[] | null }
+interface Row { name: string; handle: string | null; photo_url: string | null; about: string | null; map_frame: string | null; map_shape: string | null }
+interface Form { name: string; handle: string; about: string }
 
 export default function EditProfile() {
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const draft = useSession((s) => s.draft);
   const local = useProfile((s) => s.card);
+  const demoFrame = useProfile((s) => s.mapFrame);
+  const demoShape = useProfile((s) => s.mapShape);
   const q = useQuery({ queryKey: ['me', 'edit'], enabled: LIVE, queryFn: async () => {
-    const { data, error } = await supabase().from('profiles').select('name,handle,photo_url,about,instagram,status_line,tags').eq('id', myId() ?? '').maybeSingle();
+    const { data, error } = await supabase().from('profiles').select('name,handle,photo_url,about,map_frame,map_shape').eq('id', myId() ?? '').maybeSingle();
     if (error) throw error;
     return data as Row | null;
   } });
-  const src: Row | null = LIVE ? q.data ?? null : { name: draft.name, handle: null, photo_url: draft.photo, about: local.about, instagram: local.instagram, status_line: local.status, tags: local.tags };
-  const [form, setForm] = useState<(MyCard & { name: string; handle: string }) | null>(null);
-  const f = form ?? (src ? { name: src.name ?? '', handle: src.handle ?? '', status: src.status_line ?? '', about: src.about ?? '', tags: src.tags ?? [], instagram: src.instagram ?? '' } : null);
+  const src: Row | null = LIVE ? q.data ?? null : { name: draft.name, handle: null, photo_url: draft.photo, about: local.about, map_frame: demoFrame, map_shape: demoShape };
+  const start: Form | null = src ? { name: src.name ?? '', handle: src.handle ?? '', about: src.about ?? '' } : null;
+  const [form, setForm] = useState<Form | null>(null);
+  const f = form ?? start;
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState<'photo' | 'save' | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const set = (p: Partial<NonNullable<typeof f>>) => f && setForm({ ...f, ...p });
+  const set = (p: Partial<Form>) => { if (f) { setForm({ ...f, ...p }); setNote(null); } };
+  const dirty = !!f && !!start && (f.name !== start.name || f.handle !== start.handle || f.about !== start.about);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
+  useBackClose(back);
 
   const pick = async () => {
     try {
@@ -51,113 +58,150 @@ export default function EditProfile() {
       const url = LIVE ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
       useSession.getState().update({ photo: url });
       setPhoto(url);
+      setNote({ ok: true, text: 'Фото обновлено' });
     } catch { setNote({ ok: false, text: 'Не удалось сохранить фото. Проверь связь' }); }
     finally { setBusy(null); }
   };
 
   const save = async () => {
-    if (!f || busy) return;
+    if (!f || busy || !dirty) return;
     const name = f.name.trim();
     if (!name) { setNote({ ok: false, text: 'Имя не может быть пустым' }); return; }
     setBusy('save'); setNote(null);
     const handle = f.handle.trim().replace(/^@/, '').toLowerCase();
     try {
       if (LIVE) {
-        const { error } = await supabase().from('profiles').update({ name, handle: handle || null, status_line: f.status.trim() || null, about: f.about.trim() || null, tags: f.tags.slice(0, 8), instagram: f.instagram.trim().replace(/^@/, '') || null }).eq('id', myId() ?? '');
+        const { error } = await supabase().from('profiles').update({ name, handle: handle || null, about: f.about.trim() || null }).eq('id', myId() ?? '');
         if (error) throw new Error(/duplicate|unique/i.test(error.message) ? 'Такой ник уже занят' : 'Проверь связь');
         void qc.invalidateQueries({ queryKey: ['me'] });
       } else {
-        useProfile.getState().setCard({ status: f.status.trim(), about: f.about.trim(), tags: f.tags.slice(0, 8), instagram: f.instagram.trim() });
+        useProfile.getState().setCard({ ...local, about: f.about.trim() });
       }
       useSession.getState().update({ name });
+      setForm(null);
       setNote({ ok: true, text: 'Сохранено' });
     } catch (e) { setNote({ ok: false, text: e instanceof Error ? e.message : 'Проверь связь' }); }
     finally { setBusy(null); }
   };
   const preview = () => router.push({ pathname: '/person/[id]', params: { id: LIVE ? myId() ?? 'me' : 'me', preview: '1' } });
 
-  if (!f) return <SettingsPage title="Профиль"><ActivityIndicator color={colors.ink} /></SettingsPage>;
+  const frameId = src?.map_frame ?? 'classic';
+  const frame = frameById(frameId);
+  const heroH = insets.top + 250;
+  const canSave = dirty && !busy;
+
   return (
-    <SettingsPage title="Мой профиль" sub="Это видят друзья, когда открывают твою страницу.">
-      <View style={{ gap: 14 }}>
-        <Pressable onPress={() => void pick()} style={styles.photo} accessibilityRole="button" accessibilityLabel="Сменить фото">
-          <Avatar p={{ photo: photo ?? src?.photo_url ?? draft.photo, initial: (f.name[0] ?? '·').toUpperCase(), tint: '#D5CFC1' }} size={96} />
-          <View style={styles.cam}>{busy === 'photo' ? <ActivityIndicator color={colors.paper} size="small" /> : <Camera size={16} color={colors.paper} strokeWidth={2.2} />}</View>
-        </Pressable>
-
-        <Field label="Имя" value={f.name} onChange={(v) => set({ name: v })} max={40} />
-        <Field label="Ник" value={f.handle} onChange={(v) => set({ handle: v })} max={24} prefix="@" lower />
-        <Field label="Статус под именем" value={f.status} onChange={(v) => set({ status: v })} max={60} placeholder="Например: ищу компанию на выходные" />
-        <View style={styles.ideas}>
-          {STATUS_IDEAS.map((s) => <Pressable key={s} onPress={() => set({ status: s })} style={styles.idea} accessibilityRole="button"><Sparkles size={12} color={colors.accentText} strokeWidth={2.2} /><Text style={styles.ideaText}>{s}</Text></Pressable>)}
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <View style={{ height: heroH, paddingTop: insets.top }}>
+          <Aura color={frame.color} height={heroH} />
+          <View style={styles.bar}>
+            <Pressable onPress={back} style={styles.round} accessibilityRole="button" accessibilityLabel="Назад" hitSlop={6}>
+              <ChevronLeft size={24} color={colors.ink} strokeWidth={2.2} />
+            </Pressable>
+            <Text style={styles.title} accessibilityRole="header">Профиль</Text>
+            <Pressable onPress={() => void save()} disabled={!canSave} style={[styles.saveTop, !canSave && { opacity: 0.35 }]} accessibilityRole="button" accessibilityLabel="Сохранить" accessibilityState={{ disabled: !canSave }}>
+              {busy === 'save' ? <ActivityIndicator color={colors.paper} size="small" /> : <Text style={styles.saveTopText}>Готово</Text>}
+            </Pressable>
+          </View>
+          {f && (
+            <Pressable onPress={() => void pick()} style={styles.photo} accessibilityRole="button" accessibilityLabel="Сменить фото">
+              <AvatarFrame frameId={frameId} shape={src?.map_shape ?? undefined} photo={photo ?? src?.photo_url ?? draft.photo} initial={(f.name[0] ?? '·').toUpperCase()} size={124} animate={false} />
+              <View style={styles.cam}>{busy === 'photo' ? <ActivityIndicator color={colors.paper} size="small" /> : <Camera size={17} color={colors.paper} strokeWidth={2.2} />}</View>
+            </Pressable>
+          )}
+          <Pressable onPress={() => void pick()} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 10 }}>
+            <Text style={styles.change}>Сменить фото</Text>
+          </Pressable>
         </View>
-        <Field label="О себе" value={f.about} onChange={(v) => set({ about: v })} max={300} multiline placeholder="Пара слов: что любишь, куда зовёшь друзей" />
 
-        <Text style={styles.cap}>ИНТЕРЕСЫ · {f.tags.length} ИЗ 8</Text>
-        <View style={styles.chips}>
-          {PROFILE_TAGS.map((t) => {
-            const on = f.tags.includes(t);
-            return (
-              <Pressable key={t} onPress={() => set({ tags: on ? f.tags.filter((x) => x !== t) : f.tags.length < 8 ? [...f.tags, t] : f.tags })} style={[styles.chip, on && styles.chipOn]} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-                {on && <Check size={13} color={colors.paper} strokeWidth={2.6} />}
-                <Text style={[styles.chipText, on && { color: colors.paper }]}>{t}</Text>
+        {!f ? <ActivityIndicator color={colors.ink} style={{ marginTop: 30 }} /> : (
+          <View style={styles.body}>
+            <View style={styles.card}>
+              <Field label="Имя" value={f.name} onChange={(v) => set({ name: v })} max={40} placeholder="Как тебя зовут" />
+              <View style={styles.sep} />
+              <Field label="Ник" value={f.handle} onChange={(v) => set({ handle: v.replace(/[^a-z0-9._]/g, '') })} max={24} prefix="@" lower placeholder="nickname" />
+              <View style={styles.sep} />
+              <Field label="О себе" value={f.about} onChange={(v) => set({ about: v })} max={300} multiline placeholder="Пара слов: что любишь, куда зовёшь друзей" />
+            </View>
+            <Text style={styles.hint}>Ник — для поиска и ссылки на профиль. Латиница, цифры, точка и _.</Text>
+
+            <View style={styles.card}>
+              <Pressable onPress={() => router.push('/profile/level')} style={({ pressed }) => [styles.link, pressed && styles.pressed]} accessibilityRole="button">
+                <View style={[styles.swatch, { backgroundColor: frame.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkText}>Рамка и метка на карте</Text>
+                  <Text style={styles.linkSub}>{frame.name}</Text>
+                </View>
+                <ChevronRight size={18} color="#A8A296" strokeWidth={2} />
               </Pressable>
-            );
-          })}
-        </View>
-        <Field label="Instagram" value={f.instagram} onChange={(v) => set({ instagram: v })} max={40} prefix="@" lower />
+              <View style={styles.sep} />
+              <Pressable onPress={preview} style={({ pressed }) => [styles.link, pressed && styles.pressed]} accessibilityRole="button">
+                <View style={styles.eye}><Eye size={17} color={colors.ink} strokeWidth={2} /></View>
+                <Text style={[styles.linkText, { flex: 1 }]}>Как видят другие</Text>
+                <ChevronRight size={18} color="#A8A296" strokeWidth={2} />
+              </Pressable>
+            </View>
 
-        <Pressable onPress={() => router.push('/profile/level')} style={styles.link} accessibilityRole="button">
-          <Text style={styles.linkText}>Рамка и метка на карте</Text><Text style={styles.linkSub}>выбрать</Text>
-        </Pressable>
-
-        {note && <Text style={[styles.note, { color: note.ok ? colors.ok : colors.accentText }]}>{note.text}</Text>}
-        <Pressable onPress={() => void save()} disabled={!!busy} style={[styles.save, busy === 'save' && { opacity: 0.6 }]} accessibilityRole="button">
-          <Text style={styles.saveText}>{busy === 'save' ? 'Сохраняю…' : 'Сохранить'}</Text>
-        </Pressable>
-        <Pressable onPress={preview} style={styles.preview} accessibilityRole="button">
-          <Eye size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.previewText}>Как видят другие</Text>
-        </Pressable>
-      </View>
-    </SettingsPage>
+            {note && <Text style={[styles.note, { color: note.ok ? colors.ok : colors.accentText }]}>{note.text}</Text>}
+            <Pressable onPress={() => void save()} disabled={!canSave} style={({ pressed }) => [styles.save, !canSave && styles.saveOff, pressed && styles.pressed]} accessibilityRole="button" accessibilityState={{ disabled: !canSave }}>
+              <Text style={[styles.saveText, !canSave && { color: colors.muted }]}>{busy === 'save' ? 'Сохраняю…' : dirty ? 'Сохранить' : 'Нет изменений'}</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 function Field({ label, value, onChange, max, multiline, placeholder, prefix, lower }: { label: string; value: string; onChange: (v: string) => void; max: number; multiline?: boolean; placeholder?: string; prefix?: string; lower?: boolean }) {
+  const [focus, setFocus] = useState(false);
   return (
-    <View style={{ gap: 6 }}>
-      <View style={styles.labelRow}><Text style={styles.cap}>{label.toUpperCase()}</Text><Text style={styles.count}>{value.length}/{max}</Text></View>
-      <View style={[styles.input, multiline && { minHeight: 96, alignItems: 'flex-start', paddingTop: 12 }]}>
+    <View style={styles.field}>
+      <View style={styles.labelRow}>
+        <Text style={[styles.label, focus && { color: colors.accentText }]}>{label}</Text>
+        {(focus || value.length > max * 0.8) && <Text style={styles.count}>{value.length}/{max}</Text>}
+      </View>
+      <View style={styles.inputRow}>
         {prefix && <Text style={styles.prefix}>{prefix}</Text>}
         <TextInput value={prefix ? value.replace(/^@/, '') : value} onChangeText={(v) => onChange(lower ? v.toLowerCase() : v)} maxLength={max} multiline={multiline} placeholder={placeholder}
-          placeholderTextColor={colors.muted3} autoCapitalize={lower ? 'none' : 'sentences'} style={[styles.inputText, multiline && { textAlignVertical: 'top' }]} accessibilityLabel={label} />
+          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+          placeholderTextColor={colors.muted3} autoCapitalize={lower ? 'none' : 'sentences'} autoCorrect={!lower}
+          style={[styles.input, multiline && { minHeight: 72, textAlignVertical: 'top' }]} accessibilityLabel={label} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  photo: { alignSelf: 'center', marginBottom: 4 },
-  cam: { position: 'absolute', right: 0, bottom: 0, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
-  cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
+  root: { flex: 1, backgroundColor: colors.paper },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10 },
+  round: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(251,250,246,0.85)', alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
+  saveTop: { minWidth: 84, height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  saveTopText: { fontFamily: fonts.body600, fontSize: 15, color: colors.paper },
+  photo: { alignSelf: 'center', marginTop: 14 },
+  cam: { position: 'absolute', right: 4, bottom: 4, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  change: { fontFamily: fonts.body600, fontSize: 15, color: colors.accentText },
+  body: { paddingHorizontal: 16, gap: 10 },
+  card: { borderRadius: 22, backgroundColor: colors.card, overflow: 'hidden' },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line2, marginLeft: 16 },
+  field: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  count: { fontFamily: fonts.mono500, fontSize: 10.5, color: colors.muted3 },
-  input: { flexDirection: 'row', alignItems: 'center', minHeight: 50, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
-  inputText: { flex: 1, fontFamily: fonts.body500, fontSize: 15.5, color: colors.ink, paddingVertical: 8 },
-  prefix: { fontFamily: fonts.body600, fontSize: 15.5, color: colors.muted, marginRight: 2 },
-  ideas: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6 },
-  idea: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 10, borderRadius: 16, backgroundColor: 'rgba(240,82,31,0.08)' },
-  ideaText: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.accentText },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line2 },
-  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  chipText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
-  link: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 52, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.card },
-  linkText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
-  linkSub: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
-  note: { fontFamily: fonts.body600, fontSize: 14, textAlign: 'center' },
-  save: { minHeight: 54, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  label: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted },
+  count: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted3 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  prefix: { fontFamily: fonts.body500, fontSize: 17, color: colors.muted, paddingTop: 6, marginRight: 1 },
+  input: { flex: 1, fontFamily: fonts.body500, fontSize: 17, color: colors.ink, paddingVertical: 6, outlineStyle: 'none' } as object,
+  hint: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, paddingHorizontal: 16, marginTop: -2, marginBottom: 8 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingHorizontal: 16 },
+  swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 3, borderColor: colors.paper, boxShadow: '0 0 0 1px rgba(23,22,26,0.12)' },
+  eye: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
+  linkText: { fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
+  linkSub: { fontFamily: fonts.body400, fontSize: 13.5, color: colors.muted },
+  note: { fontFamily: fonts.body600, fontSize: 14, textAlign: 'center', marginTop: 6 },
+  save: { marginTop: 8, minHeight: 54, borderRadius: 18, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  saveOff: { backgroundColor: colors.sand },
   saveText: { fontFamily: fonts.body700, fontSize: 16, color: colors.paper },
-  preview: { flexDirection: 'row', gap: 8, minHeight: 50, borderRadius: 18, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
-  previewText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  pressed: { opacity: 0.7 },
 });

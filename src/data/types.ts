@@ -274,6 +274,8 @@ export interface DataSource {
   getMySpot(): Promise<{ lat: number; lon: number }>;
   getMyProfile(): Promise<MyProfile>;
   getPersonDetails(id: string): Promise<PersonDetails | null>;
+  /** Друзья человека: всех видят его друзья, остальные — только общих. common — дружит и со мной. */
+  getPersonFriends(id: string): Promise<{ person: Person; common: boolean }[]>;
   /** Погода на 7 дней с сегодняшнего: Open-Meteo через кэш на сервере. */
   getForecast(): Promise<import('./weather').DayWeather[]>;
   /** Погода сейчас (Open-Meteo current). */

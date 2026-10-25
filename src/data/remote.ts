@@ -396,3 +396,16 @@ export async function getWeatherNow(): Promise<DayWeather> {
   if (!res.ok) throw new Error(`weather ${res.status}`);
   return nowFromOpenMeteo(await res.json());
 }
+
+/** Друзья человека (миграция 47): другу — все, остальным — только общие. Пока функции нет в базе — общие из карточки. */
+export async function getPersonFriends(id: string): Promise<{ person: Person; common: boolean }[]> {
+  const me = await requireUser();
+  const mine = await friendIds(me);
+  const res = await withTimeout(supabase().rpc('person_friends', { p: id }));
+  let rows = (res.data ?? []) as (ProfileRow & { common: boolean })[];
+  if (res.error) {
+    const card = await personCard(id);
+    rows = (await profiles(card?.common_ids ?? [])).map((r) => ({ ...r, common: true }));
+  }
+  return rows.filter((r) => r.id !== me).map((r) => ({ person: mapProfile(r, mine), common: r.common }));
+}
