@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
     if ((body.sources ?? 'sites') !== 'ai' && !sites.length && !telegram) return json({ error: 'Включи хотя бы один источник: Настройки → Источники → «собирать»' }, 400);
   }
-  const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'gemini-2.5-flash', sources: body.sources ?? 'sites', find_images: body.find_images ?? 0, sites, telegram, scheduled: !!body.scheduled };
+  const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'gemini-2.5-flash', sources: body.sources ?? 'sites', find_images: body.find_images ?? 6, sites, telegram, scheduled: !!body.scheduled };
   const { data: run, error } = await db.from('robot_runs').insert({ params, status: 'queued', started_by: me }).select('id').single();
   if (error || !run) return json({ error: error?.message ?? 'insert' }, 500);
   await db.from('robot_log').insert({ run_id: run.id, text: `${body.scheduled ? 'по расписанию' : 'вручную'} · ${task === 'search' ? 'поиск событий' : 'обложки ИИ'} · жду GitHub Actions` });

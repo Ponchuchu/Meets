@@ -23,8 +23,8 @@ on:
         default: 'gemini-2.5-flash'
       find_images:
         type: string
-        description: 'Сколько карточек без фото дать Kimi на поиск картинки (0 — не искать; дорого по токенам)'
-        default: '0'
+        description: 'Сколько карточек без фото дать Kimi на поиск картинки (0 — не искать)'
+        default: '6'
       sources:
         type: string
         description: 'sites — только афиши сайтов без ИИ (бесплатно), ai — только ИИ, all — оба'
@@ -70,7 +70,7 @@ jobs:
           SEARCH_TOPICS: ${{ inputs.topics }}
           SEARCH_SOURCES: ${{ inputs.sources || 'sites' }}
           SEARCH_SITES_ON: ${{ inputs.sites || 'yandex,sxodim' }}
-          SEARCH_FIND_IMAGES: ${{ inputs.find_images || '0' }}
+          SEARCH_FIND_IMAGES: ${{ inputs.find_images || '6' }}
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
         run: node worker/src/search.ts --run > search.json 2> search.log || code=$?; cat search.log >&2; exit ${code:-0}

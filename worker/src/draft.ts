@@ -1,5 +1,5 @@
 // Черновик карточки из разобранного поста: площадка, точка, флаги, публиковать ли сразу.
-import { ruAddress } from './ruAddress.ts';
+import { canonAddress } from './ruAddress.ts';
 import { isVague, matchVenue, type VenueRow } from './venues.ts';
 import type { Draft, Extraction, Flag, Point, RawPost, Source } from './types.ts';
 
@@ -26,6 +26,8 @@ export async function buildDraft(
   if (!point) flags.push('needs_pin');
   if (x.price_unsure) flags.push('check_price');
   const confidence = Math.round(x.confidence * 100) / 100;
+  // Адрес в одном виде: «улица Жандосова, 1/1», этаж и офис — в заметку.
+  const addr = canonAddress(x.address);
   return {
     title: x.title,
     category: x.category,
@@ -35,8 +37,8 @@ export async function buildDraft(
     is_long: x.is_long,
     venue_id: venue?.id ?? null,
     venue_name: venue?.name ?? x.venue_name,
-    address: x.address ? ruAddress(x.address) : x.address,
-    address_note: x.address_note,
+    address: addr.address,
+    address_note: x.address_note ?? addr.note,
     point: venue ? null : point,
     price_min: x.price_min,
     price_max: x.price_max,
