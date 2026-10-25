@@ -2,13 +2,14 @@
 // Сама библиотека (~1 МБ) грузится отдельным куском после первого экрана — запуск быстрее (npm run perf).
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type mapboxgl from 'mapbox-gl';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StyleSheet, View } from 'react-native';
 import { config } from '../lib/config';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
+import { symbolMarkers } from './symbols';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 function webglOk(): boolean {
@@ -27,8 +28,10 @@ const WEB_IMAGES: Record<string, string> = {
 };
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
-  const { theme, camera, markers, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
+  const { theme, camera, markers: pins, symbols, onSymbol, onMode, onZoom, onCenter, bottomInset = 0, traffic, fog, lines, onPress, onBearing } = props;
   const threeD = props.threeD !== false;
+  // Объёмные значки (FIX5) в web — обычные маркеры с той же картинкой.
+  const markers = useMemo(() => (symbols?.length ? [...symbolMarkers(symbols, onSymbol), ...pins] : pins), [symbols, onSymbol, pins]);
   const host = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -213,7 +216,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     setTick((x) => x + 1);
   }, [markers, ready]);
 
-  if (failed) return <StaticMap ref={staticRef} {...props} />;
+  if (failed) return <StaticMap ref={staticRef} {...props} markers={markers} />;
 
   return (
     <View style={StyleSheet.absoluteFill}>

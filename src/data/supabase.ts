@@ -53,6 +53,7 @@ export function createSupabaseSource(): DataSource {
       getForecast: remote.getForecast,
       getWeatherNow: remote.getWeatherNow,
       getPersonDetails: async (id) => (UUID.test(id) ? remote.getPersonDetails(id) : null),
+      getPersonFriends: async (id) => (UUID.test(id) ? remote.getPersonFriends(id) : []),
     };
   }
   return {
@@ -68,5 +69,6 @@ export function createSupabaseSource(): DataSource {
     getForecast: remote.getForecast,
     getWeatherNow: remote.getWeatherNow,
     getPersonDetails: async (id) => (UUID.test(id) ? remote.getPersonDetails(id) : demo.getPersonDetails(id)),
+    getPersonFriends: async (id) => (UUID.test(id) ? remote.getPersonFriends(id) : demo.getPersonFriends(id)),
   };
 }

@@ -45,6 +45,27 @@ export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<
   await must(sb().from('profiles').update(patch).eq('id', me()));
 }
 
+/** Фото в профиль без смены главного (для «ещё фото»). */
+export async function uploadPhoto(uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).arrayBuffer();
+  const path = `${me()}/photo-${Date.now()}.jpg`;
+  const { error } = await withTimeout(sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' }), 30000);
+  if (error) throw new Error(error.message);
+  return sb().storage.from('avatars').getPublicUrl(path).data.publicUrl;
+}
+
+/** Мои фото (главное первым) и день рождения. Пока в базе нет колонки photos — только главное фото. */
+export async function getMyPhotos(): Promise<{ photos: string[]; birth: string | null }> {
+  const { data } = await sb().from('profiles').select('*').eq('id', me()).maybeSingle();
+  const r = (data ?? {}) as { photo_url?: string | null; photos?: string[] | null; birth_date?: string | null };
+  return { photos: [...(r.photo_url ? [r.photo_url] : []), ...(r.photos ?? []).filter((x) => x !== r.photo_url)], birth: r.birth_date ?? null };
+}
+
+/** Сохранить порядок фото: первое — главное (photo_url), остальные — в photos. */
+export async function saveMyPhotos(urls: string[]): Promise<void> {
+  await must(sb().from('profiles').update({ photo_url: urls[0] ?? null, photos: urls.slice(1, 6) }).eq('id', me()));
+}
+
 export async function uploadAvatar(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).arrayBuffer();
   // Имя каждый раз новое, поэтому без upsert: он требует лишних прав и раньше ронял загрузку.
@@ -347,14 +368,15 @@ export async function getRoute(from: { lat: number; lon: number }, to: { lat: nu
 
 // ——— Кто идёт и «ищу компанию» (V6CardPeople) ———
 
-export interface Looker { id: string; name: string; photo_url: string | null; note: string | null; friend: boolean }
+export interface Looker { id: string; name: string; photo_url: string | null; note: string | null; friend: boolean; moods?: string[] }
+export interface MyLook { moods: string[]; visibility: 'all' | 'fof'; note: string }
 
 /** Друзья, которые идут (RLS attendance — только друзья), и кто ищет компанию на это событие. */
-export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[]; lookers: Looker[]; iLook: boolean }> {
+export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[]; lookers: Looker[]; iLook: boolean; mine: MyLook | null }> {
   const id = me();
   const [att, look] = await Promise.all([
     must(sb().from('attendance').select('user_id').eq('event_id', eventId).in('status', ['going', 'arrived']).neq('user_id', id)) as Promise<{ user_id: string }[]>,
-    must(sb().from('company_requests').select('user_id,note').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null }[]>,
+    must(sb().from('company_requests').select('user_id,note,moods,visibility').eq('event_id', eventId)) as Promise<{ user_id: string; note: string | null; moods: string[] | null; visibility: 'all' | 'fof' }[]>,
   ]);
   const ids = [...new Set([...att.map((a) => a.user_id), ...look.map((l) => l.user_id)])].filter((x) => x !== id);
   const profs = ids.length ? await must(sb().from('profiles').select('id,name,handle,photo_url,about,map_frame,map_trail,map_shape').in('id', ids)) as Profile[] : [];
@@ -363,14 +385,15 @@ export async function getWhoGoes(eventId: string): Promise<{ friends: Profile[];
     friends: profs.filter((p) => friendIds.has(p.id)),
     lookers: look.filter((l) => l.user_id !== id).map((l) => {
       const p = profs.find((x) => x.id === l.user_id);
-      return { id: l.user_id, name: p?.name ?? 'Кто-то', photo_url: p?.photo_url ?? null, note: l.note, friend: friendIds.has(l.user_id) };
+      return { id: l.user_id, name: p?.name ?? 'Кто-то', photo_url: p?.photo_url ?? null, note: l.note, friend: friendIds.has(l.user_id), moods: l.moods ?? [] };
     }),
     iLook: look.some((l) => l.user_id === id),
+    mine: (() => { const m = look.find((l) => l.user_id === id); return m ? { moods: m.moods ?? [], visibility: m.visibility, note: m.note ?? '' } : null; })(),
   };
 }
 
-export async function setLooking(eventId: string, on: boolean): Promise<void> {
-  if (on) await must(sb().from('company_requests').upsert({ user_id: me(), event_id: eventId }));
+export async function setLooking(eventId: string, on: boolean, look?: MyLook): Promise<void> {
+  if (on) await must(sb().from('company_requests').upsert({ user_id: me(), event_id: eventId, ...(look ? { moods: look.moods, visibility: look.visibility, note: look.note.trim() || null } : {}) }));
   else await must(sb().from('company_requests').delete().eq('user_id', me()).eq('event_id', eventId));
 }
 

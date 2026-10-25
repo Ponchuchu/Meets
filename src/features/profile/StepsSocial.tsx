@@ -1,12 +1,12 @@
 // Шаги с друзьями (FIX3, FIX5): рейтинг за день или неделю с пьедесталом и соревнования «кто больше» или «кто первым до цели».
 // Друзья видят твои шаги, пока включено «Показывать мои шаги друзьям» (profiles.steps_visible).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Crown, Swords, Trophy, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Crown, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ART } from '../../ui/art';
 import { data } from '../../data';
 import { answerChallenge, createChallenge, getChallenges, getFriendsStepsDays, type Challenge } from '../../live/profileExtras';
-import { AvatarFrame } from '../../profile/frames';
 import { challengeState, rankFor, weekDays } from '../../profile/stepsSocial';
 import { colors, fonts, radii } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
@@ -41,8 +41,8 @@ export function StepsLeaderboard() {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Trophy size={20} color="#E2A21B" strokeWidth={2} />
-        <Text style={styles.title}>Друзья</Text>
+        <Image source={ART.trophy} style={{ width: 30, height: 30 }} />
+        <Text style={styles.title}>Рейтинг друзей</Text>
         <View style={styles.seg}>
           {(['day', 'week'] as const).map((p) => (
             <Pressable key={p} onPress={() => setPeriod(p)} style={[styles.segBtn, period === p && styles.segOn]} accessibilityRole="tab" accessibilityState={{ selected: period === p }}>
@@ -82,7 +82,7 @@ export function StepsLeaderboard() {
         return (
           <View key={r.user_id} style={[styles.rank, r.me && styles.rankMe]}>
             <View style={styles.place}><Text style={styles.placeText}>{i + 1}</Text></View>
-            <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={40} animate={false} />
+            <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={40} />
             <View style={{ flex: 1, gap: 5 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
                 <Text style={styles.name} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
@@ -97,25 +97,30 @@ export function StepsLeaderboard() {
   );
 }
 
-/** Пьедестал: 2-е место слева, 1-е по центру выше всех, 3-е справа; аватарки стоят на ступенях. */
+/**
+ * Пьедестал (26 окт., без медалей-наклеек): 2-е место слева, 1-е по центру выше всех, 3-е справа.
+ * Аватарка в кольце цвета места (золото, серебро, бронза), под ней — номер места кружком; ступени — гладкие, с крупной цифрой.
+ */
 function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; total: number; me: boolean }[] }) {
   const order = [1, 0, 2].filter((i) => rows[i]);
-  const H = [96, 70, 52];
-  const tone = ['#E8B12A', '#A9B1BA', '#C27D45'];
+  const H = [92, 66, 48];
+  const tone = [['#FFE07A', '#E2A21B'], ['#E6EAEE', '#A9B1BA'], ['#F2C9A2', '#C27D45']];
   return (
     <View style={styles.podium}>
       {order.map((i) => {
         const r = rows[i];
+        const size = i === 0 ? 64 : 52;
         return (
           <View key={r.user_id} style={styles.podCol}>
-            {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -2 }} />}
-            <View style={[styles.podFace, { borderColor: tone[i] }]}>
-              <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={i === 0 ? 62 : 50} animate={false} />
+            {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -4 }} />}
+            <View style={[styles.podFace, { borderColor: tone[i][1], width: size + 10, height: size + 10, borderRadius: (size + 10) / 2 }]}>
+              <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={size} />
+              <View style={[styles.podPlace, { backgroundColor: tone[i][1] }]}><Text style={styles.podPlaceText}>{i + 1}</Text></View>
             </View>
             <Text style={styles.podName} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
             <Text style={styles.podSteps}>{fmt(r.total)}</Text>
-            <View style={[styles.step, { height: H[i], backgroundColor: tone[i] }]}>
-              <View style={styles.stepTop} />
+            <View style={[styles.step, { height: H[i], backgroundColor: tone[i][1] }]}>
+              <View style={[styles.stepTop, { backgroundColor: tone[i][0] }]} />
               <Text style={styles.stepN}>{i + 1}</Text>
             </View>
           </View>
@@ -137,10 +142,15 @@ export function StepsChallenges() {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Swords size={20} color={colors.accent} strokeWidth={2} />
+        <Image source={ART.trophy} style={{ width: 30, height: 30 }} />
         <Text style={styles.title}>Соревнования</Text>
       </View>
-      {!list.length && !q.isPending && <Text style={styles.sub}>Позови друзей: кто больше пройдёт за неделю или кто первым наберёт 100 000.</Text>}
+      {!list.length && !q.isPending && (
+        <View style={styles.empty}>
+          <Image source={ART.highfive} style={{ width: 84, height: 84 }} />
+          <Text style={[styles.sub, { flex: 1 }]}>Позови друзей: кто больше пройдёт за неделю или кто первым наберёт 100 000.</Text>
+        </View>
+      )}
       {list.map(c => {
         const st = challengeState(c, todayKey());
         return (
@@ -251,11 +261,14 @@ const styles = StyleSheet.create({
   wdNum: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
   podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 8, paddingTop: 6 },
   podCol: { flex: 1, maxWidth: 110, alignItems: 'center', gap: 2 },
-  podFace: { borderWidth: 3, borderRadius: 40, padding: 1, backgroundColor: '#FBFAF6' },
-  podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 4, maxWidth: 100 },
+  podFace: { borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBFAF6' },
+  podPlace: { position: 'absolute', bottom: -9, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center' },
+  podPlaceText: { fontFamily: fonts.display800, fontSize: 12, color: '#FFFFFF' },
+  podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 12, maxWidth: 100 },
   podSteps: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.muted2, marginBottom: 6 },
   step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
-  stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 8, backgroundColor: 'rgba(255,255,255,0.35)' },
+  stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 10 },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepN: { fontFamily: fonts.display800, fontSize: 30, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.18)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
   rank: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16 },
   rankMe: { backgroundColor: 'rgba(240,82,31,0.08)' },

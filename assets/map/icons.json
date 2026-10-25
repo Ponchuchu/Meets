@@ -1,0 +1,471 @@
+{
+ "size_pt": [
+  64,
+  70
+ ],
+ "anchor": "bottom",
+ "groups": [
+  {
+   "id": "music",
+   "name": "Музыка и вечеринки",
+   "icons": [
+    {
+     "id": "ev-jazz",
+     "label": "Джаз"
+    },
+    {
+     "id": "ev-rock",
+     "label": "Рок-концерт"
+    },
+    {
+     "id": "ev-concert",
+     "label": "Концерт"
+    },
+    {
+     "id": "ev-orchestra",
+     "label": "Оркестр"
+    },
+    {
+     "id": "ev-club",
+     "label": "Клуб / DJ"
+    },
+    {
+     "id": "ev-karaoke",
+     "label": "Караоке"
+    },
+    {
+     "id": "ev-standup",
+     "label": "Стендап"
+    },
+    {
+     "id": "ev-festival",
+     "label": "Фестиваль"
+    },
+    {
+     "id": "ev-party",
+     "label": "Вечеринка"
+    },
+    {
+     "id": "ev-holiday",
+     "label": "Праздник"
+    },
+    {
+     "id": "ev-fireworks",
+     "label": "Салют"
+    }
+   ]
+  },
+  {
+   "id": "almaty",
+   "name": "Места Алматы",
+   "icons": [
+    {
+     "id": "pl-shymbulak",
+     "label": "Шымбулак"
+    },
+    {
+     "id": "pl-cable",
+     "label": "Канатка"
+    },
+    {
+     "id": "pl-koktobe",
+     "label": "Кок-Тобе"
+    },
+    {
+     "id": "pl-medeu",
+     "label": "Медеу"
+    },
+    {
+     "id": "pl-bao",
+     "label": "БАО"
+    },
+    {
+     "id": "pl-terrenkur",
+     "label": "Терренкур"
+    },
+    {
+     "id": "pl-panfilov",
+     "label": "Парк Панфилова"
+    },
+    {
+     "id": "pl-gogol",
+     "label": "Парк Гоголя"
+    },
+    {
+     "id": "pl-charyn",
+     "label": "Чарын"
+    }
+   ]
+  },
+  {
+   "id": "culture",
+   "name": "Культура и фан-ивенты",
+   "icons": [
+    {
+     "id": "ev-movie",
+     "label": "Кино"
+    },
+    {
+     "id": "ev-theatre",
+     "label": "Театр"
+    },
+    {
+     "id": "pl-museum",
+     "label": "Музей"
+    },
+    {
+     "id": "ev-art",
+     "label": "Выставка"
+    },
+    {
+     "id": "ev-books",
+     "label": "Книжный клуб"
+    },
+    {
+     "id": "ev-photo",
+     "label": "Фотосет"
+    },
+    {
+     "id": "ev-comicon",
+     "label": "Комикон"
+    },
+    {
+     "id": "ev-cosplay",
+     "label": "Косплей"
+    },
+    {
+     "id": "ev-asia",
+     "label": "Аниме / Азия-фест"
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "name": "Еда",
+   "icons": [
+    {
+     "id": "ev-burger",
+     "label": "Бургерная"
+    },
+    {
+     "id": "ev-coffee",
+     "label": "Кофейня"
+    },
+    {
+     "id": "ev-plov",
+     "label": "Плов"
+    },
+    {
+     "id": "ev-shawarma",
+     "label": "Шаурма"
+    },
+    {
+     "id": "ev-pizza",
+     "label": "Пицца"
+    },
+    {
+     "id": "ev-sushi",
+     "label": "Суши"
+    },
+    {
+     "id": "ev-ramen",
+     "label": "Рамен"
+    },
+    {
+     "id": "ev-shashlik",
+     "label": "Шашлык"
+    },
+    {
+     "id": "ev-bakery",
+     "label": "Пекарня"
+    },
+    {
+     "id": "ev-dessert",
+     "label": "Десерты"
+    },
+    {
+     "id": "ev-icecream",
+     "label": "Мороженое"
+    },
+    {
+     "id": "ev-streetfood",
+     "label": "Стрит-фуд"
+    }
+   ]
+  },
+  {
+   "id": "drinks",
+   "name": "Напитки и дегустации",
+   "icons": [
+    {
+     "id": "ev-bar",
+     "label": "Бар"
+    },
+    {
+     "id": "ev-beer",
+     "label": "Пивной бар"
+    },
+    {
+     "id": "ev-wine",
+     "label": "Дегустация вина"
+    },
+    {
+     "id": "ev-cheese",
+     "label": "Сырная дегустация"
+    },
+    {
+     "id": "ev-tea",
+     "label": "Чайная"
+    },
+    {
+     "id": "ev-cooking",
+     "label": "Мастер-класс"
+    }
+   ]
+  },
+  {
+   "id": "sport",
+   "name": "Спорт",
+   "icons": [
+    {
+     "id": "ev-football",
+     "label": "Футбол"
+    },
+    {
+     "id": "ev-basket",
+     "label": "Баскетбол"
+    },
+    {
+     "id": "ev-tennis",
+     "label": "Теннис"
+    },
+    {
+     "id": "ev-run",
+     "label": "Пробежка"
+    },
+    {
+     "id": "ev-bike",
+     "label": "Велозаезд"
+    },
+    {
+     "id": "ev-yoga",
+     "label": "Йога"
+    },
+    {
+     "id": "ev-snowboard",
+     "label": "Сноуборд"
+    },
+    {
+     "id": "pl-ski",
+     "label": "Лыжи"
+    },
+    {
+     "id": "pl-golf",
+     "label": "Гольф"
+    },
+    {
+     "id": "pl-skate",
+     "label": "Каток"
+    },
+    {
+     "id": "pl-horse",
+     "label": "Конная прогулка"
+    }
+   ]
+  },
+  {
+   "id": "fun",
+   "name": "Развлечения",
+   "icons": [
+    {
+     "id": "pl-bowling",
+     "label": "Боулинг"
+    },
+    {
+     "id": "pl-billiard",
+     "label": "Бильярд"
+    },
+    {
+     "id": "pl-darts",
+     "label": "Дартс"
+    },
+    {
+     "id": "pl-quest",
+     "label": "Квест"
+    },
+    {
+     "id": "ev-quiz",
+     "label": "Квиз"
+    },
+    {
+     "id": "ev-games",
+     "label": "Настолки"
+    },
+    {
+     "id": "ev-mafia",
+     "label": "Мафия"
+    },
+    {
+     "id": "pl-vr",
+     "label": "VR"
+    },
+    {
+     "id": "pl-gaming",
+     "label": "Киберспорт"
+    },
+    {
+     "id": "pl-karting",
+     "label": "Картинг"
+    },
+    {
+     "id": "pl-paintball",
+     "label": "Пейнтбол"
+    },
+    {
+     "id": "pl-archery",
+     "label": "Лучный тир"
+    },
+    {
+     "id": "pl-trampoline",
+     "label": "Батуты"
+    },
+    {
+     "id": "pl-climb",
+     "label": "Скалодром"
+    },
+    {
+     "id": "pl-wheel",
+     "label": "Колесо обозрения"
+    },
+    {
+     "id": "pl-coaster",
+     "label": "Аттракционы"
+    },
+    {
+     "id": "pl-aqua",
+     "label": "Аквапарк"
+    }
+   ]
+  },
+  {
+   "id": "nature",
+   "name": "Природа",
+   "icons": [
+    {
+     "id": "ev-picnic",
+     "label": "Пикник"
+    },
+    {
+     "id": "ev-camping",
+     "label": "Кемпинг"
+    },
+    {
+     "id": "ev-campfire",
+     "label": "Костёр"
+    },
+    {
+     "id": "pl-zoo",
+     "label": "Зоопарк"
+    },
+    {
+     "id": "pl-garden",
+     "label": "Ботсад"
+    },
+    {
+     "id": "pl-view",
+     "label": "Смотровая"
+    }
+   ]
+  },
+  {
+   "id": "social",
+   "name": "Общение и обучение",
+   "icons": [
+    {
+     "id": "ev-talks",
+     "label": "Разговорный клуб"
+    },
+    {
+     "id": "ev-lecture",
+     "label": "Лекция"
+    },
+    {
+     "id": "ev-tech",
+     "label": "IT / хакатон"
+    },
+    {
+     "id": "ev-business",
+     "label": "Нетворкинг"
+    },
+    {
+     "id": "ev-language",
+     "label": "Языки"
+    },
+    {
+     "id": "ev-dating",
+     "label": "Знакомства"
+    },
+    {
+     "id": "ev-volunteer",
+     "label": "Волонтёрство"
+    }
+   ]
+  },
+  {
+   "id": "family",
+   "name": "Дети и питомцы",
+   "icons": [
+    {
+     "id": "ev-kids",
+     "label": "Для детей"
+    },
+    {
+     "id": "ev-pets",
+     "label": "С питомцами"
+    }
+   ]
+  },
+  {
+   "id": "shop",
+   "name": "ТРЦ и шопинг",
+   "icons": [
+    {
+     "id": "mall-stripes",
+     "label": "ТРЦ · полосатый"
+    },
+    {
+     "id": "mall-dome",
+     "label": "ТРЦ · купол"
+    },
+    {
+     "id": "mall-tower",
+     "label": "ТРЦ · башня"
+    },
+    {
+     "id": "mall-long",
+     "label": "ТРЦ · длинный"
+    },
+    {
+     "id": "mall-columns",
+     "label": "ТРЦ · колонны"
+    },
+    {
+     "id": "pl-bazaar",
+     "label": "Базар"
+    },
+    {
+     "id": "pl-shopping",
+     "label": "Шопинг"
+    },
+    {
+     "id": "pl-boutique",
+     "label": "Бутик"
+    },
+    {
+     "id": "pl-foodcourt",
+     "label": "Фудкорт"
+    }
+   ]
+  }
+ ]
+}

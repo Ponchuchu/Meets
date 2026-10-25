@@ -6,6 +6,7 @@ import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
 import { StateView } from '../../ui/StateView';
+import { ActivityBell } from '../activity/ActivityBell';
 import { router } from 'expo-router';
 import { config } from '../../lib/config';
 import { createFriendGroup } from '../../live/api';
@@ -124,6 +125,8 @@ export default function ChatsScreen() {
           {headTitle !== 'Чаты' && <ActivityIndicator size="small" color={colors.muted2} />}
           <Text style={[styles.h1, headTitle !== 'Чаты' && styles.h1Wait]} accessibilityRole="header" numberOfLines={1}>{headTitle}</Text>
         </View>
+        {/* Уведомления (FIX5): колокольчик с числом нового — заявки, приглашения, стикеры, входы в аккаунт. */}
+        <ActivityBell style={[styles.round, { marginRight: 8 }]} dot={styles.bellBadge} dotText={styles.bellBadgeText} />
         <Pressable onPress={() => setCompose(true)} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Новый чат"><SquarePen size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />
@@ -324,6 +327,8 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   h1: { fontFamily: fonts.display700, fontSize: 30, letterSpacing: -0.75, color: colors.ink },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  bellBadge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  bellBadgeText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
   search: { height: 46, paddingHorizontal: 16, borderRadius: 23, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
   filters: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 13, borderRadius: 17, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card },

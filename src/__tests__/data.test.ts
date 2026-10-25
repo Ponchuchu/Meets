@@ -126,3 +126,14 @@ describe('FIX1 И2 п.12: «Нет связи с сервером» — толь
     expect(isDbError({ name: 'Error', message: 'Failed to fetch' })).toBe(true);
   });
 });
+
+import { birthdayText } from '../lib/format';
+describe('день рождения без года', () => {
+  it('понимает разные записи', () => {
+    expect(birthdayText('07-22')).toBe('22 июля');
+    expect(birthdayText('2001-03-14')).toBe('14 марта');
+    expect(birthdayText('14.03.2001')).toBe('14 марта');
+    expect(birthdayText('')).toBeNull();
+    expect(birthdayText('13-40')).toBeNull();
+  });
+});

@@ -115,7 +115,7 @@ export default function Admin() {
               {sub === 'queue' ? <Moderation live={staff} /> : <EventsList live={staff} filter={filter} onFilter={setFilter} />}
             </>
           )}
-          {tab === 'search' && <SearchTab live={staff} onSettings={() => go('settings')} onDone={showFound} />}
+          {tab === 'search' && <SearchTab live={staff} onSettings={() => go('settings')} onDone={showFound} onReview={() => go('events', 'queue')} />}
           {tab === 'settings' && <SettingsTab live={staff} />}
         </View>
       </ScrollView>
@@ -123,11 +123,11 @@ export default function Admin() {
   );
 }
 
-function SearchTab({ live, onSettings, onDone }: { live: boolean; onSettings: () => void; onDone: () => void }) {
+function SearchTab({ live, onSettings, onDone, onReview }: { live: boolean; onSettings: () => void; onDone: () => void; onReview: () => void }) {
   const view = useRobotView(live);
   return (
     <>
-      <SearchCard live={live} onSettings={onSettings} onDone={onDone} />
+      <SearchCard live={live} onSettings={onSettings} onDone={onDone} onReview={onReview} />
       <RunHistory live={live} runs={view.runs} loading={view.loading} />
     </>
   );

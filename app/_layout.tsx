@@ -1,7 +1,5 @@
-import { Geologica_600SemiBold, Geologica_700Bold, Geologica_800ExtraBold } from '@expo-google-fonts/geologica';
-import { GolosText_400Regular, GolosText_500Medium, GolosText_600SemiBold, GolosText_700Bold } from '@expo-google-fonts/golos-text';
-import { JetBrainsMono_500Medium, JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono';
 import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
+import { Rubik_400Regular, Rubik_500Medium, Rubik_600SemiBold, Rubik_700Bold, Rubik_800ExtraBold } from '@expo-google-fonts/rubik';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
@@ -47,9 +45,7 @@ export default function RootLayout() {
   useNetWatch();
   useAuthWatch();
   const [loaded, error] = useFonts({
-    Geologica_600SemiBold, Geologica_700Bold, Geologica_800ExtraBold,
-    GolosText_400Regular, GolosText_500Medium, GolosText_600SemiBold, GolosText_700Bold,
-    JetBrainsMono_500Medium, JetBrainsMono_600SemiBold, Pacifico_400Regular,
+    Rubik_400Regular, Rubik_500Medium, Rubik_600SemiBold, Rubik_700Bold, Rubik_800ExtraBold, Pacifico_400Regular,
   });
 
   useEffect(() => {

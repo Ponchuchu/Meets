@@ -226,6 +226,8 @@ export interface PersonDetails {
   badges: string[]; // id значков
   badgeLine?: string; // «АЛМАТЫ 31% · 4 СТРАНЫ»
   gallery: string[];
+  /** День рождения «MM-DD» — без года, только друзьям (26 окт.: вместо возраста). */
+  birthday?: string;
   online: boolean;
   lastSeen?: string; // «Была недавно»
   instagram?: string;
@@ -248,6 +250,10 @@ export interface PersonDetails {
   planLine?: { text: string; eventId?: string; color: string };
   /** Когда последний раз был в приложении (видят друзья). */
   seenAt?: string;
+  /** С какого телефона заходил (видят друзья): значок яблока или Android. */
+  device?: 'ios' | 'android';
+  /** Короткий статус под именем: «ищу компанию на выходные». */
+  status?: string;
   /** Шаги сегодня и число альбомов — если человек это открыл. */
   stepsToday?: number;
   memoriesCount?: number;
@@ -270,6 +276,8 @@ export interface DataSource {
   getMySpot(): Promise<{ lat: number; lon: number }>;
   getMyProfile(): Promise<MyProfile>;
   getPersonDetails(id: string): Promise<PersonDetails | null>;
+  /** Друзья человека: всех видят его друзья, остальные — только общих. common — дружит и со мной. */
+  getPersonFriends(id: string): Promise<{ person: Person; common: boolean }[]>;
   /** Погода на 7 дней с сегодняшнего: Open-Meteo через кэш на сервере. */
   getForecast(): Promise<import('./weather').DayWeather[]>;
   /** Погода сейчас (Open-Meteo current). */

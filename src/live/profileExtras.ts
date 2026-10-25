@@ -21,7 +21,7 @@ export interface PastEvent { event_id: string; title: string; category: string; 
 export interface Memory { id: string; event_id: string | null; title: string; note: string | null; happened_at: string; cover: string | null; photos: { id: string; url: string }[] }
 export interface Sleepover { night: string; host_id: string | null; host_name: string | null; host_photo: string | null; area: string | null }
 
-interface DemoState { memories: Memory[]; shown: string[]; memoriesVisible: boolean; sleepoversVisible: boolean }
+interface DemoState { memories: Memory[]; shown: string[]; memoriesVisible: boolean; memoriesPublic?: boolean; sleepoversVisible: boolean }
 const useDemo = create<DemoState>()(persist(() => ({ memories: [], shown: [], memoriesVisible: false, sleepoversVisible: false } as DemoState), { name: 'ryadom-demo-memories', storage: deviceStorage() }));
 
 const DEMO_PAST: PastEvent[] = [
@@ -67,7 +67,12 @@ export async function createMemory(p: { event_id: string | null; title: string; 
     useDemo.setState(s => ({ memories: [{ id, event_id: p.event_id, title: p.title, note: null, happened_at: p.happened_at, cover: null, photos: [] }, ...s.memories] }));
     return id;
   }
-  const row = await must(sb().from('memories').upsert({ user_id: me(), event_id: p.event_id, title: p.title.slice(0, 120), happened_at: p.happened_at }, { onConflict: 'user_id,event_id' }).select('id').single()) as { id: string };
+  // Альбом события — один (берём уже созданный); с миграции 50 уникальности в базе нет, постов про событие может быть много.
+  if (p.event_id) {
+    const old = await must(sb().from('memories').select('id').eq('user_id', me()).eq('event_id', p.event_id).limit(1)) as { id: string }[];
+    if (old[0]) return old[0].id;
+  }
+  const row = await must(sb().from('memories').insert({ user_id: me(), event_id: p.event_id, title: p.title.slice(0, 120), happened_at: p.happened_at }).select('id').single()) as { id: string };
   return row.id;
 }
 
@@ -111,18 +116,20 @@ export async function learnMyPlaces(): Promise<{ places: number; sleepovers: num
   return must(sb().rpc('learn_my_places'), 20000);
 }
 
-export interface ProfileExtras { shown: string[]; memoriesVisible: boolean; sleepoversVisible: boolean; stepsVisible?: boolean }
+export interface ProfileExtras { shown: string[]; memoriesVisible: boolean; sleepoversVisible: boolean; stepsVisible?: boolean; /** Альбомы видят все, не только друзья (миграция 49). */ memoriesPublic?: boolean }
 export async function getProfileExtras(): Promise<ProfileExtras> {
-  if (!LIVE) { const s = useDemo.getState(); return { shown: s.shown, memoriesVisible: s.memoriesVisible, sleepoversVisible: s.sleepoversVisible, stepsVisible: true }; }
-  const r = await must(sb().from('profiles').select('shown_badges,memories_visible,sleepovers_visible,steps_visible').eq('id', me()).single()) as { shown_badges: string[] | null; memories_visible: boolean; sleepovers_visible: boolean; steps_visible: boolean };
-  return { shown: r.shown_badges ?? [], memoriesVisible: r.memories_visible, sleepoversVisible: r.sleepovers_visible, stepsVisible: r.steps_visible };
+  if (!LIVE) { const s = useDemo.getState(); return { shown: s.shown, memoriesVisible: s.memoriesVisible, memoriesPublic: !!s.memoriesPublic, sleepoversVisible: s.sleepoversVisible, stepsVisible: true }; }
+  // select('*'): колонка memories_public появится после миграции 49 — до неё просто false.
+  const r = await must(sb().from('profiles').select('*').eq('id', me()).single()) as { shown_badges: string[] | null; memories_visible: boolean; memories_public?: boolean; sleepovers_visible: boolean; steps_visible: boolean };
+  return { shown: r.shown_badges ?? [], memoriesVisible: r.memories_visible, memoriesPublic: !!r.memories_public, sleepoversVisible: r.sleepovers_visible, stepsVisible: r.steps_visible };
 }
 
 export async function saveProfileExtras(p: Partial<ProfileExtras>): Promise<void> {
-  if (!LIVE) { useDemo.setState({ ...(p.shown ? { shown: p.shown } : {}), ...(p.memoriesVisible != null ? { memoriesVisible: p.memoriesVisible } : {}), ...(p.sleepoversVisible != null ? { sleepoversVisible: p.sleepoversVisible } : {}) }); return; }
+  if (!LIVE) { useDemo.setState({ ...(p.shown ? { shown: p.shown } : {}), ...(p.memoriesVisible != null ? { memoriesVisible: p.memoriesVisible } : {}), ...(p.memoriesPublic != null ? { memoriesPublic: p.memoriesPublic } : {}), ...(p.sleepoversVisible != null ? { sleepoversVisible: p.sleepoversVisible } : {}) }); return; }
   await must(sb().from('profiles').update({
     ...(p.shown ? { shown_badges: p.shown.slice(0, 3) } : {}),
     ...(p.memoriesVisible != null ? { memories_visible: p.memoriesVisible } : {}),
+    ...(p.memoriesPublic != null ? { memories_public: p.memoriesPublic } : {}),
     ...(p.sleepoversVisible != null ? { sleepovers_visible: p.sleepoversVisible } : {}),
     ...(p.stepsVisible != null ? { steps_visible: p.stepsVisible } : {}),
   }).eq('id', me()));
@@ -196,4 +203,24 @@ export async function createChallenge(p: { friends: string[]; days: number; kind
 export async function answerChallenge(id: string, accept: boolean): Promise<void> {
   if (!LIVE) { useDemoChallenges.setState(s => ({ list: accept ? s.list.map(c => c.id === id ? { ...c, my_status: 'joined' } : c) : s.list.filter(c => c.id !== id) })); return; }
   await must(sb().rpc('answer_step_challenge', { challenge: id, accept }));
+}
+
+/** Демо: альбомы друзей из макета (фото из design/assets). */
+const DEMO_FRIEND_MEMORIES: Record<string, Memory[]> = {
+  igor: [
+    { id: 'm-igor-jazz', event_id: 'jazz', title: 'Джаз во дворе', note: null, happened_at: '2026-10-11T19:30:00+05:00', cover: 'igor1', photos: [{ id: 'p1', url: 'igor1' }, { id: 'p2', url: 'krug' }, { id: 'p3', url: 'igor2' }] },
+    { id: 'm-igor-hike', event_id: 'hike', title: 'Кок-Жайляу', note: null, happened_at: '2026-10-04T09:00:00+05:00', cover: 'hike', photos: [{ id: 'p4', url: 'hike' }, { id: 'p5', url: 'igor3' }] },
+    { id: 'm-igor-roof', event_id: null, title: 'Крыша на Абая', note: null, happened_at: '2026-09-20T21:00:00+05:00', cover: 'igor4', photos: [{ id: 'p6', url: 'igor4' }, { id: 'p7', url: 'igor' }] },
+  ],
+  ainura: [
+    { id: 'm-ainura-film', event_id: null, title: 'Плёнка: осень', note: null, happened_at: '2026-10-08T17:00:00+05:00', cover: 'ainura', photos: [{ id: 'a1', url: 'ainura' }, { id: 'a2', url: 'krug' }] },
+    { id: 'm-ainura-hike', event_id: 'hike', title: 'Большое озеро', note: null, happened_at: '2026-09-14T08:00:00+05:00', cover: 'hike', photos: [{ id: 'a3', url: 'hike' }] },
+  ],
+  anton: [{ id: 'm-anton-anime', event_id: 'anime', title: 'Аниме-выставка', note: null, happened_at: '2026-10-12T12:00:00+05:00', cover: 'anton', photos: [{ id: 'p8', url: 'anton' }, { id: 'p9', url: 'krug' }] }],
+};
+
+/** Альбомы другого человека: в живой версии видны по его настройке (can_see_memories на сервере), иначе пусто. */
+export async function getPersonMemories(id: string): Promise<Memory[]> {
+  if (!LIVE) return DEMO_FRIEND_MEMORIES[id] ?? [];
+  return getMemories(id).catch(() => []);
 }

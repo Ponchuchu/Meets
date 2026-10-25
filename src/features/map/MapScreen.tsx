@@ -22,9 +22,9 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { CityPin, EventPin, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { CityPin, EventPin, FOCUS_FACE, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
-import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
+import { StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
 import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
@@ -53,11 +53,12 @@ import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { insideMall, MallPin, PlaceCard } from '../../map/ui/VenueSheet';
+import { insideMall, PlaceCard } from '../../map/ui/VenueSheet';
+import { eventSprite, mallSprite, spotSprite, type MapSymbol } from '../../map/symbols';
+import { CAT_COLOR } from '../../map/icons';
 import { PlacePin } from '../../map/ui/PlacePin';
 import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
 import { getSpots } from '../../data/spots';
-import { AttractionPin } from '../../map/ui/AttractionPin';
 import { SpotSheet } from '../../map/ui/SpotSheet';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
@@ -92,10 +93,6 @@ function pinKind(e: EventItem, today: number, going: boolean): PinKind {
   return 'plain';
 }
 
-/** Подпись только у выбранной точки: короткое название, без даты — дата есть в карточке. */
-function pinLabel(e: EventItem): string {
-  return (e.short ?? e.title.split(/[:«(]/)[0].trim()).toUpperCase().slice(0, 28);
-}
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -238,11 +235,14 @@ export default function MapScreen() {
     centeredOnMe.current = true;
     mapRef.current?.flyTo(at.lat, at.lon, 15, 250);
   }, [settled, startCam, fix, myPos]);
-  // Время идёт — точки живут: обновляем раз в минуту.
+  // Время идёт — точки живут: обновляем раз в минуту, но только пока карта на экране
+  // (раньше пересчёт всех значков шёл и на других вкладках); при возвращении — сразу.
   useEffect(() => {
+    if (!focused) return;
+    const t0 = setTimeout(() => setClock(clockNow()), 0);
     const t = setInterval(() => setClock(clockNow()), 60000);
-    return () => clearInterval(t);
-  }, []);
+    return () => { clearTimeout(t0); clearInterval(t); };
+  }, [focused]);
 
   const { data: loaded = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const meetups = usePlans((s) => s.meetups);
@@ -352,9 +352,13 @@ export default function MapScreen() {
     useMapState.getState().setCityFocus(null);
   }, [cityFocus, mapMode]);
 
-  const markers: MapMarker[] = useMemo(() => {
+  const { markers, symbols, taps } = useMemo(() => {
     const groups = groupByPoint(visible);
-    const list: MapMarker[] = groups.map((group) => {
+    const list: MapMarker[] = [];
+    // Объёмные значки (FIX5) — слой самой карты; маркером остаётся только выбранное событие и встречи.
+    const syms: (MapSymbol & { z: number })[] = [];
+    const taps = new Map<string, () => void>();
+    for (const group of groups) {
       // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
       const e = group.find((x) => x.id === selected?.id)
         ?? group.find((x) => x.id === selectedId)
@@ -363,22 +367,36 @@ export default function MapScreen() {
       const k0 = pinKind(e, today, going.has(e.id));
       const kind = k0 === 'popular' && !popularBigger ? 'plain' : k0;
       const isSel = e.id === selected?.id;
-      return {
-        id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: isSel ? 34 : kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
-        node: (
-          <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-          {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? pinLabel(e) : undefined} selected={isSel}
-            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
-            compact={(kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot')} />}
-          </View>
-        ),
-      };
-    });
+      const z = isSel ? 34 : kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20;
+      if (isSel || e.meetup) {
+        list.push({
+          id: `e-${e.id}`, lat: e.lat, lon: e.lon, z,
+          node: (
+            <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
+            {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={e.title} selected
+              showCompany={false} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
+              />}
+            </View>
+          ),
+        });
+        continue;
+      }
+      const compact = (kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot');
+      // Только значок (26 октября, решение владельца): без времени, даты и цифр — всё видно по нажатию.
+      const id = `e-${e.id}`;
+      // eslint-disable-next-line react-hooks/refs -- вызывается только по тапу, не при отрисовке
+      taps.set(id, () => openPin(e, group));
+      syms.push({
+        id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId,
+        size: Math.round((kind === 'hot' ? 54 : kind === 'popular' ? 50 : kind === 'labeled' ? 46 : 42) * scale),
+        dot: compact ? CAT_COLOR[e.category] : undefined,
+      });
+    }
     // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
     const budget = eco ? Math.max(6, Math.round(pinBudget(zoom) / 2)) : pinBudget(zoom);
-    if (list.length > budget) {
-      const keep = [...list].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)).slice(0, budget);
-      list.splice(0, list.length, ...keep);
+    if (syms.length > budget) {
+      const keep = [...syms].sort((a, b) => b.z - a.z).slice(0, budget);
+      syms.splice(0, syms.length, ...keep);
     }
     // «Год в Алматы»: большое событие с известным местом — на карте, когда оно идёт или до него меньше двух недель.
     for (const c of cityYear(clock)) {
@@ -395,9 +413,15 @@ export default function MapScreen() {
       if (detail === 'far' && !big) continue;
       if (detail === 'mid' && (!mid || (eco && !big))) continue;
       if (detail === 'near' && eco && !mid) continue;
-      list.push({ id: `a-${a.id}`, lat: a.lat, lon: a.lon, z: 9, node: <AttractionPin a={a} label={detail === 'near'} onPress={() => { setSpotPlace(a); setSheet('spot'); }} /> });
+      const id = `a-${a.id}`;
+      taps.set(id, () => { setSpotPlace(a); setSheet('spot'); });
+      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId });
     }
-    if (detail !== 'far') for (const m of malls) list.push({ id: `v-${m.id}`, lat: m.lat, lon: m.lon, z: 8, node: <MallPin m={m} events={insideMall(m, upcoming).length} onPress={() => { setMall(m); setSheet('venue'); }} /> });
+    if (detail !== 'far') for (const m of malls) {
+      const id = `v-${m.id}`;
+      taps.set(id, () => { setMall(m); setSheet('venue'); });
+      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId });
+    }
     if (filters.friends) {
       const grouped = new Set<string>();
       const own = fix ?? myPos;
@@ -417,7 +441,7 @@ export default function MapScreen() {
         // Альфа: кому видна точка, решает сервер (can_see_location) — здесь только убранные из друзей.
         if (!p || social.removed[p.id] || (!LIVE && (!d || !canSee('friend', 'location', d.privacy)))) continue;
         if (focusId === p.id) {
-          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} /> });
+          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
           if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
         } else {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
@@ -431,8 +455,12 @@ export default function MapScreen() {
       if (at && Platform.OS === 'web') list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
-    return list;
+    return { markers: list, symbols: syms as MapSymbol[], taps };
   }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Тап по значку слоя карты: обработчики меняются вместе со значками, сама функция — одна.
+  const tapsRef = useRef(taps);
+  useEffect(() => { tapsRef.current = taps; }, [taps]);
+  const onSymbol = useCallback((id: string) => tapsRef.current.get(id)?.(), []);
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -486,8 +514,6 @@ export default function MapScreen() {
     // Отправка идёт фоном; не дошло — скажем об этом.
     social.sticker(to);
     setBlast({ key: Date.now(), st });
-    if (!st.effect) setTimeout(() => setBubble({ ...st, id: to }), BLAST_MS.sticker - 200);
-    setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), BLAST_MS.sticker + 2400);
     if (LIVE) void openDirectChat(to).then((chatId) => sendMessage(chatId, st.label, 'sticker')).then(() => void queryClient.invalidateQueries({ queryKey: ['chats'] }))
       .catch(() => showToast({ text: 'Не удалось отправить стикер. Проверь связь' }));
     else useChat.getState().send({ id: uid(`dm-${to}-st`), chatId: `dm-${to}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
@@ -497,7 +523,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
       {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}
@@ -551,7 +577,7 @@ export default function MapScreen() {
         </View>
       )}
 
-      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110} onDone={() => setBlast(null)} />}
+      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110 - FOCUS_FACE} onDone={() => setBlast(null)} />}
 
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>

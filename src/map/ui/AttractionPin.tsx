@@ -27,6 +27,10 @@ function Glyph({ kind }: { kind: AttractionKind }) {
     case 'garden': return <G><Circle cx={12} cy={9} r={2.4} fill={KIND_COLOR.garden} stroke="#FFFFFF" strokeWidth={1.6} />{[0, 72, 144, 216, 288].map((r) => <Ellipse key={r} cx={12} cy={4.6} rx={2.3} ry={3} fill="#FFFFFF" transform={`rotate(${r} 12 9)`} />)}<Path d="M12 13v8M12 18c-2.5 0-4-1.5-4.5-3.5 2.5 0 4 1.3 4.5 3.5zM12 17c2.5 0 4-1.5 4.5-3.5-2.5 0-4 1.3-4.5 3.5z" fill="#FFFFFF" stroke="#FFFFFF" strokeWidth={1.4} /></G>;
     case 'museum': return <G><Path d="M3 9.5L12 4l9 5.5z" fill="#FFFFFF" /><Path d="M6 11v7M10 11v7M14 11v7M18 11v7" {...s} strokeWidth={2.2} /><Rect x={3} y={18.5} width={18} height={2.5} rx={1} fill="#FFFFFF" /></G>;
     case 'zoo': return <G><Ellipse cx={12} cy={16} rx={4.6} ry={3.8} fill="#FFFFFF" /><Ellipse cx={6} cy={10.5} rx={1.9} ry={2.4} fill="#FFFFFF" /><Ellipse cx={18} cy={10.5} rx={1.9} ry={2.4} fill="#FFFFFF" /><Ellipse cx={9.3} cy={6.5} rx={1.9} ry={2.5} fill="#FFFFFF" /><Ellipse cx={14.7} cy={6.5} rx={1.9} ry={2.5} fill="#FFFFFF" /></G>;
+    case 'fun': return <G><Path d="M12 3v4M4 10l8-3 8 3z" {...s} /><Path d="M5 10v9M19 10v9M12 10v9" {...s} /><Circle cx={8.5} cy={15} r={1.8} fill="#FFFFFF" /><Circle cx={15.5} cy={15} r={1.8} fill="#FFFFFF" /><Path d="M3 20.5h18" {...s} /></G>;
+    case 'billiards': return <G><Circle cx={11} cy={13} r={6.5} fill="#FFFFFF" /><Circle cx={11} cy={13} r={3} fill={KIND_COLOR.billiards} /><Path d="M15 3.5L21 21" {...s} strokeWidth={1.6} /></G>;
+    case 'gallery': return <G><Rect x={3.5} y={4.5} width={17} height={14} rx={1.5} {...s} /><Path d="M6 16l4-5 3 3.5 2-2 3 3.5z" fill="#FFFFFF" /><Circle cx={15.5} cy={8.5} r={1.5} fill="#FFFFFF" /><Path d="M9 21h6" {...s} /></G>;
+    case 'horse': return <G><Path d="M7 20l1.5-6.5L6 10l2-5 3 1.5L15 4l2 3-1 2.5 3 2-1.5 2L14 12l-1.5 8z" fill="#FFFFFF" /><Circle cx={15.5} cy={6.5} r={0.8} fill={KIND_COLOR.horse} /></G>;
     case 'view': return <G><Path d="M2.5 19l6-8 3.5 4.5 2.5-3 7 6.5z" fill="#FFFFFF" /><Circle cx={17} cy={6.5} r={2.6} fill="#FFFFFF" /><Path d="M17 1.8v1M21.7 6.5h-1M13.3 6.5h-1M20.3 3.2l-.7.7M13.7 3.2l.7.7" {...s} strokeWidth={1.4} /></G>;
     default: return null;
   }
@@ -53,14 +57,12 @@ export const AttractionPin = memo(function AttractionPin({ a, label, onPress }: 
   return (
     <Pressable onPress={onPress} style={styles.hit} accessibilityRole="button" accessibilityLabel={`${a.name}${a.free ? ', бесплатно' : ''}`} hitSlop={4}>
       <View style={styles.anchor} pointerEvents="none">
-        <View style={styles.shadow} />
-        {a.kind === 'bowling' ? <BowlingBall size={44} /> : (
+        {a.kind === 'bowling' ? <BowlingBall size={36} /> : (
           <View style={[photo ? styles.photo : styles.badge, { backgroundColor: color }]}>
-            <View style={styles.shine} />
-            <Svg width={photo ? 20 : 24} height={photo ? 20 : 24} viewBox="0 0 24 24"><Glyph kind={a.kind} /></Svg>
+            <Svg width={photo ? 17 : 20} height={photo ? 17 : 20} viewBox="0 0 24 24"><Glyph kind={a.kind} /></Svg>
           </View>
         )}
-        {label && <View style={styles.label}><Text style={styles.labelText} numberOfLines={1}>{a.name}</Text></View>}
+        {label && <Text style={styles.label} numberOfLines={2}>{a.name}</Text>}
       </View>
     </Pressable>
   );
@@ -69,12 +71,9 @@ export const AttractionPin = memo(function AttractionPin({ a, label, onPress }: 
 const styles = StyleSheet.create({
   hit: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  shadow: { position: 'absolute', top: 18, width: 30, height: 8, borderRadius: 4, backgroundColor: 'rgba(23,22,26,0.22)' },
-  badge: { width: 44, height: 44, borderRadius: 15, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 8px 14px -6px rgba(23,22,26,0.55)' },
-  photo: { width: 36, height: 36, borderRadius: 18, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    boxShadow: '0 6px 12px -5px rgba(23,22,26,0.5)' },
-  shine: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', backgroundColor: 'rgba(255,255,255,0.22)' },
-  label: { position: 'absolute', top: 26, maxWidth: 120, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(252,251,248,0.94)' },
-  labelText: { fontFamily: fonts.body700, fontSize: 10, color: colors.ink },
+  // Места — круги со значком, как точки интереса в Apple Maps (события — мини-афиши с фото): docs/MAP-ICONS.md.
+  badge: { width: 34, height: 34, borderRadius: 17, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  photo: { width: 28, height: 28, borderRadius: 14, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  label: { position: 'absolute', left: 21, top: -14, width: 118, fontFamily: fonts.body700, fontSize: 11, lineHeight: 13.5, color: colors.ink,
+    textShadowColor: 'rgba(252,251,248,0.95)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

@@ -31,6 +31,9 @@ export interface MapCanvasProps {
   /** Главная карта: при повторном открытии вкладки — там, где её оставили, а не на стартовой точке. */
   remember?: boolean;
   markers: MapMarker[];
+  /** Объёмные значки событий, мест и ТРЦ (FIX5): на телефоне — слой самой карты, не отстают при вращении. */
+  symbols?: import('./symbols').MapSymbol[];
+  onSymbol?: (id: string) => void;
   threeD?: boolean;
   /** Сообщает, получилось ли показать настоящую карту (false — работает подложка). */
   onMode?: (mode: 'mapbox' | 'static') => void;

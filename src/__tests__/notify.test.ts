@@ -1,5 +1,7 @@
 import { decide, isQuiet, nextScheduled, quietEnd, reminderAt, type SentPush } from '../notify/rules';
 
+import { pushPath } from '../live/reminders';
+
 const at = (s: string) => new Date(`${s}+05:00`);
 
 describe('тихие часы', () => {
@@ -85,4 +87,8 @@ describe('расписание', () => {
     expect(nextScheduled('weekend', at('2026-09-28T10:00:00'))).toEqual(at('2026-10-01T18:00:00'));
     expect(new Date(at('2026-10-01T18:00:00')).getUTCDay()).toBe(4);
   });
+});
+it('пуш «Модерация» со старым адресом /admin ведёт в панель, а не по кругу (FIX5)', () => {
+  expect(pushPath('/admin')).toBe('/dev?tab=events');
+  expect(pushPath('/chat/1')).toBe('/chat/1');
 });

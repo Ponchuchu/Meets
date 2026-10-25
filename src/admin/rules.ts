@@ -86,3 +86,20 @@ export function sourceInfo(s: Pick<SourceItem, 'kind' | 'title' | 'handle'>): { 
   return { type, label: TYPE_LABEL[type], line };
 }
 
+
+export type SourceState = 'wait' | 'done' | 'bad';
+/**
+ * Ход поиска по источникам (FIX5): по строкам журнала — какой источник уже ответил и что нашёл.
+ * «Источник · Sxodim · найдено 7» → готов; «… · не открылся» или строка ошибки с именем → ошибка; иначе — ждём.
+ */
+export function sourceProgress(sources: string[], logs: { text: string; level?: string }[]): { name: string; state: SourceState; text: string; found: number | null }[] {
+  return sources.map((name) => {
+    const low = name.toLowerCase();
+    const line = logs.find((l) => l.text.toLowerCase().includes(low) && (l.text.startsWith('Источник · ') || l.level === 'error' || /готов|найден|прочитан|событ|ошиб|нет новых|не открылся/i.test(l.text)));
+    if (!line) return { name, state: 'wait' as const, text: 'ждём ответ', found: null };
+    const bad = line.level === 'error' || /не открылся|ошиб/i.test(line.text);
+    const n = /найдено\s+(\d+)/i.exec(line.text) ?? /(\d+)\s+событ/i.exec(line.text);
+    const tail = line.text.startsWith('Источник · ') ? line.text.split(' · ').slice(2).join(' · ') : line.text;
+    return { name, state: bad ? 'bad' as const : 'done' as const, text: tail, found: n ? Number(n[1]) : null };
+  });
+}

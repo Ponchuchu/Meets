@@ -5,6 +5,8 @@
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
 import { LANG_TAG, polishAbouts } from './polish.ts';
+import { findLineups, needsLineup } from './lineup.ts';
+import { KIMI_DEFAULT_MODEL } from './kimi.ts';
 import { readReport, runStats, telegramLine, telegramStat, type TelegramStat } from './runstats.ts';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -185,12 +187,24 @@ async function live() {
       console.log(`${src.title}: найдено ${posts.length}, новых ${fresh.length}`);
       // Только новым — описание как у редактора (Kimi), чтобы карточку хотелось читать (FIX3).
       const extracted = await Promise.all(fresh.map(async p => ({ p, x: await understandFound(p) })));
-      const draftLike = extracted.map(({ x }) => ({ title: x.title, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, address: x.address ?? undefined, about: x.about ?? '' }) as Found);
+      const draftLike = extracted.map(({ x }) => ({ title: x.title, category: x.category, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, address: x.address ?? undefined,
+        about: x.about ?? '', price_min: x.price_min, is_free: x.is_free }) as Found);
       const { polished } = await polishAbouts(draftLike);
       if (polished) await robotLog(`Описания оформлены: ${polished}`);
+      // Концерт или стендап без имён: Kimi ищет состав в интернете (проверяем по странице), и редактор переписывает описание с ним.
+      const kimiKey = process.env.KIMI_API_KEY;
+      const lineupMax = Number(process.env.LINEUP_LOOKUPS ?? 6);
+      if (kimiKey && lineupMax > 0 && draftLike.some(needsLineup)) {
+        const found = await findLineups(draftLike, kimiKey, process.env.KIMI_MODEL || KIMI_DEFAULT_MODEL, lineupMax);
+        if (found) { await polishAbouts(draftLike.filter((f) => f.lineup?.length)); await robotLog(`Состав найден в интернете: ${found}`); }
+      }
       const better = new Map(extracted.map(({ p, x }, i) => {
-        const lang = LANG_TAG[draftLike[i].lang ?? ''];
-        return [p.externalId, { ...x, about: draftLike[i].about ?? x.about, tags: lang && !x.tags.includes(lang) ? [...x.tags, lang] : x.tags }];
+        const f = draftLike[i];
+        const lang = LANG_TAG[f.lang ?? ''];
+        const tags = lang && !x.tags.includes(lang) ? [...x.tags, lang] : x.tags;
+        // Что понял редактор: бесплатно / цена / адрес (только если со страницы этого не было — applyFacts).
+        return [p.externalId, { ...x, about: f.about ?? x.about, tags, is_free: !!f.is_free, price_min: f.price_min ?? null,
+          price_unsure: !f.is_free && f.price_min == null, address: f.address ?? x.address }];
       }));
       const results = await processPosts(fresh, src, { understand: async (p: RawPost) => better.get(p.externalId) ?? understandFound(p), geocode, venues, known, now: new Date() });
       drafts += await store(db, results, src.id);

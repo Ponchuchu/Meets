@@ -43,6 +43,7 @@ function withFallback(primary: DataSource | null, fallback: DataSource): DataSou
     getMySpot: wrap('getMySpot'),
     getMyProfile: wrap('getMyProfile'),
     getPersonDetails: wrap('getPersonDetails'),
+    getPersonFriends: wrap('getPersonFriends'),
     getForecast: wrap('getForecast'),
     getWeatherNow: wrap('getWeatherNow'),
     lastSource: () => last,

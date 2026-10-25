@@ -13,6 +13,9 @@ import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
+import { SPRITES } from './sprites';
+import { NO_SYMBOLS, symbolsGeo } from './symbolsGeo';
+import { SPRITE_W, symbolMarkers } from './symbols';
 import { linesGeo, okPoint } from './linesGeo';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
@@ -37,6 +40,7 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 // Коробка пина шире самого большого значка («вместе» — до трёх аватарок): Android не передаёт касания за её край.
 const PIN_BOX = 128;
 const MAP_IMAGES = {
+  ...SPRITES,
   tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png'),
   'tree-gold': require('../../assets/map/tree-gold.png'), 'tree-amber': require('../../assets/map/tree-amber.png'),
 };
@@ -45,7 +49,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving } = props;
+  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
   const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
   // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
@@ -53,6 +57,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const movingRef = useRef(false);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
+  const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const box = useRef({ w: 390, h: 844 });
@@ -131,7 +136,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
 
   if (failed || !Mapbox) {
     const withMe = me ? [...markers, { id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <MeDot heading={meHeading} /> }] : markers;
-    return <StaticMap ref={staticRef} {...props} markers={withMe} />;
+    return <StaticMap ref={staticRef} {...props} markers={[...symbolMarkers(symbols, onSymbol), ...withMe]} />;
   }
   const M = Mapbox;
   return (
@@ -212,6 +217,21 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             <M.SymbolLayer id="places-name" minZoomLevel={16.5} style={{ textField: ['get', 'name'], textSize: 11, textColor: '#3A3833', textHaloColor: '#FCFBF8', textHaloWidth: 1.2, textOffset: [0, 1.1], textAnchor: 'top', textMaxWidth: 8, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOptional: true }} />
           </M.ShapeSource>
         )}
+        {/* Значки событий, мест и ТРЦ (FIX5) — картинки движка карты: стоят к зрителю, пришиты к точке и при повороте, и при наклоне.
+            Источник постоянный: меняются только данные (удаление источника во время отрисовки роняло Android). */}
+        <M.ShapeSource id="syms" shape={symShape as never} hitbox={{ width: 40, height: 40 }}
+          onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
+          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: 5, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: 2, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'map' }} />
+          <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
+            iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
+            iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',
+            // Налезают — карта оставляет важный (меньший ключ ставится первым), остальные появляются при приближении.
+            iconAllowOverlap: false, iconPadding: 1, iconOpacity: ['get', 'op'] as never, symbolSortKey: ['-', 0, ['get', 'sort']] as never,
+            // Подпись маленькая и тихая; не помещается — прячется, значок остаётся.
+            textField: ['get', 'text'] as never, textSize: 10, textColor: ['get', 'tc'] as never, textHaloColor: ['get', 'th'] as never, textHaloWidth: 1.4,
+            textAnchor: 'top', textOffset: [0, 0.25], textOptional: true, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,
+          }} />
+        </M.ShapeSource>
         {me && <UserLayers M={M} me={me} heading={meHeading} arrow={meArrow} />}
         {markers.filter(m => Number.isFinite(m.lat) && Number.isFinite(m.lon)).slice().sort((a, b) => (a.z ?? 0) - (b.z ?? 0)).map((mk) => (
           <M.MarkerView key={mk.id} coordinate={[mk.lon, mk.lat]} anchor={{ x: 0.5, y: 0.5 }} allowOverlap>

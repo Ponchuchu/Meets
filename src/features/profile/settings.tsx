@@ -195,7 +195,9 @@ function PrivacyPage() {
       <Cap>ВОСПОМИНАНИЯ</Cap>
       <Group>
         <ToggleRow title="Друзья видят мои воспоминания" sub="без этого альбомы видишь только ты" on={!!extras.data?.memoriesVisible}
-          onChange={(memoriesVisible) => { queryClient.setQueryData(['me', 'extras'], { ...extras.data, memoriesVisible }); void saveProfileExtras({ memoriesVisible }).finally(() => queryClient.invalidateQueries({ queryKey: ['me', 'extras'] })); }} last />
+          onChange={(memoriesVisible) => { queryClient.setQueryData(['me', 'extras'], { ...extras.data, memoriesVisible }); void saveProfileExtras({ memoriesVisible }).finally(() => queryClient.invalidateQueries({ queryKey: ['me', 'extras'] })); }} />
+        <ToggleRow title="Все видят мои воспоминания" sub="и те, кто не в друзьях, — так проще познакомиться" on={!!extras.data?.memoriesPublic}
+          onChange={(memoriesPublic) => { queryClient.setQueryData(['me', 'extras'], { ...extras.data, memoriesPublic }); void saveProfileExtras({ memoriesPublic }).finally(() => queryClient.invalidateQueries({ queryKey: ['me', 'extras'] })); }} last />
       </Group>
       <Note Icon={ShieldCheck}>Незнакомые люди никогда не видят тебя на карте.</Note>
     </SettingsPage>

@@ -12,3 +12,17 @@ export function socialLine(e: EventItem, people: Person[]): string {
   // Никого нет — молчим: «Можно прийти одному» на каждой второй карточке было лишним шумом (владелец, 21 окт.).
   return '';
 }
+
+/**
+ * Одна пометка у друга на карте (FIX5): только самое важное, остальное — в карточке по нажатию.
+ * В пути → скорость; мало заряда (≤ 20 %, не заряжается) → красная батарейка; заряжается → молния;
+ * давно не обновлялся (от 10 мин) → «25 мин»; всё обычно → ничего.
+ */
+export type FriendMark = { kind: 'speed' | 'low' | 'charging' | 'ago'; text: string } | null;
+export function friendMark(s: { state: string; speedKmh?: number; battery?: number; charging?: boolean; minutesAgo?: number }, agoText: (m: number) => string): FriendMark {
+  if (s.state === 'moving' && s.speedKmh) return { kind: 'speed', text: `${s.speedKmh} км/ч` };
+  if (s.battery != null && s.battery <= 20 && !s.charging) return { kind: 'low', text: `${s.battery}%` };
+  if (s.charging && s.battery != null) return { kind: 'charging', text: `${s.battery}%` };
+  if (s.minutesAgo != null && s.minutesAgo >= 10) return { kind: 'ago', text: agoText(s.minutesAgo) };
+  return null;
+}

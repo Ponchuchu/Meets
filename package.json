@@ -3,10 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "@expo-google-fonts/geologica": "^0.4.2",
-    "@expo-google-fonts/golos-text": "^0.4.2",
-    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/pacifico": "^0.4.1",
+    "@expo-google-fonts/rubik": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@rnmapbox/maps": "^10.3.5",
     "@supabase/supabase-js": "^2.117.2",

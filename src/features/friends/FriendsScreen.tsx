@@ -5,11 +5,17 @@ import { useSocialActions } from '../../live/socialActions';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MapPin, MessageCircle } from 'lucide-react-native';
+import { agoShort } from '../../map/ago';
+import { StatusChip } from '../../map/pins';
+import { friendMark } from '../../map/social';
+import { useMapState } from '../../state/map';
+import { ART } from '../../ui/art';
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
-import { data, eventsSnapshot, type EventItem, type Person } from '../../data';
+import { data, eventsSnapshot, type EventItem, type FriendSpot, type Person } from '../../data';
 import { PERSON_DETAILS } from '../../data/demo';
 import { APP_URL, config } from '../../lib/config';
 import { findByHandle } from '../../live/api';
@@ -29,6 +35,15 @@ import { Toast, type ToastData } from '../../ui/Toast';
 
 type Sheet = null | 'add' | 'bump' | { rename: Person };
 
+/** Где друг сейчас — одной строкой: «в пути · 14 км/ч», «Бостандыкский · сейчас», «был 2 ч назад», «не делится местом». */
+function whereText(sp?: FriendSpot): string {
+  if (!sp) return 'не делится местом';
+  if (sp.state === 'moving') return `в пути${sp.speedKmh ? ` · ${sp.speedKmh} км/ч` : ''}`;
+  const ago = sp.minutesAgo ?? 0;
+  if (ago >= 10) return `был ${agoShort(ago)} назад · ${sp.place}`;
+  return sp.doing ? `${sp.place} · ${sp.doing}` : `${sp.place} · сейчас`;
+}
+
 /** Откуда рекомендация: общие друзья или номер из контактов телефона. */
 const REASON: Record<string, string> = { ainura: 'в твоих контактах', mira: '2 общих друга', erlan: '3 общих друга', sasha: 'в твоих контактах', nurlan: '1 общий друг' };
 
@@ -43,6 +58,10 @@ export default function FriendsScreen() {
   const { data: requests = [] } = useQuery({ queryKey: ['friendRequests'], queryFn: () => data.getFriendRequests() });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const social = useSocialActions(text => setToast({ text }));
+  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), staleTime: 30e3 });
+  const spotOf = (id: string) => spots.find((x) => x.personId === id);
+  const showOnMap = (id: string) => { useMapState.getState().focusFriend(id); router.navigate('/'); };
+  const write = (id: string) => router.push({ pathname: '/chat/[id]', params: { id: `dm-${id}` } });
   const { going, go } = usePlans();
   const addPlan = useApp((s) => s.addPlan);
 
@@ -76,6 +95,26 @@ export default function FriendsScreen() {
             <Text style={styles.addText}>Добавить</Text>
           </Pressable>
         </View>
+
+        {/* «Сейчас на карте» (26 окт.): как истории — кольцо цвета рамки, в пути — синее с полосками; тап — на карту к другу. */}
+        {friends.some((p) => spotOf(p.id)) && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 14, paddingHorizontal: 16, paddingVertical: 4 }}>
+            {friends.filter((p) => spotOf(p.id)).sort((a, b) => (spotOf(a.id)!.minutesAgo ?? 0) - (spotOf(b.id)!.minutesAgo ?? 0)).map((p) => {
+              const sp = spotOf(p.id)!;
+              const mark = friendMark(sp, agoShort);
+              const fresh = (sp.minutesAgo ?? 0) < 10;
+              return (
+                <Pressable key={p.id} onPress={() => showOnMap(p.id)} style={styles.story} accessibilityRole="button" accessibilityLabel={`${displayName(p, social.nicknames)} на карте`}>
+                  <View style={[styles.storyRing, { borderColor: sp.state === 'moving' ? colors.friend : fresh ? '#2FA35A' : colors.line2 }]}>
+                    <Avatar p={p} size={58} />
+                  </View>
+                  {mark && <View style={{ marginTop: -12 }}><StatusChip mark={mark} /></View>}
+                  <Text style={styles.storyName} numberOfLines={1}>{displayName(p, social.nicknames)}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
 
         <QueryNotice pending={peopleQuery.isPending} error={peopleQuery.isError} onRetry={() => { void peopleQuery.refetch(); }} />
         {pending.length > 0 && (
@@ -136,19 +175,33 @@ export default function FriendsScreen() {
               <Text style={styles.h2}>Друзья</Text>
               <View style={[styles.count, { backgroundColor: colors.sand2 }]}><Text style={styles.countText}>{friends.length}</Text></View>
             </View>
-            {!friends.length && <StateView kind="empty" compact title="Пока без друзей" text="Покажи свой QR-код или найди по @нику — друзья будут видеть тебя на карте, а ты их." />}
+            {!friends.length && (
+              <View style={styles.invite}>
+                <Image source={ART.wave} style={{ width: 92, height: 92 }} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.name}>Пока без друзей</Text>
+                  <Text style={styles.sub}>Покажи свой QR-код или найди по @нику — друзья будут видеть тебя на карте, а ты их.</Text>
+                </View>
+              </View>
+            )}
             <View style={{ gap: 2 }}>
               {friends.map((p) => (
-                <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={styles.friendRow} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
+                <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={({ pressed }) => [styles.friendRow, pressed && { opacity: 0.7 }]} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
                   accessibilityActions={[{ name: 'longpress', label: 'Переименовать' }]} onAccessibilityAction={() => setSheet({ rename: p })}>
-                  <Avatar p={p} size={48} ring={colors.friend} />
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <Text style={styles.name}>{displayName(p, social.nicknames)}</Text>
-                    {social.nicknames[p.id] && <Text style={styles.sub}>{p.name}</Text>}
+                  <Avatar p={p} size={50} ring={spotOf(p.id)?.state === 'moving' ? colors.friend : (spotOf(p.id)?.minutesAgo ?? 99) < 10 ? '#2FA35A' : colors.line2} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.name} numberOfLines={1}>{displayName(p, social.nicknames)}{social.nicknames[p.id] ? <Text style={styles.sub}>  {p.name}</Text> : null}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{whereText(spotOf(p.id))}</Text>
                   </View>
-                  <Pressable onPress={() => setSheet({ rename: p })} hitSlop={10} style={styles.more} accessibilityRole="button" accessibilityLabel={`Переименовать: ${p.name}`}>
-                    <Ic d="M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17zM13.5 6.5l3 3" size={17} color={colors.muted} w={1.9} />
+                  {/* Быстрые действия: написать и показать на карте; переименовать — долгим нажатием на строку. */}
+                  <Pressable onPress={() => write(p.id)} hitSlop={4} style={styles.act} accessibilityRole="button" accessibilityLabel={`Написать: ${p.name}`}>
+                    <MessageCircle size={19} color={colors.ink} strokeWidth={1.9} />
                   </Pressable>
+                  {spotOf(p.id) && (
+                    <Pressable onPress={() => showOnMap(p.id)} hitSlop={4} style={[styles.act, { backgroundColor: colors.friend }]} accessibilityRole="button" accessibilityLabel={`Показать на карте: ${p.name}`}>
+                      <MapPin size={19} color="#FFFFFF" strokeWidth={2} />
+                    </Pressable>
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -319,7 +372,12 @@ const styles = StyleSheet.create({
   dark: { height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.ink, justifyContent: 'center' },
   darkText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.paper },
   x: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.line2, alignItems: 'center', justifyContent: 'center' },
-  friendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  friendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -10, borderRadius: 18 },
+  act: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
+  story: { width: 72, alignItems: 'center', gap: 4 },
+  storyRing: { width: 68, height: 68, borderRadius: 34, borderWidth: 3, padding: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper },
+  storyName: { fontFamily: fonts.body600, fontSize: 12, color: colors.ink, maxWidth: 72 },
+  invite: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   more: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   planCard: { width: 210, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 12, justifyContent: 'space-between' },
   planIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

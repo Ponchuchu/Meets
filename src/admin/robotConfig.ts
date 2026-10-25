@@ -15,11 +15,14 @@ export const MODELS: { id: string; label: string }[] = [
 ];
 
 export const useRobotConfig = create<RobotConfig & { set: (p: Partial<RobotConfig>) => void }>()(persist(
-  (set) => ({ model: 'gemini-2.5-flash', days: 7, limit: 40, topics: ALL_TOPICS, sources: 'sites' as SearchSources, findImages: 0 as FindImages, set: (p) => set(p) }),
+  (set) => ({ model: 'gemini-2.5-flash', days: 7, limit: 40, topics: ALL_TOPICS, sources: 'sites' as SearchSources, findImages: 6 as FindImages, set: (p) => set(p) }),
   {
     name: 'ryadom-robot-options-v2', storage: deviceStorage(),
+    // 26 октября: поиск фото в интернете включён по умолчанию (просьба владельца) — старое «0» один раз меняем на 6.
+    version: 1,
+    migrate: (saved, from) => (from < 1 ? { ...(saved as object), findImages: 6 } : saved) as RobotConfig,
     // Старый формат хранил числа строками — приводим.
-    merge: (saved, cur) => { const s = (saved ?? {}) as Partial<RobotConfig>; return { ...cur, ...s, days: Number(s.days ?? cur.days) || 7, limit: Number(s.limit ?? cur.limit) || 40, findImages: ([0, 6, 12] as number[]).includes(Number(s.findImages)) ? (Number(s.findImages) as FindImages) : 0 }; },
+    merge: (saved, cur) => { const s = (saved ?? {}) as Partial<RobotConfig>; return { ...cur, ...s, days: Number(s.days ?? cur.days) || 7, limit: Number(s.limit ?? cur.limit) || 40, findImages: ([0, 6, 12] as number[]).includes(Number(s.findImages)) ? (Number(s.findImages) as FindImages) : 6 }; },
   },
 ));
 

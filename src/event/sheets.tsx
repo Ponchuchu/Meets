@@ -1,115 +1,11 @@
-// Шторки поверх события: «Ищу компанию» (Company), «Позвать друга».
+// Шторка поверх события: «Позвать друга». «Компания» — в v6/CardPeople.tsx.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem, Person } from '../data/types';
-import { activeCompany, usePlans, type CompanyVisibility, type Mood } from '../state/plans';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { Ic, IC } from '../ui/Ic';
-import { Chip, Segments } from '../ui/kit';
-import { CAT_ICON } from '../map/icons';
 
-const MOODS: [Mood, string][] = [['music', 'Послушать музыку'], ['meet', 'Познакомиться'], ['walk', 'Потом погулять'], ['notalone', 'Просто не идти одному']];
-
-function SheetHead({ e, title, sub, onClose }: { e: EventItem; title: string; sub: string; onClose: () => void }) {
-  return (
-    <View style={styles.head}>
-      <View style={styles.headIcon}><Ic d={CAT_ICON[e.category]} size={20} color={colors.ink} w={2} /></View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.title} accessibilityRole="header">{title}</Text>
-        <Text style={styles.sub} numberOfLines={1}>{sub}</Text>
-      </View>
-      <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="Закрыть">
-        <Ic d={IC.close} size={16} color={colors.ink} w={2.2} />
-      </Pressable>
-    </View>
-  );
-}
-
-export function CompanySheet({ e, when, now, people, onClose, onWrite }: {
-  e: EventItem; when: string; now: Date; people: Person[]; onClose: () => void; onWrite: (personId: string) => void;
-}) {
-  const request = usePlans((s) => s.company[e.id]);
-  const lookForCompany = usePlans((s) => s.lookForCompany);
-  const withdraw = usePlans((s) => s.withdrawCompany);
-  const [moods, setMoods] = useState<Mood[]>(request?.moods ?? ['music', 'meet']);
-  const [vis, setVis] = useState<CompanyVisibility>(request?.visibility ?? 'all');
-  const [note, setNote] = useState(request?.note ?? '');
-  const done = activeCompany(request, e, now);
-  const started = now.getTime() >= new Date(e.startsAt).getTime();
-  const toggle = (m: Mood) => setMoods((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
-  const lookers = e.lookers ?? [];
-
-  return (
-    <>
-      <SheetHead e={e} title="Ищу компанию" sub={`${e.title} · ${when}`} onClose={onClose} />
-      {!done ? (
-        <>
-          <View style={{ gap: 10 }}>
-            <Text style={styles.h}>Зачем идёшь</Text>
-            <View style={styles.chips}>
-              {MOODS.map(([k, label]) => <Chip key={k} label={label} on={moods.includes(k)} onPress={() => toggle(k)} />)}
-            </View>
-          </View>
-          <View style={{ gap: 10 }}>
-            <Text style={styles.h}>Кто увидит</Text>
-            <Segments<CompanyVisibility> label="Кто увидит заявку" value={vis} onChange={setVis} options={[['all', 'Все, кто идёт'], ['fof', 'Друзья друзей']]} />
-          </View>
-          <TextInput value={note} onChangeText={setNote} placeholder="Пара слов, если хочешь: буду в зелёной куртке" placeholderTextColor={colors.muted3}
-            accessibilityLabel="Пара слов о себе, необязательно" style={styles.input} maxLength={80} />
-          <View style={{ gap: 10 }}>
-            <Pressable disabled={started || moods.length === 0} onPress={() => lookForCompany({ eventId: e.id, moods, visibility: vis, note })}
-              style={[styles.primary, (started || moods.length === 0) && { backgroundColor: colors.sand }]} accessibilityRole="button">
-              <Text style={[styles.primaryText, (started || moods.length === 0) && { color: colors.muted3 }]}>{started ? 'Событие уже началось' : 'Искать компанию'}</Text>
-            </Pressable>
-          </View>
-        </>
-      ) : (
-        <>
-          <View style={styles.done}>
-            <View style={styles.doneIcon}><Ic d={IC.check} size={20} color={colors.ink} w={2.4} /></View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.doneTitle}>Ты в списке «Ищут компанию»</Text>
-              <Text style={styles.doneSub}>{request.visibility === 'all' ? 'Тебя видят все, кто идёт. Напиши первым или жди — ответы придут в «Чаты»' : 'Тебя видят только друзья твоих друзей на этом событии'}</Text>
-            </View>
-          </View>
-          {lookers.length > 0 && (
-            <View style={{ gap: 8 }}>
-              <Text style={styles.h}>Тоже ищут · {Math.max(e.lookingCount, lookers.length)}</Text>
-              <View style={styles.list}>
-                {lookers.map((l, i) => {
-                  const p = people.find((x) => x.id === l.personId);
-                  if (!p) return null;
-                  return (
-                    <View key={l.personId} style={[styles.row, i < lookers.length - 1 && styles.rowLine]}>
-                      <Avatar p={p} size={42} radius={14} />
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={styles.name}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-                        <Text style={styles.note} numberOfLines={1}>{l.note.charAt(0).toLowerCase() + l.note.slice(1)}</Text>
-                      </View>
-                      <Pressable onPress={() => onWrite(p.id)} accessibilityRole="button" accessibilityLabel={`Написать: ${p.name}`}
-                        style={[styles.write, i === 0 ? { backgroundColor: colors.ink } : { borderWidth: 1.5, borderColor: colors.ink }]}>
-                        <Text style={[styles.writeText, i === 0 && { color: colors.paper }]}>Написать</Text>
-                      </Pressable>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable onPress={() => withdraw(e.id)} style={[styles.half, { borderWidth: 1.5, borderColor: colors.ink }]} accessibilityRole="button">
-              <Text style={styles.halfText}>Снять заявку</Text>
-            </Pressable>
-            <Pressable onPress={onClose} style={[styles.half, { backgroundColor: colors.ink }]} accessibilityRole="button">
-              <Text style={[styles.halfText, { color: colors.paper }]}>Готово</Text>
-            </Pressable>
-          </View>
-        </>
-      )}
-    </>
-  );
-}
 
 export function InviteSheet({ friends, goingIds, onSend, busy=false }: {
   e?: EventItem; friends: Person[]; goingIds: string[]; onSend: (ids: string[]) => void; busy?:boolean;

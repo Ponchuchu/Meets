@@ -64,7 +64,11 @@ Deno.serve(async (req) => {
   const { count } = await db.from('alpha_attempts').select('id', { count: 'exact', head: true }).eq('phone_hash', phoneHash).eq('ok', false).gte('at', since);
   if ((count ?? 0) >= 5) return json({ error: 'too_many' }, 429);
   if ((body.code ?? '').trim() !== t.code) {
-    await db.from('alpha_attempts').insert({ phone_hash: phoneHash, ok: false });
+    // Владельцу аккаунта — «Кто-то пытался войти» в ленте уведомлений (FIX5, миграция 43). Без миграции — как раньше.
+    const { data: owner } = await db.rpc('user_id_by_phone', { p: phone });
+    const ua = (req.headers.get('user-agent') ?? '').slice(0, 200);
+    const { error } = await db.from('alpha_attempts').insert({ phone_hash: phoneHash, ok: false, user_id: owner ?? null, user_agent: ua || null });
+    if (error) await db.from('alpha_attempts').insert({ phone_hash: phoneHash, ok: false });
     return json({ error: 'bad_code' }, 401);
   }
   await db.from('alpha_attempts').insert({ phone_hash: phoneHash, ok: true });

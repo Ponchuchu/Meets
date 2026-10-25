@@ -118,7 +118,7 @@ const plural = (n: number, one: string, few: string, many: string) =>
 async function staff(count: number) {
   const { data } = await db.from('staff').select('user_id');
   const body = `${count} ${plural(count, 'событие ждёт', 'события ждут', 'событий ждут')} проверки`;
-  return Promise.all((data ?? []).map((r: any) => deliver({ userId: r.user_id, kind: 'staff', title: 'Модерация', body, data: { url: '/admin' } })));
+  return Promise.all((data ?? []).map((r: any) => deliver({ userId: r.user_id, kind: 'staff', title: 'Модерация', body, data: { url: '/dev?tab=events' } })));
 }
 
 Deno.serve(async (req) => {

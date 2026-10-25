@@ -1,9 +1,10 @@
 import { parseSourceLink } from '../admin/api';
 import { demoQueue, metaLine, parseRuDate, sourceLabel } from '../admin/model';
-import { isReady, plural, sourceInfo } from '../admin/rules';
+import { isReady, plural, sourceInfo , sourceProgress } from '../admin/rules';
 import { deckRows, modelConfidence, tasteRows } from '../admin/taste';
 import { demoEvents } from '../data/demo';
 import { buildStartTaste } from '../reco/startTaste';
+
 
 const NOW = new Date('2026-09-28T12:00:00+05:00');
 
@@ -83,5 +84,18 @@ describe('админка: источники', () => {
     expect(sourceInfo({ kind: 'telegram', title: 'Telegram · @afisha_almaty', handle: 'afisha_almaty' }).line).toBe('@afisha_almaty');
     expect(sourceInfo({ kind: 'threads', title: 'Threads · @almaty.weekend' }).line).toBe('@almaty.weekend');
     expect(sourceInfo({ kind: 'manual', title: 'Вручную' }).label).toBe('Вручную');
+  });
+});
+describe('ход поиска по источникам (FIX5)', () => {
+  it('ждём, готов с числом, ошибка', () => {
+    const logs = [
+      { text: 'Источник · Sxodim · найдено 7', level: 'ok' },
+      { text: 'Источник · Ticketon · не открылся', level: 'warn' },
+    ];
+    const r = sourceProgress(['Sxodim', 'Ticketon', 'Яндекс Афиша'], logs);
+    expect(r.map((x) => x.state)).toEqual(['done', 'bad', 'wait']);
+    expect(r[0].found).toBe(7);
+    expect(r[0].text).toBe('найдено 7');
+    expect(r[2].text).toBe('ждём ответ');
   });
 });

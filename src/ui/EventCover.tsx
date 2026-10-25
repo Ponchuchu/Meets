@@ -1,7 +1,8 @@
 // Обложка события: настоящая фотография, если она есть и открылась; иначе — яркий постер раздела
 // (градиент цвета категории, крупная иконка и круги). Поверх можно положить любое содержимое.
 import { useState, type ReactNode } from 'react';
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { photo } from '../data/photos';
 import type { Category } from '../data/types';
@@ -44,7 +45,7 @@ export function EventCover({ cover, category, color, style, iconSize = 150, chil
         <Circle cx="8%" cy="92%" r="28%" fill={fg} opacity={0.08} />
       </Svg>
       {!src && <View style={styles.icon} pointerEvents="none"><Ic d={CAT_ICON[category]} size={iconSize} color={fg} w={0.9} /></View>}
-      {src && <Image source={src} style={StyleSheet.absoluteFill} resizeMode="cover" resizeMethod="resize" onError={() => setBrokenCover(cover ?? null)} />}
+      {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={String(cover)} transition={150} onError={() => setBrokenCover(cover ?? null)} />}
       {children}
     </View>
   );

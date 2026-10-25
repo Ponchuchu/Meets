@@ -1,4 +1,6 @@
-import { detailOf, focusZoom, groupByPoint, pinScale, showPinLabel } from '../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinScale, showPinLabel , placeLabels , pinTime } from '../map/zoom';
+
+
 
 describe('физика карты', () => {
   it('точки мельче вдали и крупнее вблизи', () => {
@@ -23,4 +25,26 @@ describe('физика карты', () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].map((x) => x.id)).toEqual(['a', 'b']);
   });
+});
+describe('подписи без наложений (FIX5)', () => {
+  it('подпись прячется, если справа друг или другая подпись', () => {
+    const z = 16;
+    const a = { id: 'a', lat: 43.25, lon: 76.94, w: 100 };
+    const b = { id: 'b', lat: 43.25, lon: 76.9406, w: 100 }; // ~45 px правее — в подписи «a»
+    const far = { id: 'far', lat: 43.24, lon: 76.95, w: 100 };
+    const pins = [a, b, far].map((x) => ({ lat: x.lat, lon: x.lon, r: 18 }));
+    const shown = placeLabels([a, b, far], pins, z);
+    expect(shown.has('a')).toBe(false); // значок «b» стоит в подписи «a»
+    expect(shown.has('b')).toBe(true);
+    expect(shown.has('far')).toBe(true);
+    const friend = { lat: 43.24, lon: 76.9502, r: 30 };
+    expect(placeLabels([far], [...pins, friend], z).has('far')).toBe(false);
+  });
+});
+it('плашка времени на мини-афише (FIX5)', () => {
+  const now = new Date('2026-10-25T13:00:00Z'); // 18:00 в Алматы
+  expect(pinTime({ startsAt: '2026-10-25T14:30:00Z', endsAt: null, isLong: false }, now)).toEqual({ text: '19:30', live: false });
+  expect(pinTime({ startsAt: '2026-10-25T12:30:00Z', endsAt: '2026-10-25T15:00:00Z', isLong: false }, now)).toEqual({ text: 'идёт', live: true });
+  expect(pinTime({ startsAt: '2026-10-26T05:00:00Z', endsAt: null, isLong: false }, now)?.text).toBe('26.10');
+  expect(pinTime({ startsAt: '2026-10-20T05:00:00Z', endsAt: '2026-10-30T15:00:00Z', isLong: true }, now)).toBeNull();
 });
