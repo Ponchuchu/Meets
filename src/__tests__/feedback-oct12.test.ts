@@ -73,7 +73,8 @@ it('быстрый ответ очищает таймер, а зависший �
 
 it('реакции уникальны и не заменяют коллекцию маскота', () => {
   expect(STICKERS.filter(s=>s.effect).map(s=>s.effect).sort()).toEqual(['confetti','heart','punch','squeak']);
-  expect(STICKERS.filter(s=>!s.effect)).toHaveLength(51);
+  expect(STICKERS.filter(s=>!s.effect)).toHaveLength(63);
+  expect(STICKERS.filter(s=>!s.effect).every(s=>!!s.art)).toBe(true);
 });
 
 it('очередь отправляет сообщение, добавленное во время предыдущей отправки', async () => {

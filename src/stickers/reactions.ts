@@ -8,12 +8,18 @@ let cleanup: ReturnType<typeof setTimeout> | undefined;
 export function playReaction(effect: Sticker['effect']) {
   if (!effect) return;
   void Haptics.selectionAsync().catch(() => undefined);
+  playSound(effect);
+}
+
+/** Только звук (вибрацию в такт задаёт сама анимация — StickerBlast). */
+export function playSound(effect: Sticker['effect']) {
+  if (!effect) return;
   clearTimeout(cleanup);
   try {
     player?.remove();
     player = createAudioPlayer(files[effect]);
-    player.volume = 0.3;
+    player.volume = 0.45;
     player.play();
-    cleanup = setTimeout(() => { player?.remove(); player = null; }, 1800);
+    cleanup = setTimeout(() => { player?.remove(); player = null; }, 3200);
   } catch { player = null; }
 }

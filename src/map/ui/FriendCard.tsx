@@ -40,7 +40,8 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
   const paused = spot.state === 'paused';
   const status = paused ? 'геолокация на паузе' : updatedText(spot.minutesAgo);
   // Только открытые стикеры — закрытые в быстрой ленте не нужны (они есть в чате, в «Откроются позже»).
-  const quick = STICKERS.map((st, i) => ({ st, i })).filter(({ st }) => stickerUnlocked(st, level));
+  const quick = STICKERS.map((st, i) => ({ st, i })).filter(({ st }) => stickerUnlocked(st, level)).sort((a, b) => Number(!!b.st.effect) - Number(!!a.st.effect));
+  // Реакции (перчатки, сердце, баклажан, салют) — первыми: у них своё действие на карте.
   return (
     <Animated.View entering={cardIn} style={[styles.card, glass]}>
       <Pressable onPress={onProfile} style={({ pressed }) => [styles.top, pressed && { opacity: 0.7 }]} accessibilityRole="link" accessibilityLabel={`Профиль: ${p.name}`}>

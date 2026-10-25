@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
 import { useApp, useBackClose, useCoverTabBar } from '../../state/app';
@@ -24,6 +24,7 @@ import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
 import { CityPin, EventPin, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
+import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
 import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
@@ -120,7 +121,8 @@ export default function MapScreen() {
   const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
-  const [fly, setFly] = useState<{ label: string; bg: string; fg: string; x: number } | null>(null);
+  // Стикер, который сейчас «долетел» до друга: перчатки, сердце, мем… (FIX5).
+  const [blast, setBlast] = useState<{ key: number; st: (typeof STICKERS)[number] } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
   // 2D/3D — в «Линзах» (FIX3): кнопка на карте убрана.
   const view = useMapView((s) => s.view);
@@ -150,8 +152,6 @@ export default function MapScreen() {
   // Карточку события можно смахнуть: тогда внизу пусто, пока не нажмёшь на точку.
   const [cardHidden, setCardHidden] = useState(false);
   const [stack, setStack] = useState<EventItem[]>([]);
-  const flyY = useSharedValue(0);
-  const flyStyle = useAnimatedStyle(() => ({ transform: [{ translateY: flyY.value }, { scale: 1 - 0.15 * Math.min(1, -flyY.value / 300) }] }));
   const social = useSocial();
   const draft = useSession((s) => s.draft);
   const signals = useFeed((s) => s.signals);
@@ -479,21 +479,17 @@ export default function MapScreen() {
 
   // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
   const sendSticker = async (i: number) => {
-    if (!focusPerson || fly) return;
+    if (!focusPerson || blast) return;
     const st = STICKERS[i];
     try{
       if(LIVE){const chatId=await openDirectChat(focusPerson.id);await sendMessage(chatId,st.label,'sticker');void queryClient.invalidateQueries({queryKey:['chats']});}
       else useChat.getState().send({ id: uid(`dm-${focusPerson.id}-st`), chatId: `dm-${focusPerson.id}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
     }catch{showToast({text:'Не удалось отправить стикер. Проверь связь'});return;}
     social.sticker(focusPerson.id);
-    setFly({ ...st, x: 40 });
-    flyY.set(0);
-    flyY.set(withTiming(-300, { duration: 650, easing: Easing.bezier(0.2, 0.9, 0.4, 1) }));
-    setTimeout(() => {
-      setFly(null);
-      setBubble({ ...st, id: focusPerson.id });
-    }, 700);
-    setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), 3400);
+    // Действие поверх аватарки друга (он стоит на 110 px выше центра карты — см. фокус на друге), потом подпись у точки.
+    setBlast({ key: Date.now(), st });
+    if (!st.effect) setTimeout(() => setBubble({ ...st, id: focusPerson.id }), BLAST_MS.sticker - 200);
+    setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), BLAST_MS.sticker + 2400);
   };
 
   const topY = Math.max(50, insets.top + 6);
@@ -554,11 +550,7 @@ export default function MapScreen() {
         </View>
       )}
 
-      {fly && (
-        <Animated.View exiting={FadeOut.duration(120)} pointerEvents="none" style={[styles.fly, { left: fly.x, bottom: tabPad + 150, backgroundColor: fly.bg }, flyStyle]}>
-          <Text style={[styles.flyText, { color: fly.fg }]}>{fly.label}</Text>
-        </Animated.View>
-      )}
+      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110} onDone={() => setBlast(null)} />}
 
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>
@@ -686,6 +678,4 @@ const styles = StyleSheet.create({
   finding: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, height: 30, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
   findingText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.paper },
   clip: { position: 'absolute', overflow: 'hidden', zIndex: 90 },
-  fly: { position: 'absolute', height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', justifyContent: 'center', zIndex: 80 },
-  flyText: { fontFamily: fonts.display800, fontSize: 13 },
 });
