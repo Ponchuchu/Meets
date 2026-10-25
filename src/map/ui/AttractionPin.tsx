@@ -30,6 +30,7 @@ function Glyph({ kind }: { kind: AttractionKind }) {
     case 'fun': return <G><Path d="M12 3v4M4 10l8-3 8 3z" {...s} /><Path d="M5 10v9M19 10v9M12 10v9" {...s} /><Circle cx={8.5} cy={15} r={1.8} fill="#FFFFFF" /><Circle cx={15.5} cy={15} r={1.8} fill="#FFFFFF" /><Path d="M3 20.5h18" {...s} /></G>;
     case 'billiards': return <G><Circle cx={11} cy={13} r={6.5} fill="#FFFFFF" /><Circle cx={11} cy={13} r={3} fill={KIND_COLOR.billiards} /><Path d="M15 3.5L21 21" {...s} strokeWidth={1.6} /></G>;
     case 'gallery': return <G><Rect x={3.5} y={4.5} width={17} height={14} rx={1.5} {...s} /><Path d="M6 16l4-5 3 3.5 2-2 3 3.5z" fill="#FFFFFF" /><Circle cx={15.5} cy={8.5} r={1.5} fill="#FFFFFF" /><Path d="M9 21h6" {...s} /></G>;
+    case 'horse': return <G><Path d="M7 20l1.5-6.5L6 10l2-5 3 1.5L15 4l2 3-1 2.5 3 2-1.5 2L14 12l-1.5 8z" fill="#FFFFFF" /><Circle cx={15.5} cy={6.5} r={0.8} fill={KIND_COLOR.horse} /></G>;
     case 'view': return <G><Path d="M2.5 19l6-8 3.5 4.5 2.5-3 7 6.5z" fill="#FFFFFF" /><Circle cx={17} cy={6.5} r={2.6} fill="#FFFFFF" /><Path d="M17 1.8v1M21.7 6.5h-1M13.3 6.5h-1M20.3 3.2l-.7.7M13.7 3.2l.7.7" {...s} strokeWidth={1.4} /></G>;
     default: return null;
   }

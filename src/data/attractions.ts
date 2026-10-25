@@ -8,7 +8,7 @@
 import { COMMONS_HASH } from './commonsHash';
 
 export type AttractionKind = 'ski' | 'skate' | 'cable' | 'wheel' | 'bowling' | 'trampoline' | 'climb' | 'quest' | 'vr' | 'golf' | 'paintball' | 'aqua' | 'photo' | 'zipline'
-  | 'park' | 'museum' | 'zoo' | 'garden' | 'view' | 'fun' | 'billiards' | 'gallery';
+  | 'park' | 'museum' | 'zoo' | 'garden' | 'view' | 'fun' | 'billiards' | 'gallery' | 'horse';
 
 /** Часы по дням недели ISO (1 — пн … 7 — вс): интервалы работы; два интервала — между ними перерыв; [] — выходной. */
 export type Hours = Partial<Record<'1' | '2' | '3' | '4' | '5' | '6' | '7', [string, string][]>>;
@@ -61,14 +61,14 @@ export const KIND_LABEL: Record<AttractionKind, string> = {
   ski: 'Горнолыжный курорт', skate: 'Каток', cable: 'Канатная дорога', wheel: 'Колесо обозрения', bowling: 'Боулинг',
   trampoline: 'Батутный парк', climb: 'Скалодром', quest: 'Квесты', vr: 'VR-парк', golf: 'Гольф', paintball: 'Пейнтбол',
   aqua: 'Аквапарк', photo: 'Фотозона', zipline: 'Зиплайн', park: 'Парк', museum: 'Музей', zoo: 'Зоопарк', garden: 'Сад', view: 'Смотровая',
-  fun: 'Парк развлечений', billiards: 'Бильярд', gallery: 'Галерея',
+  fun: 'Парк развлечений', billiards: 'Бильярд', gallery: 'Галерея', horse: 'Конные прогулки',
 };
 
 export const KIND_COLOR: Record<AttractionKind, string> = {
   ski: '#2C6FB0', skate: '#4FA3D9', cable: '#1F9AA8', wheel: '#E0457B', bowling: '#3A3046', trampoline: '#E2A21B', climb: '#B5651D',
   quest: '#5B5BD6', vr: '#7E5BD6', golf: '#2F8F5B', paintball: '#C83A26', aqua: '#2AA5B8', photo: '#F0521F', zipline: '#3E7E4E',
   park: '#3E8E4E', museum: '#8A5A3C', zoo: '#C98A1B', garden: '#5C9E3F', view: '#D9822B',
-  fun: '#E0457B', billiards: '#2F6B4F', gallery: '#6A45C9',
+  fun: '#E0457B', billiards: '#2F6B4F', gallery: '#6A45C9', horse: '#8A5A3C',
 };
 
 export const ATTRACTIONS: Attraction[] = [
@@ -117,6 +117,10 @@ export const ATTRACTIONS: Attraction[] = [
   { id: 'octopus', name: 'Аквапарк «Осьминог»', kind: 'aqua', lat: 43.26234, lon: 76.97124, address: 'Парк Горького, ул. Гоголя, 1', about: 'Летний аквапарк в Центральном парке', season: [6, 8] },
   { id: 'gorilla', name: 'Gorilla Zipline', kind: 'zipline', lat: 43.21041, lon: 76.93334, address: 'пр. аль-Фараби, 128/В', about: 'Зиплайн и верёвочный парк' },
   { id: 'zhailjau', name: 'Гольф-клуб «Жайляу»', kind: 'golf', lat: 43.18163, lon: 76.87844, address: 'мкр. Мирас, 188', about: 'Поле для гольфа с видом на горы', season: [4, 10] },
+  // Конные прогулки (26 октября): адреса и точки — из справочника адресов; часы и цены уточняются по записи.
+  { id: 'argamak', name: 'КСК «Аргамак»', kind: 'horse', lat: 43.31039, lon: 76.92518, address: 'улица Омарова, 10а (Центральный ипподром)', about: 'Прогулки верхом и занятия с тренером на ипподроме — по записи', solo: true },
+  { id: 'tulpar', name: 'КСК «Тулпар»', kind: 'horse', lat: 43.31315, lon: 76.92923, address: 'улица Жансугурова, 262/2', about: 'Прогулки верхом и уроки езды с тренером, можно впервые' },
+  { id: 'altyn-tai', name: 'Конный клуб «Алтын Тай»', kind: 'horse', lat: 43.18595, lon: 77.03847, address: 'Бутаковское ущелье, 7,5 км', about: 'Прогулки верхом по горам Бутаковки', solo: true },
   { id: 'family-bowling', name: 'Family Bowling', kind: 'bowling', lat: 43.22803, lon: 76.85302, address: 'ул. Улугбека, 57', about: 'Боулинг и семейный парк развлечений' },
   { id: 'madison', name: 'Боулинг «Мэдисон»', kind: 'bowling', lat: 43.23915, lon: 76.93348, address: 'ТРК «Форум», пр. Сейфуллина, 617', about: 'Боулинг и караоке' },
   { id: 'bastau', name: 'Bowling Bastau', kind: 'bowling', lat: 43.25070, lon: 76.92062, address: 'ул. Шагабутдинова, 109а', about: 'Боулинг в центре' },
