@@ -17,7 +17,7 @@ import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY , canSee } from '../../people/visibility';
-import { Award, Cake, CalendarDays, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, MessageCircle, Navigation, UserMinus, UserPlus } from 'lucide-react-native';
+import { Award, Cake, CalendarCheck, CalendarDays, ChevronRight, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, MessageCircle, Navigation, Sparkles, UserMinus, UserPlus } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +29,9 @@ import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
 import { useMapState } from '../../state/map';
 import { isFriendNow } from '../../state/social';
+import { usePlans } from '../../state/plans';
 import { colors, fonts } from '../../theme';
+import { Avatar } from '../../ui/Avatar';
 import { Ic, IC } from '../../ui/Ic';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { Toast, type ToastData } from '../../ui/Toast';
@@ -66,6 +68,8 @@ export default function PersonScreen() {
   const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: theirFriends } = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id), enabled: !(preview && id === 'me') });
+  const iGo = usePlans((st) => !!(d?.lookingFor && st.going[d.lookingFor.eventId]));
+  const iLook = usePlans((st) => !!(d?.lookingFor && st.company[d.lookingFor.eventId]));
   const { data: albums = [] } = useQuery({ queryKey: ['person', id, 'memories'], queryFn: () => getPersonMemories(id), enabled: !(preview && id === 'me') });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
@@ -158,10 +162,43 @@ export default function PersonScreen() {
         )}
 
         <View style={styles.body}>
-          {showFriends && (
+          {friend && showFriends && (
             <FriendsPill faces={common.map((x) => x!)} total={friend ? fCount : common.length} onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })}
               title={friend ? `${fCount} ${plural(fCount, 'друг', 'друга', 'друзей')}` : `${common.length} ${plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}`}
               sub={friend && cCount ? `${cCount} ${plural(cCount, 'общий', 'общих', 'общих')} с тобой` : friend ? 'посмотреть всех' : undefined} />
+          )}
+
+          {/* Незнакомый (26 окт.): что вас связывает — общие друзья, одно событие, оба ищете компанию. */}
+          {!friend && !preview && (
+            <View style={styles.bond}>
+              <Text style={styles.bondTitle}>Что вас связывает</Text>
+              {common.length > 0 && (
+                <Pressable onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, tab: 'common' } })} style={({ pressed }) => [styles.bondRow, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+                  <View style={kit.faces}>{common.slice(0, 3).map((fp, i) => <Avatar key={fp!.id} p={fp!} size={34} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
+                  <Text style={styles.bondText} numberOfLines={2}>{common.length} {plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}: {common.slice(0, 2).map((x) => x!.name).join(', ')}{common.length > 2 ? ' и др.' : ''}</Text>
+                  <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+                </Pressable>
+              )}
+              {!!look?.e && iGo && (
+                <View style={styles.bondRow}>
+                  <View style={styles.bondIcon}><CalendarCheck size={18} color={colors.ok} strokeWidth={2} /></View>
+                  <Text style={styles.bondText} numberOfLines={2}>Вы оба идёте на «{look.e.title}»</Text>
+                </View>
+              )}
+              {!!look?.e && iLook && (
+                <View style={styles.bondRow}>
+                  <View style={[styles.bondIcon, { backgroundColor: '#F6D5C3' }]}><Hand size={18} color={colors.accentText} strokeWidth={2} /></View>
+                  <Text style={styles.bondText} numberOfLines={2}>Вы оба ищете компанию — самое время написать</Text>
+                </View>
+              )}
+              {!common.length && !(look?.e && (iGo || iLook)) && (
+                <View style={styles.bondRow}>
+                  <View style={styles.bondIcon}><Sparkles size={18} color={colors.muted2} strokeWidth={2} /></View>
+                  <Text style={styles.bondText}>Вы пока не пересекались. Может, это начало?</Text>
+                </View>
+              )}
+              <Text style={styles.bondNote}>Пока вы не в друзьях, первое сообщение придёт как запрос, а фото — размытыми.</Text>
+            </View>
           )}
 
           {friend && !preview && (plansOpen ? (
@@ -172,24 +209,6 @@ export default function PersonScreen() {
           ) : (
             <EmptyRow icon={<Lock size={18} color={colors.ink} strokeWidth={1.9} />} text={`${p.name} показывает планы только себе`} />
           ))}
-
-          <StatsCard items={statItems} />
-
-          <MemoriesStrip title="Воспоминания" albums={albums} />
-
-          {medals.length > 0 && (
-            <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
-              <View style={styles.rowBetween}><TileCap light>Награды</TileCap><Text style={styles.awardsN}>{badges.length}</Text></View>
-              <View style={styles.medals}>
-                {medals.map((bid) => (
-                  <View key={bid} style={styles.medal}>
-                    <BadgeMedal id={bid} got size={62} />
-                    <Text style={styles.medalName} numberOfLines={2}>{BADGES.find((x) => x.id === bid)?.name ?? 'Награда'}</Text>
-                  </View>
-                ))}
-              </View>
-            </Tile>
-          )}
 
           {/* Ищет компанию (26 окт.): значок события, когда и где, записка пузырём, «Пойдём?» — то же, что в шторке события. */}
           {look?.e && (
@@ -210,6 +229,24 @@ export default function PersonScreen() {
                 <Text style={styles.lookBtnText}>Пойдём вместе?</Text>
               </Pressable>
             </Pressable>
+          )}
+
+          <StatsCard items={statItems} />
+
+          <MemoriesStrip title="Воспоминания" albums={albums} />
+
+          {medals.length > 0 && (
+            <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
+              <View style={styles.rowBetween}><TileCap light>Награды</TileCap><Text style={styles.awardsN}>{badges.length}</Text></View>
+              <View style={styles.medals}>
+                {medals.map((bid) => (
+                  <View key={bid} style={styles.medal}>
+                    <BadgeMedal id={bid} got size={62} />
+                    <Text style={styles.medalName} numberOfLines={2}>{BADGES.find((x) => x.id === bid)?.name ?? 'Награда'}</Text>
+                  </View>
+                ))}
+              </View>
+            </Tile>
           )}
 
           {!!d.about.trim() && (
@@ -296,6 +333,12 @@ const styles = StyleSheet.create({
   action: { flex: 1, height: 66, borderRadius: 18, ...plate, alignItems: 'center', justifyContent: 'center', gap: 5 },
   actionDark: { backgroundColor: colors.ink, borderTopColor: 'rgba(255,255,255,0.18)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.4)' },
   actionText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
+  bond: { gap: 4, padding: 14, paddingTop: 12, borderRadius: 26, backgroundColor: '#FBFAF6', boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
+  bondTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink, marginBottom: 2 },
+  bondRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
+  bondIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#DDEBD7', alignItems: 'center', justifyContent: 'center' },
+  bondText: { flex: 1, fontFamily: fonts.body600, fontSize: 14.5, lineHeight: 19, color: colors.ink },
+  bondNote: { fontFamily: fonts.body400, fontSize: 12.5, lineHeight: 17, color: colors.muted, marginTop: 4 },
   geo: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingLeft: 6, paddingRight: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.94)', boxShadow: '0 8px 20px -8px rgba(0,0,0,0.5)' },
   geoDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
   geoText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
