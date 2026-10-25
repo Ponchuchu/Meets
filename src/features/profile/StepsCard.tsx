@@ -3,16 +3,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getProfileExtras, saveProfileExtras } from '../../live/profileExtras';
 import { Group, ToggleRow } from '../../ui/v6/Settings';
 import { StepsChallenges, StepsLeaderboard } from './StepsSocial';
-import { Footprints } from 'lucide-react-native';
-import { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { config } from '../../lib/config';
 import { askSteps, openStepSettings, STEP_GOAL, STEP_GOALS, stepHistory, stepsToday, useSteps } from '../../live/steps';
 import { lastWeek, stepAwards } from '../../profile/stepAwards';
 import { colors, fonts, radii } from '../../theme';
-import { BadgeMedal } from '../../ui/BadgeMedal';
-import { BADGE_ICONS } from '../../profile/badges';
+import { ART } from '../../ui/art';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { plate } from '../../ui/glass';
 
 const DAY = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -20,6 +19,17 @@ const FULL = ['Воскресенье', 'Понедельник', 'Вторни�
 const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
 const demoHistory = () => Array.from({ length: 12 }, (_, i) => ({ day: new Date(Date.now() - (i + 1) * 86400e3).toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps: [8200, 11400, 6400, 3100, 12800, 9100, 7300, 10400, 5200, 6900, 4100, 9800][i] }));
+
+/** Картинка к награде за шаги. */
+const AWARD_ART: Record<string, number> = { 'steps-first': ART.sneaker, 'steps-streak': ART.fire, 'steps-week': ART.medalGold, 'steps-marathon': ART.trophy, 'steps-month': ART.route };
+
+/** Кроссовок «шагает»: покачивается и подпрыгивает; цель выполнена — вместо него кубок. */
+function Walker({ done }: { done: boolean }) {
+  const t = useSharedValue(0);
+  useEffect(() => { t.set(withRepeat(withSequence(withTiming(1, { duration: 360, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 360, easing: Easing.in(Easing.quad) })), -1, false)); }, [t]);
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: -t.get() * 8 }, { rotate: `${-8 + t.get() * 12}deg` }] }));
+  return <Animated.View style={[{ alignSelf: 'center' }, st]}><Image source={done ? ART.trophy : ART.sneaker} style={{ width: 96, height: 96 }} accessibilityIgnoresInvertColors /></Animated.View>;
+}
 
 export function StepsCard() {
   const live = config.dataMode !== 'demo';
@@ -44,28 +54,36 @@ export function StepsCard() {
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={[styles.card, { alignItems: 'center', gap: 6 }]}>
+      {/* Главное за сегодня (26 окт., картинки из Figma): зелёная карточка, кольцо до цели, шагающий кроссовок, километры и калории. */}
+      <View style={styles.hero}>
+        <View style={styles.heroGlow} />
         <View style={{ width: 150, height: 150, alignItems: 'center', justifyContent: 'center' }}>
           <Svg width={150} height={150} style={StyleSheet.absoluteFill}>
-            <Circle cx={75} cy={75} r={r} stroke="#D6CFC0" strokeWidth={11} fill="none" />
-            <Circle cx={75} cy={75} r={r} stroke={colors.ok} strokeWidth={11} fill="none" strokeLinecap="round" strokeDasharray={`${Math.max(1, len * Math.min(1, steps / STEP_GOAL))} ${len}`} transform="rotate(-90 75 75)" />
+            <Circle cx={75} cy={75} r={r} stroke="rgba(255,255,255,0.18)" strokeWidth={12} fill="none" />
+            <Circle cx={75} cy={75} r={r} stroke="#C8F56A" strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${Math.max(1, len * Math.min(1, steps / STEP_GOAL))} ${len}`} transform="rotate(-90 75 75)" />
           </Svg>
-          <Footprints size={20} color={colors.ok} strokeWidth={2} />
           <Text style={styles.big}>{steps.toLocaleString('ru-RU')}</Text>
           <Text style={styles.of}>из 10 000</Text>
         </View>
-        <Text style={styles.hint}>{steps >= STEP_GOAL ? 'Цель на сегодня выполнена — ты молодец' : next ? `Ещё ${(next.steps - steps).toLocaleString('ru-RU')} шагов — и +${next.points} очков` : ''}</Text>
-        {status === 'denied' && (
-          <Pressable onPress={() => void askSteps()} onLongPress={() => (source === 'health' ? openStepSettings() : void Linking.openSettings())} style={styles.btn} accessibilityRole="button">
-            <Text style={styles.btnText}>Разрешить шаги</Text>
-          </Pressable>
-        )}
-        {status === 'install' && (
-          <Pressable onPress={() => void Linking.openURL('market://details?id=com.google.android.apps.healthdata')} style={styles.btn} accessibilityRole="button">
-            <Text style={styles.btnText}>Обновить Health Connect</Text>
-          </Pressable>
-        )}
+        <View style={{ flex: 1, gap: 10 }}>
+          <Walker done={steps >= STEP_GOAL} />
+          <View style={styles.stats}>
+            <View><Text style={styles.statN}>{(steps * 0.00075).toFixed(1).replace('.', ',')}</Text><Text style={styles.statL}>км</Text></View>
+            <View><Text style={styles.statN}>{Math.round(steps * 0.04)}</Text><Text style={styles.statL}>ккал</Text></View>
+          </View>
+        </View>
       </View>
+      <Text style={styles.hint}>{steps >= STEP_GOAL ? 'Цель на сегодня выполнена — ты молодец' : next ? `Ещё ${(next.steps - steps).toLocaleString('ru-RU')} шагов — и +${next.points} очков` : ''}</Text>
+      {status === 'denied' && (
+        <Pressable onPress={() => void askSteps()} onLongPress={() => (source === 'health' ? openStepSettings() : void Linking.openSettings())} style={styles.btn} accessibilityRole="button">
+          <Text style={styles.btnText}>Разрешить шаги</Text>
+        </Pressable>
+      )}
+      {status === 'install' && (
+        <Pressable onPress={() => void Linking.openURL('market://details?id=com.google.android.apps.healthdata')} style={styles.btn} accessibilityRole="button">
+          <Text style={styles.btnText}>Обновить Health Connect</Text>
+        </Pressable>
+      )}
 
       <View style={styles.card}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -100,7 +118,7 @@ export function StepsCard() {
         <Text style={styles.title}>Награды за шаги</Text>
         {awards.map(a => (
           <View key={a.id} style={styles.award}>
-            <BadgeMedal id={a.id} icon={BADGE_ICONS.boot} got={a.got} progress={a.progress / a.goal} size={46} />
+            <View style={[styles.awardArt, !a.got && { opacity: 0.45 }]}><Image source={AWARD_ART[a.id] ?? ART.sneaker} style={{ width: 48, height: 48 }} /></View>
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={styles.awardName}>{a.name}</Text>
               <Text style={styles.sub}>{a.how}</Text>
@@ -127,8 +145,14 @@ export function StepsCard() {
 
 const styles = StyleSheet.create({
   card: { borderRadius: radii.xl - 4, ...plate, padding: 16, gap: 12 },
-  big: { fontFamily: fonts.display800, fontSize: 32, letterSpacing: -1, color: colors.ink },
-  of: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: radii.xl - 4, backgroundColor: '#1F6B45', overflow: 'hidden', boxShadow: '0 14px 24px -14px rgba(31,107,69,0.7)' },
+  heroGlow: { position: 'absolute', right: -60, top: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(200,245,106,0.1)' },
+  big: { fontFamily: fonts.display800, fontSize: 32, letterSpacing: -1, color: '#FFFFFF' },
+  of: { fontFamily: fonts.body500, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
+  stats: { flexDirection: 'row', justifyContent: 'space-around' },
+  statN: { fontFamily: fonts.display800, fontSize: 20, color: '#FFFFFF', textAlign: 'center' },
+  statL: { fontFamily: fonts.mono600, fontSize: 10.5, color: 'rgba(255,255,255,0.7)', textAlign: 'center', textTransform: 'uppercase' },
+  awardArt: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#F7F3EB', alignItems: 'center', justifyContent: 'center' },
   hint: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted2, textAlign: 'center' },
   btn: { minHeight: 46, paddingHorizontal: 20, borderRadius: 15, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   btnText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.paper },

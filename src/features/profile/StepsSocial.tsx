@@ -1,9 +1,10 @@
 // Шаги с друзьями (FIX3, FIX5): рейтинг за день или неделю с пьедесталом и соревнования «кто больше» или «кто первым до цели».
 // Друзья видят твои шаги, пока включено «Показывать мои шаги друзьям» (profiles.steps_visible).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Crown, Swords, Trophy, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Crown, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ART, MEDALS } from '../../ui/art';
 import { data } from '../../data';
 import { answerChallenge, createChallenge, getChallenges, getFriendsStepsDays, type Challenge } from '../../live/profileExtras';
 import { AvatarFrame } from '../../profile/frames';
@@ -41,7 +42,7 @@ export function StepsLeaderboard() {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Trophy size={20} color="#E2A21B" strokeWidth={2} />
+        <Image source={ART.medalGold} style={{ width: 30, height: 30 }} />
         <Text style={styles.title}>Друзья</Text>
         <View style={styles.seg}>
           {(['day', 'week'] as const).map((p) => (
@@ -100,7 +101,7 @@ export function StepsLeaderboard() {
 /** Пьедестал: 2-е место слева, 1-е по центру выше всех, 3-е справа; аватарки стоят на ступенях. */
 function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; total: number; me: boolean }[] }) {
   const order = [1, 0, 2].filter((i) => rows[i]);
-  const H = [96, 70, 52];
+  const H = [104, 80, 64];
   const tone = ['#E8B12A', '#A9B1BA', '#C27D45'];
   return (
     <View style={styles.podium}>
@@ -116,7 +117,8 @@ function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: st
             <Text style={styles.podSteps}>{fmt(r.total)}</Text>
             <View style={[styles.step, { height: H[i], backgroundColor: tone[i] }]}>
               <View style={styles.stepTop} />
-              <Text style={styles.stepN}>{i + 1}</Text>
+              {/* Медаль на ступени (картинки из Figma) вместо цифры. */}
+              <Image source={MEDALS[i]} style={{ width: i === 0 ? 54 : 44, height: i === 0 ? 54 : 44, marginTop: 4 }} accessibilityLabel={`${i + 1}-е место`} />
             </View>
           </View>
         );
@@ -137,10 +139,15 @@ export function StepsChallenges() {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Swords size={20} color={colors.accent} strokeWidth={2} />
+        <Image source={ART.trophy} style={{ width: 30, height: 30 }} />
         <Text style={styles.title}>Соревнования</Text>
       </View>
-      {!list.length && !q.isPending && <Text style={styles.sub}>Позови друзей: кто больше пройдёт за неделю или кто первым наберёт 100 000.</Text>}
+      {!list.length && !q.isPending && (
+        <View style={styles.empty}>
+          <Image source={ART.highfive} style={{ width: 84, height: 84 }} />
+          <Text style={[styles.sub, { flex: 1 }]}>Позови друзей: кто больше пройдёт за неделю или кто первым наберёт 100 000.</Text>
+        </View>
+      )}
       {list.map(c => {
         const st = challengeState(c, todayKey());
         return (
@@ -254,8 +261,9 @@ const styles = StyleSheet.create({
   podFace: { borderWidth: 3, borderRadius: 40, padding: 1, backgroundColor: '#FBFAF6' },
   podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 4, maxWidth: 100 },
   podSteps: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.muted2, marginBottom: 6 },
-  step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
+  step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
   stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 8, backgroundColor: 'rgba(255,255,255,0.35)' },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepN: { fontFamily: fonts.display800, fontSize: 30, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.18)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
   rank: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16 },
   rankMe: { backgroundColor: 'rgba(240,82,31,0.08)' },
