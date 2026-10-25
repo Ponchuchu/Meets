@@ -1,6 +1,6 @@
 /* global it, expect */
 import React from 'react';
-import { Image } from 'react-native';
+import { Image } from 'expo-image';
 import { act, create } from 'react-test-renderer';
 import { EventCover } from '../ui/EventCover';
 

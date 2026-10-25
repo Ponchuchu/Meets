@@ -235,11 +235,14 @@ export default function MapScreen() {
     centeredOnMe.current = true;
     mapRef.current?.flyTo(at.lat, at.lon, 15, 250);
   }, [settled, startCam, fix, myPos]);
-  // Время идёт — точки живут: обновляем раз в минуту.
+  // Время идёт — точки живут: обновляем раз в минуту, но только пока карта на экране
+  // (раньше пересчёт всех значков шёл и на других вкладках); при возвращении — сразу.
   useEffect(() => {
+    if (!focused) return;
+    const t0 = setTimeout(() => setClock(clockNow()), 0);
     const t = setInterval(() => setClock(clockNow()), 60000);
-    return () => clearInterval(t);
-  }, []);
+    return () => { clearTimeout(t0); clearInterval(t); };
+  }, [focused]);
 
   const { data: loaded = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const meetups = usePlans((s) => s.meetups);
