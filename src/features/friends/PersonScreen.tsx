@@ -9,19 +9,19 @@ import * as Clipboard from 'expo-clipboard';
 import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
 import { birthdayText } from '../../lib/format';
+import { EventIcon } from '../../ui/EventIcon';
 import { FriendsPill, PlansStrip } from '../profile/PlansStrip';
 import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileCap, TileNum, TileSub } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY } from '../../people/visibility';
-import { Cake, CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
+import { Cake, CalendarPlus, Check, Hand, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
 import { now as clockNow } from '../../lib/clock';
-import { CAT_ICON } from '../../map/icons';
 import { canSee } from '../../people/visibility';
 import { BADGES } from '../../profile/badges';
 import { getShownBadges } from '../../live/profileExtras';
@@ -197,18 +197,25 @@ export default function PersonScreen() {
             </Tile>
           )}
 
+          {/* Ищет компанию (26 окт.): значок события, когда и где, записка пузырём, «Пойдём?» — то же, что в шторке события. */}
           {look?.e && (
-            <View style={styles.look}>
-              <View style={styles.lookHead}><Text style={styles.lookCap}>ХОЧЕТ ПОЙТИ · ИЩЕТ КОМПАНИЮ</Text><Text style={styles.lookCap}>{planWhen(look.e, now).text.split(' · ')[0].replace(/(\d+)\.(\d+)/, (_m, a, b) => `${a.padStart(2, '0')}.${b.padStart(2, '0')}`)}</Text></View>
+            <Pressable onPress={() => router.push({ pathname: '/event/[id]', params: { id: look.e!.id } })} style={({ pressed }) => [styles.look, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button">
+              <View style={styles.lookHead}>
+                <Hand size={15} color="#FFFFFF" strokeWidth={2.2} />
+                <Text style={styles.lookCap}>Ищет компанию</Text>
+              </View>
               <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                <View style={styles.lookIcon}><Ic d={CAT_ICON[look.e.category]} size={22} color={colors.paper} w={2} /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lookTitle}>{look.e.title}</Text>
-                  <Text style={styles.lookMeta}>{planWhen(look.e, now).text.split(' · ')[1]} · {look.e.venueName ?? look.e.address.split(',')[0]}{look.e.priceMin ? ` · ${look.e.priceMin.toLocaleString('ru-RU')} ₸` : ''}</Text>
+                <EventIcon e={look.e} size={56} />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={styles.lookTitle} numberOfLines={2}>{look.e.title}</Text>
+                  <Text style={styles.lookMeta} numberOfLines={1}>{planWhen(look.e, now).text.toLowerCase()} · {look.e.venueName ?? look.e.address.split(',')[0]}</Text>
                 </View>
               </View>
-              <Pressable onPress={write} style={styles.lookBtn} accessibilityRole="button"><Text style={styles.lookBtnText}>Позвать пойти вместе</Text></Pressable>
-            </View>
+              {!!look.note && <View style={styles.lookBubble}><Text style={styles.lookBubbleText}>{look.note}</Text></View>}
+              <Pressable onPress={write} style={({ pressed }) => [styles.lookBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
+                <Text style={styles.lookBtnText}>Пойдём вместе?</Text>
+              </Pressable>
+            </Pressable>
           )}
 
           {!!d.about.trim() && (
@@ -326,14 +333,15 @@ const styles = StyleSheet.create({
   tileL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
   card: { borderRadius: 28, backgroundColor: '#F4F0E7', padding: 16, gap: 6 },
   cardTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
-  look: { padding: 16, borderRadius: 22, backgroundColor: colors.accent, gap: 14 },
-  lookHead: { flexDirection: 'row', justifyContent: 'space-between' },
-  lookCap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.6, color: colors.ink },
-  lookIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  lookTitle: { fontFamily: fonts.display700, fontSize: 20, lineHeight: 22, color: colors.ink },
-  lookMeta: { fontFamily: fonts.body400, fontSize: 13, color: colors.ink, marginTop: 2 },
-  lookBtn: { height: 48, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  lookBtnText: { fontFamily: fonts.body600, fontSize: 14, color: colors.paper },
+  look: { padding: 16, borderRadius: 28, backgroundColor: colors.ink, gap: 14 },
+  lookHead: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.accent },
+  lookCap: { fontFamily: fonts.body700, fontSize: 13, color: '#FFFFFF' },
+  lookTitle: { fontFamily: fonts.display700, fontSize: 19, lineHeight: 22, color: '#FFFFFF' },
+  lookMeta: { fontFamily: fonts.body500, fontSize: 13, color: '#BDB8AD' },
+  lookBubble: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderTopLeftRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)' },
+  lookBubbleText: { fontFamily: fonts.body500, fontSize: 14, color: '#F4F1EA' },
+  lookBtn: { height: 50, borderRadius: 25, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  lookBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: '#FFFFFF' },
   h2: { fontFamily: fonts.display700, fontSize: 20, color: colors.ink, marginTop: 4 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54, paddingHorizontal: 16 },
   input: { height: 52, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body500, fontSize: 16, color: colors.ink },

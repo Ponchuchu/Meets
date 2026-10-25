@@ -86,8 +86,11 @@ const WORD_ICON: [RegExp, SpriteName][] = [
 ];
 
 export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName'>): SpriteName {
-  const text = `${e.title} ${e.venueName ?? ''}`;
-  return WORD_ICON.find(([re]) => re.test(text))?.[1] ?? CATEGORY_ICON[e.category] ?? 'ev-business';
+  // Известное место (Медеу, Шымбулак) — значок места; иначе сначала по названию события, потом по категории:
+  // «Стендап» в баре — микрофон, а не коктейль.
+  const byVenue = WORD_ICON.find(([re]) => re.test(e.venueName ?? ''))?.[1];
+  if (byVenue?.startsWith('pl-')) return byVenue;
+  return WORD_ICON.find(([re]) => re.test(e.title))?.[1] ?? CATEGORY_ICON[e.category] ?? byVenue ?? 'ev-business';
 }
 
 /** Значок постоянного места по виду. */

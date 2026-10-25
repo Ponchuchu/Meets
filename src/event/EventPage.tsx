@@ -30,9 +30,9 @@ import { EventCover, openCoverH } from '../ui/EventCover';
 import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
-import { CompanySheet, InviteSheet } from './sheets';
+import { InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, Users, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import { TicketBlock } from './ui/TicketBlock';
 import { ShareCardSheet } from './ui/ShareCard';
@@ -136,9 +136,10 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     show({ text: e.category === 'movie' ? 'Сеанс в «Планах». Напомню о билетах за 3 часа' : 'Добавил в «Планы». Напомню за час', cta: 'Отменить', onCta: () => { ungo(e.id); removePlan(); setToast(null); } });
   };
 
-  const goingInfo = goingLine(e, people, going);
   const lookers = e.lookers ?? [];
   const lookCount = Math.max(e.lookingCount, lookers.length) + (activeCompany(company, e, now) ? 1 : 0);
+  const lookFaces = lookers.map((l) => people.find((p) => p.id === l.personId)).filter((p): p is Person => !!p).slice(0, 2);
+  const lookText = lookCount > 0 ? `${lookCount} ${plural(lookCount, 'ищет', 'ищут', 'ищут')} компанию` : 'Пока никто не ищет';
   const friends = people.filter((p) => p.isFriend);
   const todayKey = String(dayIndex(now));
 
@@ -209,19 +210,25 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
 
-          <Pressable onPress={() => setSheet('going')} style={styles.line} accessibilityRole="button" accessibilityLabel={`${goingText}. Кто идёт`}>
-            {friendsGoing.length > 0 && (
-              <View style={{ flexDirection: 'row' }}>
-                {friendsGoing.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={34} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: colors.paper }} />)}
+          {/* «Компания» (26 окт.): кто из друзей идёт и кто ищет компанию — одним блоком, по нажатию шторка. */}
+          <Pressable onPress={() => setSheet('going')} style={({ pressed }) => [styles.company, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`${goingText}. ${lookText}. Компания`}>
+            <View style={styles.companyRow}>
+              <View style={{ flexDirection: 'row', minWidth: 34 }}>
+                {friendsGoing.length > 0 ? friendsGoing.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={34} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)
+                  : <View style={styles.hand}><Users size={17} color={colors.ink} strokeWidth={2} /></View>}
               </View>
-            )}
-            <Text style={styles.lineText} numberOfLines={1}>{goingText}</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </Pressable>
-          <Pressable onPress={() => setSheet('going')} style={styles.line} accessibilityRole="button">
-            <View style={styles.hand}><Hand size={17} color={colors.ink} strokeWidth={2} /></View>
-            <Text style={styles.lineText} numberOfLines={1}>{lookCount > 0 ? `${lookCount} ${plural(lookCount, 'человек ищет', 'человека ищут', 'человек ищут')} компанию` : 'Ищешь компанию? Нажми'}</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+              <Text style={styles.lineText} numberOfLines={1}>{goingText}</Text>
+              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+            </View>
+            <View style={styles.companyLine} />
+            <View style={styles.companyRow}>
+              <View style={{ flexDirection: 'row', minWidth: 34 }}>
+                {lookFaces.length > 0 ? lookFaces.map((p, i) => <Avatar key={p.id} p={p} size={34} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)
+                  : <View style={[styles.hand, { backgroundColor: '#F6D5C3' }]}><Hand size={17} color={colors.accentText} strokeWidth={2} /></View>}
+              </View>
+              <Text style={styles.lineText} numberOfLines={1}>{lookText}</Text>
+              {!past && <View style={[styles.lookPill, activeCompany(company, e, now) && styles.lookPillOn]}><Text style={[styles.lookPillText, activeCompany(company, e, now) && { color: colors.ink }]}>{activeCompany(company, e, now) ? 'Ты ищешь' : lookCount > 0 ? 'Я тоже' : 'Ищу компанию'}</Text></View>}
+            </View>
           </Pressable>
 
           {sessions.length > 1 && <View style={{ gap: 8 }}>
@@ -321,8 +328,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
       {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
-          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'company' ? 'Ищу компанию' : sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Кто идёт' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
-            {sheet === 'company' && <CompanySheet e={e} when={whenTitle(e, now).toLowerCase()} now={now} people={people} onClose={() => setSheet(null)} onWrite={write} />}
+          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Компания' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'invite' && (
               <InviteSheet e={e} friends={friends} goingIds={e.friendsGoing} busy={inviting} onSend={async(ids) => {
                 if (statusLabel) { setSheet(null); show({ text: statusLabel }); return; }
@@ -337,12 +343,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               }} />
             )}
             {sheet === 'share' && <ShareCardSheet e={e} now={now} link={link} text={text} onDone={(msg) => { setSheet(null); if (msg) show({ text: msg }, 2000); }} />}
-            {sheet === 'going' && (LIVE ? (
-              <CardPeople e={e} going={going} onGo={() => { if (!going) toggleGo(); }} onInvite={() => setSheet('invite')} onError={(t) => show({ text: t })} />
-            ) : goingInfo && (
-              <GoingSheet friends={goingInfo.faces} others={Math.max(0, e.goingCount - goingInfo.faces.length) + (going ? 1 : 0)}
-                onPerson={(id) => { setSheet(null); router.push({ pathname: '/person/[id]', params: { id } }); }} />
-            ))}
+            {sheet === 'going' && <CardPeople e={e} now={now} when={whenTitle(e, now).toLowerCase()} going={going} onGo={() => { if (!going) toggleGo(); }} onInvite={() => setSheet('invite')} onError={(t) => show({ text: t })} onWrite={LIVE ? undefined : write} />}
           </BottomSheet>
         </>
       )}
@@ -353,26 +354,14 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
 
 
 
-function GoingSheet({ friends, others, onPerson }: { friends: Person[]; others: number; onPerson: (id: string) => void }) {
-  return (
-    <>
-      <Text style={styles.sheetTitle} accessibilityRole="header">Кто идёт</Text>
-      {friends.map((p) => (
-        <Pressable key={p.id} onPress={() => onPerson(p.id)} style={styles.goingItem} accessibilityRole="link">
-          <Avatar p={p} size={44} ring={colors.friend} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{p.name}</Text>
-            <Text style={styles.small}>друг</Text>
-          </View>
-          <Ic d={IC.chevron} size={18} color={colors.muted} w={2} />
-        </Pressable>
-      ))}
-      {others > 0 && <Text style={styles.small}>и ещё {others.toLocaleString('ru-RU')} {plural(others, 'человек', 'человека', 'человек')}</Text>}
-    </>
-  );
-}
 
 const styles = StyleSheet.create({
+  company: { borderRadius: 22, backgroundColor: '#FBFAF6', paddingHorizontal: 14, paddingVertical: 4, boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
+  companyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
+  companyLine: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line2, marginLeft: 46 },
+  lookPill: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.accent, justifyContent: 'center' },
+  lookPillOn: { backgroundColor: '#F6D5C3' },
+  lookPillText: { fontFamily: fonts.body700, fontSize: 13, color: '#FFFFFF' },
   pastSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   root: { flex: 1, backgroundColor: colors.paper },
   topRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },

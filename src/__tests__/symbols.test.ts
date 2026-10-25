@@ -30,3 +30,7 @@ test('значки владельца: Терренкур, бильярд, ТР�
   for (const k of ['ski', 'skate', 'cable', 'wheel', 'bowling', 'trampoline', 'climb', 'quest', 'vr', 'golf', 'paintball', 'aqua', 'photo', 'zipline', 'park', 'museum', 'zoo', 'garden', 'view', 'fun', 'billiards', 'gallery'] as const)
     expect(SPRITES[spotSprite({ kind: k, name: 'x' })]).toBeDefined();
 });
+
+test('значок события: название важнее бара', () => {
+  expect(eventSprite({ category: 'standup', title: 'Стендап: открытый микрофон', venueName: 'Бар «Гараж»' })).toBe('ev-standup');
+});
