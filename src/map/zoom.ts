@@ -79,7 +79,7 @@ export function placeLabels(cands: LabelCandidate[], obstacles: Obstacle[], zoom
   return out;
 }
 
-/** Плашка времени под мини-афишей (FIX5): «идёт», «19:30» (сегодня), «завтра», у долгих (выставки) — ничего. */
+/** Подпись времени под значком (FIX5): «идёт», «19:30» (сегодня), другой день — «26.10», у долгих (выставки) — ничего. */
 export function pinTime(e: Pick<EventItem, 'startsAt' | 'endsAt' | 'isLong'>, now: Date): { text: string; live: boolean } | null {
   const start = Date.parse(e.startsAt);
   const end = e.endsAt ? Date.parse(e.endsAt) : start + 2 * 3600e3;
@@ -90,6 +90,6 @@ export function pinTime(e: Pick<EventItem, 'startsAt' | 'endsAt' | 'isLong'>, no
   const a = new Date(start + 5 * 3600e3);
   const hm = `${String(a.getUTCHours()).padStart(2, '0')}:${String(a.getUTCMinutes()).padStart(2, '0')}`;
   if (day(start) === day(t)) return { text: hm, live: false };
-  if (day(start) === day(t) + 1) return { text: `завтра ${hm}`, live: false };
-  return null;
+  // Другой день — коротко датой «26.10» (FIX5: без «завтра», маленькой и тихой подписью).
+  return { text: `${a.getUTCDate()}.${String(a.getUTCMonth() + 1).padStart(2, '0')}`, live: false };
 }

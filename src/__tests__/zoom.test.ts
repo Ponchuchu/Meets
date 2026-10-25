@@ -45,6 +45,6 @@ it('плашка времени на мини-афише (FIX5)', () => {
   const now = new Date('2026-10-25T13:00:00Z'); // 18:00 в Алматы
   expect(pinTime({ startsAt: '2026-10-25T14:30:00Z', endsAt: null, isLong: false }, now)).toEqual({ text: '19:30', live: false });
   expect(pinTime({ startsAt: '2026-10-25T12:30:00Z', endsAt: '2026-10-25T15:00:00Z', isLong: false }, now)).toEqual({ text: 'идёт', live: true });
-  expect(pinTime({ startsAt: '2026-10-26T05:00:00Z', endsAt: null, isLong: false }, now)?.text).toBe('завтра 10:00');
+  expect(pinTime({ startsAt: '2026-10-26T05:00:00Z', endsAt: null, isLong: false }, now)?.text).toBe('26.10');
   expect(pinTime({ startsAt: '2026-10-20T05:00:00Z', endsAt: '2026-10-30T15:00:00Z', isLong: true }, now)).toBeNull();
 });

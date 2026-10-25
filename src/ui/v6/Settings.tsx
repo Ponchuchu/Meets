@@ -2,9 +2,9 @@
 // строки с иконкой, значением и шевроном, переключатель зелёный как в макете.
 import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBackClose } from '../../state/app';
 import { colors, fonts } from '../../theme';
@@ -54,11 +54,14 @@ export function Row({ Icon, title, sub, value, onPress, last, danger, right, lef
 
 /** Переключатель v6: зелёный, 52×30, кружок ездит. */
 export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(on ? 22 : 0, { duration: 160 }) }] }));
+  // Одно значение 0…1 на UI-потоке: ручка и цвет дорожки едут вместе, без перерисовки остального экрана.
+  const t = useSharedValue(on ? 1 : 0);
+  useEffect(() => { t.set(withTiming(on ? 1 : 0, { duration: 160 })); }, [on, t]);
+  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: t.get() * 22 }] }));
+  const track = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(t.get(), [0, 1], ['#C8C2B2', '#2F8F5B']) }));
   return (
-    <Pressable onPress={() => onChange(!on)} hitSlop={8} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={label}
-      style={[styles.track, { backgroundColor: on ? '#2F8F5B' : '#C8C2B2' }]}>
-      <Animated.View style={[styles.knob, knob]} />
+    <Pressable onPress={() => onChange(!on)} hitSlop={8} accessibilityRole="switch" accessibilityState={{ checked: on }} accessibilityLabel={label}>
+      <Animated.View style={[styles.track, track]}><Animated.View style={[styles.knob, knob]} /></Animated.View>
     </Pressable>
   );
 }

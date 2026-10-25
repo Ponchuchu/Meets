@@ -2,7 +2,7 @@
 // Нажатие на строку — подробности: название, доверие, удаление. «Добавить источник» — одно поле, тип узнаём сами.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AtSign, Globe, PenLine, Plus, Rss, Send, Sparkles, Trash2, type LucideIcon } from 'lucide-react-native';
-import { memo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import { Toggle } from '../../ui/v6/Settings';
@@ -52,15 +52,25 @@ export function Sources({ live }: { live: boolean }) {
   const [note, setNote] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const open = list.find((s) => s.id === openId) ?? null;
 
+  // Переключатель срабатывает сразу (FIX5): строка меняется на месте, сохранение идёт в фоне,
+  // список не перезагружается после каждого нажатия (раньше всё «подливало» и прыгало). Ошибка — откатываем и говорим.
   const change = useMutation({
     mutationFn: async ({ s, patch }: { s: SourceItem; patch: Partial<SourceItem> }) => {
       if (!live) return demo.setSource(s.id, patch);
       await updateSource(s.id, { trusted: patch.trusted, enabled: patch.enabled, title: patch.title, auto_publish: patch.trusted === false ? false : undefined });
     },
-    onError: () => setNote({ tone: 'error', text: 'Не удалось сохранить. Проверь связь и попробуй ещё раз' }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['admin', 'sources'] }),
+    onMutate: ({ s, patch }) => {
+      if (!live) return;
+      qc.setQueryData<SourceItem[]>(['admin', 'sources'], (old) => old?.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
+    },
+    onError: (_e, { s }) => {
+      if (live) qc.setQueryData<SourceItem[]>(['admin', 'sources'], (old) => old?.map((x) => (x.id === s.id ? s : x)));
+      setNote({ tone: 'error', text: 'Не удалось сохранить. Проверь связь и попробуй ещё раз' });
+    },
   });
-  const toggle = (s: SourceItem, v: boolean) => { if (!change.isPending) change.mutate({ s, patch: { enabled: v } }); };
+  const { mutate } = change;
+  const toggle = useCallback((s: SourceItem, v: boolean) => mutate({ s, patch: { enabled: v } }), [mutate]);
+  const openRow = useCallback((x: SourceItem) => setOpenId(x.id), []);
 
   const remove = async (s: SourceItem) => {
     const ok = await confirmAsk('Удалить источник?', `«${s.title}» больше не будет читаться при поиске. Уже найденные события останутся.`, 'Удалить');
@@ -82,7 +92,7 @@ export function Sources({ live }: { live: boolean }) {
           : list.length === 0 ? <Empty icon={Rss} title="Источников пока нет" text="Добавь сайт афиши или Telegram-канал — поиск начнёт их читать." />
             : (
               <View style={styles.box}>
-                {list.map((s, i) => <Row key={s.id} s={s} last={i === list.length - 1} onOpen={(x) => setOpenId(x.id)} onToggle={toggle} />)}
+                {list.map((s, i) => <Row key={s.id} s={s} last={i === list.length - 1} onOpen={openRow} onToggle={toggle} />)}
               </View>
             )}
       <Text style={styles.help}>Переключатель — читать ли источник при поиске. Нажми на строку, чтобы переименовать, доверять или удалить.</Text>
@@ -92,7 +102,7 @@ export function Sources({ live }: { live: boolean }) {
         <Text style={styles.addText}>Добавить источник</Text>
       </Pressable>
 
-      {open && <Details s={open} busy={change.isPending} onClose={() => setOpenId(null)}
+      {open && <Details s={open} busy={false} onClose={() => setOpenId(null)}
         onChange={(patch) => change.mutate({ s: open, patch })} onRemove={() => void remove(open)} />}
       {adding && <AddSheet live={live} onClose={() => setAdding(false)} onAdded={(t) => { setAdding(false); setNote({ tone: 'ok', text: `Добавили: ${t}` }); }} />}
     </View>

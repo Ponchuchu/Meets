@@ -1,14 +1,15 @@
 // Образец всех значков карты (FIX5, docs/MAP-ICONS.md): для скриншотов и проверки на глаз. В приложении на неё не ведёт ни одна кнопка.
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { EventItem, FriendSpot, Person } from '../../data/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ATTRACTIONS } from '../../data/attractions';
 import { demoEvents, FRIEND_SPOTS, PEOPLE } from '../../data/demo';
 import { EventPin, FocusPin, FriendPin, TogetherPin } from '../../map/pins';
-import { AttractionPin } from '../../map/ui/AttractionPin';
 import { PlacePin } from '../../map/ui/PlacePin';
-import { MallPin } from '../../map/ui/VenueSheet';
+import { SPRITES, type SpriteName } from '../../map/sprites';
+import { eventSprite, SymbolPin, timeColor, type MapSymbol } from '../../map/symbols';
+import { CAT_COLOR } from '../../map/icons';
 import { colors, fonts } from '../../theme';
 
 const noop = () => undefined;
@@ -37,23 +38,21 @@ function Ground({ h }: { h: number }) {
   );
 }
 
-const PHOTOS = ['krug', 'hike', 'igor1', 'igor2', 'igor3', 'igor4', 'ainura', 'denis', 'anton', 'danil'];
-/** Точки сцены: доля ширины/высоты, событие, обложка, время. */
-const SPOTS: { x: number; y: number; id: string; cover?: string; time?: string; live?: boolean; kind?: 'plain' | 'labeled' | 'hot'; friend?: string; name?: string }[] = [
-  { x: 0.16, y: 0.12, id: 'concert', cover: PHOTOS[0], time: 'идёт', live: true, kind: 'labeled' },
-  { x: 0.42, y: 0.1, id: 'games', time: '20:00' },
-  { x: 0.72, y: 0.16, id: 'food', cover: PHOTOS[1], time: '12:00' },
-  { x: 0.88, y: 0.32, id: 'standup', time: '21:00' },
-  { x: 0.3, y: 0.3, id: 'jazz', cover: PHOTOS[2], time: '19:30', kind: 'hot', friend: 'igor', name: 'Джаз во дворе' },
-  { x: 0.6, y: 0.38, id: 'anime', cover: PHOTOS[3] },
-  { x: 0.12, y: 0.45, id: 'bike', time: 'завтра 10:00' },
-  { x: 0.45, y: 0.55, id: 'hike', cover: PHOTOS[4], time: 'завтра 08:00', name: 'Поход на Кок-Жайляу' },
-  { x: 0.8, y: 0.6, id: 'games', cover: PHOTOS[5], time: '18:30' },
-  { x: 0.24, y: 0.72, id: 'concert', time: '22:00' },
-  { x: 0.6, y: 0.78, id: 'food', cover: PHOTOS[6], time: '19:00', friend: 'anton' },
-  { x: 0.88, y: 0.86, id: 'standup', cover: PHOTOS[7], time: '20:30' },
-  { x: 0.1, y: 0.9, id: 'jazz', time: '21:30' },
-  { x: 0.4, y: 0.92, id: 'games' },
+/** Точки сцены: доля ширины/высоты, событие или готовый значок, подпись. */
+const SPOTS: { x: number; y: number; id?: string; icon?: SpriteName; text?: string; live?: boolean; size?: number }[] = [
+  { x: 0.16, y: 0.14, id: 'concert', text: 'идёт', live: true, size: 50 },
+  { x: 0.42, y: 0.12, id: 'games', text: '20:00' },
+  { x: 0.72, y: 0.18, id: 'food', text: '12:00' },
+  { x: 0.9, y: 0.34, id: 'standup', text: '21:00' },
+  { x: 0.3, y: 0.33, id: 'jazz', text: 'Джаз во дворе\nИгорь · 19:30', size: 54 },
+  { x: 0.12, y: 0.47, id: 'bike', text: '26.10' },
+  { x: 0.45, y: 0.58, id: 'hike', text: 'Поход на Кок-Жайляу\n26.10' },
+  { x: 0.84, y: 0.62, icon: 'mall-dostyk', text: 'Dostyk Plaza · 5', size: 58 },
+  { x: 0.24, y: 0.75, icon: 'pl-skate', text: 'Медеу', size: 50 },
+  { x: 0.6, y: 0.8, id: 'food', text: 'Антон · 19:00' },
+  { x: 0.9, y: 0.9, icon: 'mall-mega', size: 58 },
+  { x: 0.1, y: 0.93, id: 'standup', text: '21:30' },
+  { x: 0.42, y: 0.95, icon: 'pl-cable', size: 48 },
 ];
 
 function Scene({ far, ev, person, spot }: { far?: boolean; ev: (id: string) => EventItem; person: (id: string) => Person; spot: (id: string) => FriendSpot }) {
@@ -61,17 +60,17 @@ function Scene({ far, ev, person, spot }: { far?: boolean; ev: (id: string) => E
   return (
     <View style={[styles.scene, { height: h }]}>
       <Ground h={h} />
-      {SPOTS.map((p, i) => (
-        <View key={i} style={[styles.at, { left: `${p.x * 100}%`, top: p.y * h }]}>
-          <EventPin e={{ ...ev(p.id), id: `${p.id}-${i}`, cover: p.cover ?? null }} kind={p.kind ?? 'plain'} phase={p.live ? 'live' : 'today'} showCompany={false} dark={false} onPress={noop}
-            compact={far} time={far || !p.time ? null : { text: p.time, live: !!p.live }} friend={far || !p.friend ? undefined : person(p.friend)} name={far ? undefined : p.name} />
-        </View>
-      ))}
+      {SPOTS.map((p, i) => {
+        const e = p.id ? ev(p.id) : null;
+        const s: MapSymbol = { id: String(i), lat: 0, lon: 0, sort: 0, icon: p.icon ?? eventSprite(e!), size: p.size ?? 44, text: p.text,
+          textColor: p.live ? colors.accentText : e ? timeColor(e.category, false) : '#5A564E', dot: far && e ? CAT_COLOR[e.category] : undefined };
+        return <View key={i} style={[styles.at, { left: `${p.x * 100}%`, top: p.y * h }]}><SymbolPin s={far ? { ...s, text: undefined, size: s.size * 0.8 } : s} onPress={noop} /></View>;
+      })}
       {!far && <>
-        <View style={[styles.at, { left: '70%', top: 0.5 * h }]}><FriendPin person={person('denis')} spot={spot('denis')} onPress={noop} /></View>
+        <View style={[styles.at, { left: '70%', top: 0.48 * h }]}><FriendPin person={person('denis')} spot={spot('denis')} onPress={noop} /></View>
         <View style={[styles.at, { left: '20%', top: 0.6 * h }]}><FriendPin person={person('igor')} spot={spot('igor')} onPress={noop} /></View>
-        <View style={[styles.at, { left: '76%', top: 0.28 * h }]}><FriendPin person={person('anton')} spot={spot('anton')} onPress={noop} /></View>
-        <View style={[styles.at, { left: '52%', top: 0.24 * h }]}><EventPin e={{ ...ev('jazz'), cover: PHOTOS[8] }} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} selected label="Вечеринка на крыше" when="сегодня, 22:00" friend={person('denis')} /></View>
+        <View style={[styles.at, { left: '68%', top: 0.3 * h }]}><FriendPin person={person('anton')} spot={spot('anton')} onPress={noop} /></View>
+        <View style={[styles.at, { left: '52%', top: 0.24 * h }]}><EventPin e={{ ...ev('jazz'), cover: 'igor3' }} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} selected label="Вечеринка на крыше" when="сегодня, 22:00" friend={person('denis')} /></View>
       </>}
       {far && <>
         <View style={[styles.at, { left: '70%', top: 0.5 * h }]}><FriendPin person={person('denis')} spot={spot('denis')} onPress={noop} /></View>
@@ -95,15 +94,11 @@ export default function PinsPreview() {
       <Scene ev={e} person={person} spot={spot} />
       <Text style={styles.sec}>ТОТ ЖЕ РАЙОН ИЗДАЛЕКА — ТОЧКИ</Text>
       <Scene far ev={e} person={person} spot={spot} />
-      <Text style={styles.sec}>СОБЫТИЯ — МИНИ-АФИШИ</Text>
-      <View style={styles.grid}>
-        <Cell title="издалека — точка" h={70}><EventPin e={e('games')} kind="plain" phase="today" showCompany={false} dark={false} onPress={noop} compact /></Cell>
-        <Cell title="обычное · время"><EventPin e={e('games')} kind="plain" phase="today" showCompany={false} dark={false} onPress={noop} time={{ text: '20:00', live: false }} /></Cell>
-        <Cell title="идёт друг"><EventPin e={e('jazz')} kind="labeled" phase="soon" showCompany={false} dark={false} onPress={noop} friend={person('igor')} time={{ text: '19:30', live: false }} /></Cell>
-        <Cell title="идёт сейчас"><EventPin e={{ ...e('concert'), cover: 'krug' }} kind="labeled" phase="live" showCompany={false} dark={false} onPress={noop} time={{ text: 'идёт', live: true }} /></Cell>
-        <Cell title="своё / друзей сегодня"><EventPin e={e('concert')} kind="hot" phase="today" showCompany={false} dark={false} onPress={noop} /></Cell>
-        <Cell title="вблизи — с названием"><View style={{ marginLeft: -60 }}><EventPin e={e('jazz')} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} name="Джаз во дворе" /></View></Cell>
-        <Cell title="несколько в одном месте"><EventPin e={e('food')} kind="plain" phase="today" showCompany={false} dark={false} onPress={noop} count={3} /></Cell>
+      <Text style={styles.sec}>ВСЕ ОБЪЁМНЫЕ ЗНАЧКИ — СОБЫТИЯ, МЕСТА, ТРЦ</Text>
+      <View style={styles.sprites}>
+        {(Object.keys(SPRITES) as SpriteName[]).map((k) => (
+          <View key={k} style={styles.sprite}><Image source={SPRITES[k]} style={{ width: 46, height: 54 }} /><Text style={styles.spriteCap} numberOfLines={1}>{k.replace(/^(ev|pl|mall)-/, '')}</Text></View>
+        ))}
       </View>
       <Cell title="выбранное — крупная афиша с подписью" h={170}><View style={{ marginTop: 40 }}><EventPin e={e('jazz')} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} selected friend={person('igor')} label="Джаз во дворе" when="сегодня, 19:30" /></View></Cell>
 
@@ -119,14 +114,10 @@ export default function PinsPreview() {
         <Cell title="вместе" h={170}><TogetherPin people={[person('igor'), person('anton')]} onPress={noop} /></Cell>
       </View>
 
-      <Text style={styles.sec}>МЕСТА — КРУГИ · МОИ — КАПЛИ · ТРЦ — ЗДАНИЕ</Text>
+      <Text style={styles.sec}>МОИ МЕСТА — КАПЛИ</Text>
       <View style={styles.grid}>
-        <Cell title="фото события"><EventPin e={{ ...e('hike'), cover: 'hike' }} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} time={{ text: 'завтра 08:00', live: false }} /></Cell>
-        <Cell title="парк"><AttractionPin a={a('terrenkur')} label={false} onPress={noop} /></Cell>
-        <Cell title="горы, вблизи"><View style={{ marginLeft: -50 }}><AttractionPin a={a('shymbulak')} label onPress={noop} /></View></Cell>
         <Cell title="моё место"><View style={{ marginTop: 30 }}><PlacePin kind="home" title="Дом" label /></View></Cell>
         <Cell title="избранное"><View style={{ marginTop: 30 }}><PlacePin kind="fav" icon="coffee" title="Кофейня" label /></View></Cell>
-        <Cell title="ТРЦ" h={120}><MallPin m={{ id: 'p', name: 'ЦУМ', address: '', hours: '', cover: null, lat: 0, lon: 0 }} onPress={noop} events={3} /></Cell>
       </View>
     </ScrollView>
   );
@@ -141,5 +132,8 @@ const styles = StyleSheet.create({
   cell: { width: '31.8%', marginBottom: 4 },
   stage: { borderRadius: 16, backgroundColor: '#DDD8CB', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   point: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
+  sprites: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, backgroundColor: '#DDD8CB', borderRadius: 16, padding: 8 },
+  sprite: { width: '18.6%', alignItems: 'center', paddingVertical: 4 },
+  spriteCap: { fontFamily: fonts.mono500, fontSize: 9, color: colors.muted2 },
   cap: { fontFamily: fonts.body500, fontSize: 11, color: colors.muted2, marginTop: 4, textAlign: 'center' },
 });

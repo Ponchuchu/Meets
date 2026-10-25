@@ -12,6 +12,8 @@ import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
 import { CAT_COLOR, CAT_ICON, catFg } from './icons';
 import type { Phase } from './lifecycle';
+import { SPRITES } from './sprites';
+import { eventSprite } from './symbols';
 
 export type PinKind = 'hot' | 'popular' | 'labeled' | 'plain';
 
@@ -44,6 +46,19 @@ function Tag({ x, y, align = 'left', children }: { x: number; y: number; align?:
 
 function formatK(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',').replace(',0', '')}K` : String(n);
+}
+
+/** Крупный объёмный значок выбранного события: тень стоит на месте, сам предмет мягко покачивается. */
+function FloatSprite({ e }: { e: EventItem }) {
+  const y = useSharedValue(0);
+  useEffect(() => { y.set(withRepeat(withTiming(-5, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true)); }, [y]);
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
+  return (
+    <View style={styles.selWrap}>
+      <View style={styles.selShadow} />
+      <Animated.View style={st}><Image source={SPRITES[eventSprite(e)]} style={{ width: 76, height: 89 }} /></Animated.View>
+    </View>
+  );
 }
 
 /** Лицо мини-афиши: обложка события, а без неё (или если не загрузилась) — цвет раздела с крупным белым значком. */
@@ -110,16 +125,9 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
         <View style={[styles.anchor, { transform: [{ scale: Math.max(1, scale * 1.05) }] }]}>
           {live && <Pulse size={86} color={bg} />}
           {/* Выбранная афиша — крупнее, на хвостике, кончик — точно на месте события. */}
-          <View style={styles.selWrap}>
-            <View style={[styles.poster, { width: 64, height: 64, borderRadius: 20, borderColor: colors.ink, borderWidth: 3.5 }]}>
-              <PosterFace e={e} size={64} />
-            </View>
-            <Svg width={18} height={11} viewBox="0 0 18 11" style={{ marginTop: -2 }}><Path d="M1 0h16L9.9 9.6a1.2 1.2 0 0 1-1.8 0z" fill={colors.ink} /></Svg>
-            <View pointerEvents="none" style={[styles.cat, { backgroundColor: bg, position: 'absolute', right: -6, top: 46, width: 24, height: 24, borderRadius: 12 }]}>
-              <Ico d={CAT_ICON[e.category]} size={13} color={fg} w={2.4} />
-            </View>
-          </View>
-          {friend && <View style={[styles.friendBadge, { left: 18, top: -86 }]}><Avatar p={friend} size={22} /></View>}
+          {/* Выбранное (FIX5): тот же объёмный значок, только крупный и парящий над своей тенью. */}
+          <FloatSprite e={e} />
+          {friend && <View style={[styles.friendBadge, { left: 16, top: -84 }]}><Avatar p={friend} size={22} /></View>}
           <Tag x={0} y={10} align="center">
             <View style={styles.selCard}>
               <Text style={styles.selTitle} numberOfLines={2}>{label ?? e.title}</Text>
@@ -201,14 +209,14 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
   const moving = spot.state === 'moving';
   const paused = spot.state === 'paused';
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
-  // Одна маленькая пометка на краю аватарки — только самое важное (src/map/social.ts friendMark).
+  // Одна маленькая пометка под аватаркой, у самой точки — только самое важное (src/map/social.ts friendMark).
   const mark = friendMark(spot, agoShort);
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}${mark ? `, ${mark.text}` : ''}`} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
       <View style={styles.anchor}>
         <FriendBubble person={person} ring={paused ? '#A8A195' : undefined} faded={paused} />
         {mark && (
-          <Tag x={10} y={-27}>
+          <Tag x={0} y={5} align="center">
             <View style={[styles.mark, MARK_BG[mark.kind]]}>
               {mark.kind === 'charging' && <Ico d="M13 2L4 14h7l-1 8 9-12h-7z" size={10} color="#FFFFFF" w={2.6} />}
               {mark.kind === 'low' && <View style={styles.markBatt}><View style={styles.markBattFill} /></View>}
@@ -330,7 +338,8 @@ const styles = StyleSheet.create({
   timeLive: { backgroundColor: '#E5383B' },
   liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FFFFFF' },
   timeText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
-  selWrap: { alignItems: 'center', marginTop: -77, filter: 'drop-shadow(0 6px 8px rgba(23,22,26,0.35))' },
+  selWrap: { alignItems: 'center', marginTop: -82 },
+  selShadow: { position: 'absolute', bottom: 4, width: 40, height: 10, borderRadius: 20, backgroundColor: 'rgba(23,22,26,0.18)' },
   selCard: { maxWidth: 200, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center', boxShadow: '0 6px 14px -6px rgba(23,22,26,0.6)' },
   selTitle: { fontFamily: fonts.body700, fontSize: 12.5, lineHeight: 15, color: colors.paper, textAlign: 'center' },
   selWhen: { fontFamily: fonts.mono600, fontSize: 10, color: colors.accent, marginTop: 1 },
@@ -351,7 +360,7 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
-  mark: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 19, paddingHorizontal: 6, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.3)' },
+  mark: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 18, paddingHorizontal: 6, borderRadius: 9, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.3)' },
   markText: { fontFamily: fonts.body700, fontSize: 10, color: '#FFFFFF' },
   markBatt: { width: 11, height: 6, padding: 1, borderRadius: 2, borderWidth: 1.2, borderColor: '#FFFFFF' },
   markBattFill: { width: 2, height: '100%', borderRadius: 1, backgroundColor: '#FFFFFF' },
@@ -392,7 +401,7 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
       </View>
       <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} />
       {speed && (
-        <Tag x={14} y={-22}>
+        <Tag x={0} y={6} align="center">
           <View style={[styles.mark, MARK_BG.speed]}><Text style={styles.markText}>{speed.toLowerCase()}</Text></View>
         </Tag>
       )}
