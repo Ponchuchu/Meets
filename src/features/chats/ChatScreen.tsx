@@ -182,7 +182,9 @@ export default function ChatScreen() {
 
   // Можно ли писать: друзья — всегда, незнакомые — только при общем событии и в пределах лимитов.
   const commonEvent = !!person && events.some((e) => (plans.going[e.id] || e.friendsGoing.length) && (e.lookers ?? []).some((l) => l.personId === person.id));
-  const check = isGroup ? {ok:true,reason:undefined} : isEvent
+  // Чат из базы, которого ещё нет в списке (список грузится): писать можно — права проверит сервер; без этого
+  // свой же чат на миг становился «чужим» с запретом писать.
+  const check = isGroup || (isRemoteId(id) && !meta0) ? {ok:true,reason:undefined} : isEvent
     ? { ok: !!event && eventChatOpen(event.startsAt, event.endsAt, now), reason: 'closed' as const }
     : canWrite({
       friend, recipientAllows: 'common', commonEvent: commonEvent || !!details?.lookingFor, existing: messages.length > 0,
@@ -780,9 +782,9 @@ const styles = StyleSheet.create({
   replyClose: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
 
   stickerBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
-  root: { flex: 1, backgroundColor: colors.paper },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4, paddingRight: 8, paddingBottom: 8, backgroundColor: colors.paper, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line2,
-    shadowColor: '#17161A', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3, zIndex: 2 },
+  root: { flex: 1, backgroundColor: '#E8E3D6' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4, paddingRight: 8, paddingBottom: 8, backgroundColor: 'rgba(242,239,232,0.97)',
+    boxShadow: '0 1px 0 rgba(23,22,26,0.06), 0 6px 14px -10px rgba(23,22,26,0.25)', zIndex: 2 },
   backBtn: { minWidth: 44, height: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 4 },
   backBadge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
   backBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: colors.paper },
@@ -795,15 +797,15 @@ const styles = StyleSheet.create({
   status: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted, marginTop: 1 },
   plus: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.paper },
   plusText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
-  banner: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: colors.sand },
+  banner: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.07)' },
   bannerText: { textAlign: 'center', fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.4, color: colors.muted },
-  pin: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1.5, borderColor: colors.ink, backgroundColor: colors.card },
+  pin: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginHorizontal: 10, marginTop: 8, borderRadius: 22, backgroundColor: '#FBFAF6', boxShadow: '0 2px 12px -6px rgba(23,22,26,0.35)' },
   pinIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   pinCap: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.5, color: colors.muted },
   pinText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   here: { height: 38, paddingHorizontal: 12, borderRadius: 19, backgroundColor: colors.ink, justifyContent: 'center' },
   hereText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },
-  closed: { padding: 12, borderRadius: 14, backgroundColor: colors.sand },
+  closed: { padding: 14, borderRadius: 20, backgroundColor: '#FBFAF6', boxShadow: '0 2px 10px -6px rgba(23,22,26,0.3)' },
   closedText: { textAlign: 'center', fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   composer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 18, paddingHorizontal: 10 },
   // Капсула ввода: стекло с тонкой границей, внутри «скрепка», поле и «отправить / запись».

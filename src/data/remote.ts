@@ -194,8 +194,10 @@ export async function getChats(): Promise<Chat[]> {
   return rows.map((r) => {
     const others = (byChat.get(r.chat_id) ?? []).filter((u) => u !== me);
     const own = msgs.filter((m) => m.chat_id === r.chat_id);
-    const top = own[0];
-    const unread = Number(top?.unread ?? 0);
+    // Группа без сообщений приходит строкой с пустым сообщением (left join): раньше hhmm(null) падал,
+    // и пропадал весь список чатов — новая группа «не появлялась», а личный чат открывался как чужой (FIX5).
+    const unread = Number(own[0]?.unread ?? 0);
+    const top = own.find((m) => !!m.created_at);
     const direct = r.chats.kind === 'direct';
     return {
       id: r.chat_id,
