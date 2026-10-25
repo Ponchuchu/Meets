@@ -368,7 +368,8 @@ export default function MapScreen() {
         node: (
           <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
           {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? pinLabel(e) : undefined} selected={isSel}
-            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)} />}
+            showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
+            compact={(kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot')} />}
           </View>
         ),
       };
@@ -499,7 +500,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas key={mapAttempt} threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
       {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}

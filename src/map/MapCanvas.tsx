@@ -4,7 +4,7 @@ import { useLowPowerMode } from 'expo-battery';
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
@@ -29,6 +29,8 @@ try {
 }
 
 const LOAD_TIMEOUT_MS = 8000;
+/** Где главную карту оставили (центр и масштаб) — чтобы при возвращении на вкладку не прыгать на старт. */
+let lastView: { lat: number; lon: number; zoom: number } | null = null;
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 
 
@@ -43,7 +45,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving } = props;
+  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving } = props;
+  const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
+  // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
+  // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
+  const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
   const movingRef = useRef(false);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
@@ -97,6 +103,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if (!okPoint([lon, lat])) return; moved.current = true; heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, heading, pitch, animationDuration: 900 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       if (!okPoint([lon, lat])) return;
+      if (cam.current && !loaded.current) { pendingFly.current = { lat, lon, zoom }; return; }
       moved.current = true;
       if (zoom != null) z.current = zoom;
       if (cam.current) cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: Math.min(350, durationMs) });
@@ -110,6 +117,15 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     },
     north: () => { cam.current?.setCamera({ heading: 0, animationDuration: 350 }); },
   }));
+
+  // Вернулся в приложение: Android иногда оставляет карту пустой (поверхность не перерисована) — лёгкий толчок камеры.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active' || !loaded.current) return;
+      setTimeout(() => cam.current?.setCamera({ zoomLevel: z.current + 0.001, animationDuration: 0 }), 120);
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => { if (!still) cam.current?.setCamera({ pitch: threeD ? TILT_PITCH : 0, animationDuration: 450 }); }, [threeD, failed]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -151,9 +167,13 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
-        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); checkCenter(st.properties.center[1], st.properties.center[0]); }}
+        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); if (props.remember && loaded.current) lastView = { lat: st.properties.center[1], lon: st.properties.center[0], zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
-        onDidFinishLoadingMap={() => { loaded.current = true; toStart(); setReady(true); onMode?.('mapbox'); }}
+        onDidFinishLoadingMap={() => {
+          loaded.current = true; toStart(); setReady(true); onMode?.('mapbox');
+          const p = pendingFly.current;
+          if (p) { pendingFly.current = null; moved.current = true; if (p.zoom != null) z.current = p.zoom; cam.current?.setCamera({ centerCoordinate: [p.lon, p.lat], zoomLevel: p.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 }); }
+        }}
         onMapLoadingError={() => {
           if (loaded.current) { console.warn('[map] ошибка тайлов после загрузки — карта остаётся'); return; }
           setFailed(true);

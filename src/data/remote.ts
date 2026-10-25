@@ -93,7 +93,7 @@ export function mapMessage(r: MessageRow, me: string): Message {
 }
 
 /** Друг на карте. Точка уже огрублена сервером до ~50 м (friend_locations). */
-export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: number | null; heading: number | null; updated_at: string; status?: string | null }, at = new Date()): FriendSpot {
+export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: number | null; heading: number | null; updated_at: string; status?: string | null; battery?: number | null; charging?: boolean | null }, at = new Date()): FriendSpot {
   const kmh = r.speed != null && r.speed >= 0 ? Math.round(r.speed * 3.6) : undefined;
   const minutes = Math.max(0, Math.round((at.getTime() - new Date(r.updated_at).getTime()) / 60000));
   const moving = r.status === 'moving' || (!!kmh && kmh > 8);
@@ -107,6 +107,8 @@ export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: n
     speedKmh: kmh,
     heading: r.heading ?? undefined,
     minutesAgo: minutes,
+    battery: r.battery ?? undefined,
+    charging: r.charging ?? undefined,
   };
 }
 

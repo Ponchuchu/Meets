@@ -65,6 +65,19 @@ function liveChannel(me: string) {
   return channel;
 }
 
+/** Заряд для друзей (FIX5): процент и «заряжается», читаем не чаще раза в минуту. */
+let power: { battery: number; charging: boolean; at: number } | null = null;
+async function powerNow(): Promise<{ battery: number; charging: boolean } | null> {
+  if (Platform.OS === 'web') return null;
+  if (power && Date.now() - power.at < 60000) return power;
+  const st = await Battery.getPowerStateAsync().catch(() => null);
+  if (!st || st.batteryLevel == null || st.batteryLevel < 0) return null;
+  power = { battery: Math.round(st.batteryLevel * 100), charging: st.batteryState === Battery.BatteryState.CHARGING || st.batteryState === Battery.BatteryState.FULL, at: Date.now() };
+  return power;
+}
+/** Сервер ещё без колонок заряда (миграция 40 не применена) — шлём точку без них, чтобы друзья всё равно видели. */
+let powerColumns = true;
+
 export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now()): Promise<void> {
   const me = myId();
   const p: Pt = { lat: c.latitude, lon: c.longitude, at, accuracy: c.accuracy, speed: c.speed, heading: c.heading != null && c.heading >= 0 ? c.heading : null };
@@ -85,8 +98,17 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
   const iso = new Date(at).toISOString();
   const geog = `SRID=4326;POINT(${p.lon} ${p.lat})`;
   const sb = supabase();
+  const pw = await powerNow();
+  const row = { user_id: me, geog, speed, heading, accuracy: c.accuracy ?? null, status, updated_at: iso };
   const jobs: PromiseLike<unknown>[] = [
-    sb.from('locations_last').upsert({ user_id: me, geog, speed, heading, accuracy: c.accuracy ?? null, status, updated_at: iso }),
+    (async () => {
+      if (pw && powerColumns) {
+        const { error } = await sb.from('locations_last').upsert({ ...row, battery: pw.battery, charging: pw.charging });
+        if (!error) return;
+        if (/battery|charging|column/i.test(error.message)) powerColumns = false; else return;
+      }
+      await sb.from('locations_last').upsert(row);
+    })(),
   ];
   if (at - lastHistory >= 30000) {
     lastHistory = at;
@@ -98,7 +120,8 @@ export async function sendPoint(c: Location.LocationObjectCoords, at = Date.now(
     jobs.push(sb.from('explore_cells').upsert({ user_id: me, h3: cell }, { onConflict: 'user_id,h3', ignoreDuplicates: true }));
   }
   // «Только район»: координаты друзьям не уходят вовсе.
-  const payload = share.districtOnly ? { updated_at: iso, status } : { ...coarse(p.lat, p.lon), speed, heading, accuracy: c.accuracy ?? null, status, updated_at: iso };
+  const payload = share.districtOnly ? { updated_at: iso, status, battery: pw?.battery, charging: pw?.charging }
+    : { ...coarse(p.lat, p.lon), speed, heading, accuracy: c.accuracy ?? null, status, updated_at: iso, battery: pw?.battery, charging: pw?.charging };
   void liveChannel(me).httpSend('pos', payload).catch(() => undefined);
   await Promise.all(jobs);
 }

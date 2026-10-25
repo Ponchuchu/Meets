@@ -101,12 +101,12 @@ export function useLiveFriends(friendIds: string[]) {
       supabase()
         .channel(`locations:${id}`, { config: { private: true } })
         .on('broadcast', { event: 'pos' }, ({ payload }) => {
-          const p = payload as { lat?: number; lon?: number; speed: number | null; heading: number | null; accuracy?: number | null; status?: string | null; updated_at: string };
+          const p = payload as { lat?: number; lon?: number; speed: number | null; heading: number | null; accuracy?: number | null; status?: string | null; updated_at: string; battery?: number | null; charging?: boolean | null };
           if (p.lat == null || p.lon == null || !Number.isFinite(p.lat) || !Number.isFinite(p.lon) || Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180 || !Number.isFinite(Date.parse(p.updated_at))) return;
           const pt: Pt = { lat: p.lat, lon: p.lon, at: Date.parse(p.updated_at), accuracy: p.accuracy };
           if (isJump(prev.get(id) ?? null, pt)) return;
           prev.set(id, pt);
-          const spot = mapSpot({ user_id: id, lat: p.lat, lon: p.lon, speed: p.speed, heading: p.heading, updated_at: p.updated_at, status: p.status });
+          const spot = mapSpot({ user_id: id, lat: p.lat, lon: p.lon, speed: p.speed, heading: p.heading, updated_at: p.updated_at, status: p.status, battery: p.battery, charging: p.charging });
           pending.set(id, spot);
           flushTimer ??= setTimeout(flush, isEco() ? 3000 : 1000);
         })
