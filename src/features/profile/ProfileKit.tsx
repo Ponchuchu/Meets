@@ -88,7 +88,7 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
 }
 
 /** Фото на весь экран: листаются вбок, счётчик сверху, свайп вниз или крестик — закрыть. */
-export function PhotoViewer({ photos, start, onClose, action }: { photos: string[]; start: number; onClose: () => void; action?: { label: string; onPress: () => void } }) {
+export function PhotoViewer({ photos, start, onClose, action, title }: { photos: string[]; start: number; onClose: () => void; action?: { label: string; onPress: () => void }; title?: string }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(start);
@@ -113,7 +113,10 @@ export function PhotoViewer({ photos, start, onClose, action }: { photos: string
           </Animated.View>
         </GestureDetector>
         <View style={[styles.viewerTop, { top: insets.top + 10 }]} pointerEvents="box-none">
-          <Text style={styles.viewerCount}>{photos.length > 1 ? `${page + 1} из ${photos.length}` : ''}</Text>
+          <View style={{ flex: 1 }}>
+            {!!title && <Text style={styles.viewerTitle} numberOfLines={1}>{title}</Text>}
+            <Text style={styles.viewerCount}>{photos.length > 1 ? `${page + 1} из ${photos.length}` : ''}</Text>
+          </View>
           <GlassBtn onPress={onClose} label="Закрыть"><X size={22} color="#FFFFFF" strokeWidth={2.2} /></GlassBtn>
         </View>
         {photos.length > 1 && (
@@ -247,6 +250,7 @@ const styles = StyleSheet.create({
   chipDot: { width: 8, height: 8, borderRadius: 4 },
   chipText: { fontFamily: fonts.body600, fontSize: 13.5, color: '#FFFFFF' },
   viewerTop: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  viewerTitle: { fontFamily: fonts.body700, fontSize: 17, color: '#FFFFFF' },
   viewerCount: { fontFamily: fonts.body600, fontSize: 15, color: '#FFFFFF' },
   dots: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },

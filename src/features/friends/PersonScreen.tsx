@@ -10,13 +10,14 @@ import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
 import { birthdayText } from '../../lib/format';
 import { EventIcon } from '../../ui/EventIcon';
-import { EmptyRow, FriendsPill, PlansStrip } from '../profile/PlansStrip';
+import { EmptyRow, FriendsPill, MemoriesStrip, PlansStrip } from '../profile/PlansStrip';
+import { getPersonMemories } from '../../live/profileExtras';
 import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard, Tile, TileCap, type StatItem } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY , canSee } from '../../people/visibility';
-import { Award, Cake, CalendarDays, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus } from 'lucide-react-native';
+import { Award, Cake, CalendarDays, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, MessageCircle, Navigation, UserMinus, UserPlus } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,6 +66,7 @@ export default function PersonScreen() {
   const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
   const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: theirFriends } = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id), enabled: !(preview && id === 'me') });
+  const { data: albums = [] } = useQuery({ queryKey: ['person', id, 'memories'], queryFn: () => getPersonMemories(id), enabled: !(preview && id === 'me') });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
@@ -103,12 +105,11 @@ export default function PersonScreen() {
   const showFriends = friend ? fCount > 0 : common.length > 0;
   const showSteps = d.stepsToday != null;
 
-  // «Активность» друга — та же спокойная карточка, что у меня: шаги сегодня и воспоминания (что разрешено видеть).
+  // «Активность» друга — та же спокойная карточка, что у меня: шаги сегодня (если разрешено видеть).
   // Планы и награды уже видны своими блоками — здесь не повторяем.
   const plansOpen = friend && canSee('friend', 'plans', d.privacy);
   const statItems: StatItem[] = [
     ...(showSteps ? [{ key: 'steps', icon: <Footprints size={19} color={colors.ok} strokeWidth={2} />, value: (d.stepsToday ?? 0).toLocaleString('ru-RU'), label: 'шагов сегодня', progress: (d.stepsToday ?? 0) / 10000, color: colors.ok }] : []),
-    ...((d.memoriesCount ?? 0) > 0 ? [{ key: 'mem', icon: <Images size={19} color={colors.accentText} strokeWidth={2} />, value: String(d.memoriesCount), label: plural(d.memoriesCount ?? 0, 'воспоминание', 'воспоминания', 'воспоминаний'), color: colors.accent }] : []),
   ];
 
   return (
@@ -127,8 +128,9 @@ export default function PersonScreen() {
             {!friend && <HeroChip>не в друзьях</HeroChip>}
           </>}
           corner={canLocate ? (
-            <Pressable onPress={showOnMap} style={({ pressed }) => [styles.geo, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Показать ${p.name === 'Айнура' ? 'Айнуру' : genitive.replace(/а$/, 'а')} на карте`}>
-              <LocateFixed size={24} color="#FFFFFF" strokeWidth={2.1} />
+            <Pressable onPress={showOnMap} style={({ pressed }) => [styles.geo, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Показать на карте: ${p.name}`}>
+              <View style={styles.geoDot}><Navigation size={13} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} /></View>
+              <Text style={styles.geoText}>На карте</Text>
             </Pressable>
           ) : undefined} />
 
@@ -172,6 +174,8 @@ export default function PersonScreen() {
           ))}
 
           <StatsCard items={statItems} />
+
+          <MemoriesStrip title="Воспоминания" albums={albums} />
 
           {medals.length > 0 && (
             <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
@@ -292,7 +296,9 @@ const styles = StyleSheet.create({
   action: { flex: 1, height: 66, borderRadius: 18, ...plate, alignItems: 'center', justifyContent: 'center', gap: 5 },
   actionDark: { backgroundColor: colors.ink, borderTopColor: 'rgba(255,255,255,0.18)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.4)' },
   actionText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
-  geo: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)', boxShadow: '0 10px 24px -8px rgba(37,72,201,0.8)' },
+  geo: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingLeft: 6, paddingRight: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.94)', boxShadow: '0 8px 20px -8px rgba(0,0,0,0.5)' },
+  geoDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
+  geoText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   tileIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(23,22,26,0.07)', alignItems: 'center', justifyContent: 'center' },
   ringBox: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   awardsN: { fontFamily: fonts.body600, fontSize: 13, color: 'rgba(255,255,255,0.72)' },

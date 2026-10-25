@@ -2,7 +2,12 @@
 // Карточка: объёмный значок события, когда (сегодня — оранжевым), название и пометка («вы идёте вместе»).
 import { router } from 'expo-router';
 import { ChevronRight, Users } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Image } from 'expo-image';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { photo as photoSrc } from '../../data/photos';
+import type { Memory } from '../../live/profileExtras';
+import { PhotoViewer } from './ProfileKit';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EventItem, Person } from '../../data/types';
 import { colors, fonts } from '../../theme';
@@ -16,7 +21,7 @@ export function PlansStrip({ title, items, onAll, total, empty }: { title: strin
   const n = total ?? items.length;
   return (
     <View style={{ gap: 10 }}>
-      <SectionHead title={title} n={n} onPress={onAll} />
+      <SectionHead title={title} n={total} onPress={onAll} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
         {items.map((it) => (
           <Pressable key={it.key} onPress={() => it.eventId && router.push({ pathname: '/event/[id]', params: { id: it.eventId } })} disabled={!it.eventId}
@@ -36,6 +41,36 @@ export function PlansStrip({ title, items, onAll, total, empty }: { title: strin
           </Pressable>
         )}
       </ScrollView>
+    </View>
+  );
+}
+
+const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const shortDate = (iso: string) => { const d = new Date(iso); return `${d.getDate()} ${MON[d.getMonth()]}`; };
+
+/** Витрина воспоминаний (26 окт.): альбомы обложками вбок, как «Актуальное». Нажатие — фото альбома на весь экран. */
+export function MemoriesStrip({ title, albums }: { title: string; albums: Memory[] }) {
+  const [open, setOpen] = useState<Memory | null>(null);
+  if (!albums.length) return null;
+  return (
+    <View style={{ gap: 10 }}>
+      <SectionHead title={title} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
+        {albums.map((m, k) => (
+          <Pressable key={m.id} onPress={() => m.photos.length && setOpen(m)} style={({ pressed }) => [styles.album, k === 0 && styles.albumBig, pressed && { transform: [{ scale: 0.97 }] }]}
+            accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}, ${m.photos.length} фото`}>
+            {m.cover ? <Image source={photoSrc(m.cover)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sand }]} />}
+            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+              <Defs><LinearGradient id={`mg${k}`} x1="0" y1="0" x2="0" y2="1"><Stop offset="0.45" stopColor="#000" stopOpacity={0} /><Stop offset="1" stopColor="#000" stopOpacity={0.72} /></LinearGradient></Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill={`url(#mg${k})`} />
+            </Svg>
+            {m.photos.length > 1 && <View style={styles.albumN}><Text style={styles.albumNText}>{m.photos.length}</Text></View>}
+            <Text style={styles.albumTitle} numberOfLines={2}>{m.title}</Text>
+            <Text style={styles.albumDate}>{shortDate(m.happened_at)}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      {open && <PhotoViewer photos={open.photos.map((x) => x.url)} start={0} title={open.title} onClose={() => setOpen(null)} />}
     </View>
   );
 }
@@ -92,6 +127,12 @@ const styles = StyleSheet.create({
   whenText: { fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink },
   title: { fontFamily: fonts.body700, fontSize: 14.5, lineHeight: 18, color: colors.ink },
   note: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted },
+  album: { width: 128, height: 172, borderRadius: 22, overflow: 'hidden', justifyContent: 'flex-end', padding: 12, backgroundColor: colors.sand },
+  albumBig: { width: 172 },
+  albumN: { position: 'absolute', top: 10, right: 10, minWidth: 26, height: 26, paddingHorizontal: 7, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+  albumNText: { fontFamily: fonts.body700, fontSize: 12, color: '#FFFFFF' },
+  albumTitle: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 18, color: '#FFFFFF' },
+  albumDate: { fontFamily: fonts.body500, fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   all: { alignItems: 'flex-start', justifyContent: 'flex-end', width: 112, backgroundColor: colors.sand },
   allIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center', marginBottom: 'auto' },
   more: { width: 36, height: 36, borderRadius: 18, marginLeft: -12, backgroundColor: colors.ink, borderWidth: 2.5, borderColor: '#F4F0E7', alignItems: 'center', justifyContent: 'center' },

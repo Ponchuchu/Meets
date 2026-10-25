@@ -197,3 +197,19 @@ export async function answerChallenge(id: string, accept: boolean): Promise<void
   if (!LIVE) { useDemoChallenges.setState(s => ({ list: accept ? s.list.map(c => c.id === id ? { ...c, my_status: 'joined' } : c) : s.list.filter(c => c.id !== id) })); return; }
   await must(sb().rpc('answer_step_challenge', { challenge: id, accept }));
 }
+
+/** Демо: альбомы друзей из макета (фото из design/assets). */
+const DEMO_FRIEND_MEMORIES: Record<string, Memory[]> = {
+  igor: [
+    { id: 'm-igor-jazz', event_id: 'jazz', title: 'Джаз во дворе', note: null, happened_at: '2026-10-11T19:30:00+05:00', cover: 'igor1', photos: [{ id: 'p1', url: 'igor1' }, { id: 'p2', url: 'krug' }, { id: 'p3', url: 'igor2' }] },
+    { id: 'm-igor-hike', event_id: 'hike', title: 'Кок-Жайляу', note: null, happened_at: '2026-10-04T09:00:00+05:00', cover: 'hike', photos: [{ id: 'p4', url: 'hike' }, { id: 'p5', url: 'igor3' }] },
+    { id: 'm-igor-roof', event_id: null, title: 'Крыша на Абая', note: null, happened_at: '2026-09-20T21:00:00+05:00', cover: 'igor4', photos: [{ id: 'p6', url: 'igor4' }, { id: 'p7', url: 'igor' }] },
+  ],
+  anton: [{ id: 'm-anton-anime', event_id: 'anime', title: 'Аниме-выставка', note: null, happened_at: '2026-10-12T12:00:00+05:00', cover: 'anton', photos: [{ id: 'p8', url: 'anton' }, { id: 'p9', url: 'krug' }] }],
+};
+
+/** Альбомы другого человека: в живой версии видны по его настройке (can_see_memories на сервере), иначе пусто. */
+export async function getPersonMemories(id: string): Promise<Memory[]> {
+  if (!LIVE) return DEMO_FRIEND_MEMORIES[id] ?? [];
+  return getMemories(id).catch(() => []);
+}
