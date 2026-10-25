@@ -4,7 +4,8 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
-import { friendMark } from './social';
+import { friendMark, type FriendMark } from './social';
+import { BatteryLow, Bike, Car, Clock3, Footprints, Zap } from 'lucide-react-native';
 import { Avatar } from '../ui/Avatar';
 import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
@@ -187,13 +188,15 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
  * Друг на карте (FIX5, как в Zenly): крупное фото в белой рамке с хвостиком к точке, ободок — цвет его рамки,
  * мягкая тень на земле. Сверху — плашка: заряд и «5 мин» или скорость со стрелкой. Давно не обновлялся — бледнее, серый ободок.
  */
-export function FriendBubble({ person, size = 46, ring, faded }: { person: Person; size?: number; ring?: string; faded?: boolean }) {
+export function FriendBubble({ person, size = 46, ring, faded, badge }: { person: Person; size?: number; ring?: string; faded?: boolean; badge?: ReactNode }) {
   const color = ring ?? frameById(person.mapFrame).color;
   const total = size + 8;
   return (
     <View style={{ alignItems: 'center', marginTop: -(total + 8) }} pointerEvents="none">
       <View style={[styles.bubble, { width: total, height: total, borderRadius: total / 2, borderColor: color }]}>
         <View style={{ opacity: faded ? 0.55 : 1 }}><Avatar p={person} size={size} /></View>
+        {/* Статус вшит в аватарку (26 окт.): плашка сидит на нижнем краю кольца, как «LIVE» в Instagram. */}
+        {badge && <View style={styles.badgeSlot}>{badge}</View>}
       </View>
       <Svg width={18} height={11} viewBox="0 0 18 11" style={{ marginTop: -3 }}>
         <Path d="M1 0h16L9.9 9.6a1.2 1.2 0 0 1-1.8 0z" fill="#FFFFFF" />
@@ -203,25 +206,53 @@ export function FriendBubble({ person, size = 46, ring, faded }: { person: Perso
   );
 }
 
+/** Чем едет друг — по скорости: до 7 км/ч пешком, до 25 — велосипед или самокат, быстрее — машина. */
+export const vehicleOf = (kmh: number): 'walk' | 'bike' | 'car' => (kmh < 7 ? 'walk' : kmh < 25 ? 'bike' : 'car');
+const VEHICLE_ICON = { walk: Footprints, bike: Bike, car: Car };
+
+/** Плашка на кольце аватарки: в пути — транспорт и скорость; мало заряда — красная батарейка; заряжается — молния; давно — часы. */
+export function StatusChip({ mark, big }: { mark: NonNullable<FriendMark>; big?: boolean }) {
+  const kmh = parseInt(mark.text, 10) || 0;
+  const Icon = mark.kind === 'speed' ? VEHICLE_ICON[vehicleOf(kmh)] : mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : Clock3;
+  const fg = mark.kind === 'ago' ? colors.muted2 : '#FFFFFF';
+  return (
+    <View style={[styles.chip, MARK_BG[mark.kind], big && styles.chipBig]}>
+      <Icon size={big ? 12 : 10.5} color={fg} strokeWidth={2.6} />
+      <Text style={[styles.chipText, big && { fontSize: 11 }, { color: fg }]}>{mark.text}</Text>
+    </View>
+  );
+}
+
+/** Друг в пути: позади аватарки бегут три полоски движения — против направления пути (без стрелки, просьба владельца). */
+function SpeedTrail({ heading, lift }: { heading?: number; lift: number }) {
+  const t = useSharedValue(0);
+  useEffect(() => { t.set(withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1, false)); }, [t]);
+  const deg = (heading ?? 90) + 180;
+  return (
+    <View pointerEvents="none" style={[styles.trail, { top: -lift, transform: [{ rotate: `${deg - 90}deg` }] }]}>
+      {[-9, 0, 9].map((dy, i) => <Streak key={dy} t={t} dy={dy} phase={i * 0.3} />)}
+    </View>
+  );
+}
+function Streak({ t, dy, phase }: { t: ReturnType<typeof useSharedValue<number>>; dy: number; phase: number }) {
+  const st = useAnimatedStyle(() => {
+    const k = (t.get() + phase) % 1;
+    return { opacity: Math.sin(k * Math.PI) * 0.85, transform: [{ translateX: 34 + k * 16 }, { translateY: dy }, { scaleX: 0.6 + Math.sin(k * Math.PI) * 0.6 }] };
+  });
+  return <Animated.View style={[styles.streak, st]} />;
+}
+
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
   const moving = spot.state === 'moving';
   const paused = spot.state === 'paused';
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
-  // Одна маленькая пометка под аватаркой, у самой точки — только самое важное (src/map/social.ts friendMark).
+  // Одна плашка на кольце — только самое важное (src/map/social.ts friendMark), остальное — в карточке по нажатию.
   const mark = friendMark(spot, agoShort);
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}${mark ? `, ${mark.text}` : ''}`} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
       <View style={styles.anchor}>
-        <FriendBubble person={person} ring={paused ? '#A8A195' : undefined} faded={paused} />
-        {mark && (
-          <Tag x={0} y={5} align="center">
-            <View style={[styles.mark, MARK_BG[mark.kind]]}>
-              {mark.kind === 'charging' && <Ico d="M13 2L4 14h7l-1 8 9-12h-7z" size={10} color="#FFFFFF" w={2.6} />}
-              {mark.kind === 'low' && <View style={styles.markBatt}><View style={styles.markBattFill} /></View>}
-              <Text style={[styles.markText, mark.kind === 'ago' && { color: colors.muted2 }]}>{mark.text}</Text>
-            </View>
-          </Tag>
-        )}
+        {moving && !dim && <SpeedTrail heading={spot.heading} lift={35} />}
+        <FriendBubble person={person} ring={paused ? '#A8A195' : moving ? colors.friend : undefined} faded={paused || mark?.kind === 'ago'} badge={mark ? <StatusChip mark={mark} /> : null} />
       </View>
     </Pressable>
   );
@@ -358,10 +389,12 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
-  mark: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 18, paddingHorizontal: 6, borderRadius: 9, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.3)' },
-  markText: { fontFamily: fonts.body700, fontSize: 10, color: '#FFFFFF' },
-  markBatt: { width: 11, height: 6, padding: 1, borderRadius: 2, borderWidth: 1.2, borderColor: '#FFFFFF' },
-  markBattFill: { width: 2, height: '100%', borderRadius: 1, backgroundColor: '#FFFFFF' },
+  badgeSlot: { position: 'absolute', bottom: -10, left: -20, right: -20, alignItems: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 19, paddingHorizontal: 6, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.28)' },
+  chipBig: { height: 22, paddingHorizontal: 8, borderRadius: 11 },
+  chipText: { fontFamily: fonts.body700, fontSize: 10, letterSpacing: -0.1 },
+  trail: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
+  streak: { position: 'absolute', width: 16, height: 3, borderRadius: 2, backgroundColor: colors.friend },
   battBare: { backgroundColor: 'transparent', boxShadow: 'none', paddingLeft: 0, paddingRight: 0, height: 16 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.97)', boxShadow: '0 2px 6px rgba(23,22,26,0.22)' },
   statusPart: { flexDirection: 'row', alignItems: 'center', gap: 3 },
@@ -384,7 +417,7 @@ const styles = StyleSheet.create({
 /** Где центр лица друга в фокусе относительно точки (вверх): хвостик 8 + половина круга 33. */
 export const FOCUS_FACE = 41;
 
-export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string }) {
+export function FocusPin({ person, ring, bubble, speed, heading }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string; heading?: number }) {
   const pop = useSharedValue(0);
   useEffect(() => {
     if (bubble) { pop.value = 0; pop.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.back(2)) }); }
@@ -397,12 +430,8 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
         <View style={{ position: 'absolute', width: 92, height: 92, borderRadius: 46, backgroundColor: 'rgba(36,71,184,0.12)' }} />
         <Pulse size={92} color={colors.friend} />
       </View>
-      <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} />
-      {speed && (
-        <Tag x={0} y={6} align="center">
-          <View style={[styles.mark, MARK_BG.speed]}><Text style={styles.markText}>{speed.toLowerCase()}</Text></View>
-        </Tag>
-      )}
+      {speed && <SpeedTrail lift={42} heading={heading} />}
+      <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} badge={speed ? <StatusChip big mark={{ kind: 'speed', text: speed.toLowerCase() }} /> : null} />
       {bubble && (
         <Tag x={18} y={-FOCUS_FACE - 70}>
           <Animated.View style={[{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: bubble.bg, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 7, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, popStyle]}>

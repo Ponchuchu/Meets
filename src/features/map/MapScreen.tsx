@@ -438,7 +438,7 @@ export default function MapScreen() {
         // Альфа: кому видна точка, решает сервер (can_see_location) — здесь только убранные из друзей.
         if (!p || social.removed[p.id] || (!LIVE && (!d || !canSee('friend', 'location', d.privacy)))) continue;
         if (focusId === p.id) {
-          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} /> });
+          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
           if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
         } else {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
