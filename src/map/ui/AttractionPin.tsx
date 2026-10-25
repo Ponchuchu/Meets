@@ -67,8 +67,8 @@ export const AttractionPin = memo(function AttractionPin({ a, label, onPress }: 
 const styles = StyleSheet.create({
   hit: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  // Места — скруглённые квадраты (события — круги): та же кромка, тень и подпись с белым ореолом (docs/MAP-ICONS.md).
-  badge: { width: 34, height: 34, borderRadius: 11, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  // Места — круги со значком, как точки интереса в Apple Maps (события — мини-афиши с фото): docs/MAP-ICONS.md.
+  badge: { width: 34, height: 34, borderRadius: 17, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
   photo: { width: 28, height: 28, borderRadius: 14, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
   label: { position: 'absolute', left: 21, top: -14, width: 118, fontFamily: fonts.body700, fontSize: 11, lineHeight: 13.5, color: colors.ink,
     textShadowColor: 'rgba(252,251,248,0.95)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },

@@ -27,7 +27,7 @@ import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard
 import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, placeLabels, pxToLat, showPinLabel } from '../../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pinTime, placeLabels, pxToLat, showPinLabel } from '../../map/zoom';
 import { whenTitle } from '../../event/text';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
@@ -367,7 +367,7 @@ export default function MapScreen() {
         .sort((a, b) => rank[pinKind(a, today, going.has(a.id))] - rank[pinKind(b, today, going.has(b.id))])
         .map((e) => ({ id: e.id, lat: e.lat, lon: e.lon, w: Math.min(118, shortName(e).length * 6.4) })),
       [
-        ...mains.map((e) => ({ lat: e.lat, lon: e.lon, r: 18 })),
+        ...mains.map((e) => ({ lat: e.lat, lon: e.lon, r: 26 })),
         // Лицо друга стоит над точкой на хвостике — препятствие и в точке, и выше неё.
         ...(filters.friends ? spots.flatMap((x) => [{ lat: x.lat, lon: x.lon, r: 22 }, { lat: x.lat + pxToLat(45, zoom, x.lat), lon: x.lon, r: 40 }]) : []),
         ...topSpots(places).map((a) => ({ lat: a.lat, lon: a.lon, r: 18 })),
@@ -394,7 +394,8 @@ export default function MapScreen() {
             compact={(kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot')}
             name={named.has(e.id) ? shortName(e) : undefined}
             friend={people.find((x) => x.isFriend && e.friendsGoing.includes(x.id))}
-            when={isSel ? whenTitle(e, clock).toLowerCase() : undefined} />}
+            when={isSel ? whenTitle(e, clock).toLowerCase() : undefined}
+            time={detail === 'far' ? null : pinTime(e, clock)} />}
           </View>
         ),
       };

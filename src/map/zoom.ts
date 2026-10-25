@@ -68,8 +68,8 @@ export function placeLabels(cands: LabelCandidate[], obstacles: Obstacle[], zoom
   for (const c of cands) {
     const p = px(c.lat, c.lon);
     const h = c.h ?? 28;
-    const own = { x1: p.x - 18, y1: p.y - 18, x2: p.x + 18, y2: p.y + 18 };
-    const box = { x1: p.x + 20, y1: p.y - h / 2, x2: p.x + 20 + c.w, y2: p.y + h / 2 };
+    const own = { x1: p.x - 26, y1: p.y - 26, x2: p.x + 26, y2: p.y + 26 };
+    const box = { x1: p.x + 26, y1: p.y - h / 2, x2: p.x + 20 + c.w, y2: p.y + h / 2 };
     // Свой значок — не препятствие для своей подписи.
     const self = boxes.find((o) => Math.abs(o.x1 - own.x1) < 0.5 && Math.abs(o.y1 - own.y1) < 0.5);
     if (hit(box, self)) continue;
@@ -77,4 +77,19 @@ export function placeLabels(cands: LabelCandidate[], obstacles: Obstacle[], zoom
     out.add(c.id);
   }
   return out;
+}
+
+/** Плашка времени под мини-афишей (FIX5): «идёт», «19:30» (сегодня), «завтра», у долгих (выставки) — ничего. */
+export function pinTime(e: Pick<EventItem, 'startsAt' | 'endsAt' | 'isLong'>, now: Date): { text: string; live: boolean } | null {
+  const start = Date.parse(e.startsAt);
+  const end = e.endsAt ? Date.parse(e.endsAt) : start + 2 * 3600e3;
+  const t = now.getTime();
+  if (e.isLong && end - start > 12 * 3600e3) return null;
+  if (t >= start && t < end) return { text: 'идёт', live: true };
+  const day = (x: number) => Math.floor((x + 5 * 3600e3) / 86400e3);
+  const a = new Date(start + 5 * 3600e3);
+  const hm = `${String(a.getUTCHours()).padStart(2, '0')}:${String(a.getUTCMinutes()).padStart(2, '0')}`;
+  if (day(start) === day(t)) return { text: hm, live: false };
+  if (day(start) === day(t) + 1) return { text: `завтра ${hm}`, live: false };
+  return null;
 }

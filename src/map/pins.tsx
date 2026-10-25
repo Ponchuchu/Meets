@@ -1,10 +1,11 @@
 // Точки на карте по макету Main: события, друзья, моя точка. Каждый пин центрирован на своей координате.
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
 import { Avatar } from '../ui/Avatar';
+import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
@@ -44,6 +45,20 @@ function formatK(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',').replace(',0', '')}K` : String(n);
 }
 
+/** Лицо мини-афиши: обложка события, а без неё (или если не загрузилась) — цвет раздела с крупным белым значком. */
+function PosterFace({ e, size }: { e: EventItem; size: number }) {
+  const [broken, setBroken] = useState(false);
+  const src = e.cover && !broken ? photo(e.cover) : undefined;
+  const bg = CAT_COLOR[e.category];
+  if (src) return <Image source={src} style={{ flex: 1 }} resizeMode="cover" resizeMethod="resize" onError={() => setBroken(true)} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '45%', backgroundColor: 'rgba(255,255,255,0.16)' }} />
+      <Ico d={CAT_ICON[e.category]} size={Math.round(size * 0.5)} color={catFg(e.category)} w={2.1} />
+    </View>
+  );
+}
+
 /**
  * Значок события (FIX5, система значков карты — docs/MAP-ICONS.md). Как точки интереса в Apple Maps:
  *  · издалека — маленькая точка цвета раздела;
@@ -52,7 +67,7 @@ function formatK(n: number): string {
  *  · выбранный — «капля» с хвостиком, крупный значок и тёмная плашка с названием и временем;
  *  · идёт друг — его мини-аватарка на краю значка; идёт сейчас — мягкая пульсация.
  */
-export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact, name, friend, when }: {
+export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact, name, friend, when, time }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
   /** Масштаб от зума карты (src/map/zoom.ts). */
   scale?: number;
@@ -68,6 +83,8 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
   friend?: Person;
   /** Время для плашки выбранного: «сегодня 19:30». */
   when?: string;
+  /** Плашка времени под афишей: «19:30», «идёт» (src/map/zoom.ts pinTime). */
+  time?: { text: string; live: boolean } | null;
 }) {
   const soon = phase === 'soon';
   // Пульсирует только разовое событие «идёт сейчас»; выставки и маркеты открыты весь день — без пульса.
@@ -91,14 +108,17 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
         <View style={[styles.anchor, { transform: [{ scale: Math.max(1, scale * 1.05) }] }]}>
           {live && <Pulse size={86} color={bg} />}
-          {/* Капля: круг с хвостиком, кончик — точно на месте события (поднята на свою высоту). */}
-          <View style={styles.balloon}>
-            <Svg width={56} height={68} viewBox="0 0 56 68" style={StyleSheet.absoluteFill}>
-              <Path d="M28 66C26 66 6 46 4.5 30A23.5 23.5 0 1 1 51.5 30C50 46 30 66 28 66Z" fill={bg} stroke="#FFFFFF" strokeWidth={3} />
-            </Svg>
-            <View style={styles.balloonGlyph}><Ico d={CAT_ICON[e.category]} size={26} color={fg} w={2.2} /></View>
+          {/* Выбранная афиша — крупнее, на хвостике, кончик — точно на месте события. */}
+          <View style={styles.selWrap}>
+            <View style={[styles.poster, { width: 64, height: 64, borderRadius: 20, borderColor: colors.ink, borderWidth: 3.5 }]}>
+              <PosterFace e={e} size={64} />
+            </View>
+            <Svg width={18} height={11} viewBox="0 0 18 11" style={{ marginTop: -2 }}><Path d="M1 0h16L9.9 9.6a1.2 1.2 0 0 1-1.8 0z" fill={colors.ink} /></Svg>
+            <View pointerEvents="none" style={[styles.cat, { backgroundColor: bg, position: 'absolute', right: -6, top: 46, width: 24, height: 24, borderRadius: 12 }]}>
+              <Ico d={CAT_ICON[e.category]} size={13} color={fg} w={2.4} />
+            </View>
           </View>
-          {friend && <View style={[styles.friendBadge, { left: 10, top: -60 }]}><Avatar p={friend} size={22} /></View>}
+          {friend && <View style={[styles.friendBadge, { left: 18, top: -86 }]}><Avatar p={friend} size={22} /></View>}
           <Tag x={0} y={10} align="center">
             <View style={styles.selCard}>
               <Text style={styles.selTitle} numberOfLines={2}>{label ?? e.title}</Text>
@@ -109,27 +129,41 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
       </Pressable>
     );
   }
-  const size = kind === 'hot' || kind === 'popular' ? 38 : kind === 'labeled' ? 35 : soon ? 33 : 31;
-  const icon = Math.round(size * 0.5);
+  // Мини-афиша (FIX5, переделано в корне): обложка события в белой рамке, в углу — кружок раздела,
+  // снизу — плашка времени («19:30», «идёт»). Нет обложки — яркий постер раздела. Свои и друзей сегодня — оранжевая рамка.
+  const size = kind === 'hot' || kind === 'popular' ? 46 : kind === 'labeled' ? 43 : soon ? 41 : 39;
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
       <View style={[styles.anchor, { transform: [{ scale }] }]}>
-        {live && <Pulse size={size + 26} color={bg} />}
-        <View style={[styles.glyph, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderColor: kind === 'hot' ? colors.ink : '#FFFFFF', opacity: e.isLong && kind === 'plain' ? 0.92 : 1 }]}>
-          <Ico d={CAT_ICON[e.category]} size={icon} color={fg} w={2.1} />
+        {live && <Pulse size={size + 28} color={bg} />}
+        <View style={[styles.poster, { width: size, height: size, borderRadius: size * 0.3, borderColor: kind === 'hot' ? colors.accent : '#FFFFFF' }]}>
+          <PosterFace e={e} size={size} />
         </View>
+        {!!e.cover && (
+          <View pointerEvents="none" style={[styles.cat, { backgroundColor: bg, left: size / 2 - 13, top: size / 2 - 13 }]}>
+            <Ico d={CAT_ICON[e.category]} size={11} color={fg} w={2.4} />
+          </View>
+        )}
         {friend ? (
-          <View pointerEvents="none" style={[styles.friendBadge, { left: size / 2 - 9, top: -size / 2 - 7 }]}><Avatar p={friend} size={18} /></View>
+          <View pointerEvents="none" style={[styles.friendBadge, { left: size / 2 - 11, top: -size / 2 - 8 }]}><Avatar p={friend} size={20} /></View>
         ) : count > 1 ? (
-          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 8, top: -size / 2 - 7 }]}><Text style={styles.stackText}>{count}</Text></View>
+          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 10, top: -size / 2 - 8 }]}><Text style={styles.stackText}>{count}</Text></View>
         ) : null}
+        {!!time && (
+          <Tag x={0} y={size / 2 - 7} align="center">
+            <View style={[styles.time, time.live && styles.timeLive]}>
+              {time.live && <View style={styles.liveDot} />}
+              <Text style={[styles.timeText, time.live && { color: '#FFFFFF' }]}>{time.text}</Text>
+            </View>
+          </Tag>
+        )}
         {!!name && (
-          <Tag x={size / 2 + 5} y={-15}>
+          <Tag x={size / 2 + 6} y={-16}>
             <Text style={[styles.name, dark && styles.nameDark]} numberOfLines={2}>{name}</Text>
           </Tag>
         )}
         {showCompany && looking > 0 && !name && (
-          <Tag x={size / 2 - 10} y={size / 2 - 8}>
+          <Tag x={-size / 2 - 14} y={-size / 2 - 6}>
             <View style={[styles.looking, { backgroundColor: colors.cardAlt, borderColor: colors.ink }]}>
               <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>
             </View>
@@ -139,7 +173,7 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
     </Pressable>
   );
 }, (a, b) => a.e === b.e && a.kind === b.kind && a.phase === b.phase && a.label === b.label && a.showCompany === b.showCompany && a.dark === b.dark
-  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact && a.name === b.name && a.friend?.id === b.friend?.id && a.when === b.when);
+  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact && a.name === b.name && a.friend?.id === b.friend?.id && a.when === b.when && a.time?.text === b.time?.text);
 // Нажатие не сравниваем: обработчик новый на каждой отрисовке карты, а значок от этого не меняется (FIX5 — меньше работы при зуме).
 
 /**
@@ -288,8 +322,13 @@ const styles = StyleSheet.create({
   dotCount: { position: 'absolute', left: 3, top: -15, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   dotCountText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.paper },
   glyph: { alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
-  balloon: { width: 56, height: 68, marginTop: -66, alignItems: 'center', filter: 'drop-shadow(0 6px 6px rgba(23,22,26,0.35))' },
-  balloonGlyph: { position: 'absolute', top: 15, left: 0, right: 0, alignItems: 'center' },
+  poster: { overflow: 'hidden', borderWidth: 3, backgroundColor: '#FFFFFF', boxShadow: '0 5px 12px -3px rgba(23,22,26,0.45)' },
+  cat: { position: 'absolute', width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  time: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 18, paddingHorizontal: 6, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.97)', boxShadow: '0 2px 5px rgba(23,22,26,0.25)' },
+  timeLive: { backgroundColor: '#E5383B' },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FFFFFF' },
+  timeText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
+  selWrap: { alignItems: 'center', marginTop: -77, filter: 'drop-shadow(0 6px 8px rgba(23,22,26,0.35))' },
   selCard: { maxWidth: 200, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center', boxShadow: '0 6px 14px -6px rgba(23,22,26,0.6)' },
   selTitle: { fontFamily: fonts.body700, fontSize: 12.5, lineHeight: 15, color: colors.paper, textAlign: 'center' },
   selWhen: { fontFamily: fonts.mono600, fontSize: 10, color: colors.accent, marginTop: 1 },
