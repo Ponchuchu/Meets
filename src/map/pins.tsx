@@ -4,11 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
-import { MapAvatar } from './MapAvatar';
+import { Avatar } from '../ui/Avatar';
+import { frameById } from '../profile/frames';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
 import { CAT_COLOR, CAT_ICON, catFg } from './icons';
-import { shade } from '../ui/EventCover';
 import type { Phase } from './lifecycle';
 
 export type PinKind = 'hot' | 'popular' | 'labeled' | 'plain';
@@ -45,20 +45,29 @@ function formatK(n: number): string {
 }
 
 /**
- * Значок события (FIX5): объёмная «пуговица» вместо плоского квадрата — снизу тёмный бортик того же цвета (толщина),
- * сверху лицевая сторона с бликом, белая кромка и мягкая тень. Издалека обычные события — маленькие точки
- * (compact), чтобы карта не рябила; выбранное — крупнее, с оранжевой кромкой и подписью.
+ * Значок события (FIX5, система значков карты — docs/MAP-ICONS.md). Как точки интереса в Apple Maps:
+ *  · издалека — маленькая точка цвета раздела;
+ *  · обычный — круг цвета раздела с белым значком, белая кромка и мягкая тень; «горячие» и свои — крупнее;
+ *  · вблизи — справа название (2 строки, белый ореол — читается на любом фоне);
+ *  · выбранный — «капля» с хвостиком, крупный значок и тёмная плашка с названием и временем;
+ *  · идёт друг — его мини-аватарка на краю значка; идёт сейчас — мягкая пульсация.
  */
-export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact }: {
+export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact, name, friend, when }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
   /** Масштаб от зума карты (src/map/zoom.ts). */
   scale?: number;
   /** Сколько событий в этой точке: больше одного — бейдж с числом, тап открывает список. */
   count?: number;
-  /** Выбранная точка: крупнее, с оранжевой обводкой и подписью. Остальные — без текста, чтобы не налезали. */
+  /** Выбранная точка: «капля» с подписью. */
   selected?: boolean;
   /** Издалека — точка вместо значка. */
   compact?: boolean;
+  /** Вблизи — название справа. */
+  name?: string;
+  /** Друг, который идёт, — мини-аватарка на значке. */
+  friend?: Person;
+  /** Время для плашки выбранного: «сегодня 19:30». */
+  when?: string;
 }) {
   const soon = phase === 'soon';
   // Пульсирует только разовое событие «идёт сейчас»; выставки и маркеты открыты весь день — без пульса.
@@ -66,53 +75,60 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
   const bg = CAT_COLOR[e.category];
   const fg = catFg(e.category);
   const looking = e.lookingCount;
+  const a11y = `${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${friend ? `, идёт ${friend.name}` : ''}`;
   if (compact && !selected) {
     return (
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={e.title} style={styles.hit} hitSlop={6}>
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
         <View style={styles.anchor}>
-          <View style={[styles.dot, { backgroundColor: shade(bg, 0.18), borderColor: dark ? colors.paper : '#FFFFFF' }]}>
-            <View style={[styles.dotFace, { backgroundColor: bg }]} />
-          </View>
-          {count > 1 && <View pointerEvents="none" style={[styles.dotCount, { borderColor: dark ? colors.ink : '#FFFFFF' }]}><Text style={styles.dotCountText}>{count}</Text></View>}
+          <View style={[styles.dot, { backgroundColor: bg, borderColor: dark ? colors.paper : '#FFFFFF' }]} />
+          {count > 1 && <View pointerEvents="none" style={styles.dotCount}><Text style={styles.dotCountText}>{count}</Text></View>}
         </View>
       </Pressable>
     );
   }
-  const size = kind === 'hot' ? 40 : kind === 'popular' ? 40 : kind === 'labeled' ? 36 : soon ? 35 : 33;
-  const depth = Math.round(size * 0.09);
-  const ring = selected ? colors.accent : kind === 'hot' ? colors.ink : '#FFFFFF';
-  const icon = kind === 'plain' ? 16 : 19;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.hit} hitSlop={6}>
-      <View style={[styles.anchor, { transform: [{ scale: selected ? Math.max(1.12, scale * 1.22) : scale }] }]}>
-        {live && <Pulse size={size + 24} color={bg} />}
-        {/* Кромка → бортик (толщина) → лицевая сторона с бликом */}
-        <View style={[styles.rim, { width: size + 5, height: size + 5 + depth, borderRadius: (size + 5) / 2, backgroundColor: ring, opacity: e.isLong && kind === 'plain' ? 0.94 : 1 }]}>
-          <View style={{ width: size, height: size + depth, borderRadius: size / 2, backgroundColor: shade(bg, 0.3) }}>
-            <View style={[styles.face, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
-              <View pointerEvents="none" style={[styles.shine, { width: size * 0.62, height: size * 0.3, borderRadius: size * 0.2, top: size * 0.08 }]} />
-              <Ico d={CAT_ICON[e.category]} size={icon} color={fg} w={2.1} />
-            </View>
+  if (selected) {
+    return (
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
+        <View style={[styles.anchor, { transform: [{ scale: Math.max(1, scale * 1.05) }] }]}>
+          {live && <Pulse size={86} color={bg} />}
+          {/* Капля: круг с хвостиком, кончик — точно на месте события (поднята на свою высоту). */}
+          <View style={styles.balloon}>
+            <Svg width={56} height={68} viewBox="0 0 56 68" style={StyleSheet.absoluteFill}>
+              <Path d="M28 66C26 66 6 46 4.5 30A23.5 23.5 0 1 1 51.5 30C50 46 30 66 28 66Z" fill={bg} stroke="#FFFFFF" strokeWidth={3} />
+            </Svg>
+            <View style={styles.balloonGlyph}><Ico d={CAT_ICON[e.category]} size={26} color={fg} w={2.2} /></View>
           </View>
+          {friend && <View style={[styles.friendBadge, { left: 10, top: -60 }]}><Avatar p={friend} size={22} /></View>}
+          <Tag x={0} y={10} align="center">
+            <View style={styles.selCard}>
+              <Text style={styles.selTitle} numberOfLines={2}>{label ?? e.title}</Text>
+              {!!when && <Text style={styles.selWhen}>{when}</Text>}
+            </View>
+          </Tag>
         </View>
-        {count > 1 && (
-          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 6, top: -size / 2 - 8, borderColor: '#FFFFFF' }]}>
-            <Text style={styles.stackText}>{count}</Text>
-          </View>
-        )}
-        {kind === 'popular' && count === 1 && selected && (
-          <Tag x={size / 2 + 12} y={-size / 2 - 9} align="right">
-            <View style={styles.count}><Text style={styles.countText}>{formatK(e.goingCount)}</Text></View>
+      </Pressable>
+    );
+  }
+  const size = kind === 'hot' || kind === 'popular' ? 38 : kind === 'labeled' ? 35 : soon ? 33 : 31;
+  const icon = Math.round(size * 0.5);
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
+      <View style={[styles.anchor, { transform: [{ scale }] }]}>
+        {live && <Pulse size={size + 26} color={bg} />}
+        <View style={[styles.glyph, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderColor: kind === 'hot' ? colors.ink : '#FFFFFF', opacity: e.isLong && kind === 'plain' ? 0.92 : 1 }]}>
+          <Ico d={CAT_ICON[e.category]} size={icon} color={fg} w={2.1} />
+        </View>
+        {friend ? (
+          <View pointerEvents="none" style={[styles.friendBadge, { left: size / 2 - 9, top: -size / 2 - 7 }]}><Avatar p={friend} size={18} /></View>
+        ) : count > 1 ? (
+          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 8, top: -size / 2 - 7 }]}><Text style={styles.stackText}>{count}</Text></View>
+        ) : null}
+        {!!name && (
+          <Tag x={size / 2 + 5} y={-15}>
+            <Text style={[styles.name, dark && styles.nameDark]} numberOfLines={2}>{name}</Text>
           </Tag>
         )}
-        {label && (
-          <Tag x={0} y={size / 2 + depth + 6} align="center">
-            <View style={[styles.label, { backgroundColor: dark ? colors.paper : colors.ink }]}>
-              <Text style={[styles.labelText, { color: dark ? colors.ink : colors.paper }]}>{label}</Text>
-            </View>
-          </Tag>
-        )}
-        {showCompany && looking > 0 && !label && (
+        {showCompany && looking > 0 && !name && (
           <Tag x={size / 2 - 10} y={size / 2 - 8}>
             <View style={[styles.looking, { backgroundColor: colors.cardAlt, borderColor: colors.ink }]}>
               <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>
@@ -123,54 +139,65 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
     </Pressable>
   );
 }, (a, b) => a.e === b.e && a.kind === b.kind && a.phase === b.phase && a.label === b.label && a.showCompany === b.showCompany && a.dark === b.dark
-  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact);
+  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact && a.name === b.name && a.friend?.id === b.friend?.id && a.when === b.when);
 // Нажатие не сравниваем: обработчик новый на каждой отрисовке карты, а значок от этого не меняется (FIX5 — меньше работы при зуме).
+
+/**
+ * Друг на карте (FIX5, как в Zenly): крупное фото в белой рамке с хвостиком к точке, ободок — цвет его рамки,
+ * мягкая тень на земле. Сверху — плашка: заряд и «5 мин» или скорость со стрелкой. Давно не обновлялся — бледнее, серый ободок.
+ */
+export function FriendBubble({ person, size = 46, ring, faded }: { person: Person; size?: number; ring?: string; faded?: boolean }) {
+  const color = ring ?? frameById(person.mapFrame).color;
+  const total = size + 8;
+  return (
+    <View style={{ alignItems: 'center', marginTop: -(total + 8) }} pointerEvents="none">
+      <View style={[styles.bubble, { width: total, height: total, borderRadius: total / 2, borderColor: color }]}>
+        <View style={{ opacity: faded ? 0.55 : 1 }}><Avatar p={person} size={size} /></View>
+      </View>
+      <Svg width={18} height={11} viewBox="0 0 18 11" style={{ marginTop: -3 }}>
+        <Path d="M1 0h16L9.9 9.6a1.2 1.2 0 0 1-1.8 0z" fill="#FFFFFF" />
+      </Svg>
+      <View style={styles.bubbleGround} />
+    </View>
+  );
+}
 
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
   const moving = spot.state === 'moving';
   const paused = spot.state === 'paused';
-  const rad = ((spot.heading ?? 90) * Math.PI) / 180;
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
+  const ago = spot.minutesAgo != null && spot.minutesAgo >= 2 ? agoShort(spot.minutesAgo) : null;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={[styles.hit, { opacity: dim ? 0.35 : 1 }]}>
-    <View style={styles.anchor}>
-      {moving && person.mapTrail !== 'none' && [10, 19, 27].map((dx, i) => (
-        <View key={dx} pointerEvents="none" style={{ position: 'absolute', width: 5 - i, height: 5 - i, borderRadius: 3, backgroundColor: colors.friend, opacity: [0.5, 0.3, 0.18][i], transform: [{ translateX: -Math.sin(rad) * (dx + 17) }, { translateY: Math.cos(rad) * (dx + 17) }] }} />
-      ))}
-      <View style={{ alignItems: 'center' }} pointerEvents="none">
-        <MapAvatar person={person} ring={paused ? '#8C8577' : undefined} />
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
+      <View style={styles.anchor}>
+        <FriendBubble person={person} ring={paused ? '#A8A195' : undefined} faded={paused} />
+        {/* Плашка состояния над головой: заряд · скорость или «давно». */}
+        {(spot.battery != null || moving || ago) && (
+          <Tag x={4} y={-78}>
+            <View style={styles.status}>
+              {spot.battery != null && !paused && <BatteryTag level={spot.battery} charging={!!spot.charging} bare />}
+              {moving ? (
+                <View style={styles.statusPart}>
+                  <Text style={[styles.statusText, { color: colors.friend }]}>{spot.speedKmh} км/ч</Text>
+                  <Svg width={10} height={10} viewBox="0 0 24 24" style={{ transform: [{ rotate: `${(spot.heading ?? 90) - 90}deg` }] }}>
+                    <Path d="M5 12h14M13 6l6 6-6 6" stroke={colors.friend} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  </Svg>
+                </View>
+              ) : ago ? <Text style={[styles.statusText, paused && { color: colors.muted2 }]}>{ago}</Text> : null}
+            </View>
+          </Tag>
+        )}
       </View>
-      {spot.battery != null && !paused && (
-        <Tag x={8} y={-34}>
-          <BatteryTag level={spot.battery} charging={!!spot.charging} />
-        </Tag>
-      )}
-      {moving && (
-        <Tag x={-26} y={21}>
-          <View style={styles.speed}>
-            <Text style={styles.speedText}>{spot.speedKmh} КМ/Ч</Text>
-            <Svg width={10} height={10} viewBox="0 0 24 24" style={{ transform: [{ rotate: `${(spot.heading ?? 90) - 90}deg` }] }}>
-              <Path d="M5 12h14M13 6l6 6-6 6" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </Svg>
-          </View>
-        </Tag>
-      )}
-      {paused && spot.minutesAgo != null && (
-        <Tag x={0} y={34} align="center">
-          <View style={styles.ago}><Text style={styles.agoText}>{agoShort(spot.minutesAgo)}</Text></View>
-        </Tag>
-      )}
-    </View>
     </Pressable>
   );
 }
 
 /** Заряд друга (FIX5, как в Zenly): маленькая батарейка с процентом; заряжается — зелёная с молнией, мало — красная. */
-export function BatteryTag({ level, charging }: { level: number; charging: boolean }) {
+export function BatteryTag({ level, charging, bare }: { level: number; charging: boolean; bare?: boolean }) {
   const low = level <= 20 && !charging;
   const fill = charging ? '#2FA35A' : low ? '#E5383B' : colors.ink;
   return (
-    <View style={styles.batt} accessibilityLabel={`Заряд ${level}%${charging ? ', заряжается' : ''}`}>
+    <View style={[styles.batt, bare && styles.battBare]} accessibilityLabel={`Заряд ${level}%${charging ? ', заряжается' : ''}`}>
       <View style={styles.battBody}>
         <View style={{ width: `${Math.max(8, Math.min(100, level))}%`, height: '100%', borderRadius: 1.5, backgroundColor: fill }} />
         {charging && <View style={styles.bolt}><Ico d="M13 2L4 14h7l-1 8 9-12h-7z" size={9} color="#FFFFFF" w={2.6} /></View>}
@@ -221,7 +248,7 @@ export function TogetherPin({ people, onPress }: { people: Person[]; onPress: (i
 function Face({ p, i, mid, meet }: { p: Person; i: number; mid: number; meet: import('react-native-reanimated').SharedValue<number> }) {
   const side = i - mid;
   const st = useAnimatedStyle(() => ({ transform: [{ translateX: side * 16 * (1 - meet.get()) }, { scale: 0.85 + 0.15 * meet.get() }] }));
-  return <Animated.View style={[{ marginLeft: i ? -14 : 0, zIndex: 3 - i }, st]}><MapAvatar person={p} size={44} /></Animated.View>;
+  return <Animated.View style={[{ marginLeft: i ? -14 : 0, zIndex: 3 - i }, st]}><Avatar p={p} size={40} style={{ borderWidth: 2.5, borderColor: '#FFFFFF' }} /></Animated.View>;
 }
 
 export function MePin({ onPress }: { onPress?: () => void }) {
@@ -257,13 +284,18 @@ const styles = StyleSheet.create({
   togetherText: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.4, color: colors.ink },
   // Нулевой якорь: всё содержимое центрируется на координате.
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  dot: { width: 16, height: 18, borderRadius: 9, borderWidth: 2.5, overflow: 'hidden', boxShadow: '0 3px 6px -1px rgba(23,22,26,0.4)' },
-  dotFace: { position: 'absolute', left: 0, right: 0, top: 0, height: 11, borderRadius: 6 },
-  dotCount: { position: 'absolute', left: 4, top: -16, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 13, height: 13, borderRadius: 7, borderWidth: 2, boxShadow: '0 1px 3px rgba(23,22,26,0.45)' },
+  dotCount: { position: 'absolute', left: 3, top: -15, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   dotCountText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.paper },
-  rim: { alignItems: 'center', paddingTop: 2.5, boxShadow: '0 7px 10px -5px rgba(23,22,26,0.55), 0 2px 3px rgba(23,22,26,0.12)' },
-  face: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  shine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.32)' },
+  glyph: { alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  balloon: { width: 56, height: 68, marginTop: -66, alignItems: 'center', filter: 'drop-shadow(0 6px 6px rgba(23,22,26,0.35))' },
+  balloonGlyph: { position: 'absolute', top: 15, left: 0, right: 0, alignItems: 'center' },
+  selCard: { maxWidth: 200, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center', boxShadow: '0 6px 14px -6px rgba(23,22,26,0.6)' },
+  selTitle: { fontFamily: fonts.body700, fontSize: 12.5, lineHeight: 15, color: colors.paper, textAlign: 'center' },
+  selWhen: { fontFamily: fonts.mono600, fontSize: 10, color: colors.accent, marginTop: 1 },
+  friendBadge: { position: 'absolute', borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 4px rgba(23,22,26,0.35)' },
+  name: { maxWidth: 118, fontFamily: fonts.body700, fontSize: 11.5, lineHeight: 14, color: colors.ink, textShadowColor: 'rgba(252,251,248,0.95)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
+  nameDark: { color: colors.paper, textShadowColor: 'rgba(23,22,26,0.9)' },
   count: { height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: colors.cardAlt, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   countText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
   label: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7 },
@@ -278,6 +310,13 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
+  battBare: { backgroundColor: 'transparent', boxShadow: 'none', paddingLeft: 0, paddingRight: 0, height: 16 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.97)', boxShadow: '0 2px 6px rgba(23,22,26,0.22)' },
+  statusPart: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  statusText: { fontFamily: fonts.body700, fontSize: 10.5, color: colors.ink },
+  bubble: { backgroundColor: '#FFFFFF', borderWidth: 3, alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 12px -4px rgba(23,22,26,0.45)' },
+  bubbleGround: { width: 10, height: 4, borderRadius: 3, marginTop: -1, backgroundColor: 'rgba(23,22,26,0.14)' },
+  hitTall: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
   batt: { flexDirection: 'row', alignItems: 'center', height: 18, paddingLeft: 5, paddingRight: 6, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.96)', boxShadow: '0 2px 6px rgba(23,22,26,0.22)' },
   battBody: { width: 17, height: 9, padding: 1, borderRadius: 3, borderWidth: 1.3, borderColor: colors.ink, justifyContent: 'center' },
   battCap: { width: 1.6, height: 4, marginLeft: 0.5, borderTopRightRadius: 1, borderBottomRightRadius: 1, backgroundColor: colors.ink },
@@ -290,6 +329,9 @@ const styles = StyleSheet.create({
 });
 
 /** Друг в фокусе (MapFocus): крупнее, мягкий круг и пульсирующее кольцо, над ним — облачко стикера. */
+/** Где центр лица друга в фокусе относительно точки (вверх): хвостик 8 + половина круга 33. */
+export const FOCUS_FACE = 41;
+
 export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string }) {
   const pop = useSharedValue(0);
   useEffect(() => {
@@ -298,11 +340,14 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
   const popStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pop.value * 1.6), transform: [{ scale: 0.2 + 0.8 * pop.value }, { rotate: '-6deg' }] }));
   return (
     <View style={styles.anchor} pointerEvents="none">
-      <View style={{ position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(36,71,184,0.14)', borderWidth: 1, borderColor: 'rgba(36,71,184,0.3)' }} />
-      <Pulse size={80} color={colors.friend} />
-      <MapAvatar person={person} size={60} ring={ring === colors.friend ? undefined : ring} />
+      {/* Ореол — вокруг лица (оно стоит над точкой на своём хвостике). */}
+      <View style={{ position: 'absolute', top: -FOCUS_FACE - 40, left: -40, width: 80, height: 80, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', width: 92, height: 92, borderRadius: 46, backgroundColor: 'rgba(36,71,184,0.12)' }} />
+        <Pulse size={92} color={colors.friend} />
+      </View>
+      <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} />
       {speed && (
-        <Tag x={-34} y={30}>
+        <Tag x={-34} y={8}>
           <View style={[styles.speed, { height: 22, paddingHorizontal: 8 }]}>
             <Text style={[styles.speedText, { fontSize: 10 }]}>{speed}</Text>
             <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12h14M13 6l6 6-6 6" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
@@ -310,7 +355,7 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
         </Tag>
       )}
       {bubble && (
-        <Tag x={14} y={-60}>
+        <Tag x={18} y={-FOCUS_FACE - 70}>
           <Animated.View style={[{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: bubble.bg, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 7, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, popStyle]}>
             <Text style={{ fontFamily: fonts.display800, fontSize: 14, color: bubble.fg }}>{bubble.label}</Text>
           </Animated.View>
@@ -353,7 +398,7 @@ export function MeetupPin({ e, people, selected, onPress }: { e: EventItem; peop
         <View style={[styles.meet, selected && { transform: [{ scale: 1.12 }] }]}>
           <View style={styles.meetTime}><Text style={styles.meetTimeText}>{time}</Text></View>
           {faces.length > 0 ? (
-            <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><MapAvatar person={p} size={24} /></View>)}</View>
+            <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><Avatar p={p} size={24} style={{ borderWidth: 1.5, borderColor: '#FFFFFF' }} /></View>)}</View>
           ) : <Ico d="M16 20v-1.5a3.5 3.5 0 00-3.5-3.5h-1A3.5 3.5 0 008 18.5V20M12 12a3 3 0 100-6 3 3 0 000 6z" size={18} color="#FFFFFF" />}
         </View>
         <View style={styles.meetTail} />

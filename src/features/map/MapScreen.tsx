@@ -22,12 +22,13 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { CityPin, EventPin, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { CityPin, EventPin, FOCUS_FACE, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
+import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, placeLabels, pxToLat, showPinLabel } from '../../map/zoom';
+import { whenTitle } from '../../event/text';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
@@ -93,9 +94,13 @@ function pinKind(e: EventItem, today: number, going: boolean): PinKind {
 }
 
 /** Подпись только у выбранной точки: короткое название, без даты — дата есть в карточке. */
-function pinLabel(e: EventItem): string {
-  return (e.short ?? e.title.split(/[:«(]/)[0].trim()).toUpperCase().slice(0, 28);
+/** Короткое имя события для подписи на карте вблизи. */
+function shortName(e: EventItem): string {
+  // Короткое имя из базы бывает ЗАГЛАВНЫМИ («ДЖАЗ ВО ДВОРЕ») — на карте пишем обычными буквами.
+  const t = (e.short && e.short !== e.short.toUpperCase() ? e.short : e.title.split(/[:(]/)[0]).trim();
+  return t.length > 34 ? `${t.slice(0, 32)}…` : t;
 }
+
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -354,6 +359,23 @@ export default function MapScreen() {
 
   const markers: MapMarker[] = useMemo(() => {
     const groups = groupByPoint(visible);
+    // Подписи событий — только там, где им хватает места (не налезают на друзей, места и друг на друга).
+    const rank = { hot: 0, popular: 1, labeled: 2, plain: 3 } as const;
+    const mains = groups.map((g) => g.find((x) => pinKind(x, today, going.has(x.id)) === 'hot') ?? g[0]);
+    const named = detail === 'far' ? new Set<string>() : placeLabels(
+      mains.filter((e) => !e.meetup && showPinLabel(detail, pinKind(e, today, going.has(e.id)) !== 'plain'))
+        .sort((a, b) => rank[pinKind(a, today, going.has(a.id))] - rank[pinKind(b, today, going.has(b.id))])
+        .map((e) => ({ id: e.id, lat: e.lat, lon: e.lon, w: Math.min(118, shortName(e).length * 6.4) })),
+      [
+        ...mains.map((e) => ({ lat: e.lat, lon: e.lon, r: 18 })),
+        // Лицо друга стоит над точкой на хвостике — препятствие и в точке, и выше неё.
+        ...(filters.friends ? spots.flatMap((x) => [{ lat: x.lat, lon: x.lon, r: 22 }, { lat: x.lat + pxToLat(45, zoom, x.lat), lon: x.lon, r: 40 }]) : []),
+        ...topSpots(places).map((a) => ({ lat: a.lat, lon: a.lon, r: 18 })),
+        ...malls.map((m) => ({ lat: m.lat, lon: m.lon, r: 26 })),
+        ...myPlaces.map((x) => ({ lat: x.lat, lon: x.lon, r: 22 })),
+      ],
+      zoom,
+    );
     const list: MapMarker[] = groups.map((group) => {
       // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
       const e = group.find((x) => x.id === selected?.id)
@@ -367,9 +389,12 @@ export default function MapScreen() {
         id: `e-${e.id}`, lat: e.lat, lon: e.lon, z: isSel ? 34 : kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20,
         node: (
           <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-          {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? pinLabel(e) : undefined} selected={isSel}
+          {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={isSel ? e.title : undefined} selected={isSel}
             showCompany={filters.company && detail !== 'far'} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
-            compact={(kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot')} />}
+            compact={(kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot')}
+            name={named.has(e.id) ? shortName(e) : undefined}
+            friend={people.find((x) => x.isFriend && e.friendsGoing.includes(x.id))}
+            when={isSel ? whenTitle(e, clock).toLowerCase() : undefined} />}
           </View>
         ),
       };
@@ -551,7 +576,7 @@ export default function MapScreen() {
         </View>
       )}
 
-      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110} onDone={() => setBlast(null)} />}
+      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110 - FOCUS_FACE} onDone={() => setBlast(null)} />}
 
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>

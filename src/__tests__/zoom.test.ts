@@ -24,3 +24,20 @@ describe('физика карты', () => {
     expect(groups[0].map((x) => x.id)).toEqual(['a', 'b']);
   });
 });
+
+import { placeLabels } from '../map/zoom';
+describe('подписи без наложений (FIX5)', () => {
+  it('подпись прячется, если справа друг или другая подпись', () => {
+    const z = 16;
+    const a = { id: 'a', lat: 43.25, lon: 76.94, w: 100 };
+    const b = { id: 'b', lat: 43.25, lon: 76.9406, w: 100 }; // ~45 px правее — в подписи «a»
+    const far = { id: 'far', lat: 43.24, lon: 76.95, w: 100 };
+    const pins = [a, b, far].map((x) => ({ lat: x.lat, lon: x.lon, r: 18 }));
+    const shown = placeLabels([a, b, far], pins, z);
+    expect(shown.has('a')).toBe(false); // значок «b» стоит в подписи «a»
+    expect(shown.has('b')).toBe(true);
+    expect(shown.has('far')).toBe(true);
+    const friend = { lat: 43.24, lon: 76.9502, r: 30 };
+    expect(placeLabels([far], [...pins, friend], z).has('far')).toBe(false);
+  });
+});

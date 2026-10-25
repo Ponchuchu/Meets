@@ -53,14 +53,12 @@ export const AttractionPin = memo(function AttractionPin({ a, label, onPress }: 
   return (
     <Pressable onPress={onPress} style={styles.hit} accessibilityRole="button" accessibilityLabel={`${a.name}${a.free ? ', бесплатно' : ''}`} hitSlop={4}>
       <View style={styles.anchor} pointerEvents="none">
-        <View style={styles.shadow} />
-        {a.kind === 'bowling' ? <BowlingBall size={44} /> : (
+        {a.kind === 'bowling' ? <BowlingBall size={36} /> : (
           <View style={[photo ? styles.photo : styles.badge, { backgroundColor: color }]}>
-            <View style={styles.shine} />
-            <Svg width={photo ? 20 : 24} height={photo ? 20 : 24} viewBox="0 0 24 24"><Glyph kind={a.kind} /></Svg>
+            <Svg width={photo ? 17 : 20} height={photo ? 17 : 20} viewBox="0 0 24 24"><Glyph kind={a.kind} /></Svg>
           </View>
         )}
-        {label && <View style={styles.label}><Text style={styles.labelText} numberOfLines={1}>{a.name}</Text></View>}
+        {label && <Text style={styles.label} numberOfLines={2}>{a.name}</Text>}
       </View>
     </Pressable>
   );
@@ -69,12 +67,9 @@ export const AttractionPin = memo(function AttractionPin({ a, label, onPress }: 
 const styles = StyleSheet.create({
   hit: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  shadow: { position: 'absolute', top: 18, width: 30, height: 8, borderRadius: 4, backgroundColor: 'rgba(23,22,26,0.22)' },
-  badge: { width: 44, height: 44, borderRadius: 15, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 8px 14px -6px rgba(23,22,26,0.55)' },
-  photo: { width: 36, height: 36, borderRadius: 18, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    boxShadow: '0 6px 12px -5px rgba(23,22,26,0.5)' },
-  shine: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', backgroundColor: 'rgba(255,255,255,0.22)' },
-  label: { position: 'absolute', top: 26, maxWidth: 120, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(252,251,248,0.94)' },
-  labelText: { fontFamily: fonts.body700, fontSize: 10, color: colors.ink },
+  // Места — скруглённые квадраты (события — круги): та же кромка, тень и подпись с белым ореолом (docs/MAP-ICONS.md).
+  badge: { width: 34, height: 34, borderRadius: 11, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  photo: { width: 28, height: 28, borderRadius: 14, borderWidth: 2.5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 8px -1px rgba(23,22,26,0.42)' },
+  label: { position: 'absolute', left: 21, top: -14, width: 118, fontFamily: fonts.body700, fontSize: 11, lineHeight: 13.5, color: colors.ink,
+    textShadowColor: 'rgba(252,251,248,0.95)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });
