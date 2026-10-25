@@ -45,16 +45,18 @@ export const mapPalettes = {
 export type MapTheme = keyof typeof mapPalettes;
 
 // Имена семейств совпадают с ключами, под которыми шрифты грузятся в app/_layout.tsx.
+// Один шрифт на всё приложение — Rubik (выбор владельца 25 октября: «не так ИИ-дизайно»).
+// Ключи прежние, чтобы не трогать экраны: display — заголовки, body — текст, mono — мелкие подписи и цифры.
 export const fonts = {
-  display600: 'Geologica_600SemiBold',
-  display700: 'Geologica_700Bold',
-  display800: 'Geologica_800ExtraBold',
-  body400: 'GolosText_400Regular',
-  body500: 'GolosText_500Medium',
-  body600: 'GolosText_600SemiBold',
-  body700: 'GolosText_700Bold',
-  mono500: 'JetBrainsMono_500Medium',
-  mono600: 'JetBrainsMono_600SemiBold',
+  display600: 'Rubik_600SemiBold',
+  display700: 'Rubik_700Bold',
+  display800: 'Rubik_800ExtraBold',
+  body400: 'Rubik_400Regular',
+  body500: 'Rubik_500Medium',
+  body600: 'Rubik_600SemiBold',
+  body700: 'Rubik_700Bold',
+  mono500: 'Rubik_500Medium',
+  mono600: 'Rubik_600SemiBold',
   /** «От руки» — заставка, «привет», «добро пожаловать» (V6 §2). */
   hand: 'Pacifico_400Regular',
 } as const;
