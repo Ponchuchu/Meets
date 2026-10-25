@@ -67,7 +67,12 @@ export async function createMemory(p: { event_id: string | null; title: string; 
     useDemo.setState(s => ({ memories: [{ id, event_id: p.event_id, title: p.title, note: null, happened_at: p.happened_at, cover: null, photos: [] }, ...s.memories] }));
     return id;
   }
-  const row = await must(sb().from('memories').upsert({ user_id: me(), event_id: p.event_id, title: p.title.slice(0, 120), happened_at: p.happened_at }, { onConflict: 'user_id,event_id' }).select('id').single()) as { id: string };
+  // Альбом события — один (берём уже созданный); с миграции 50 уникальности в базе нет, постов про событие может быть много.
+  if (p.event_id) {
+    const old = await must(sb().from('memories').select('id').eq('user_id', me()).eq('event_id', p.event_id).limit(1)) as { id: string }[];
+    if (old[0]) return old[0].id;
+  }
+  const row = await must(sb().from('memories').insert({ user_id: me(), event_id: p.event_id, title: p.title.slice(0, 120), happened_at: p.happened_at }).select('id').single()) as { id: string };
   return row.id;
 }
 

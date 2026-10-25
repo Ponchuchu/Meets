@@ -6,23 +6,25 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
-import { BedDouble, Cake, CalendarDays, Camera, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, UserPlus, type LucideIcon } from 'lucide-react-native';
+import { BedDouble, Cake, CalendarDays, Camera, ChevronRight, Code2, Eye, Footprints, Home, Map as MapIcon, PenLine, QrCode, Route, Settings, UserPlus, type LucideIcon } from 'lucide-react-native';
 import { goAwards, goLevel, Showcase } from './Showcase';
 import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard } from './ProfileKit';
 import { EmptyRow, FriendsPill, PlansStrip } from './PlansStrip';
+import { PostsGrid } from '../posts/PostsGrid';
+import { getPosts } from '../../live/posts';
 import { birthdayText } from '../../lib/format';
 import { planWhen } from '../../lib/planWhen';
 import { now as clockNow } from '../../lib/clock';
 import { usePlans } from '../../state/plans';
 import { eventsSnapshot , data } from '../../data';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
 import { config } from '../../lib/config';
 import { getMeStats, getMyPhotos, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
-import { getMemories, getProfileExtras, getSleepovers, learnMyPlaces } from '../../live/profileExtras';
+import { getProfileExtras, getSleepovers, learnMyPlaces } from '../../live/profileExtras';
 import { STEP_GOAL, stepHistory, stepsToday, useSteps } from '../../live/steps';
 import { stepAwards } from '../../profile/stepAwards';
 import { useSession } from '../../state/session';
@@ -32,8 +34,6 @@ import { BadgeMedal } from '../../ui/BadgeMedal';
 import { frameById } from '../../profile/frames';
 import { useProfile } from '../../state/profile';
 import { plate } from '../../ui/glass';
-import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
-import { Ic } from '../../ui/Ic';
 
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
 const LIVE = config.dataMode !== 'demo';
@@ -69,7 +69,8 @@ export default function ProfileScreen() {
   // Статус под именем (миграция 46); база ещё без колонки — просто без статуса.
   const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, enabled: LIVE, staleTime: 30e3 });
   const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
-  const memories = useQuery({ queryKey: ['me', 'memories'], queryFn: () => getMemories() });
+  const postsQ = useQuery({ queryKey: ['posts', 'me'], queryFn: () => getPosts() });
+  const myPosts = postsQ.data ?? [];
   const sleeps = useQuery({ queryKey: ['me', 'sleepovers'], queryFn: () => getSleepovers() });
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const steps = useSteps(st => (LIVE ? stepsToday(st) : 6240));
@@ -109,7 +110,6 @@ export default function ProfileScreen() {
   const friends = people.filter(x => x.isFriend);
   const onMap = friends.filter((f) => spots.some((x) => x.personId === f.id)).length;
   const friendCount = LIVE ? s?.friends ?? friends.length : friends.length;
-  const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
 
   const pickPhoto = async () => {
@@ -189,38 +189,13 @@ export default function ProfileScreen() {
 
         <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
 
-        <View style={styles.card}>
-          <Pressable onPress={() => router.push('/profile/memories')} style={styles.cardHead} accessibilityRole="button">
-            <Text style={styles.cardTitle}>Воспоминания</Text>
-            <Text style={styles.cardSub}>{albums.length ? `${albums.length} ${plural(albums.length, 'альбом', 'альбома', 'альбомов')}` : 'фото с событий'}</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </Pressable>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-            <Pressable onPress={() => router.push('/profile/memories')} style={[styles.album, styles.albumNew]} accessibilityRole="button" accessibilityLabel="Новый альбом">
-              <ImagePlus size={26} color={colors.muted2} strokeWidth={1.8} />
-              <Text style={styles.albumNewText}>Новый{'\n'}альбом</Text>
-            </Pressable>
-            {!albums.length && (
-              <View style={styles.memEmpty}>
-                <Text style={styles.memEmptyTitle}>Здесь будут твои вечера</Text>
-                <Text style={styles.memEmptyText}>Сходи на событие и добавь пару фото — получится альбом. Кто его видит, решаешь ты.</Text>
-              </View>
-            )}
-            {albums.slice(0, 8).map(m => (
-              <Pressable key={m.id} onPress={() => router.push({ pathname: '/profile/[page]', params: { page: `memory-${m.id}` } })} style={styles.album} accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}`}>
-                {m.cover ? <Image source={{ uri: m.cover }} style={StyleSheet.absoluteFill} resizeMethod="resize" /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: CAT_COLOR.music, alignItems: 'center', justifyContent: 'center' }]}><Ic d={CAT_ICON.music} size={34} color={catFg('music')} w={1.6} /></View>}
-                <View style={styles.albumShade} />
-                <Text style={styles.albumTitle} numberOfLines={2}>{m.title}</Text>
-                <Text style={styles.albumMeta}>{m.photos.length} фото</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
         <View style={styles.list}>
           <Row Icon={Home} title="Мои места" value={s?.places.length ? s.places.join(', ') : 'найдём сами'} onPress={() => router.push('/settings/places')} />
           <Row Icon={BedDouble} title="Ночёвки" value={nights.length ? `${nights.length} ${plural(nights.length, 'ночь', 'ночи', 'ночей')}` : 'пока нет'} onPress={() => router.push('/profile/sleepovers')} last />
         </View>
+
+        {/* Воспоминания — посты, как в Instagram (26 окт.): сетка фото, «+» — новый пост. */}
+        <PostsGrid posts={myPosts} mine />
       </View>
     </ScrollView>
   );

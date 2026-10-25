@@ -32,7 +32,7 @@ import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { ChevronDown, ChevronRight, Clock, Hand, MapPin, Share2, Ticket, Users, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, MapPin, Share2, Ticket, Users, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import { TicketBlock } from './ui/TicketBlock';
 import { ShareCardSheet } from './ui/ShareCard';
@@ -286,6 +286,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.pastTitle}>{e.meetup ? `${e.meetup.kind} · было` : 'Ты был здесь'}</Text>
             <Text style={styles.pastSub} numberOfLines={1}>{was.length ? `с ${was.map((p) => p.withName ?? p.name).join(', ')}` : 'один — и это тоже было круто'}</Text>
           </View>
+          <Pressable onPress={() => router.push({ pathname: '/post/new', params: { event: e.id } })} style={({ pressed }) => [styles.postBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button" accessibilityLabel="Выложить фото с события">
+            <ImagePlus size={18} color="#FFFFFF" strokeWidth={2.1} /><Text style={styles.postBtnText}>Фото</Text>
+          </Pressable>
         </View>
       ) : (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
@@ -362,6 +365,8 @@ const styles = StyleSheet.create({
   lookPill: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.accent, justifyContent: 'center' },
   lookPillOn: { backgroundColor: '#F6D5C3' },
   lookPillText: { fontFamily: fonts.body700, fontSize: 13, color: '#FFFFFF' },
+  postBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: colors.accent },
+  postBtnText: { fontFamily: fonts.body700, fontSize: 15, color: '#FFFFFF' },
   pastSub: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   root: { flex: 1, backgroundColor: colors.paper },
   topRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },

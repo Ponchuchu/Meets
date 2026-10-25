@@ -10,8 +10,9 @@ import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
 import { birthdayText } from '../../lib/format';
 import { EventIcon } from '../../ui/EventIcon';
-import { EmptyRow, FriendsPill, MemoriesStrip, PlansStrip } from '../profile/PlansStrip';
-import { getPersonMemories } from '../../live/profileExtras';
+import { EmptyRow, FriendsPill, PlansStrip } from '../profile/PlansStrip';
+import { PostsGrid } from '../posts/PostsGrid';
+import { getPosts } from '../../live/posts';
 import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard, Tile, TileCap, type StatItem } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
@@ -70,7 +71,7 @@ export default function PersonScreen() {
   const { data: theirFriends } = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id), enabled: !(preview && id === 'me') });
   const iGo = usePlans((st) => !!(d?.lookingFor && st.going[d.lookingFor.eventId]));
   const iLook = usePlans((st) => !!(d?.lookingFor && st.company[d.lookingFor.eventId]));
-  const { data: albums = [] } = useQuery({ queryKey: ['person', id, 'memories'], queryFn: () => getPersonMemories(id), enabled: !(preview && id === 'me') });
+  const { data: posts = [] } = useQuery({ queryKey: ['posts', id], queryFn: () => getPosts(id === 'me' ? undefined : id) });
   const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
@@ -233,7 +234,6 @@ export default function PersonScreen() {
 
           <StatsCard items={statItems} />
 
-          <MemoriesStrip title="Воспоминания" albums={albums} />
 
           {medals.length > 0 && (
             <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
@@ -262,6 +262,7 @@ export default function PersonScreen() {
             </Pressable>
           )}
 
+          <PostsGrid posts={posts} />
         </View>
       </ScrollView>
 
