@@ -2,6 +2,7 @@
 // Строки выкатываются снизу по очереди (delay), как в макете.
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, LinearTransition, SlideOutRight } from 'react-native-reanimated';
 import type { Category } from '../../data/types';
 import { colors, fonts } from '../../theme';
 import { EventCover } from '../../ui/EventCover';
@@ -9,11 +10,12 @@ import { EventCover } from '../../ui/EventCover';
 /** «2 500 ₸» не разрывается между строками. */
 const keep = (t: string) => t.replace(/(\d) (\d{3})/g, '$1\u00A0$2').replace(/ ₸/g, '\u00A0₸');
 
-export function EventRow({ title, sub, tag, warn, cover, category, right, onPress }: {
+export function EventRow({ title, sub, tag, warn, cover, category, right, onPress, index = 0 }: {
   title: string; sub: string; /** Откуда событие: «ЯНДЕКС АФИША», «SXODIM», «TELEGRAM · @…». */ tag?: string; warn?: string; cover?: string | null; category?: Category; right?: ReactNode; onPress: () => void; index?: number;
 }) {
+  // Появляется по очереди снизу, уходит вправо, соседи плавно съезжают на освободившееся место (FIX5).
   return (
-    <View style={styles.row}>
+    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 40).duration(260)} exiting={SlideOutRight.duration(260)} layout={LinearTransition.duration(240)} style={styles.row}>
       <Pressable onPress={onPress} style={styles.main} accessibilityRole="button" accessibilityLabel={`Открыть: ${title}`}>
         <EventCover cover={cover} category={category ?? 'meetup'} style={styles.thumb} iconSize={30} />
         <View style={styles.text}>
@@ -24,7 +26,7 @@ export function EventRow({ title, sub, tag, warn, cover, category, right, onPres
         </View>
       </Pressable>
       {right}
-    </View>
+    </Animated.View>
   );
 }
 

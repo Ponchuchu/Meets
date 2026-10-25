@@ -76,11 +76,25 @@ if (Platform.OS !== 'web') {
   });
 }
 
+/** Уже открытые нажатия: одно уведомление открывается ровно один раз, даже если экран с хуком смонтировался заново.
+ *  Раньше пуш «Модерация» вёл на несуществующий /admin → переход домой → хук снова открывал тот же пуш — по кругу,
+ *  пока приложение не падало («Maximum update depth»). */
+const handled = new Set<string>();
+/** Старые адреса из уведомлений → настоящие экраны. */
+export function pushPath(url: string): string {
+  if (url === '/admin' || url.startsWith('/admin?') || url.startsWith('/admin/')) return '/dev?tab=events';
+  return url;
+}
+
 function useTapsNative(open: (url: string) => void) {
   const last = Notifications.useLastNotificationResponse();
   useEffect(() => {
-    const url = (last?.notification.request.content.data as { url?: string } | undefined)?.url;
-    if (url) open(url);
+    if (!last) return;
+    const id = `${last.notification.request.identifier}:${last.notification.date}:${last.actionIdentifier}`;
+    if (handled.has(id)) return;
+    handled.add(id);
+    const url = (last.notification.request.content.data as { url?: string } | undefined)?.url;
+    if (url) open(pushPath(url));
   }, [last]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 /** На web пушей нет — хук ничего не делает (выбор при загрузке модуля, а не в рендере). */
