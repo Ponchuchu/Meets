@@ -38,6 +38,7 @@ export async function getSpots(): Promise<Attraction[]> {
 const CATEGORY: Partial<Record<AttractionKind, Category>> = {
   ski: 'sport', skate: 'sport', climb: 'sport', trampoline: 'sport', golf: 'sport', paintball: 'games', bowling: 'games', quest: 'games', vr: 'games',
   museum: 'art', photo: 'art', park: 'hike', garden: 'hike', view: 'hike', cable: 'hike', zoo: 'hike', wheel: 'games', aqua: 'sport', zipline: 'sport',
+  fun: 'games', billiards: 'games', gallery: 'art',
 };
 
 /** Поход в место → план (как своя встреча): время начала, 2 часа, место и пометка «один» или «с друзьями». */

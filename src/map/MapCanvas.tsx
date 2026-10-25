@@ -15,7 +15,7 @@ import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
 import { SPRITES } from './sprites';
 import { NO_SYMBOLS, symbolsGeo } from './symbolsGeo';
-import { SPRITE_PX, symbolMarkers } from './symbols';
+import { SPRITE_W, symbolMarkers } from './symbols';
 import { linesGeo, okPoint } from './linesGeo';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
@@ -57,7 +57,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const movingRef = useRef(false);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
-  const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_PX), [symbols]);
+  const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const box = useRef({ w: 390, h: 844 });
@@ -223,7 +223,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
           <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: 5, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: 2, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'map' }} />
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
-            iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom', iconOffset: [0, 15],
+            iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
             iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',
             // Налезают — карта оставляет важный (меньший ключ ставится первым), остальные появляются при приближении.
             iconAllowOverlap: false, iconPadding: 1, iconOpacity: ['get', 'op'] as never, symbolSortKey: ['-', 0, ['get', 'sort']] as never,

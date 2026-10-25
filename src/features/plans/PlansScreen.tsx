@@ -3,9 +3,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { CalendarDays, CalendarRange, Trees, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
 import { data, eventsSnapshot, type EventItem, type Person } from '../../data';
@@ -222,6 +222,7 @@ export default function PlansTab() {
                     <Pressable onPress={() => open(e)} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]} accessibilityRole="button" accessibilityLabel={`${e.title}, ${hm(e.startsAt)}`}>
                       <Cover e={e} size={56} />
                       <View style={{ flex: 1, gap: 4 }}>
+                        <StartPill e={e} now={now} />
                         <Text style={styles.title} numberOfLines={2}>{e.title}</Text>
                         <Text style={styles.sub} numberOfLines={1}>{e.venueName ?? e.address.split(',')[0]}</Text>
                         {status && <Text style={[styles.sub, { color: colors.accentText }]}>{status}</Text>}
@@ -280,6 +281,37 @@ function Cover({ e, size }: { e: EventItem; size: number }) {
   return <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={{ width: size, height: size, borderRadius: 16 }} iconSize={Math.round(size * 0.46)} />;
 }
 
+/**
+ * Плашка «идёт сейчас» / «через 25 мин» (26 октября: с карты это убрано — видно здесь).
+ * Идёт — зелёная с мягко пульсирующей точкой; до начала меньше двух часов — оранжевая с обратным отсчётом.
+ */
+function StartPill({ e, now }: { e: EventItem; now: Date }) {
+  const start = Date.parse(e.startsAt);
+  const left = start - now.getTime();
+  const live = left <= 0 && endOf(e) > now.getTime() && !e.isLong;
+  const soon = left > 0 && left < 2 * 3600e3;
+  if (!live && !soon) return null;
+  const text = live ? 'идёт сейчас' : left < 3600e3 ? `через ${Math.max(1, Math.round(left / 60000))} мин` : `через ${Math.floor(left / 3600e3)} ч ${Math.round((left % 3600e3) / 60000)} мин`;
+  return (
+    <Animated.View entering={FadeIn.duration(220)} style={[styles.pill, live ? styles.pillLive : styles.pillSoon]}>
+      <PulseDot color={live ? '#2FA35A' : colors.accent} />
+      <Text style={[styles.pillText, { color: live ? '#1E7A43' : colors.accentText }]}>{text}</Text>
+    </Animated.View>
+  );
+}
+
+function PulseDot({ color }: { color: string }) {
+  const t = useSharedValue(0);
+  useEffect(() => { t.set(withRepeat(withTiming(1, { duration: 1400 }), -1, false)); }, [t]);
+  const ring = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - t.get()), transform: [{ scale: 1 + t.get() * 1.6 }] }));
+  return (
+    <View style={styles.pulse}>
+      <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: 4, backgroundColor: color }, ring]} />
+      <View style={[styles.pulseCore, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
 /** «Дальше по плану»: фото, обратный отсчёт, место и кто идёт; кнопки «Маршрут» и «Позвать». */
 function NextUp({ e, now, people, onOpen }: { e: EventItem; now: Date; people: Person[]; onOpen: () => void }) {
   const start = Date.parse(e.startsAt);
@@ -311,6 +343,12 @@ function NextUp({ e, now, people, onOpen }: { e: EventItem; now: Date; people: P
 }
 
 const styles = StyleSheet.create({
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 22, paddingHorizontal: 9, borderRadius: 11 },
+  pillLive: { backgroundColor: 'rgba(47,163,90,0.14)' },
+  pillSoon: { backgroundColor: 'rgba(240,82,31,0.12)' },
+  pillText: { fontFamily: fonts.body700, fontSize: 12 },
+  pulse: { width: 8, height: 8, alignItems: 'center', justifyContent: 'center' },
+  pulseCore: { width: 8, height: 8, borderRadius: 4 },
   root: { flex: 1, backgroundColor: colors.paper },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, color: colors.ink },

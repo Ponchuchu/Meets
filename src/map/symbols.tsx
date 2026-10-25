@@ -1,4 +1,4 @@
-// Объёмные «игровые» значки карты (FIX5): микрофон у стендапа, конёк у Медеу, кабинка у Кок-Тобе, свой ТРЦ у каждого центра.
+// Объёмные значки карты — набор владельца (99 штук, assets/map/icons-v2): микрофон у стендапа, Медеу, Терренкур, свой ТРЦ у каждого центра.
 // На телефоне их рисует сам движок карты (слой SymbolLayer в MapCanvas) — значки пришиты к карте и не отстают при вращении.
 // В web и на подложке «бумага» те же картинки ставятся обычными маркерами (symbolMarkers).
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,7 +6,7 @@ import type { Category, EventItem } from '../data/types';
 import type { AttractionKind } from '../data/attractions';
 import { fonts } from '../theme';
 import { CAT_COLOR } from './icons';
-import { SPRITES, type SpriteName } from './sprites';
+import { SPRITE_PT, SPRITES, type SpriteName } from './sprites';
 import type { MapMarker } from './types';
 
 export interface MapSymbol {
@@ -28,40 +28,86 @@ export interface MapSymbol {
   faded?: boolean;
 }
 
-/** Ширина картинки спрайта в пикселях (scripts/map-sprites.mjs: 120 × 1.5). */
-export const SPRITE_PX = 180;
-const RATIO = 140 / 120;
+/** Размер значка в pt (набор владельца — 64×70): от него считается масштаб на карте. */
+export const SPRITE_W = SPRITE_PT.w;
+const RATIO = SPRITE_PT.h / SPRITE_PT.w;
 
-/** Событие в известном месте получает значок места: каток Медеу — конёк, Шымбулак — лыжи. */
-const PLACE_ICON: [RegExp, SpriteName][] = [
-  [/медеу|medeu|каток|ледов|ice ?arena/i, 'pl-skate'], [/сноуборд|snowboard/i, 'ev-snowboard'], [/шымбулак|shymbulak|горнолыж|лыж/i, 'pl-ski'],
-  [/кок-?тобе|kok-?tobe/i, 'pl-koktobe'], [/канатн/i, 'pl-cable'], [/чарын|charyn|каньон/i, 'pl-charyn'], [/кемпинг|палатк|camping|с ночёвкой|с ночевкой/i, 'ev-camping'],
-  [/боулинг|bowling/i, 'pl-bowling'], [/батут/i, 'pl-trampoline'], [/скалодром/i, 'pl-climb'], [/квест|escape/i, 'pl-quest'], [/зоопарк/i, 'pl-zoo'], [/музей/i, 'pl-museum'],
-  [/джаз|jazz|саксофон|блюз|blues/i, 'ev-jazz'], [/баскетбол|basketball|стритбол/i, 'ev-basket'], [/теннис|tennis|падел|padel/i, 'ev-tennis'],
-  [/хакатон|hackathon|\bit\b|айти|tech|стартап|startup|программир|ai-|нейросет/i, 'ev-tech'], [/волонт|субботник|благотвор|volunteer|приют/i, 'ev-volunteer'],
-  [/косплей|cosplay|аниме|anime|комик-?кон|comic/i, 'ev-cosplay'], [/выпечк|пекар|круассан|бейкер|bakery|бранч|завтрак/i, 'ev-bakery'], [/мороженое|десерт|ice ?cream/i, 'ev-icecream'],
-  [/маркет|market|ярмарк|барахолк|бутик|pop-?up/i, 'pl-boutique'],
+/** Значок по разделу, если в названии нет ничего точнее. */
+const CATEGORY_ICON: Record<Category, SpriteName> = {
+  music: 'ev-concert', concert: 'ev-rock', standup: 'ev-standup', art: 'ev-art', hike: 'ev-camping', games: 'ev-games', food: 'ev-burger',
+  sport: 'ev-football', talks: 'ev-talks', movie: 'ev-movie', theatre: 'ev-theatre', lecture: 'ev-lecture', meetup: 'ev-business', party: 'ev-party', bike: 'ev-bike',
+};
+
+/** Места Алматы со своим значком — и для событий там, и для самих мест на карте. */
+const PLACE_WORDS: [RegExp, SpriteName][] = [
+  [/терренкур/i, 'pl-terrenkur'], [/медеу|medeu/i, 'pl-medeu'], [/(^|\s)бао(\s|$)|большое алматинское озеро/i, 'pl-bao'], [/шымбулак|shymbulak|чимбулак/i, 'pl-shymbulak'],
+  [/кок-?тобе|kok-?tobe/i, 'pl-koktobe'], [/канатк|канатн|гондол/i, 'pl-cable'], [/чарын|charyn|каньон/i, 'pl-charyn'], [/панфилов/i, 'pl-panfilov'],
+  [/парк (им\.? )?горького|центральн\w* парк|парк гоголя/i, 'pl-gogol'], [/ботаническ|ботсад/i, 'pl-garden'], [/зоопарк/i, 'pl-zoo'],
+  [/базар/i, 'pl-bazaar'], [/фудкорт|food ?court/i, 'pl-foodcourt'],
+];
+
+/** Значок по смыслу названия (узкие темы — раньше общих). Набор владельца, 99 значков (assets/map/icons.json). */
+const WORD_ICON: [RegExp, SpriteName][] = [
+  ...PLACE_WORDS,
+  // Музыка и вечеринки.
+  [/джаз|jazz|саксофон|блюз|blues/i, 'ev-jazz'], [/оркестр|симфон|филармон|классическ\w* музык|органн|квартет|скрипк|опер[аы]/i, 'ev-orchestra'],
+  [/караоке|karaoke/i, 'ev-karaoke'], [/(^|\s)рок|rock|панк|punk|метал|гранж/i, 'ev-rock'], [/\bdj\b|диджей|техно|techno|house|клуб/i, 'ev-club'],
+  [/фестивал|festival/i, 'ev-festival'], [/салют|фейерверк/i, 'ev-fireworks'], [/праздник|день рождени|новый год|наурыз|хэллоуин|halloween/i, 'ev-holiday'],
+  // Культура и фан.
+  [/комик-?кон|comic ?con|комикс/i, 'ev-comicon'], [/косплей|cosplay/i, 'ev-cosplay'], [/аниме|anime|k-?pop|азия|asia/i, 'ev-asia'],
+  [/книжн|книг|литератур|поэз|стих/i, 'ev-books'], [/фотосет|фотопрогулк|фотограф|photo/i, 'ev-photo'], [/музей/i, 'pl-museum'],
+  // Еда и напитки.
+  [/плов/i, 'ev-plov'], [/шаурм|донер/i, 'ev-shawarma'], [/пицц|pizza/i, 'ev-pizza'], [/суши|роллы|sushi/i, 'ev-sushi'], [/рамен|ramen|лапш/i, 'ev-ramen'],
+  [/шашлык|барбекю|bbq|гриль/i, 'ev-shashlik'], [/выпечк|пекар|круассан|bakery|бранч|завтрак/i, 'ev-bakery'], [/десерт|торт|cake/i, 'ev-dessert'],
+  [/мороженое|ice ?cream/i, 'ev-icecream'], [/стрит-?фуд|street ?food|фудтрак|food ?truck/i, 'ev-streetfood'], [/кофе|coffee|каппинг|бариста/i, 'ev-coffee'],
+  [/вин[оа]|wine|сомелье/i, 'ev-wine'], [/пив[оа]|beer|крафт/i, 'ev-beer'], [/сыр[ыа]?(\s|$)|cheese/i, 'ev-cheese'], [/чайн|чаепит|(^|\s)чай(\s|$)|tea/i, 'ev-tea'],
+  [/коктейл|(^|\s)бар(\s|$)|cocktail/i, 'ev-bar'], [/мастер-?класс|workshop|воркшоп|кулинар/i, 'ev-cooking'],
+  // Спорт.
+  [/баскетбол|basketball|стритбол/i, 'ev-basket'], [/теннис|tennis|падел|padel/i, 'ev-tennis'], [/футбол|football|soccer/i, 'ev-football'],
+  [/забег|пробежк|марафон|(^|\s)бег(\s|$)|running/i, 'ev-run'], [/йог|yoga|пилатес|медитац/i, 'ev-yoga'], [/сноуборд|snowboard/i, 'ev-snowboard'],
+  [/лыж|горнолыж/i, 'pl-ski'], [/гольф|golf/i, 'pl-golf'], [/каток|коньк|ледов|ice ?arena/i, 'pl-skate'], [/конн|лошад|верхов|horse/i, 'pl-horse'],
+  [/вело|bike|cycling/i, 'ev-bike'],
+  // Развлечения.
+  [/боулинг|bowling/i, 'pl-bowling'], [/бильярд|billiard/i, 'pl-billiard'], [/дартс|darts/i, 'pl-darts'], [/квест|escape/i, 'pl-quest'],
+  [/квиз|quiz|викторин/i, 'ev-quiz'], [/мафи/i, 'ev-mafia'], [/настолк|настольн|board ?game/i, 'ev-games'], [/(^|\s)vr(\s|$)|виртуальн/i, 'pl-vr'],
+  [/кибер|esport|видеоигр|gaming/i, 'pl-gaming'], [/картинг|karting/i, 'pl-karting'], [/пейнтбол|лазертаг|paintball/i, 'pl-paintball'],
+  [/лучн|из лука|archery/i, 'pl-archery'], [/батут/i, 'pl-trampoline'], [/скалодром|боулдер|climb/i, 'pl-climb'], [/колесо обозрения/i, 'pl-wheel'],
+  [/аттракцион|луна-?парк/i, 'pl-coaster'], [/аквапарк|бассейн/i, 'pl-aqua'],
+  // Природа.
+  [/пикник|picnic/i, 'ev-picnic'], [/кемпинг|палатк|camping|с ночёвкой|с ночевкой/i, 'ev-camping'], [/костёр|костер|bonfire/i, 'ev-campfire'], [/смотров|закат|рассвет/i, 'pl-view'],
+  // Общение и обучение.
+  [/хакатон|hackathon|(^|\s)it(\s|$)|айти|tech|стартап|startup|программир|нейросет/i, 'ev-tech'], [/нетворкинг|networking|бизнес/i, 'ev-business'],
+  [/english|английск|(^|\s)язык|speaking club|language/i, 'ev-language'], [/разговорн|дебат|дискусс/i, 'ev-talks'], [/знакомств|свидани|dating/i, 'ev-dating'],
+  [/волонт|субботник|благотвор|volunteer|приют/i, 'ev-volunteer'], [/лекци|lecture/i, 'ev-lecture'],
+  // Дети и питомцы.
+  [/для детей|детск|kids|малыш/i, 'ev-kids'], [/собак|кошк|питом|pets|(^|\s)dog/i, 'ev-pets'],
+  // Шопинг.
+  [/маркет|market|ярмарк|барахолк|бутик|pop-?up|шопинг/i, 'pl-boutique'],
 ];
 
 export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName'>): SpriteName {
   const text = `${e.title} ${e.venueName ?? ''}`;
-  return PLACE_ICON.find(([re]) => re.test(text))?.[1] ?? (`ev-${e.category}` as SpriteName);
+  return WORD_ICON.find(([re]) => re.test(text))?.[1] ?? CATEGORY_ICON[e.category] ?? 'ev-business';
 }
 
-export const placeSprite = (kind: AttractionKind): SpriteName => `pl-${kind}` as SpriteName;
+/** Значок постоянного места по виду. */
+const KIND_ICON: Record<AttractionKind, SpriteName> = {
+  ski: 'pl-shymbulak', skate: 'pl-skate', cable: 'pl-cable', wheel: 'pl-wheel', bowling: 'pl-bowling', trampoline: 'pl-trampoline', climb: 'pl-climb',
+  quest: 'pl-quest', vr: 'pl-vr', golf: 'pl-golf', paintball: 'pl-paintball', aqua: 'pl-aqua', photo: 'ev-photo', zipline: 'pl-coaster', park: 'pl-gogol',
+  museum: 'pl-museum', zoo: 'pl-zoo', garden: 'pl-garden', view: 'pl-view', fun: 'pl-coaster', billiards: 'pl-billiard', gallery: 'ev-art',
+};
+export const placeSprite = (kind: AttractionKind): SpriteName => KIND_ICON[kind] ?? 'pl-view';
 
-/** Значок постоянного места: известные места — свой рисунок (Кок-Тобе — телебашня, Шымбулак — гора, Чарын — каньон). */
+/** Известные места — свой значок (Терренкур, Медеу, БАО, Кок-Тобе, Шымбулак, Чарын, парк Панфилова…), остальные — по виду. */
 export function spotSprite(a: { kind: AttractionKind; name: string }): SpriteName {
-  if (/кок-?тобе/i.test(a.name)) return 'pl-koktobe';
-  if (/чарын/i.test(a.name)) return 'pl-charyn';
-  return placeSprite(a.kind);
+  return PLACE_WORDS.find(([re]) => re.test(a.name))?.[1] ?? placeSprite(a.kind);
 }
 
+/** ТРЦ — вариант здания из набора владельца, название выводится подписью. */
 const MALL_ICON: [RegExp, SpriteName][] = [
-  [/dostyk|достык/i, 'mall-dostyk'], [/esentai|есентай/i, 'mall-esentai'], [/mega park|мега парк/i, 'mall-megapark'],
-  [/mega|мега/i, 'mall-mega'], [/aport|апорт/i, 'mall-aport'], [/forum|форум/i, 'mall-forum'],
+  [/dostyk|достык/i, 'mall-dome'], [/esentai|есентай/i, 'mall-tower'], [/mega|мега/i, 'mall-stripes'], [/aport|апорт/i, 'mall-long'], [/forum|форум/i, 'mall-columns'],
 ];
-export const mallSprite = (name: string): SpriteName => MALL_ICON.find(([re]) => re.test(name))?.[1] ?? 'mall-mall';
+export const mallSprite = (name: string): SpriteName => MALL_ICON.find(([re]) => re.test(name))?.[1] ?? 'pl-shopping';
 
 /** Подпись времени — тихая, в тон категории: темнее её цвета на светлой карте, светлее — на тёмной. */
 export function timeColor(c: Category, dark: boolean): string {

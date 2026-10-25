@@ -56,7 +56,7 @@ function FloatSprite({ e }: { e: EventItem }) {
   return (
     <View style={styles.selWrap}>
       <View style={styles.selShadow} />
-      <Animated.View style={st}><Image source={SPRITES[eventSprite(e)]} style={{ width: 76, height: 89 }} /></Animated.View>
+      <Animated.View style={st}><Image source={SPRITES[eventSprite(e)]} style={{ width: 76, height: 83 }} /></Animated.View>
     </View>
   );
 }
@@ -123,8 +123,6 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
     return (
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y} style={styles.hit} hitSlop={6}>
         <View style={[styles.anchor, { transform: [{ scale: Math.max(1, scale * 1.05) }] }]}>
-          {live && <Pulse size={86} color={bg} />}
-          {/* Выбранная афиша — крупнее, на хвостике, кончик — точно на месте события. */}
           {/* Выбранное (FIX5): тот же объёмный значок, только крупный и парящий над своей тенью. */}
           <FloatSprite e={e} />
           {friend && <View style={[styles.friendBadge, { left: 16, top: -84 }]}><Avatar p={friend} size={22} /></View>}

@@ -40,10 +40,10 @@ function Ground({ h }: { h: number }) {
 
 /** Точки сцены: доля ширины/высоты, событие или готовый значок, подпись. */
 const SPOTS: { x: number; y: number; id?: string; icon?: SpriteName; text?: string; size?: number }[] = [
-  { x: 0.16, y: 0.14, icon: 'ev-jazz', size: 50 }, { x: 0.42, y: 0.12, id: 'games' }, { x: 0.72, y: 0.18, icon: 'ev-food' },
+  { x: 0.16, y: 0.14, icon: 'ev-jazz', size: 50 }, { x: 0.42, y: 0.12, id: 'games' }, { x: 0.72, y: 0.18, icon: 'ev-burger' },
   { x: 0.9, y: 0.34, id: 'standup' }, { x: 0.3, y: 0.33, icon: 'ev-party', size: 54 }, { x: 0.12, y: 0.47, icon: 'ev-basket' },
-  { x: 0.45, y: 0.58, icon: 'pl-charyn' }, { x: 0.84, y: 0.62, icon: 'mall-dostyk', text: 'Dostyk Plaza', size: 58 },
-  { x: 0.24, y: 0.75, icon: 'pl-skate', size: 50 }, { x: 0.6, y: 0.8, icon: 'ev-movie' }, { x: 0.9, y: 0.9, icon: 'mall-mega', text: 'MEGA', size: 58 },
+  { x: 0.45, y: 0.58, icon: 'pl-charyn' }, { x: 0.84, y: 0.62, icon: 'mall-dome', size: 58 },
+  { x: 0.24, y: 0.75, icon: 'pl-skate', size: 50 }, { x: 0.6, y: 0.8, icon: 'ev-movie' }, { x: 0.9, y: 0.9, icon: 'mall-stripes', size: 58 },
   { x: 0.1, y: 0.93, icon: 'ev-tech' }, { x: 0.42, y: 0.95, icon: 'pl-koktobe', size: 48 }, { x: 0.62, y: 0.12, icon: 'ev-icecream' },
 ];
 
@@ -62,7 +62,7 @@ function Scene({ far, ev, person, spot }: { far?: boolean; ev: (id: string) => E
         <View style={[styles.at, { left: '70%', top: 0.48 * h }]}><FriendPin person={person('denis')} spot={spot('denis')} onPress={noop} /></View>
         <View style={[styles.at, { left: '20%', top: 0.6 * h }]}><FriendPin person={person('igor')} spot={spot('igor')} onPress={noop} /></View>
         <View style={[styles.at, { left: '68%', top: 0.3 * h }]}><FriendPin person={person('anton')} spot={spot('anton')} onPress={noop} /></View>
-        <View style={[styles.at, { left: '52%', top: 0.24 * h }]}><EventPin e={{ ...ev('jazz'), cover: 'igor3' }} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} selected label="Вечеринка на крыше" when="сегодня, 22:00" friend={person('denis')} /></View>
+        <View style={[styles.at, { left: '52%', top: 0.24 * h }]}><EventPin e={{ ...ev('jazz'), cover: 'igor3' }} kind="labeled" phase="today" showCompany={false} dark={false} onPress={noop} selected label="Вечеринка на крыше" friend={person('denis')} /></View>
       </>}
       {far && <>
         <View style={[styles.at, { left: '70%', top: 0.5 * h }]}><FriendPin person={person('denis')} spot={spot('denis')} onPress={noop} /></View>

@@ -28,7 +28,6 @@ import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
 import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
-import { whenTitle } from '../../event/text';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
@@ -54,7 +53,7 @@ import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { insideMall, mallLook, PlaceCard } from '../../map/ui/VenueSheet';
+import { insideMall, PlaceCard } from '../../map/ui/VenueSheet';
 import { eventSprite, mallSprite, spotSprite, type MapSymbol } from '../../map/symbols';
 import { CAT_COLOR } from '../../map/icons';
 import { PlacePin } from '../../map/ui/PlacePin';
@@ -373,7 +372,7 @@ export default function MapScreen() {
             <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
             {e.meetup ? <MeetupPin e={e} people={people} selected={isSel} onPress={() => openPin(e, group)} /> : <EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={e.title} selected
               showCompany={false} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
-              when={whenTitle(e, clock).toLowerCase()} />}
+              />}
             </View>
           ),
         });
@@ -418,8 +417,7 @@ export default function MapScreen() {
     if (detail !== 'far') for (const m of malls) {
       const id = `v-${m.id}`;
       taps.set(id, () => { setMall(m); setSheet('venue'); });
-      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId,
-        text: detail === 'near' ? mallLook(m.name).short : undefined, textColor: dark ? '#CFC9BD' : '#5A564E', halo: dark ? '#1C1D21' : '#FCFBF8' });
+      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId });
     }
     if (filters.friends) {
       const grouped = new Set<string>();

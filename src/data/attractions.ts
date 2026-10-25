@@ -8,7 +8,7 @@
 import { COMMONS_HASH } from './commonsHash';
 
 export type AttractionKind = 'ski' | 'skate' | 'cable' | 'wheel' | 'bowling' | 'trampoline' | 'climb' | 'quest' | 'vr' | 'golf' | 'paintball' | 'aqua' | 'photo' | 'zipline'
-  | 'park' | 'museum' | 'zoo' | 'garden' | 'view';
+  | 'park' | 'museum' | 'zoo' | 'garden' | 'view' | 'fun' | 'billiards' | 'gallery';
 
 /** Часы по дням недели ISO (1 — пн … 7 — вс): интервалы работы; два интервала — между ними перерыв; [] — выходной. */
 export type Hours = Partial<Record<'1' | '2' | '3' | '4' | '5' | '6' | '7', [string, string][]>>;
@@ -61,12 +61,14 @@ export const KIND_LABEL: Record<AttractionKind, string> = {
   ski: 'Горнолыжный курорт', skate: 'Каток', cable: 'Канатная дорога', wheel: 'Колесо обозрения', bowling: 'Боулинг',
   trampoline: 'Батутный парк', climb: 'Скалодром', quest: 'Квесты', vr: 'VR-парк', golf: 'Гольф', paintball: 'Пейнтбол',
   aqua: 'Аквапарк', photo: 'Фотозона', zipline: 'Зиплайн', park: 'Парк', museum: 'Музей', zoo: 'Зоопарк', garden: 'Сад', view: 'Смотровая',
+  fun: 'Парк развлечений', billiards: 'Бильярд', gallery: 'Галерея',
 };
 
 export const KIND_COLOR: Record<AttractionKind, string> = {
   ski: '#2C6FB0', skate: '#4FA3D9', cable: '#1F9AA8', wheel: '#E0457B', bowling: '#3A3046', trampoline: '#E2A21B', climb: '#B5651D',
   quest: '#5B5BD6', vr: '#7E5BD6', golf: '#2F8F5B', paintball: '#C83A26', aqua: '#2AA5B8', photo: '#F0521F', zipline: '#3E7E4E',
   park: '#3E8E4E', museum: '#8A5A3C', zoo: '#C98A1B', garden: '#5C9E3F', view: '#D9822B',
+  fun: '#E0457B', billiards: '#2F6B4F', gallery: '#6A45C9',
 };
 
 export const ATTRACTIONS: Attraction[] = [
