@@ -6,8 +6,7 @@ import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
 import { StateView } from '../../ui/StateView';
-import { getActivity, useActivitySeen } from '../../activity/data';
-import { unseenCount } from '../../activity/model';
+import { ActivityBell } from '../activity/ActivityBell';
 import { router } from 'expo-router';
 import { config } from '../../lib/config';
 import { createFriendGroup } from '../../live/api';
@@ -15,7 +14,7 @@ import { queryClient } from '../../live/query';
 import { uid } from '../../lib/uid';
 import { isFriendNow, useSocial } from '../../state/social';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
-import { Archive, ArchiveRestore, Bell, CalendarCheck, Camera, EyeOff, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
+import { Archive, ArchiveRestore, CalendarCheck, Camera, EyeOff, Pin, PinOff, SquarePen, Users } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { friendActivity, previewText } from '../../chat/activity';
 import { getInvites, type Invite } from '../../live/api';
@@ -45,9 +44,6 @@ export default function ChatsScreen() {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState<string | null>(null);
   const chatsQuery = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
-  const activity = useQuery({ queryKey: ['activity'], queryFn: getActivity, staleTime: 60e3, refetchInterval: 120e3 });
-  const seenAt = useActivitySeen((s) => s.seenAt);
-  const newActivity = unseenCount(activity.data ?? [], seenAt);
   const { data: chats = [] } = chatsQuery;
   const online = useNet((s) => s.online);
   const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
@@ -130,10 +126,7 @@ export default function ChatsScreen() {
           <Text style={[styles.h1, headTitle !== 'Чаты' && styles.h1Wait]} accessibilityRole="header" numberOfLines={1}>{headTitle}</Text>
         </View>
         {/* Уведомления (FIX5): колокольчик с числом нового — заявки, приглашения, стикеры, входы в аккаунт. */}
-        <Pressable onPress={() => router.push('/activity')} style={[styles.round, { marginRight: 8 }]} accessibilityRole="button" accessibilityLabel={newActivity ? `Уведомления, новых: ${newActivity}` : 'Уведомления'}>
-          <Bell size={20} color={colors.ink} strokeWidth={1.9} />
-          {newActivity > 0 && <View style={styles.bellBadge}><Text style={styles.bellBadgeText}>{newActivity > 9 ? '9+' : newActivity}</Text></View>}
-        </Pressable>
+        <ActivityBell style={[styles.round, { marginRight: 8 }]} dot={styles.bellBadge} dotText={styles.bellBadgeText} />
         <Pressable onPress={() => setCompose(true)} style={[styles.round,{marginRight:8}]} accessibilityRole="button" accessibilityLabel="Новый чат"><SquarePen size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         <Pressable onPress={() => setSearch(search == null ? '' : null)} style={styles.round} accessibilityRole="button" accessibilityLabel="Поиск по чатам">
           <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={20} color={colors.ink} w={1.9} />

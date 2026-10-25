@@ -23,6 +23,7 @@ function demoRows(): ActivityRow[] {
     { ...none, ...p('igor', 'Игорь', 'igor'), kind: 'push_sticker', at: ago(18) },
     { ...none, ...p('denis', 'Денис', 'denis'), kind: 'invite', at: ago(65), event_id: 'jazz', event_title: 'Джаз во дворе' },
     { ...none, kind: 'push_reminder', at: ago(150), event_id: 'games', event_title: 'Настолки без своей компании' },
+    { ...none, kind: 'login_failed', at: ago(40), detail: 'Mozilla/5.0 (Windows NT 10.0) Chrome/120' },
     { ...none, kind: 'login', at: ago(60 * 20), detail: 'okhttp/4.12.0' },
     { ...none, ...p('anton', 'Антон', 'anton'), kind: 'invite_answer', at: ago(60 * 26), event_id: 'anime', event_title: 'Аниме-выставка «Токио в Алматы»', detail: 'yes' },
     { ...none, kind: 'push_dailyFeed', at: ago(60 * 30) },

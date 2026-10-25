@@ -3,7 +3,7 @@
 // Заявку можно принять, на приглашение ответить, а чужой вход — закрыть «Выйти на других устройствах» прямо в строке.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { Ban, Bell, CalendarHeart, ChevronLeft, MapPin, ShieldCheck, Sparkles, Sticker, UserCheck, UserPlus, type LucideIcon } from 'lucide-react-native';
+import { Ban, Bell, CalendarHeart, ChevronLeft, MapPin, ShieldAlert, ShieldCheck, Sparkles, Sticker, UserCheck, UserPlus, type LucideIcon } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
@@ -22,6 +22,7 @@ import { StateView } from '../../ui/StateView';
 import { Toast, type ToastData } from '../../ui/Toast';
 
 const ICON: Record<ActivityIcon, { Icon: LucideIcon; bg: string }> = {
+  alert: { Icon: ShieldAlert, bg: '#D8362A' },
   person: { Icon: UserPlus, bg: colors.friend }, friend: { Icon: UserCheck, bg: '#2FA35A' }, calendar: { Icon: CalendarHeart, bg: colors.accent },
   sticker: { Icon: Sticker, bg: '#9167CE' }, near: { Icon: MapPin, bg: colors.friend }, bell: { Icon: Bell, bg: '#C98A1B' },
   cancel: { Icon: Ban, bg: '#8C8577' }, shield: { Icon: ShieldCheck, bg: colors.ink }, sparkles: { Icon: Sparkles, bg: colors.accent },

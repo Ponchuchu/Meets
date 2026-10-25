@@ -3,7 +3,7 @@
 
 export interface ActivityRow { kind: string; at: string; person_id: string | null; person_name: string | null; person_photo: string | null; event_id: string | null; event_title: string | null; detail: string | null }
 
-export type ActivityIcon = 'person' | 'friend' | 'calendar' | 'sticker' | 'near' | 'bell' | 'cancel' | 'shield' | 'sparkles';
+export type ActivityIcon = 'alert' | 'person' | 'friend' | 'calendar' | 'sticker' | 'near' | 'bell' | 'cancel' | 'shield' | 'sparkles';
 export interface ActivityItem {
   id: string; kind: string; at: string;
   /** Жирное имя в начале строки (как в Instagram) и остальной текст. */
@@ -39,6 +39,7 @@ export function toItem(r: ActivityRow, i = 0): ActivityItem {
     case 'push_cancelled': return { ...base, who: null, text: `Отменили ${ev}`, icon: 'cancel', href: r.event_id ? `/event/${r.event_id}` : null };
     case 'push_dailyFeed': return { ...base, who: null, text: 'Новая подборка «Для тебя» — 10 событий под твои интересы', icon: 'sparkles', href: '/foryou' };
     case 'push_weekend': return { ...base, who: null, text: 'Подборка на выходные готова', icon: 'sparkles', href: '/foryou' };
+    case 'login_failed': return { ...base, who: null, photo: null, text: `Кто-то пытался войти в твой аккаунт · неверный код · ${deviceOf(r.detail)}`, icon: 'alert', href: null, action: 'security' };
     case 'login': return { ...base, who: null, photo: null, text: `Вход в аккаунт · ${deviceOf(r.detail)}`, icon: 'shield', href: null, action: 'security' };
     default: return { ...base, who: null, text: 'Уведомление', icon: 'bell', href: null };
   }

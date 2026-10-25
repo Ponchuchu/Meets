@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
+import { ActivityBell } from '../activity/ActivityBell';
 import { BedDouble, ChevronRight, Code2, Footprints, Home, ImagePlus, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
@@ -147,6 +148,7 @@ export default function ProfileScreen() {
               {s.drafts > 0 && <View style={styles.topDot}><Text style={styles.topDotText}>{s.drafts > 99 ? '99+' : s.drafts}</Text></View>}
             </Pressable>
           )}
+          <ActivityBell style={styles.topBtn} dot={styles.topDot} dotText={styles.topDotText} />
           <Pressable onPress={() => router.push('/profile/qr')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Мой QR-код"><QrCode size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
           <Pressable onPress={() => router.push('/settings')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Настройки"><Settings size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
         </View>

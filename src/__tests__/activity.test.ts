@@ -31,3 +31,8 @@ describe('лента уведомлений (FIX5)', () => {
     expect(shortAgo('2026-10-11T10:00:00Z', now)).toBe('2 нед');
   });
 });
+
+it('чужая попытка входа — тревожная строка с выходом на других устройствах', () => {
+  const it2 = toItem({ kind: 'login_failed', at: '2026-10-25T10:00:00Z', person_id: null, person_name: null, person_photo: null, event_id: null, event_title: null, detail: 'Mozilla/5.0 (Windows NT 10.0) Chrome/120' });
+  expect(it2).toMatchObject({ icon: 'alert', action: 'security', text: 'Кто-то пытался войти в твой аккаунт · неверный код · браузер' });
+});
