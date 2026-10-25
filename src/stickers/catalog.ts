@@ -1,34 +1,75 @@
-import type { MemeKind } from './MemeArt';
+// Стикеры (26 октября, набор нарисован в Figma): глянцевые наклейки с белой вырубкой, как в Telegram, — почти без текста.
+// Текст только у отдельных мемов («67», «МОГНУ», «ГО?»…). У каждого стикера своя анимация и звук: на карте он «долетает»
+// до друга и играет (StickerBlast), в чате — по нажатию (InteractiveSticker).
+import type { ImageSourcePropType } from 'react-native';
 
-export type StickerPack = 'memes' | 'nearby' | 'city' | 'afterhours' | 'reactions';
-export interface Sticker { effect?: 'punch' | 'squeak' | 'heart' | 'confetti'; id: string; label: string; pack: StickerPack; level: number; bg: string; fg: string; rot: number; pose: number; look: 'solid' | 'outline' | 'tape' | 'big'; art?: MemeKind }
+export type StickerPack = 'reactions' | 'mood' | 'memes';
+export type StickerAnim =
+  | 'heartbeat' | 'punch' | 'wobble' | 'confetti' | 'flicker' | 'clap' | 'laugh' | 'rattle' | 'look' | 'pop'
+  | 'launch' | 'steam' | 'sway' | 'shine' | 'float' | 'hug' | 'slam' | 'sixseven';
+export type StickerSound =
+  | 'heart' | 'punch' | 'squeak' | 'confetti' | 'sizzle' | 'clap' | 'laugh' | 'rattle' | 'pop' | 'whoosh' | 'boing' | 'chime' | 'snore' | 'slam';
+
+export interface Sticker {
+  id: string;
+  /** Подпись: по ней стикер ищут, читает экранный диктор, и она же уходит в сообщение. */
+  label: string;
+  pack: StickerPack;
+  level: number;
+  /** Картинка-наклейка или… */
+  img?: ImageSourcePropType;
+  /** …текстовый мем: сам текст и цвет заливки. */
+  text?: string;
+  tint?: string;
+  anim: StickerAnim;
+  sound: StickerSound;
+  rot: number;
+}
+
 export const PACKS = [
-  {id:'reactions' as const,title:'Реакции',level:1,bg:'#D9C7F2'},
-  {id:'memes' as const,title:'Мемы',level:1,bg:'#FFE08A'},
-  {id:'nearby' as const,title:'Рядом',level:1,bg:'#FFC9A8'},
-  {id:'city' as const,title:'Город',level:3,bg:'#BFE3B4'},
-  {id:'afterhours' as const,title:'После заката',level:7,bg:'#C9C2F5'},
+  { id: 'reactions' as const, title: 'Реакции', level: 1 },
+  { id: 'mood' as const, title: 'Настроение', level: 1 },
+  { id: 'memes' as const, title: 'Мемы', level: 1 },
 ];
-const LABELS = [
-  ['Я УМЕР','КЛОУН','СОТКА','ОГОНЬ','ПЕРСИК','ЛЕГЕНДА','ХА-ХА','ХМ…','ШОК','ПИЦЦА?','ПРИЗРАК','ЛЮБЛЮ'],
-  ['ГО?','ТЫ ГДЕ?','ВЫХОДИ','КОФЕ?','ЖДУ','ОПАЗДЫВАЮ','Я ТУТ','ЕДУ','БАЗА','КРИНЖ','ХАЙП','АЛЛО??','ШАШЛЫК?','ТАНЦУЕМ','СКУЧАЮ','ПРИВЕТ','РЯДОМ!'],
-  ['В ГОРЫ','НА ПРОГУЛКУ','НОВЫЙ МАРШРУТ','ПОШЛИ ПЕШКОМ','ПИКНИК','ЛОВИ МОМЕНТ','ПОЕХАЛИ','ВЕЛО?','ВСТРЕТИМСЯ','НА МЕСТЕ','ОГО!','ПЛАН ЕСТЬ','ПАУЗА','СВЕЖИЙ ВОЗДУХ','ХОЧУ НА МАРКЕТ','ПО СВОИМ','ГОРОД НАШ'],
-  ['ЕЩЁ ПЯТЬ МИНУТ','ПОСЛЕ РАБОТЫ','МУЗЫКУ!','ЗАЖИГАЕМ','НЕ СПЛЮ','УЖЕ ДОМА','ОБНИМАШКИ','МОЙ ВАЙБ','КИНО?','ТОП','НУ КРАСИВО','ТЫ ЛЕГЕНДА','ВЕЧЕР НАШ','ЕЩЁ РАУНД','МНЕ НРАВИТСЯ','УВИДИМСЯ','ДО ЗАВТРА'],
-];
-// Картинка к каждой подписи (FIX5): мемные рожицы и предметы вместо оранжевых персонажей.
-const ARTS: MemeKind[][] = [
-  ['skull','clown','hundred','fire','peach','crown','laugh','think','shock','pizza','ghost','love'],
-  ['rocket','eyes','wave','coffee','clock','sweat','pin','car','cool','cringe','fire','think','skewer','disco','sad','wave','love'],
-  ['mountain','house','sparkles','mountain','popcorn','sparkles','rocket','bike','pin','pin','shock','trophy','ghost','mountain','pizza','house','hundred'],
-  ['clock','house','music','fire','moon','house','hug','cool','popcorn','trophy','sparkles','crown','moon','disco','love','wave','moon'],
-];
-const POSES=[
-  [0,0,0,0,0,0,0,0,0,0,0,0],
-  [2,5,2,1,5,5,0,3,2,5,6,0,1,6,4,0,4],
-  [7,3,7,3,1,2,3,3,4,0,2,5,8,7,1,3,2],
-  [5,3,6,6,8,8,4,6,1,2,4,2,6,6,4,0,8],
-];
-export const STICKERS: Sticker[] = PACKS.filter(p => p.id !== 'reactions').flatMap((p,j)=>LABELS[j].map((label,i)=>({id:`${p.id}-${i}`,label,pack:p.id,level:p.level,bg:p.bg,fg:'#17161A',rot:[-4,3,-2,4][i%4],pose:POSES[j][i],look:'solid' as const,art:ARTS[j][i]})));
-export const stickerUnlocked = (s: Pick<Sticker,'level'>,level:number) => level >= s.level;
 
-STICKERS.push(...(['punch', 'squeak', 'heart', 'confetti'] as const).map((effect, i) => ({ id: `reaction-${effect}`, label: ['БОКС!', 'БАКЛАЖАН', 'ОБНЯЛ', 'САЛЮТ!'][i], pack: 'reactions' as const, level: 1, effect, bg: '#D9C7F2', fg: '#17161A', rot: 0, pose: 0, look: 'big' as const })));
+/* eslint-disable @typescript-eslint/no-require-imports */
+const art = (id: string, label: string, pack: StickerPack, anim: StickerAnim, sound: StickerSound, img: ImageSourcePropType, level = 1, rot = 0): Sticker =>
+  ({ id, label, pack, level, img, anim, sound, rot });
+const meme = (id: string, text: string, tint: string, anim: StickerAnim, sound: StickerSound, level = 1, rot = -4): Sticker =>
+  ({ id, label: text, pack: 'memes', level, text, tint, anim, sound, rot });
+
+export const STICKERS: Sticker[] = [
+  art('heart', 'Сердце', 'reactions', 'heartbeat', 'heart', require('../../assets/stickers/art/heart.png')),
+  art('fire', 'Огонь', 'reactions', 'flicker', 'sizzle', require('../../assets/stickers/art/fire.png')),
+  art('clap', 'Браво', 'reactions', 'clap', 'clap', require('../../assets/stickers/art/clap.png')),
+  art('lol', 'Ору', 'reactions', 'laugh', 'laugh', require('../../assets/stickers/art/lol.png')),
+  art('like', 'Класс', 'reactions', 'pop', 'chime', require('../../assets/stickers/art/like.png')),
+  art('eyes', 'Глаза', 'reactions', 'look', 'pop', require('../../assets/stickers/art/eyes.png')),
+  art('glove', 'Бокс', 'reactions', 'punch', 'punch', require('../../assets/stickers/art/glove.png')),
+  art('eggplant', 'Баклажан', 'reactions', 'wobble', 'squeak', require('../../assets/stickers/art/eggplant.png')),
+  art('popper', 'Праздник', 'mood', 'confetti', 'confetti', require('../../assets/stickers/art/popper.png')),
+  art('skull', 'Я умер', 'mood', 'rattle', 'rattle', require('../../assets/stickers/art/skull.png')),
+  art('rocket', 'Полетели', 'mood', 'launch', 'whoosh', require('../../assets/stickers/art/rocket.png')),
+  art('coffee', 'Кофе?', 'mood', 'steam', 'pop', require('../../assets/stickers/art/coffee.png')),
+  art('moon', 'Спать', 'mood', 'sway', 'snore', require('../../assets/stickers/art/moon.png'), 3),
+  art('cool', 'Красавчик', 'mood', 'shine', 'chime', require('../../assets/stickers/art/cool.png'), 3),
+  art('ghost', 'Бу!', 'mood', 'float', 'boing', require('../../assets/stickers/art/ghost.png'), 3),
+  art('bear', 'Обнимаю', 'mood', 'hug', 'heart', require('../../assets/stickers/art/bear.png'), 3),
+  meme('m67', '67', '#FFD23F', 'sixseven', 'boing', 1, -6),
+  meme('mognu', 'МОГНУ', '#7FD1FF', 'slam', 'slam', 1, 4),
+  meme('go', 'ГО?', '#FF8A5C', 'slam', 'slam', 1, -5),
+  meme('lol-text', 'ЛОЛ', '#B79BFF', 'laugh', 'laugh', 1, 5),
+  meme('imba', 'ИМБА', '#5DD39E', 'slam', 'slam', 3, -3),
+  meme('baza', 'БАЗА', '#FF6FA0', 'slam', 'slam', 3, 4),
+  meme('cringe', 'КРИНЖ', '#C9B48A', 'wobble', 'squeak', 3, -6),
+  meme('wait', 'ЖДУ', '#9EE37D', 'sway', 'pop', 3, 3),
+];
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+export const stickerUnlocked = (s: Pick<Sticker, 'level'>, level: number) => level >= s.level;
+
+/** Стикер из сообщения по подписи. Старые стикеры (до 26 октября) показываем текстовым мемом с той же подписью. */
+export function stickerByLabel(label: string): Sticker {
+  return STICKERS.find((s) => s.label === label)
+    ?? { id: `old-${label}`, label, pack: 'memes', level: 1, text: label.toUpperCase(), tint: '#FFE08A', anim: 'slam', sound: 'pop', rot: -3 };
+}

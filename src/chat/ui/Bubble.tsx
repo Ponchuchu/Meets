@@ -10,7 +10,7 @@ import type { Message, Person } from '../../data/types';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Ic } from '../../ui/Ic';
-import { STICKERS } from '../../stickers/catalog';
+import { stickerByLabel } from '../../stickers/catalog';
 import { config } from '../../lib/config';
 import { registerPlayback, usePlayback } from '../playback';
 import { VideoPreview } from './VideoPreview';
@@ -184,7 +184,7 @@ export const Bubble = memo(function Bubble({ m, author, mine, friendChat, showAu
     case 'voice':
       return wrap(isFile(m.media) ? <VoiceFile m={m} mine={mine} /> : <Voice m={m} mine={mine} />);
     case 'sticker': {
-      const st = STICKERS.find((x) => x.label === m.text) ?? STICKERS[0];
+      const st = stickerByLabel(m.text);
       return (
         <View style={{ alignItems: align }}>
           <InteractiveSticker st={st} />

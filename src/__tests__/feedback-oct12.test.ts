@@ -9,7 +9,7 @@ import { groupEventDates } from '../event/series';
 import { demoEvents } from '../data/demo';
 import { buildDeck, tasteFrom } from '../reco';
 import { withTimeout } from '../data/client';
-import { STICKERS } from '../stickers/catalog';
+import { STICKERS, stickerByLabel } from '../stickers/catalog';
 import type { FriendSpot } from '../data/types';
 
 const now = new Date('2026-10-12T09:00:00Z');
@@ -71,10 +71,12 @@ it('быстрый ответ очищает таймер, а зависший �
   } finally { jest.useRealTimers(); }
 });
 
-it('реакции уникальны и не заменяют коллекцию маскота', () => {
-  expect(STICKERS.filter(s=>s.effect).map(s=>s.effect).sort()).toEqual(['confetti','heart','punch','squeak']);
-  expect(STICKERS.filter(s=>!s.effect)).toHaveLength(63);
-  expect(STICKERS.filter(s=>!s.effect).every(s=>!!s.art)).toBe(true);
+it('стикеры: у каждого картинка или текст мема, своя анимация и звук; старые подписи не ломают чат', () => {
+  expect(STICKERS.every(s => !!s.img !== !!s.text)).toBe(true);
+  expect(STICKERS.filter(s => s.text).map(s => s.text)).toEqual(expect.arrayContaining(['67', 'МОГНУ']));
+  expect(new Set(STICKERS.map(s => s.anim)).size).toBeGreaterThanOrEqual(15);
+  expect(stickerByLabel('Сердце').anim).toBe('heartbeat');
+  expect(stickerByLabel('ОГОНЬ')).toMatchObject({ text: 'ОГОНЬ', anim: 'slam' });
 });
 
 it('очередь отправляет сообщение, добавленное во время предыдущей отправки', async () => {

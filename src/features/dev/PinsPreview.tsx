@@ -10,6 +10,8 @@ import { PlacePin } from '../../map/ui/PlacePin';
 import { SPRITES, type SpriteName } from '../../map/sprites';
 import { eventSprite, SymbolPin, type MapSymbol } from '../../map/symbols';
 import { CAT_COLOR } from '../../map/icons';
+import { STICKERS } from '../../stickers/catalog';
+import { StickerView } from '../../stickers/StickerView';
 import { colors, fonts } from '../../theme';
 
 const noop = () => undefined;
@@ -86,6 +88,10 @@ export default function PinsPreview() {
       <Scene ev={e} person={person} spot={spot} />
       <Text style={styles.sec}>ТОТ ЖЕ РАЙОН ИЗДАЛЕКА — ТОЧКИ</Text>
       <Scene far ev={e} person={person} spot={spot} />
+      <Text style={styles.sec}>СТИКЕРЫ — НАРИСОВАНЫ В FIGMA, ТЕКСТ ТОЛЬКО У МЕМОВ</Text>
+      <View style={[styles.sprites, { backgroundColor: '#FBFAF6' }]}>
+        {STICKERS.map((st) => <View key={st.id} style={styles.sprite}><StickerView st={st} size={64} /></View>)}
+      </View>
       <Text style={styles.sec}>ВСЕ ОБЪЁМНЫЕ ЗНАЧКИ — СОБЫТИЯ, МЕСТА, ТРЦ</Text>
       <View style={styles.sprites}>
         {(Object.keys(SPRITES) as SpriteName[]).map((k) => (

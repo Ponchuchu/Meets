@@ -24,7 +24,7 @@ import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
 import { CityPin, EventPin, FOCUS_FACE, MeetupPin, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
-import { BLAST_MS, StickerBlast } from '../../stickers/StickerBlast';
+import { StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
 import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
@@ -511,8 +511,6 @@ export default function MapScreen() {
     // Отправка идёт фоном; не дошло — скажем об этом.
     social.sticker(to);
     setBlast({ key: Date.now(), st });
-    if (!st.effect) setTimeout(() => setBubble({ ...st, id: to }), BLAST_MS.sticker - 200);
-    setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), BLAST_MS.sticker + 2400);
     if (LIVE) void openDirectChat(to).then((chatId) => sendMessage(chatId, st.label, 'sticker')).then(() => void queryClient.invalidateQueries({ queryKey: ['chats'] }))
       .catch(() => showToast({ text: 'Не удалось отправить стикер. Проверь связь' }));
     else useChat.getState().send({ id: uid(`dm-${to}-st`), chatId: `dm-${to}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
