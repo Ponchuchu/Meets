@@ -6,16 +6,22 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
-import { BedDouble, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, type LucideIcon } from 'lucide-react-native';
+import { BedDouble, Cake, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, type LucideIcon } from 'lucide-react-native';
 import { goAwards, goLevel, Showcase } from './Showcase';
 import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileNum, TileSub } from './ProfileKit';
+import { FriendsPill, PlansStrip } from './PlansStrip';
+import { birthdayText } from '../../lib/format';
+import { planWhen } from '../../lib/planWhen';
+import { now as clockNow } from '../../lib/clock';
+import { usePlans } from '../../state/plans';
+import { eventsSnapshot } from '../../data';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
 import { data } from '../../data';
 import { config } from '../../lib/config';
-import { getMeStats, getProfile, uploadAvatar } from '../../live/api';
+import { getMeStats, getMyPhotos, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
 import { getMemories, getProfileExtras, getSleepovers, learnMyPlaces } from '../../live/profileExtras';
 import { STEP_GOAL, stepHistory, stepsToday, useSteps } from '../../live/steps';
@@ -76,6 +82,18 @@ export default function ProfileScreen() {
   useEffect(() => { void learnMyPlaces().then(r => { if (r && (r.places || r.sleepovers)) { void stats.refetch(); void sleeps.refetch(); } }).catch(() => undefined); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const p = prof.data;
+  const now = clockNow();
+  const going = usePlans((x) => x.going);
+  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  // Мои планы: на что я иду, ближайшие сначала; прошедшие не показываем.
+  const myPlans = events.filter((e) => going[e.id] && new Date(e.endsAt ?? e.startsAt).getTime() > now.getTime() - 3 * 3600e3)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, 8)
+    .map((e) => { const w = planWhen(e, now); return { key: e.id, title: e.title, when: (w.today ? w.text.split(' · ')[1] : w.text.split(' · ')[0]).toLowerCase(), today: w.today, e, eventId: e.id }; });
+  const myPhotosQ = useQuery({ queryKey: ['me', 'photos'], queryFn: getMyPhotos, enabled: LIVE });
+  const demoPhotos = useProfile((x) => x.photos);
+  const photos = LIVE ? myPhotosQ.data?.photos ?? (p?.photo_url ? [p.photo_url] : []) : demoPhotos.length ? demoPhotos : draft.photo ? [draft.photo] : [];
+  const birthday = birthdayText(LIVE ? myPhotosQ.data?.birth : draft.birthDate);
   const s = LIVE ? stats.data : DEMO_STATS;
   const name = p?.name?.trim() || draft.name?.trim() || 'Твой профиль';
   const frameId = LIVE ? p?.map_frame : demoFrame;
@@ -84,11 +102,13 @@ export default function ProfileScreen() {
   const points = s?.points ?? 0;
   const nextAt = level <= 10 ? level * 1000 : 10000 + (level - 10) * 1500;
   const pct = s ? s.cells.length / ALMATY_CELLS : 0;
+  const km = String(Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7));
   const walk = stepAwards(stepDays.data ?? [], { day: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps });
   const allBadges = [...walk, ...(s?.badges ?? [])];
   const got = allBadges.filter((b) => b.got);
   const shown = (extras.data?.shown ?? []).slice(0, 1);
   const friends = people.filter(x => x.isFriend);
+  const onMap = friends.filter((f) => spots.some((x) => x.personId === f.id)).length;
   const friendCount = LIVE ? s?.friends ?? friends.length : friends.length;
   const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
@@ -111,8 +131,8 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
-      <PhotoHero photos={(p?.photo_url ?? draft.photo) ? [String(p?.photo_url ?? draft.photo)] : []} initial={(name[0] ?? '·').toUpperCase()} tint="#D5CFC1" accent={frame.color} name={name}
-        photoLabel="Сменить фото" onPhoto={() => void pickPhoto()}
+      <PhotoHero photos={photos} initial={(name[0] ?? '·').toUpperCase()} tint="#D5CFC1" accent={frame.color} name={name}
+        photoLabel="Добавить фото" onPhoto={() => void pickPhoto()} viewerAction={{ label: 'Изменить фото', onPress: () => router.push('/profile/edit') }}
         nameExtra={shown.map((id) => <BadgeMedal key={id} id={id} got size={34} />)}
         top={<>
           <View style={styles.topRow}>
@@ -131,6 +151,7 @@ export default function ProfileScreen() {
         </>}
         meta={<>
           {!!p?.handle && <HeroChip>{`@${p.handle}`}</HeroChip>}
+          {!!birthday && <HeroChip icon={<Cake size={14} color="#FFFFFF" strokeWidth={2.1} />}>{birthday}</HeroChip>}
           <Pressable onPress={goLevel} accessibilityRole="button"><HeroChip>{`уровень ${level}`}</HeroChip></Pressable>
           {!shown.length && <Pressable onPress={() => router.push('/profile/awards')} accessibilityRole="button"><HeroChip>+ награда к имени</HeroChip></Pressable>}
         </>} />
@@ -148,33 +169,24 @@ export default function ProfileScreen() {
         {photoError && <Text style={{ color: colors.accentText }}>{photoError}</Text>}
         {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
 
-        {/* Плитки (bento): друзья и шаги, ниже витрина наград с уровнем, потом город и события. */}
+        {/* Друзья — одной строкой, планы — лентой вбок, ниже плитки (bento): шаги и город, витрина наград. */}
+        <FriendsPill faces={friends} onPress={() => router.push('/friends')} title={friendCount ? `${friendCount} ${plural(friendCount, 'друг', 'друга', 'друзей')}` : 'Друзья'}
+          sub={!friendCount ? 'добавь первого друга' : onMap ? `${onMap} сейчас на карте` : 'посмотреть всех'} />
+
+        <PlansStrip title="Мои планы" items={myPlans} onAll={() => router.navigate('/plans')} />
+
         <View style={kit.row}>
-          <Tile onPress={() => router.push('/friends')} label={`Друзья: ${friendCount}`}>
-            <View style={kit.faces}>
-              {friends.slice(0, 3).map((f, i) => <Avatar key={f.id} p={f} size={38} style={{ marginLeft: i ? -12 : 0, borderWidth: 2, borderColor: '#F4F0E7' }} />)}
-              {!friends.length && <View style={styles.facesEmpty}><Text style={styles.plus}>+</Text></View>}
-            </View>
-            <View><TileNum>{String(friendCount)}</TileNum><TileSub>{plural(friendCount, 'друг', 'друга', 'друзей')}</TileSub></View>
-          </Tile>
           <Tile accent="#DDEBD7" onPress={() => router.push('/profile/steps')} label={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
             <View style={styles.ringBox}><Ring value={steps / STEP_GOAL} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
-            <View><TileNum>{steps.toLocaleString('ru-RU')}</TileNum><TileSub>шагов сегодня</TileSub></View>
+            <View><TileNum>{steps.toLocaleString('ru-RU')}</TileNum><TileSub>{`шагов · ${km.replace('.', ',')} км всего`}</TileSub></View>
           </Tile>
-        </View>
-
-        <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
-
-        <View style={kit.row}>
           <Tile accent="#F6D5C4" onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} label="Где я был">
             <View style={styles.ringBox}><Ring value={pct} size={44} stroke={5} color={colors.accent} track="rgba(23,22,26,0.1)" /><MapIcon size={18} color={colors.accentText} strokeWidth={2} style={{ position: 'absolute' }} /></View>
             <View><TileNum>{exploredPct(s?.cells ?? []).replace(' ', '')}</TileNum><TileSub>Алматы открыто</TileSub></View>
           </Tile>
-          <Tile accent="#D9E0F3" label="Километров пешком">
-            <View style={styles.tileIcon}><Route size={20} color={colors.friend} strokeWidth={2} /></View>
-            <View><TileNum>{String(Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7)).replace('.', ',')}</TileNum><TileSub>км пешком</TileSub></View>
-          </Tile>
         </View>
+
+        <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
 
         <View style={styles.card}>
           <Pressable onPress={() => router.push('/profile/memories')} style={styles.cardHead} accessibilityRole="button">

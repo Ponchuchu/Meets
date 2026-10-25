@@ -8,12 +8,14 @@ import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View 
 import * as Clipboard from 'expo-clipboard';
 import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
+import { birthdayText } from '../../lib/format';
+import { FriendsPill, PlansStrip } from '../profile/PlansStrip';
 import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileCap, TileNum, TileSub } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY } from '../../people/visibility';
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
+import { Cake, CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -105,17 +107,6 @@ export default function PersonScreen() {
 
   // Плитки (bento) парами: друзья, шаги, воспоминания, планы — что есть у человека. Нечётная последняя — во всю ширину.
   const tiles = [
-    showFriends ? (<Tile key="friends" onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })} label="Друзья">
-        <View style={kit.faces}>
-          {common.slice(0, 3).map((fp, i) => <View key={fp!.id} style={[styles.stackItem, { marginLeft: i ? -12 : 0, zIndex: 3 - i }]}><Avatar p={fp!} size={38} /></View>)}
-          {!common.length && <View style={styles.tileIcon}><Users size={20} color={colors.ink} strokeWidth={1.9} /></View>}
-        </View>
-        <View>
-          <TileNum>{String(friend ? fCount : common.length)}</TileNum>
-          <TileSub>{friend ? `${plural(fCount, 'друг', 'друга', 'друзей')}${cCount ? ` · ${cCount} ${plural(cCount, 'общий', 'общих', 'общих')}` : ''}` : plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}</TileSub>
-        </View>
-      </Tile>
-    ) : null,
     showSteps ? (<Tile key="steps" accent="#DDEBD7" label={`Шаги сегодня: ${d.stepsToday}`}>
         <View style={styles.ringBox}><Ring value={(d.stepsToday ?? 0) / 10000} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
         <View>
@@ -129,18 +120,13 @@ export default function PersonScreen() {
         <View><TileNum>{String(d.memoriesCount)}</TileNum><TileSub>{plural(d.memoriesCount ?? 0, 'воспоминание', 'воспоминания', 'воспоминаний')}</TileSub></View>
       </Tile>
     ) : null,
-    friend && d.plans.length > 0 ? (<Tile key="plans" accent="#D9E0F3" label="Планы">
-        <CalendarPlus size={24} color={colors.friend} strokeWidth={1.9} />
-        <View><TileNum>{String(d.plans.length)}</TileNum><TileSub>{plural(d.plans.length, 'план', 'плана', 'планов')}</TileSub></View>
-      </Tile>
-    ) : null,
   ].filter(Boolean);
   const pairs = tiles.reduce<React.ReactNode[][]>((acc, t, i) => (i % 2 ? acc[acc.length - 1].push(t) : acc.push([t]), acc), []);
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
-        <PhotoHero photos={gallery.length ? gallery : d.photo ? [d.photo] : []} initial={p.initial} tint={p.tint} accent={frame.color} name={`${p.name}${p.age ? `, ${p.age}` : ''}`}
+        <PhotoHero photos={gallery.length ? gallery : d.photo ? [d.photo] : []} initial={p.initial} tint={p.tint} accent={frame.color} name={p.name}
           photoLabel={`Фото: ${p.name}`}
           nameExtra={shownBadges.slice(0, 1).map((b) => <BadgeMedal key={b} id={b} got size={34} />)}
           top={<>
@@ -149,6 +135,7 @@ export default function PersonScreen() {
           </>}
           meta={<>
             <HeroChip dot={d.online ? '#3DDC84' : undefined}>{seen}</HeroChip>
+            {friend && !!birthdayText(d.birthday) && <HeroChip icon={<Cake size={14} color="#FFFFFF" strokeWidth={2.1} />}>{birthdayText(d.birthday)!}</HeroChip>}
             {!friend && <HeroChip>не в друзьях</HeroChip>}
           </>}
           corner={canLocate ? (
@@ -181,6 +168,19 @@ export default function PersonScreen() {
         )}
 
         <View style={styles.body}>
+          {showFriends && (
+            <FriendsPill faces={common.map((x) => x!)} onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })}
+              title={friend ? `${fCount} ${plural(fCount, 'друг', 'друга', 'друзей')}` : `${common.length} ${plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}`}
+              sub={friend && cCount ? `${cCount} ${plural(cCount, 'общий', 'общих', 'общих')} с тобой` : friend ? 'посмотреть всех' : undefined} />
+          )}
+
+          {friend && canSee('friend', 'plans', d.privacy) && (
+            <PlansStrip title={`Планы ${genitive}`} items={d.plans.map((pl, i) => {
+              const ev = events.find((x) => x.id === pl.eventId);
+              return { key: `${pl.title}-${i}`, title: pl.title, when: pl.when === 'СЕГОДНЯ' ? 'сегодня' : pl.when.toLowerCase(), today: pl.when === 'СЕГОДНЯ', note: pl.note, e: ev, eventId: pl.eventId };
+            })} />
+          )}
+
           {pairs.map((pr, i) => <View key={i} style={kit.row}>{pr}</View>)}
 
           {medals.length > 0 && (
@@ -224,18 +224,6 @@ export default function PersonScreen() {
             </Pressable>
           )}
 
-          {friend && canSee('friend', 'plans', d.privacy) && d.plans.length > 0 && (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Планы {genitive}</Text>
-              {d.plans.map((pl, i) => (
-                <Pressable key={pl.title} onPress={() => pl.eventId && router.push({ pathname: '/event/[id]', params: { id: pl.eventId } })} style={[styles.planRow, i < d.plans.length - 1 && styles.line]} accessibilityRole="button">
-                  <View style={[styles.when, pl.when === 'СЕГОДНЯ' && { backgroundColor: colors.accent }]}><Text style={[styles.planWhen, pl.when === 'СЕГОДНЯ' && { color: '#FFFFFF' }]}>{pl.when === 'СЕГОДНЯ' ? 'сегодня' : pl.when.toLowerCase()}</Text></View>
-                  <View style={{ flex: 1 }}><Text style={styles.planTitle}>{pl.title}</Text><Text style={styles.sub}>{pl.note}</Text></View>
-                  <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-                </Pressable>
-              ))}
-            </View>
-          )}
         </View>
       </ScrollView>
 

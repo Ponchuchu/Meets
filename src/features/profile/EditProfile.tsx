@@ -4,13 +4,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { Camera, ChevronLeft, ChevronRight, Eye } from 'lucide-react-native';
+import { Camera, ChevronLeft, ChevronRight, Eye, Plus, Star, Trash2 } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { photo as photoSrc } from '../../data/photos';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../data/client';
 import { config } from '../../lib/config';
-import { uploadAvatar } from '../../live/api';
+import { getMyPhotos, saveMyPhotos, uploadAvatar, uploadPhoto } from '../../live/api';
 import { myId } from '../../live/auth';
 import { AvatarFrame, frameById } from '../../profile/frames';
 import { useBackClose } from '../../state/app';
@@ -48,6 +50,38 @@ export default function EditProfile() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   useBackClose(back);
 
+  // Фото профиля (до 6, как в Telegram): первое — главное. Меняются сразу, без «Сохранить».
+  const photosQ = useQuery({ queryKey: ['me', 'photos'], queryFn: getMyPhotos, enabled: LIVE });
+  const demoPhotos = useProfile((s) => s.photos);
+  const myPhotos = LIVE ? photosQ.data?.photos ?? (src?.photo_url ? [src.photo_url] : []) : demoPhotos.length ? demoPhotos : draft.photo ? [draft.photo] : [];
+  const [sel, setSel] = useState<number | null>(null);
+  const putPhotos = async (list: string[]) => {
+    if (LIVE) { await saveMyPhotos(list); void qc.invalidateQueries({ queryKey: ['me'] }); }
+    else useProfile.getState().setPhotos(list);
+    useSession.getState().update({ photo: list[0] ?? null });
+    setPhoto(list[0] ?? null);
+  };
+  const addPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { setNote({ ok: false, text: 'Разреши доступ к фотографиям в настройках телефона' }); return; }
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 5], quality: 0.85 });
+      if (res.canceled || !res.assets[0]) return;
+      setBusy('photo');
+      const url = LIVE ? await uploadPhoto(res.assets[0].uri) : res.assets[0].uri;
+      await putPhotos([...myPhotos, url].slice(0, 6));
+      setNote({ ok: true, text: 'Фото добавлено' });
+    } catch { setNote({ ok: false, text: 'Не удалось добавить фото. Проверь связь' }); }
+    finally { setBusy(null); }
+  };
+  const photoAct = async (kind: 'main' | 'del') => {
+    if (sel == null) return;
+    const list = kind === 'main' ? [myPhotos[sel], ...myPhotos.filter((_, k) => k !== sel)] : myPhotos.filter((_, k) => k !== sel);
+    setSel(null);
+    try { await putPhotos(list); setNote({ ok: true, text: kind === 'main' ? 'Теперь это главное фото' : 'Фото убрано' }); }
+    catch { setNote({ ok: false, text: 'Не получилось. Проверь связь' }); }
+  };
+
   const pick = async () => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -57,6 +91,8 @@ export default function EditProfile() {
       setBusy('photo');
       const url = LIVE ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
       useSession.getState().update({ photo: url });
+      if (!LIVE && demoPhotos.length) useProfile.getState().setPhotos([url, ...demoPhotos.slice(1)]);
+      if (LIVE) void qc.invalidateQueries({ queryKey: ['me', 'photos'] });
       setPhoto(url);
       setNote({ ok: true, text: 'Фото обновлено' });
     } catch { setNote({ ok: false, text: 'Не удалось сохранить фото. Проверь связь' }); }
@@ -117,6 +153,29 @@ export default function EditProfile() {
 
         {!f ? <ActivityIndicator color={colors.ink} style={{ marginTop: 30 }} /> : (
           <View style={styles.body}>
+            <View style={styles.card}>
+              <View style={styles.photosHead}><Text style={styles.label}>Фото · {myPhotos.length} из 6</Text><Text style={styles.count}>первое — главное</Text></View>
+              <View style={styles.photos}>
+                {myPhotos.map((ph, k) => (
+                  <Pressable key={`${ph}-${k}`} onPress={() => setSel(sel === k ? null : k)} style={[styles.ph, sel === k && styles.phOn]} accessibilityRole="button" accessibilityLabel={`Фото ${k + 1}${k === 0 ? ', главное' : ''}`}>
+                    <Image source={photoSrc(ph)} style={StyleSheet.absoluteFill} contentFit="cover" />
+                    {k === 0 && <View style={styles.mainTag}><Star size={11} color="#FFFFFF" fill="#FFFFFF" strokeWidth={2} /></View>}
+                  </Pressable>
+                ))}
+                {myPhotos.length < 6 && (
+                  <Pressable onPress={() => void addPhoto()} style={[styles.ph, styles.phAdd]} accessibilityRole="button" accessibilityLabel="Добавить фото">
+                    {busy === 'photo' ? <ActivityIndicator color={colors.ink} /> : <Plus size={24} color={colors.ink} strokeWidth={2} />}
+                  </Pressable>
+                )}
+              </View>
+              {sel != null && (
+                <View style={styles.phActs}>
+                  {sel > 0 && <Pressable onPress={() => void photoAct('main')} style={styles.phAct} accessibilityRole="button"><Star size={16} color={colors.ink} strokeWidth={2} /><Text style={styles.phActText}>Сделать главным</Text></Pressable>}
+                  <Pressable onPress={() => void photoAct('del')} style={styles.phAct} accessibilityRole="button"><Trash2 size={16} color={colors.accentText} strokeWidth={2} /><Text style={[styles.phActText, { color: colors.accentText }]}>Убрать</Text></Pressable>
+                </View>
+              )}
+            </View>
+
             <View style={styles.card}>
               <Field label="Имя" value={f.name} onChange={(v) => set({ name: v })} max={40} placeholder="Как тебя зовут" />
               <View style={styles.sep} />
@@ -204,4 +263,13 @@ const styles = StyleSheet.create({
   saveOff: { backgroundColor: colors.sand },
   saveText: { fontFamily: fonts.body700, fontSize: 16, color: colors.paper },
   pressed: { opacity: 0.7 },
+  photosHead: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12 },
+  photos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
+  ph: { width: '31.5%', aspectRatio: 0.8, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.sand },
+  phOn: { borderWidth: 3, borderColor: colors.accent },
+  phAdd: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2, backgroundColor: 'transparent' },
+  mainTag: { position: 'absolute', left: 6, top: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  phActs: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12 },
+  phAct: { flex: 1, flexDirection: 'row', gap: 6, minHeight: 44, borderRadius: 14, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  phActText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
 });

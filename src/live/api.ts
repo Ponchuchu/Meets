@@ -45,6 +45,27 @@ export async function saveProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<
   await must(sb().from('profiles').update(patch).eq('id', me()));
 }
 
+/** Фото в профиль без смены главного (для «ещё фото»). */
+export async function uploadPhoto(uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).arrayBuffer();
+  const path = `${me()}/photo-${Date.now()}.jpg`;
+  const { error } = await withTimeout(sb().storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg' }), 30000);
+  if (error) throw new Error(error.message);
+  return sb().storage.from('avatars').getPublicUrl(path).data.publicUrl;
+}
+
+/** Мои фото (главное первым) и день рождения. Пока в базе нет колонки photos — только главное фото. */
+export async function getMyPhotos(): Promise<{ photos: string[]; birth: string | null }> {
+  const { data } = await sb().from('profiles').select('*').eq('id', me()).maybeSingle();
+  const r = (data ?? {}) as { photo_url?: string | null; photos?: string[] | null; birth_date?: string | null };
+  return { photos: [...(r.photo_url ? [r.photo_url] : []), ...(r.photos ?? []).filter((x) => x !== r.photo_url)], birth: r.birth_date ?? null };
+}
+
+/** Сохранить порядок фото: первое — главное (photo_url), остальные — в photos. */
+export async function saveMyPhotos(urls: string[]): Promise<void> {
+  await must(sb().from('profiles').update({ photo_url: urls[0] ?? null, photos: urls.slice(1, 6) }).eq('id', me()));
+}
+
 export async function uploadAvatar(uri: string): Promise<string> {
   const blob = await (await fetch(uri)).arrayBuffer();
   // Имя каждый раз новое, поэтому без upsert: он требует лишних прав и раньше ронял загрузку.

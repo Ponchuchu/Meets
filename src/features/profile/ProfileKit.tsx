@@ -2,8 +2,11 @@
 // Сверху — большое фото на всю ширину, имя крупно прямо на фото, снизу фото уходит в цвет рамки.
 // Ниже — плитки разного размера (bento): друзья, шаги, награды, город. Одинаково у меня и у друга.
 import { Image } from 'expo-image';
+import { X } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { photo as photoSrc } from '../../data/photos';
@@ -11,11 +14,19 @@ import { colors, fonts } from '../../theme';
 
 export const HERO_H = 452;
 
-/** Большое фото профиля. Несколько фото — полоски сверху, нажатие справа/слева листает. */
-export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra, meta, corner, onPhoto, photoLabel }: {
+/** Большое фото профиля. Несколько фото — полоски сверху, нажатие справа/слева листает.
+ *  Свайп вниз по фото — все фото на весь экран, листаются вбок, как в Telegram. */
+export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra, meta, corner, onPhoto, photoLabel, viewerAction }: {
   photos: string[]; initial: string; tint: string; accent: string; top: ReactNode; name: string; nameExtra?: ReactNode;
-  meta?: ReactNode; corner?: ReactNode; onPhoto?: () => void; photoLabel?: string;
+  meta?: ReactNode; corner?: ReactNode; onPhoto?: () => void; photoLabel?: string; viewerAction?: { label: string; onPress: () => void };
 }) {
+  const [viewer, setViewer] = useState(false);
+  const pull = useSharedValue(0);
+  const openViewer = () => { if (photos.length) setViewer(true); else onPhoto?.(); };
+  const swipe = Gesture.Pan().activeOffsetY(18).failOffsetY(-12).failOffsetX([-18, 18])
+    .onUpdate((ev) => { pull.set(Math.max(0, ev.translationY)); })
+    .onEnd((ev) => { if (ev.translationY > 60 || ev.velocityY > 700) runOnJS(openViewer)(); pull.set(withTiming(0, { duration: 220 })); });
+  const pullSt = useAnimatedStyle(() => ({ transform: [{ scale: 1 + Math.min(pull.get(), 140) / 900 }] }));
   const insets = useSafeAreaInsets();
   const [i, setI] = useState(0);
   const h = HERO_H + insets.top;
@@ -25,9 +36,12 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
     else onPhoto?.();
   };
   return (
+    <GestureDetector gesture={swipe}>
     <View style={[styles.hero, { height: h }]}>
-      {cur ? <Image source={photoSrc(cur)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={160} accessibilityIgnoresInvertColors />
-        : <View style={[StyleSheet.absoluteFill, styles.noPhoto, { backgroundColor: tint }]}><Text style={styles.bigInitial}>{initial}</Text></View>}
+      <Animated.View style={[StyleSheet.absoluteFill, pullSt]}>
+        {cur ? <Image source={photoSrc(cur)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={160} accessibilityIgnoresInvertColors />
+          : <View style={[StyleSheet.absoluteFill, styles.noPhoto, { backgroundColor: tint }]}><Text style={styles.bigInitial}>{initial}</Text></View>}
+      </Animated.View>
       <Svg style={StyleSheet.absoluteFill} width="100%" height={h} pointerEvents="none">
         <Defs>
           <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
@@ -67,7 +81,53 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
         </View>
         {corner}
       </View>
+      {viewer && <PhotoViewer photos={photos} start={i % Math.max(1, photos.length)} onClose={() => setViewer(false)} action={viewerAction} />}
     </View>
+    </GestureDetector>
+  );
+}
+
+/** Фото на весь экран: листаются вбок, счётчик сверху, свайп вниз или крестик — закрыть. */
+export function PhotoViewer({ photos, start, onClose, action }: { photos: string[]; start: number; onClose: () => void; action?: { label: string; onPress: () => void } }) {
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [page, setPage] = useState(start);
+  const y = useSharedValue(0);
+  const close = Gesture.Pan().activeOffsetY(14).failOffsetX([-14, 14])
+    .onUpdate((ev) => { y.set(Math.max(0, ev.translationY)); })
+    .onEnd((ev) => { if (ev.translationY > 120 || ev.velocityY > 900) runOnJS(onClose)(); else y.set(withTiming(0, { duration: 200 })); });
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }], opacity: 1 - Math.min(y.get(), 300) / 500 }));
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
+        <GestureDetector gesture={close}>
+          <Animated.View style={[{ flex: 1 }, st]}>
+            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: start * width, y: 0 }}
+              onMomentumScrollEnd={(ev) => setPage(Math.round(ev.nativeEvent.contentOffset.x / width))}>
+              {photos.map((ph, k) => (
+                <View key={`${ph}-${k}`} style={{ width, height, justifyContent: 'center' }}>
+                  <Image source={photoSrc(ph)} style={{ width, height: height * 0.8 }} contentFit="contain" cachePolicy="memory-disk" accessibilityLabel={`Фото ${k + 1} из ${photos.length}`} />
+                </View>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </GestureDetector>
+        <View style={[styles.viewerTop, { top: insets.top + 10 }]} pointerEvents="box-none">
+          <Text style={styles.viewerCount}>{photos.length > 1 ? `${page + 1} из ${photos.length}` : ''}</Text>
+          <GlassBtn onPress={onClose} label="Закрыть"><X size={22} color="#FFFFFF" strokeWidth={2.2} /></GlassBtn>
+        </View>
+        {photos.length > 1 && (
+          <View style={[styles.dots, { bottom: insets.bottom + (action ? 92 : 30) }]} pointerEvents="none">
+            {photos.map((_, k) => <View key={k} style={[styles.dot, k === page && styles.dotOn]} />)}
+          </View>
+        )}
+        {action && (
+          <Pressable onPress={() => { onClose(); action.onPress(); }} style={[styles.viewerBtn, { bottom: insets.bottom + 24 }]} accessibilityRole="button">
+            <Text style={styles.viewerBtnText}>{action.label}</Text>
+          </Pressable>
+        )}
+      </GestureHandlerRootView>
+    </Modal>
   );
 }
 
@@ -80,11 +140,12 @@ export function GlassBtn({ onPress, label, children, size = 44, badge }: { onPre
   );
 }
 
-/** Плашка на фото: «в сети», «@ник», уровень. */
-export function HeroChip({ children, dot }: { children: string; dot?: string }) {
+/** Плашка на фото: «в сети», «@ник», уровень, день рождения. */
+export function HeroChip({ children, dot, icon }: { children: string; dot?: string; icon?: ReactNode }) {
   return (
     <View style={styles.chip}>
       {dot && <View style={[styles.chipDot, { backgroundColor: dot }]} />}
+      {icon}
       <Text style={styles.chipText} numberOfLines={1}>{children}</Text>
     </View>
   );
@@ -149,6 +210,13 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   chipDot: { width: 8, height: 8, borderRadius: 4 },
   chipText: { fontFamily: fonts.body600, fontSize: 13.5, color: '#FFFFFF' },
+  viewerTop: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  viewerCount: { fontFamily: fonts.body600, fontSize: 15, color: '#FFFFFF' },
+  dots: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
+  dotOn: { backgroundColor: '#FFFFFF', width: 18 },
+  viewerBtn: { position: 'absolute', left: 24, right: 24, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  viewerBtnText: { fontFamily: fonts.body700, fontSize: 16, color: '#FFFFFF' },
   tile: { flex: 1, minHeight: 148, borderRadius: 28, padding: 16, backgroundColor: '#F4F0E7', justifyContent: 'space-between', overflow: 'hidden' },
   tileDark: { backgroundColor: '#1D1C22' },
   cap: { fontFamily: fonts.body600, fontSize: 13, color: colors.muted },

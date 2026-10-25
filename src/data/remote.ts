@@ -261,7 +261,9 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
     // Интересы в профиле (миграция 46) — что человек сам показал; «общие» — совпадают с моими.
     interests: ((r as { tags?: string[] }).tags ?? []).map((label) => ({ label, common: myTags.includes(label) })),
     badges: [],
-    gallery: r.photo_url ? [r.photo_url] : [],
+    // Все фото профиля (миграция 48): главное + до 5 ещё.
+    gallery: [...(r.photo_url ? [r.photo_url] : []), ...(((r as { photos?: string[] | null }).photos ?? []).filter((x) => x !== r.photo_url))],
+    birthday: friends.has(r.id) && r.birth_date ? r.birth_date.slice(5, 10) : undefined,
     online: seen?.online ?? false,
     lastSeen: seen?.text,
     seenAt: card?.seen_at ?? undefined,

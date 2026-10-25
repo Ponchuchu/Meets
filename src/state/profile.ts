@@ -46,6 +46,9 @@ export const EMPTY_CARD: MyCard = { status: '', about: '', tags: [], instagram: 
 
 interface ProfileState {
   card: MyCard;
+  /** Мои фото в демо (главное первым); в живой версии — profiles.photo_url + photos. */
+  photos: string[];
+  setPhotos: (p: string[]) => void;
   setCard: (p: Partial<MyCard>) => void;
   arrivals: { eventId: string; cell: string; at: string }[];
   mapFrame: string;
@@ -75,6 +78,8 @@ export const useProfile = create<ProfileState>()(
   persist(
     (set) => ({
       card: EMPTY_CARD,
+      photos: [],
+      setPhotos: (photos) => set({ photos: photos.slice(0, 6) }),
       setCard: (p) => set((s) => ({ card: { ...s.card, ...p } })),
       arrivals: [],
       mapFrame: 'classic',

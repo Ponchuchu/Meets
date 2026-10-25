@@ -226,6 +226,8 @@ export interface PersonDetails {
   badges: string[]; // id значков
   badgeLine?: string; // «АЛМАТЫ 31% · 4 СТРАНЫ»
   gallery: string[];
+  /** День рождения «MM-DD» — без года, только друзьям (26 окт.: вместо возраста). */
+  birthday?: string;
   online: boolean;
   lastSeen?: string; // «Была недавно»
   instagram?: string;

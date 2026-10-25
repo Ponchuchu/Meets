@@ -284,7 +284,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
   igor: {
     id: 'igor', about: 'Люблю смотреть на город сверху и живую музыку. Всегда за движ, особенно если там есть еда.',
     interests: [i('Живая музыка'), i('Горы'), i('Настолки'), i('Стритфуд'), i('Тату')], interestKeys: ['music', 'hike', 'games', 'food'],
-    badges: ['above', 'jazz', 'soul', 'night'], gallery: ['igor', 'igor2', 'igor3', 'igor4'], online: true, device: 'ios', status: 'Ищу компанию на джаз в субботу', instagram: '@igor.almaty',
+    badges: ['above', 'jazz', 'soul', 'night'], gallery: ['igor', 'igor2', 'igor3', 'igor4'], birthday: '07-22', online: true, device: 'ios', status: 'Ищу компанию на джаз в субботу', instagram: '@igor.almaty',
     commonFriends: ['denis', 'anton', 'timur'], friendsCount: 34, commonCount: 7, friendIds: ['denis', 'anton', 'me', 'timur', 'ainura', 'erlan', 'sasha'],
     plans: [{ eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }, { title: 'Ужин у Данила', when: 'ПТ 2.10', note: 'несёт напитки' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'для друзей · ты тоже приглашён' }],
     now: { place: 'кофейня на Панфилова', sharingUntil: '18:40' }, privacy: sharing,
@@ -293,7 +293,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
   denis: {
     id: 'denis', about: 'Катаю на самокате по всему городу. Аниме, настолки и джаз по настроению.',
     interests: [i('Аниме'), i('Настолки'), i('Живая музыка'), i('Самокат', false)], interestKeys: ['art', 'games', 'music'],
-    badges: ['wheels', 'games', 'opener'], gallery: ['denis'], online: true, device: 'android', status: 'Катаюсь по городу на велике', commonFriends: ['igor', 'anton'], friendsCount: 21, commonCount: 5,
+    badges: ['wheels', 'games', 'opener'], gallery: ['denis'], birthday: '11-03', online: true, device: 'android', status: 'Катаюсь по городу на велике', commonFriends: ['igor', 'anton'], friendsCount: 21, commonCount: 5,
     friendIds: ['igor', 'anton', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка «Токио в Алматы»', when: 'СЕГОДНЯ', note: 'едет туда' }, { eventId: 'jazz', title: 'Джаз во дворе', when: 'СЕГОДНЯ', note: 'вы идёте вместе' }],
     now: { place: 'едет по Абая к аниме-выставке', sharingUntil: '20:30' }, privacy: sharing,
     planLine: { text: 'Идёт на аниме-выставку до 21:00', eventId: 'anime', color: '#D5CFC1' },
@@ -301,7 +301,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
   anton: {
     id: 'anton', about: 'Выставки, аниме и хорошая еда. Зову на шашлыки по воскресеньям.',
     interests: [i('Выставки'), i('Аниме'), i('Еда и маркеты')], interestKeys: ['art', 'food'],
-    badges: ['host', 'art'], gallery: ['anton'], online: true, device: 'ios', commonFriends: ['igor', 'denis'], friendsCount: 18, commonCount: 4,
+    badges: ['host', 'art'], gallery: ['anton'], birthday: '02-14', online: true, device: 'ios', commonFriends: ['igor', 'denis'], friendsCount: 18, commonCount: 4,
     friendIds: ['igor', 'denis', 'me'], plans: [{ eventId: 'anime', title: 'Аниме-выставка', when: 'СЕГОДНЯ', note: 'уже там' }, { title: 'Шашлыки у Антона', when: 'ВС 4.10', note: 'устраивает' }],
     now: { place: 'аниме-выставка, ТРЦ на Абая', sharingUntil: '21:00' }, privacy: sharing,
     planLine: { text: 'Свободен весь вечер', color: '#C5D3BB' },
@@ -309,7 +309,7 @@ export const PERSON_DETAILS: Record<string, PersonDetails> = {
   timur: {
     id: 'timur', about: 'Горы по субботам, велосипед по воскресеньям.',
     interests: [i('Горы'), i('Бег и вело'), i('Стендап')], interestKeys: ['hike', 'sport', 'standup'],
-    badges: ['conqueror', 'wheels', 'early'], gallery: [], online: false, lastSeen: 'был 25 минут назад', device: 'android', commonFriends: ['igor'], friendsCount: 15, commonCount: 3,
+    badges: ['conqueror', 'wheels', 'early'], gallery: [], birthday: '05-09', online: false, lastSeen: 'был 25 минут назад', device: 'android', commonFriends: ['igor'], friendsCount: 15, commonCount: 3,
     friendIds: ['igor', 'me'], plans: [{ eventId: 'hike', title: 'Поход на Кок-Жайляу', when: 'СБ 3.10', note: 'вы идёте вместе' }, { eventId: 'bike', title: 'Велопрогулка по городу', when: 'СБ 3.10', note: 'зовёт тебя' }],
     // Геолокация на паузе: друзья видят последнюю точку и «25 МИН».
     privacy: { ...DEFAULT_PRIVACY, sharingLocation: true },
