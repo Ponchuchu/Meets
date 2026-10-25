@@ -8,22 +8,20 @@ import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View 
 import * as Clipboard from 'expo-clipboard';
 import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
-import { Showcase } from '../profile/Showcase';
+import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileCap, TileNum, TileSub } from '../profile/ProfileKit';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY } from '../../people/visibility';
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, Lock, MapPin, MessageCircle, UserMinus, UserPlus, Users, type LucideIcon } from 'lucide-react-native';
-import { AvatarFrame, frameById } from '../../profile/frames';
-import { Aura } from '../profile/ProfileScreen';
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, LocateFixed, MessageCircle, UserMinus, UserPlus, Users } from 'lucide-react-native';
+import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot } from '../../data';
-import { MY_SPOT } from '../../data/demo';
 import { now as clockNow } from '../../lib/clock';
 import { CAT_ICON } from '../../map/icons';
-import { canSee, distanceM } from '../../people/visibility';
-import { BADGES, badgeIcon } from '../../profile/badges';
+import { canSee } from '../../people/visibility';
+import { BADGES } from '../../profile/badges';
 import { getShownBadges } from '../../live/profileExtras';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 import { planWhen } from '../../lib/planWhen';
@@ -38,14 +36,6 @@ import { Toast, type ToastData } from '../../ui/Toast';
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
 
 
-function Action({ Icon, label, onPress, dark }: { Icon: LucideIcon; label: string; onPress: () => void; dark?: boolean }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.action, dark && styles.actionDark, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={label}>
-      <Icon size={22} color={dark ? colors.paper : colors.ink} strokeWidth={1.9} />
-      <Text style={[styles.actionText, dark && { color: colors.paper }]} numberOfLines={1}>{label}</Text>
-    </Pressable>
-  );
-}
 /** Свой профиль в демо для «Как видят другие»: то, что заполнено в «Редактировать профиль». */
 function selfDetails(card: MyCard, frame: string): PersonDetails {
   return { id: 'me', about: card.about, interests: [], badges: ['opener', 'night'], gallery: [], online: true,
@@ -63,7 +53,6 @@ export default function PersonScreen() {
   const myCard = useProfile((s) => s.card);
   const myFrame = useProfile((s) => s.mapFrame);
   const now = clockNow();
-  const [pic, setPic] = useState(0);
   const [sheet, setSheet] = useState<null | 'report' | 'remove' | 'menu' | 'rename'>(null);
   const [nick, setNick] = useState('');
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -107,92 +96,105 @@ export default function PersonScreen() {
   const genitive = p.name.endsWith('ь') ? `${p.name.slice(0, -1)}я` : p.name.endsWith('а') ? `${p.name.slice(0, -1)}ы` : `${p.name}а`;
 
   const frame = frameById(d.frame);
-  const heroH = insets.top + 300;
   const seen = d.online ? 'в сети' : d.lastSeen ?? (friend ? 'в друзьях' : 'не в друзьях');
-  const where = friend && d.now && canSee('friend', 'location', d.privacy) ? d.now : null;
-  // Плитки с картинками (26 окт.): у друга всегда есть что показать — друзья, шаги, планы, альбомы.
-  const stats: { key: string; n: string; label: string; art: number }[] = [];
-  if (d.stepsToday != null) stats.push({ key: 'steps', n: d.stepsToday.toLocaleString('ru-RU'), label: 'шагов сегодня', art: ART.sneaker });
-  if (friend && d.plans.length) stats.push({ key: 'plans', n: String(d.plans.length), label: plural(d.plans.length, 'план', 'плана', 'планов'), art: ART.route });
-  if (d.memoriesCount) stats.push({ key: 'mem', n: String(d.memoriesCount), label: plural(d.memoriesCount, 'воспоминание', 'воспоминания', 'воспоминаний'), art: ART.heart });
+  // Где друг — без названия места (26 окт.): только кнопка геолокации на фото, по нажатию карта находит его.
+  const canLocate = friend && !preview && !!spot && canSee('friend', 'location', d.privacy);
+  const medals = canSee(rel, 'achievements', d.privacy) ? [...shownBadges, ...badges.map((b) => b!.id).filter((x) => !shownBadges.includes(x))].slice(0, 4) : [];
+  const showFriends = friend ? fCount > 0 : common.length > 0;
+  const showSteps = d.stepsToday != null;
+
+  // Плитки (bento) парами: друзья, шаги, воспоминания, планы — что есть у человека. Нечётная последняя — во всю ширину.
+  const tiles = [
+    showFriends ? (<Tile key="friends" onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })} label="Друзья">
+        <View style={kit.faces}>
+          {common.slice(0, 3).map((fp, i) => <View key={fp!.id} style={[styles.stackItem, { marginLeft: i ? -12 : 0, zIndex: 3 - i }]}><Avatar p={fp!} size={38} /></View>)}
+          {!common.length && <View style={styles.tileIcon}><Users size={20} color={colors.ink} strokeWidth={1.9} /></View>}
+        </View>
+        <View>
+          <TileNum>{String(friend ? fCount : common.length)}</TileNum>
+          <TileSub>{friend ? `${plural(fCount, 'друг', 'друга', 'друзей')}${cCount ? ` · ${cCount} ${plural(cCount, 'общий', 'общих', 'общих')}` : ''}` : plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}</TileSub>
+        </View>
+      </Tile>
+    ) : null,
+    showSteps ? (<Tile key="steps" accent="#DDEBD7" label={`Шаги сегодня: ${d.stepsToday}`}>
+        <View style={styles.ringBox}><Ring value={(d.stepsToday ?? 0) / 10000} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
+        <View>
+          <TileNum>{(d.stepsToday ?? 0).toLocaleString('ru-RU')}</TileNum>
+          <TileSub>шагов сегодня</TileSub>
+        </View>
+      </Tile>
+    ) : null,
+    (d.memoriesCount ?? 0) > 0 ? (<Tile key="mem" accent="#F3D9C9" label="Воспоминания">
+        <Images size={24} color={colors.accentText} strokeWidth={1.9} />
+        <View><TileNum>{String(d.memoriesCount)}</TileNum><TileSub>{plural(d.memoriesCount ?? 0, 'воспоминание', 'воспоминания', 'воспоминаний')}</TileSub></View>
+      </Tile>
+    ) : null,
+    friend && d.plans.length > 0 ? (<Tile key="plans" accent="#D9E0F3" label="Планы">
+        <CalendarPlus size={24} color={colors.friend} strokeWidth={1.9} />
+        <View><TileNum>{String(d.plans.length)}</TileNum><TileSub>{plural(d.plans.length, 'план', 'плана', 'планов')}</TileSub></View>
+      </Tile>
+    ) : null,
+  ].filter(Boolean);
+  const pairs = tiles.reduce<React.ReactNode[][]>((acc, t, i) => (i % 2 ? acc[acc.length - 1].push(t) : acc.push([t]), acc), []);
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
-        <View style={{ height: heroH, paddingTop: insets.top }}>
-          <Aura color={frame.color} height={heroH} />
-          <Pressable onPress={back} style={[styles.back, { top: insets.top + 10 }]} accessibilityRole="button" accessibilityLabel="Назад">
-            <ChevronLeft size={24} color={colors.ink} strokeWidth={2.2} />
-          </Pressable>
-          {!preview && (
-            <Pressable onPress={() => setSheet('menu')} style={[styles.menuBtn, { top: insets.top + 10 }]} accessibilityRole="button" accessibilityLabel="Ещё: поделиться, скопировать ссылку">
-              <MoreHorizontal size={22} color={colors.ink} strokeWidth={2.2} />
+        <PhotoHero photos={gallery.length ? gallery : d.photo ? [d.photo] : []} initial={p.initial} tint={p.tint} accent={frame.color} name={`${p.name}${p.age ? `, ${p.age}` : ''}`}
+          photoLabel={`Фото: ${p.name}`}
+          nameExtra={shownBadges.slice(0, 1).map((b) => <BadgeMedal key={b} id={b} got size={34} />)}
+          top={<>
+            <GlassBtn onPress={back} label="Назад"><ChevronLeft size={24} color="#FFFFFF" strokeWidth={2.2} /></GlassBtn>
+            {!preview && <GlassBtn onPress={() => setSheet('menu')} label="Ещё: поделиться, скопировать ссылку"><MoreHorizontal size={22} color="#FFFFFF" strokeWidth={2.2} /></GlassBtn>}
+          </>}
+          meta={<>
+            <HeroChip dot={d.online ? '#3DDC84' : undefined}>{seen}</HeroChip>
+            {!friend && <HeroChip>не в друзьях</HeroChip>}
+          </>}
+          corner={canLocate ? (
+            <Pressable onPress={showOnMap} style={({ pressed }) => [styles.geo, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Показать ${p.name === 'Айнура' ? 'Айнуру' : genitive.replace(/а$/, 'а')} на карте`}>
+              <LocateFixed size={24} color="#FFFFFF" strokeWidth={2.1} />
             </Pressable>
-          )}
-          <View style={styles.head}>
-            <Pressable onPress={() => gallery.length > 1 && setPic((pic + 1) % gallery.length)} accessibilityRole="image" accessibilityLabel={`Фото: ${p.name}`}>
-              <AvatarFrame frameId={d.frame} shape={d.shape} photo={gallery[pic] ?? d.photo ?? p.photo} initial={p.initial} size={132} animate />
-            </Pressable>
-            <View style={styles.nameRow}>
-              <Text style={styles.name} numberOfLines={1}>{p.name}{p.age ? `, ${p.age}` : ''}</Text>
-              {shownBadges.slice(0, 1).map(b => <BadgeMedal key={b} id={b} got size={28} />)}
-            </View>
-            <View style={styles.seenRow}>
-              {d.online && <View style={styles.dot} />}
-              <Text style={[styles.seen, d.online && { color: colors.ok }]}>{seen}</Text>
-              {!friend && <><Text style={styles.seen}> · </Text><Lock size={12} color={colors.muted} strokeWidth={2.2} /><Text style={styles.seen}> не в друзьях</Text></>}
-            </View>
-          </View>
-        </View>
+          ) : undefined} />
 
-        <View style={styles.body}>
-          {preview && (
+        {preview ? (
+          <View style={[kit.actions]}>
             <View style={styles.previewBar}>
               <Text style={styles.previewText}>Так твой профиль видят друзья</Text>
               <Pressable onPress={() => router.push('/profile/edit')} style={styles.previewBtn} accessibilityRole="button"><Text style={styles.previewBtnText}>Изменить</Text></Pressable>
             </View>
-          )}
-          {/* Действия — квадратные кнопки, как в карточке контакта iPhone. */}
-          {!preview && <View style={styles.actions}>
-            <Action Icon={MessageCircle} label="Написать" dark onPress={write} />
+          </View>
+        ) : (
+          <View style={kit.actions}>
+            <Pressable onPress={write} style={({ pressed }) => [kit.primary, pressed && styles.pressed]} accessibilityRole="button">
+              <MessageCircle size={19} color="#FFFFFF" strokeWidth={2} /><Text style={kit.primaryText}>Написать</Text>
+            </Pressable>
             {friend
-              ? <Action Icon={CalendarPlus} label="Позвать" onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} />
-              : <Action Icon={social.sent[id] ? Check : UserPlus} label={social.sent[id] ? 'Заявка ушла' : 'В друзья'} onPress={() => social.toggleRequest(id)} />}
-            {friend && spot && <Action Icon={MapPin} label="На карте" onPress={showOnMap} />}
-          </View>}
+              ? <Pressable onPress={() => { focusFriend(id, true); router.dismissTo('/'); }} style={({ pressed }) => [kit.secondary, pressed && styles.pressed]} accessibilityRole="button">
+                  <CalendarPlus size={19} color={colors.ink} strokeWidth={2} /><Text style={kit.secondaryText}>Позвать</Text>
+                </Pressable>
+              : <Pressable onPress={() => social.toggleRequest(id)} style={({ pressed }) => [kit.secondary, pressed && styles.pressed]} accessibilityRole="button">
+                  {social.sent[id] ? <Check size={19} color={colors.ink} strokeWidth={2.2} /> : <UserPlus size={19} color={colors.ink} strokeWidth={2} />}
+                  <Text style={kit.secondaryText}>{social.sent[id] ? 'Заявка ушла' : 'В друзья'}</Text>
+                </Pressable>}
+          </View>
+        )}
 
-          {where && (
-            <Pressable onPress={showOnMap} style={({ pressed }) => [styles.now, pressed && styles.pressed]} accessibilityRole="button">
-              <View style={styles.nowIcon}><MapPin size={20} color="#FFFFFF" strokeWidth={2} /></View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.nowTitle}>Сейчас: {where.place}</Text>
-                <Text style={styles.sub}>{spot ? `${(distanceM(MY_SPOT, spot) / 1000).toFixed(1).replace('.', ',')} км от тебя` : 'показать на карте'}</Text>
-              </View>
-              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-            </Pressable>
-          )}
+        <View style={styles.body}>
+          {pairs.map((pr, i) => <View key={i} style={kit.row}>{pr}</View>)}
 
-          {/* Друзья — одна строка; по нажатию отдельный экран с вкладками «Все» и «Общие» (26 окт.). */}
-          {(friend ? fCount > 0 : common.length > 0) && (
-            <Pressable onPress={() => router.push({ pathname: '/friends-of/[id]', params: { id, ...(friend ? {} : { tab: 'common' }) } })} style={({ pressed }) => [styles.friendsRow, pressed && styles.pressed]}
-              accessibilityRole="button" accessibilityLabel="Друзья">
-              <View style={styles.stack}>
-                {common.slice(0, 3).map((fp, i) => <View key={fp!.id} style={[styles.stackItem, { marginLeft: i ? -12 : 0, zIndex: 3 - i }]}><Avatar p={fp!} size={34} /></View>)}
-                {!common.length && <Users size={22} color={colors.ink} strokeWidth={1.9} />}
+          {medals.length > 0 && (
+            <Tile dark style={{ minHeight: 0, gap: 14 }} label="Награды">
+              <View style={styles.rowBetween}><TileCap light>Награды</TileCap><Text style={styles.awardsN}>{badges.length}</Text></View>
+              <View style={styles.medals}>
+                {medals.map((bid) => (
+                  <View key={bid} style={styles.medal}>
+                    <BadgeMedal id={bid} got size={62} />
+                    <Text style={styles.medalName} numberOfLines={2}>{BADGES.find((x) => x.id === bid)?.name ?? 'Награда'}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.friendsTitle}>{friend ? `${fCount} ${plural(fCount, 'друг', 'друга', 'друзей')}` : `${common.length} ${plural(common.length, 'общий друг', 'общих друга', 'общих друзей')}`}</Text>
-                {friend && cCount > 0 && <Text style={styles.sub}>{cCount} {plural(cCount, 'общий', 'общих', 'общих')}</Text>}
-              </View>
-              <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-            </Pressable>
-          )}
-
-          {/* Витрина, как в Steam (26 окт.): награды на полке и счётчики одной строкой — без отдельной плитки «друзья». */}
-          {(stats.length > 0 || badges.length > 0) && (
-            <Showcase badges={(canSee(rel, 'achievements', d.privacy) ? [...shownBadges, ...badges.map((b) => b!.id).filter((x) => !shownBadges.includes(x))] : []).slice(0, 3)
-              .map((bid) => ({ id: bid, name: BADGES.find((x) => x.id === bid)?.name ?? 'Награда', got: true, progress: 1, goal: 1 }))}
-              total={badges.length} stats={stats.slice(0, 3).map((t) => ({ text: t.n, label: t.label }))} />
+            </Tile>
           )}
 
           {look?.e && (
@@ -209,33 +211,31 @@ export default function PersonScreen() {
             </View>
           )}
 
+          {!!d.about.trim() && (
+            <View style={styles.quote}>
+              <Text style={styles.quoteMark}>“</Text>
+              <Text style={styles.quoteText}>{d.about}</Text>
+            </View>
+          )}
+          {!d.about.trim() && preview && (
+            <Pressable onPress={() => router.push('/profile/edit')} style={[styles.quote, { flexDirection: 'row', alignItems: 'center', gap: 12 }]} accessibilityRole="button">
+              <Image source={ART.wave} style={{ width: 56, height: 56 }} />
+              <Text style={[styles.sub, { flex: 1, fontSize: 14 }]}>Расскажи пару слов о себе — так друзьям проще позвать тебя куда-то.</Text>
+            </Pressable>
+          )}
+
           {friend && canSee('friend', 'plans', d.privacy) && d.plans.length > 0 && (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Планы {genitive}</Text>
               {d.plans.map((pl, i) => (
                 <Pressable key={pl.title} onPress={() => pl.eventId && router.push({ pathname: '/event/[id]', params: { id: pl.eventId } })} style={[styles.planRow, i < d.plans.length - 1 && styles.line]} accessibilityRole="button">
-                  <Text style={[styles.planWhen, pl.when === 'СЕГОДНЯ' && { color: colors.accentText }]}>{pl.when}</Text>
+                  <View style={[styles.when, pl.when === 'СЕГОДНЯ' && { backgroundColor: colors.accent }]}><Text style={[styles.planWhen, pl.when === 'СЕГОДНЯ' && { color: '#FFFFFF' }]}>{pl.when === 'СЕГОДНЯ' ? 'сегодня' : pl.when.toLowerCase()}</Text></View>
                   <View style={{ flex: 1 }}><Text style={styles.planTitle}>{pl.title}</Text><Text style={styles.sub}>{pl.note}</Text></View>
                   <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
                 </Pressable>
               ))}
             </View>
           )}
-
-          {!!d.about.trim() && (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>О себе</Text><Text style={styles.about}>{d.about}</Text>
-            </View>
-          )}
-
-          {!d.about.trim() && (
-            <View style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-              <Image source={ART.wave} style={{ width: 64, height: 64 }} />
-              <Text style={[styles.sub, { flex: 1, fontSize: 14 }]}>{preview ? 'Расскажи пару слов о себе — так друзьям проще позвать тебя куда-то.' : `${p.name} пока ничего не рассказал${p.name.endsWith('а') ? 'а' : ''} о себе. Позови куда-нибудь — узнаешь лично.`}</Text>
-            </View>
-          )}
-
-
         </View>
       </ScrollView>
 
@@ -302,11 +302,22 @@ const styles = StyleSheet.create({
   seenRow: { flexDirection: 'row', alignItems: 'center' },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ok, marginRight: 6 },
   seen: { fontFamily: fonts.body500, fontSize: 14, color: colors.muted },
-  body: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
+  body: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
   actions: { flexDirection: 'row', gap: 8 },
   action: { flex: 1, height: 66, borderRadius: 18, ...plate, alignItems: 'center', justifyContent: 'center', gap: 5 },
   actionDark: { backgroundColor: colors.ink, borderTopColor: 'rgba(255,255,255,0.18)', borderLeftColor: 'rgba(255,255,255,0.06)', borderRightColor: 'rgba(255,255,255,0.06)', borderBottomColor: 'rgba(0,0,0,0.4)' },
   actionText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
+  geo: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)', boxShadow: '0 10px 24px -8px rgba(37,72,201,0.8)' },
+  tileIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(23,22,26,0.07)', alignItems: 'center', justifyContent: 'center' },
+  ringBox: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  awardsN: { fontFamily: fonts.body600, fontSize: 13, color: 'rgba(255,255,255,0.72)' },
+  medals: { flexDirection: 'row', justifyContent: 'space-between' },
+  medal: { flex: 1, alignItems: 'center', gap: 6 },
+  medalName: { fontFamily: fonts.body600, fontSize: 12, lineHeight: 15, color: '#E7E2D8', textAlign: 'center' },
+  quote: { borderRadius: 28, backgroundColor: '#F4F0E7', padding: 18, paddingTop: 10 },
+  quoteMark: { fontFamily: fonts.display800, fontSize: 54, lineHeight: 54, color: colors.accent, marginBottom: -18 },
+  quoteText: { fontFamily: fonts.body500, fontSize: 18, lineHeight: 25, color: colors.ink },
+  when: { minWidth: 74, height: 30, paddingHorizontal: 10, borderRadius: 15, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   now: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, ...plate },
   nowIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.friend, alignItems: 'center', justifyContent: 'center' },
@@ -319,13 +330,13 @@ const styles = StyleSheet.create({
   stack: { flexDirection: 'row', alignItems: 'center', minWidth: 34 },
   stackItem: { borderRadius: 19, borderWidth: 2, borderColor: colors.card },
   friendsTitle: { fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
-  previewBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 16, borderRadius: 18, backgroundColor: colors.ink },
+  previewBar: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, paddingLeft: 16, borderRadius: 18, backgroundColor: colors.ink },
   previewText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: colors.paper },
   previewBtn: { minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.paper, justifyContent: 'center' },
   previewBtnText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink },
   tileN: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.6, color: colors.ink, marginTop: 10 },
   tileL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
-  card: { borderRadius: 22, ...plate, padding: 16, gap: 10 },
+  card: { borderRadius: 28, backgroundColor: '#F4F0E7', padding: 16, gap: 6 },
   cardTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   look: { padding: 16, borderRadius: 22, backgroundColor: colors.accent, gap: 14 },
   lookHead: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -341,7 +352,7 @@ const styles = StyleSheet.create({
   list: { borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card },
   planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   line: { borderBottomWidth: 1, borderBottomColor: colors.sand },
-  planWhen: { width: 72, fontFamily: fonts.mono600, fontSize: 10.5, color: colors.ink },
+  planWhen: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink },
   planTitle: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   about: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 22.5, color: colors.muted2 },

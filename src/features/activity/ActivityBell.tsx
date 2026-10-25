@@ -13,11 +13,11 @@ export function useNewActivity(): number {
   return unseenCount(q.data ?? [], seenAt);
 }
 
-export function ActivityBell({ style, dot, dotText }: { style: StyleProp<ViewStyle>; dot: StyleProp<ViewStyle>; dotText: StyleProp<TextStyle> }) {
+export function ActivityBell({ style, dot, dotText, color = colors.ink }: { style: StyleProp<ViewStyle>; dot: StyleProp<ViewStyle>; dotText: StyleProp<TextStyle>; color?: string }) {
   const n = useNewActivity();
   return (
     <Pressable onPress={() => router.push('/activity')} style={style} accessibilityRole="button" accessibilityLabel={n ? `Уведомления, новых: ${n}` : 'Уведомления'}>
-      <Bell size={20} color={colors.ink} strokeWidth={1.9} />
+      <Bell size={20} color={color} strokeWidth={1.9} />
       {n > 0 && <View style={dot}><Text style={dotText}>{n > 9 ? '9+' : n}</Text></View>}
     </Pressable>
   );

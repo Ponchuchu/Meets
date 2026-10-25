@@ -4,14 +4,13 @@
 // «Мои места» и «Ночёвки». «События и встречи» и «Хроника» убраны: прошедшие события живут в «Воспоминаниях».
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useFocusEffect, useIsFocused } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
-import { BedDouble, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, PenLine, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
+import { BedDouble, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, Map as MapIcon, PenLine, QrCode, Route, Settings, type LucideIcon } from 'lucide-react-native';
 import { goAwards, goLevel, Showcase } from './Showcase';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { create } from 'zustand';
+import { GlassBtn, HeroChip, kit, PhotoHero, Ring, Tile, TileNum, TileSub } from './ProfileKit';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
 import { data } from '../../data';
@@ -27,7 +26,7 @@ import { colors, fonts, radii } from '../../theme';
 import { badgeIcon } from '../../profile/badges';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 import { Avatar } from '../../ui/Avatar';
-import { AvatarFrame, frameById } from '../../profile/frames';
+import { frameById } from '../../profile/frames';
 import { useProfile } from '../../state/profile';
 import { plate } from '../../ui/glass';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
@@ -39,26 +38,6 @@ const DEMO_STATS = { friends: 4, level: 3, points: 2140, cells: Array.from({ len
   { id: 'opener', name: 'Открыватель', goal: 1, progress: 1, got: true }, { id: 'night', name: 'Ночная смена', goal: 3, progress: 3, got: true },
   { id: 'jazz', name: 'Джазмен', goal: 3, progress: 2, got: false }, { id: 'laugh', name: 'Смешинка', goal: 3, progress: 1, got: false },
   { id: 'above', name: 'Выше города', goal: 1, progress: 0, got: false }], places: ['дом', 'работа'], staff: true, drafts: 4 };
-
-const useStill = create<{ still: boolean }>(() => ({ still: false }));
-function HeroFrame(props: { frameId?: string | null; shape?: string | null; photo?: string | null; initial: string }) {
-  const still = useStill((s) => s.still);
-  // Вкладка скрыта — рамка не крутится: замороженный экран всё равно гонял анимацию на каждом кадре.
-  const focused = useIsFocused();
-  return <AvatarFrame {...props} size={128} animate={!still && focused} />;
-}
-
-const Ring = memo(function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
-  const r = (size - stroke) / 2;
-  const len = 2 * Math.PI * r;
-  return (
-    <Svg width={size} height={size}>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round"
-        strokeDasharray={`${Math.max(1, len * Math.min(1, value))} ${len}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-    </Svg>
-  );
-});
 
 /** Свечение за аватаркой — цвет выбранной рамки, мягко растворяется в бумаге. */
 export const Aura = memo(function Aura({ color, height }: { color: string; height: number }) {
@@ -77,7 +56,6 @@ export const Aura = memo(function Aura({ color, height }: { color: string; heigh
 });
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
   const demoFrame = useProfile(s => s.mapFrame);
@@ -114,13 +92,6 @@ export default function ProfileScreen() {
   const friendCount = LIVE ? s?.friends ?? friends.length : friends.length;
   const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
-  const heroH = insets.top + 270;
-  // Пока листаешь — живая рамка замирает (на слабых телефонах анимация и прокрутка вместе давали ~3 кадра в секунду).
-  // Флаг живёт в маленьком хранилище: меняется только рамка, а не весь экран.
-  const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const scrollStart = () => { clearTimeout(settle.current); if (!useStill.getState().still) useStill.setState({ still: true }); };
-  const scrollEnd = () => { clearTimeout(settle.current); settle.current = setTimeout(() => useStill.setState({ still: false }), 400); };
-  useEffect(() => () => clearTimeout(settle.current), []);
 
   const pickPhoto = async () => {
     if (uploading) return;
@@ -139,78 +110,70 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}
-      onScrollBeginDrag={scrollStart} onScrollEndDrag={scrollEnd} onMomentumScrollBegin={scrollStart} onMomentumScrollEnd={scrollEnd}>
-      <View style={{ height: heroH, paddingTop: insets.top }}>
-        <Aura color={frame.color} height={heroH} />
-        <View style={[styles.topBtns, { top: insets.top + 10 }]}>
-          {s?.staff && (
-            <Pressable onPress={() => router.push('/dev')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel={`Панель разработчика${s.drafts ? `, новых: ${s.drafts}` : ''}`}>
-              <Code2 size={20} color={colors.ink} strokeWidth={1.9} />
-              {s.drafts > 0 && <View style={styles.topDot}><Text style={styles.topDotText}>{s.drafts > 99 ? '99+' : s.drafts}</Text></View>}
-            </Pressable>
-          )}
-          <ActivityBell style={styles.topBtn} dot={styles.topDot} dotText={styles.topDotText} />
-          <Pressable onPress={() => router.push('/profile/qr')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Мой QR-код"><QrCode size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
-          <Pressable onPress={() => router.push('/settings')} style={styles.topBtn} accessibilityRole="button" accessibilityLabel="Настройки"><Settings size={20} color={colors.ink} strokeWidth={1.9} /></Pressable>
-        </View>
-        <View style={styles.head}>
-          <Pressable onPress={() => void pickPhoto()} onLongPress={() => router.push('/profile/level')} style={({ pressed }) => [pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Сменить фото. Рамка «${frame.name}»`}>
-            <HeroFrame frameId={frameId} shape={LIVE ? p?.map_shape : demoShape} photo={p?.photo_url ?? draft.photo} initial={(name[0] ?? '·').toUpperCase()} />
-          </Pressable>
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
-            {shown.map(id => <BadgeMedal key={id} id={id} got size={28} />)}
+    <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
+      <PhotoHero photos={(p?.photo_url ?? draft.photo) ? [String(p?.photo_url ?? draft.photo)] : []} initial={(name[0] ?? '·').toUpperCase()} tint="#D5CFC1" accent={frame.color} name={name}
+        photoLabel="Сменить фото" onPhoto={() => void pickPhoto()}
+        nameExtra={shown.map((id) => <BadgeMedal key={id} id={id} got size={34} />)}
+        top={<>
+          <View style={styles.topRow}>
+            {s?.staff && (
+              <GlassBtn onPress={() => router.push('/dev')} label={`Панель разработчика${s.drafts ? `, новых: ${s.drafts}` : ''}`}
+                badge={s.drafts > 0 ? <View style={styles.topDot}><Text style={styles.topDotText}>{s.drafts > 99 ? '99+' : s.drafts}</Text></View> : undefined}>
+                <Code2 size={20} color="#FFFFFF" strokeWidth={1.9} />
+              </GlassBtn>
+            )}
           </View>
-          <Pressable onPress={() => router.push('/profile/awards')} hitSlop={8} accessibilityRole="button">
-            <Text style={styles.handle} numberOfLines={1}>{p?.handle ? `@${p.handle}` : ''}{p?.handle && !shown.length ? ' · ' : ''}{!shown.length ? 'добавь награду к имени' : ''}</Text>
-          </Pressable>
-        </View>
+          <View style={styles.topRow}>
+            <ActivityBell style={styles.topBtn} dot={styles.topDot} dotText={styles.topDotText} color="#FFFFFF" />
+            <GlassBtn onPress={() => router.push('/profile/qr')} label="Мой QR-код"><QrCode size={20} color="#FFFFFF" strokeWidth={1.9} /></GlassBtn>
+            <GlassBtn onPress={() => router.push('/settings')} label="Настройки"><Settings size={20} color="#FFFFFF" strokeWidth={1.9} /></GlassBtn>
+          </View>
+        </>}
+        meta={<>
+          {!!p?.handle && <HeroChip>{`@${p.handle}`}</HeroChip>}
+          <Pressable onPress={goLevel} accessibilityRole="button"><HeroChip>{`уровень ${level}`}</HeroChip></Pressable>
+          {!shown.length && <Pressable onPress={() => router.push('/profile/awards')} accessibilityRole="button"><HeroChip>+ награда к имени</HeroChip></Pressable>}
+        </>} />
+
+      <View style={kit.actions}>
+        <Pressable onPress={() => router.push('/profile/edit')} style={({ pressed }) => [kit.primary, pressed && styles.pressed]} accessibilityRole="button">
+          <PenLine size={18} color="#FFFFFF" strokeWidth={2} /><Text style={kit.primaryText}>Редактировать профиль</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push({ pathname: '/person/[id]', params: { id: LIVE ? p?.id ?? 'me' : 'me', preview: '1' } })} style={({ pressed }) => [kit.square, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Как видят другие">
+          <Eye size={20} color={colors.ink} strokeWidth={2} />
+        </Pressable>
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, { paddingTop: 12 }]}>
         {photoError && <Text style={{ color: colors.accentText }}>{photoError}</Text>}
         {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
 
-        {/* Статус и две кнопки (26 окт.): редактировать профиль и посмотреть, как его видят друзья. */}
-        <View style={styles.editRow}>
-          <Pressable onPress={() => router.push('/profile/edit')} style={({ pressed }) => [styles.editBtn, pressed && styles.pressed]} accessibilityRole="button">
-            <PenLine size={17} color={colors.paper} strokeWidth={2} /><Text style={styles.editText}>Редактировать профиль</Text>
-          </Pressable>
-          <Pressable onPress={() => router.push({ pathname: '/person/[id]', params: { id: LIVE ? p?.id ?? 'me' : 'me', preview: '1' } })} style={({ pressed }) => [styles.viewBtn, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Как видят другие">
-            <Eye size={18} color={colors.ink} strokeWidth={2} />
-          </Pressable>
+        {/* Плитки (bento): друзья и шаги, ниже витрина наград с уровнем, потом город и события. */}
+        <View style={kit.row}>
+          <Tile onPress={() => router.push('/friends')} label={`Друзья: ${friendCount}`}>
+            <View style={kit.faces}>
+              {friends.slice(0, 3).map((f, i) => <Avatar key={f.id} p={f} size={38} style={{ marginLeft: i ? -12 : 0, borderWidth: 2, borderColor: '#F4F0E7' }} />)}
+              {!friends.length && <View style={styles.facesEmpty}><Text style={styles.plus}>+</Text></View>}
+            </View>
+            <View><TileNum>{String(friendCount)}</TileNum><TileSub>{plural(friendCount, 'друг', 'друга', 'друзей')}</TileSub></View>
+          </Tile>
+          <Tile accent="#DDEBD7" onPress={() => router.push('/profile/steps')} label={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
+            <View style={styles.ringBox}><Ring value={steps / STEP_GOAL} size={44} stroke={5} color={colors.ok} track="rgba(23,22,26,0.1)" /><Footprints size={18} color={colors.ok} strokeWidth={2} style={{ position: 'absolute' }} /></View>
+            <View><TileNum>{steps.toLocaleString('ru-RU')}</TileNum><TileSub>шагов сегодня</TileSub></View>
+          </Tile>
         </View>
 
-        {/* Витрина, как в Steam: уровень, три награды на полке, км пешком, событий, % города. */}
-        <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length}
-          stats={[
-            { n: Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7), label: 'км пешком', decimals: 1 },
-            { n: LIVE ? (s as { events?: number } | undefined)?.events ?? 0 : 7, label: 'событий' },
-            { text: exploredPct(s?.cells ?? []).replace(' ', ''), label: 'Алматы открыто' },
-          ]} onLevel={goLevel} onAwards={goAwards} />
+        <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
 
-        {/* Друзья и шаги — короткими строками, без больших плиток. */}
-        <View style={styles.list}>
-          <Pressable onPress={() => router.push('/friends')} style={({ pressed }) => [styles.slim, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Друзья: ${friendCount}`}>
-            <View style={styles.slimFaces}>
-              {friends.slice(0, 3).map((f, i) => <Avatar key={f.id} p={f} size={30} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: '#F1ECE2' }} />)}
-              {!friends.length && <View style={[styles.facesEmpty, { width: 30, height: 30 }]}><Text style={styles.plus}>+</Text></View>}
-            </View>
-            <Text style={styles.slimTitle}>{friendCount} {plural(friendCount, 'друг', 'друга', 'друзей')}</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/profile/steps')} style={({ pressed }) => [styles.slim, styles.slimLine, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
-            <View style={styles.ringBox30}><Ring value={steps / STEP_GOAL} size={30} stroke={4} color={colors.ok} track="#D6CFC0" /></View>
-            <Text style={styles.slimTitle}>{steps.toLocaleString('ru-RU')} шагов сегодня</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </Pressable>
-          <Pressable onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} style={({ pressed }) => [styles.slim, styles.slimLine, pressed && styles.pressed]} accessibilityRole="button">
-            <View style={styles.ringBox30}><Ring value={pct} size={30} stroke={4} color={colors.accent} track="#D6CFC0" /></View>
-            <Text style={styles.slimTitle}>Где я был</Text>
-            <Text style={styles.cardSub}>карта города</Text>
-            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </Pressable>
+        <View style={kit.row}>
+          <Tile accent="#F6D5C4" onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} label="Где я был">
+            <View style={styles.ringBox}><Ring value={pct} size={44} stroke={5} color={colors.accent} track="rgba(23,22,26,0.1)" /><MapIcon size={18} color={colors.accentText} strokeWidth={2} style={{ position: 'absolute' }} /></View>
+            <View><TileNum>{exploredPct(s?.cells ?? []).replace(' ', '')}</TileNum><TileSub>Алматы открыто</TileSub></View>
+          </Tile>
+          <Tile accent="#D9E0F3" label="Километров пешком">
+            <View style={styles.tileIcon}><Route size={20} color={colors.friend} strokeWidth={2} /></View>
+            <View><TileNum>{String(Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7)).replace('.', ',')}</TileNum><TileSub>км пешком</TileSub></View>
+          </Tile>
         </View>
 
         <View style={styles.card}>
@@ -275,10 +238,11 @@ const styles = StyleSheet.create({
   memEmptyTitle: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   memEmptyText: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted },
   root: { flex: 1, backgroundColor: colors.paper },
-  topBtns: { position: 'absolute', right: 16, top: 0, flexDirection: 'row', gap: 8, zIndex: 2 },
-  topBtn: { width: 44, height: 44, borderRadius: 22, ...plate, alignItems: 'center', justifyContent: 'center' },
+  topRow: { flexDirection: 'row', gap: 8 },
+  topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(20,19,24,0.38)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  tileIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' },
   topDot: { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  topDotText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.ink },
+  topDotText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   head: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6, gap: 4 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, marginTop: 4 },
   name: { fontFamily: fonts.display800, fontSize: 28, letterSpacing: -0.8, color: colors.ink, flexShrink: 1 },
@@ -290,7 +254,7 @@ const styles = StyleSheet.create({
   faces: { flexDirection: 'row', marginBottom: 'auto' },
   facesEmpty: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line2, alignItems: 'center', justifyContent: 'center' },
   plus: { fontFamily: fonts.display700, fontSize: 18, color: colors.muted },
-  ringBox: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 'auto' },
+  ringBox: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   ringText: { position: 'absolute', fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink },
   tileN: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.6, color: colors.ink, marginTop: 10 },
   tileL: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
