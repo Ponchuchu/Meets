@@ -1,13 +1,13 @@
-// Шаги с друзьями (FIX3, просьба владельца): рейтинг «сегодня / неделя» и соревнования «кто больше» или «кто первым до цели».
+// Шаги с друзьями (FIX3, FIX5): рейтинг за день или неделю с пьедесталом и соревнования «кто больше» или «кто первым до цели».
 // Друзья видят твои шаги, пока включено «Показывать мои шаги друзьям» (profiles.steps_visible).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Crown, Swords, Trophy, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Crown, Swords, Trophy, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { data } from '../../data';
-import { answerChallenge, createChallenge, getChallenges, getFriendsSteps, type Challenge } from '../../live/profileExtras';
+import { answerChallenge, createChallenge, getChallenges, getFriendsStepsDays, type Challenge } from '../../live/profileExtras';
 import { AvatarFrame } from '../../profile/frames';
-import { challengeState, rankTone } from '../../profile/stepsSocial';
+import { challengeState, rankFor, weekDays } from '../../profile/stepsSocial';
 import { colors, fonts, radii } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { plate } from '../../ui/glass';
@@ -16,43 +16,111 @@ const fmt = (n: number) => n.toLocaleString('ru-RU');
 const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
 const initialOf = (name: string) => (name[0] ?? '·').toUpperCase();
 
+const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const dm = (d: string) => `${Number(d.slice(8))} ${MON[Number(d.slice(5, 7)) - 1]}`;
+
+/**
+ * Рейтинг шагов с друзьями (FIX5): «День» — по умолчанию сегодня, можно выбрать любой день недели;
+ * «Неделя» — эта или прошлые (стрелками). Сверху пьедестал: первый в центре на самой высокой ступени, дальше — список.
+ */
 export function StepsLeaderboard() {
-  const [period, setPeriod] = useState<'today' | 'week'>('week');
-  const q = useQuery({ queryKey: ['steps', 'friends'], queryFn: getFriendsSteps, staleTime: 60e3, refetchInterval: 120e3 });
-  const rows = [...(q.data ?? [])].sort((a, b) => b[period] - a[period]);
-  const top = Math.max(1, rows[0]?.[period] ?? 1);
-  const myPlace = rows.findIndex(r => r.me) + 1;
+  const [period, setPeriod] = useState<'day' | 'week'>('day');
+  const [weekShift, setWeekShift] = useState(0);
+  const today = todayKey();
+  const week = weekDays(today, weekShift);
+  const [day, setDay] = useState(today);
+  const q = useQuery({ queryKey: ['steps', 'days', week[0]], queryFn: () => getFriendsStepsDays(week[0], week[6]), staleTime: 60e3, refetchInterval: weekShift === 0 ? 120e3 : false });
+  const chosen = period === 'day' ? [week.includes(day) ? day : week[0]] : week;
+  const rows = rankFor(q.data ?? [], chosen);
+  const top = Math.max(1, rows[0]?.total ?? 1);
+  const myPlace = rows.findIndex((r) => r.me) + 1;
+  const label = period === 'day' ? (chosen[0] === today ? 'Сегодня' : `${WD[(new Date(`${chosen[0]}T00:00:00Z`).getUTCDay() + 6) % 7]}, ${dm(chosen[0])}`)
+    : weekShift === 0 ? 'Эта неделя' : weekShift === -1 ? 'Прошлая неделя' : `${dm(week[0])} – ${dm(week[6])}`;
+  const shiftWeek = (d: number) => { const w = weekShift + d; setWeekShift(w); setDay(w === 0 ? today : weekDays(today, w)[6]); };
   return (
     <View style={styles.card}>
       <View style={styles.head}>
         <Trophy size={20} color="#E2A21B" strokeWidth={2} />
         <Text style={styles.title}>Друзья</Text>
         <View style={styles.seg}>
-          {(['today', 'week'] as const).map(p => (
+          {(['day', 'week'] as const).map((p) => (
             <Pressable key={p} onPress={() => setPeriod(p)} style={[styles.segBtn, period === p && styles.segOn]} accessibilityRole="tab" accessibilityState={{ selected: period === p }}>
-              <Text style={[styles.segText, period === p && { color: colors.paper }]}>{p === 'today' ? 'Сегодня' : 'Неделя'}</Text>
+              <Text style={[styles.segText, period === p && { color: colors.paper }]}>{p === 'day' ? 'День' : 'Неделя'}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      {myPlace > 0 && rows.length > 1 && <Text style={styles.sub}>{myPlace === 1 ? 'Ты впереди всех — держи темп' : `Ты ${myPlace}-й. До ${rows[myPlace - 2].name} — ${fmt(rows[myPlace - 2][period] - rows[myPlace - 1][period])} шагов`}</Text>}
+
+      <View style={styles.weekRow}>
+        <Pressable onPress={() => shiftWeek(-1)} disabled={weekShift <= -4} style={[styles.arrow, weekShift <= -4 && { opacity: 0.3 }]} accessibilityRole="button" accessibilityLabel="Неделя раньше"><ChevronLeft size={18} color={colors.ink} strokeWidth={2.2} /></Pressable>
+        <Text style={styles.weekLabel}>{label}</Text>
+        <Pressable onPress={() => shiftWeek(1)} disabled={weekShift >= 0} style={[styles.arrow, weekShift >= 0 && { opacity: 0.3 }]} accessibilityRole="button" accessibilityLabel="Неделя позже"><ChevronRight size={18} color={colors.ink} strokeWidth={2.2} /></Pressable>
+      </View>
+      {period === 'day' && (
+        <View style={styles.days}>
+          {week.map((d, i) => {
+            const on = d === chosen[0];
+            const future = d > today;
+            return (
+              <Pressable key={d} disabled={future} onPress={() => setDay(d)} style={[styles.wd, on && styles.wdOn, future && { opacity: 0.35 }]} accessibilityRole="button" accessibilityState={{ selected: on, disabled: future }} accessibilityLabel={`${WD[i]} ${dm(d)}`}>
+                <Text style={[styles.wdText, on && { color: '#BDB8AD' }]}>{d === today ? 'сег' : WD[i].toLowerCase()}</Text>
+                <Text style={[styles.wdNum, on && { color: colors.paper }]}>{Number(d.slice(8))}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {myPlace > 0 && rows.length > 1 && <Text style={styles.sub}>{myPlace === 1 ? 'Ты впереди всех — держи темп' : `Ты ${myPlace}-й. До ${rows[myPlace - 2].me ? 'тебя' : rows[myPlace - 2].name} — ${fmt(rows[myPlace - 2].total - rows[myPlace - 1].total)} шагов`}</Text>}
       {rows.length <= 1 && !q.isPending && <Text style={styles.sub}>Добавь друзей — и здесь появится ваш рейтинг.</Text>}
       {q.isError && <Text style={[styles.sub, { color: colors.accentText }]}>Рейтинг не загрузился. Проверь связь.</Text>}
-      {rows.map((r, i) => (
-        <View key={r.user_id} style={[styles.rank, r.me && styles.rankMe]}>
-          <View style={[styles.place, rankTone(i) ? { backgroundColor: rankTone(i)! } : null]}>
-            {i === 0 ? <Crown size={14} color="#FFFFFF" strokeWidth={2.4} /> : <Text style={[styles.placeText, rankTone(i) ? { color: '#FFFFFF' } : null]}>{i + 1}</Text>}
-          </View>
-          <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={40} animate={false} />
-          <View style={{ flex: 1, gap: 5 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-              <Text style={styles.name} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
-              <Text style={styles.steps}>{fmt(r[period])}</Text>
+
+      {rows.length > 1 && <Podium rows={rows.slice(0, 3)} />}
+      {rows.slice(rows.length > 1 ? 3 : 0).map((r, k) => {
+        const i = k + (rows.length > 1 ? 3 : 0);
+        return (
+          <View key={r.user_id} style={[styles.rank, r.me && styles.rankMe]}>
+            <View style={styles.place}><Text style={styles.placeText}>{i + 1}</Text></View>
+            <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={40} animate={false} />
+            <View style={{ flex: 1, gap: 5 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                <Text style={styles.name} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
+                <Text style={styles.steps}>{fmt(r.total)}</Text>
+              </View>
+              <View style={styles.track}><View style={[styles.fill, { width: `${(r.total / top) * 100}%`, backgroundColor: r.me ? colors.accent : colors.ok }]} /></View>
             </View>
-            <View style={styles.track}><View style={[styles.fill, { width: `${(r[period] / top) * 100}%`, backgroundColor: r.me ? colors.accent : i === 0 ? '#E2A21B' : colors.ok }]} /></View>
           </View>
-        </View>
-      ))}
+        );
+      })}
+    </View>
+  );
+}
+
+/** Пьедестал: 2-е место слева, 1-е по центру выше всех, 3-е справа; аватарки стоят на ступенях. */
+function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; total: number; me: boolean }[] }) {
+  const order = [1, 0, 2].filter((i) => rows[i]);
+  const H = [96, 70, 52];
+  const tone = ['#E8B12A', '#A9B1BA', '#C27D45'];
+  return (
+    <View style={styles.podium}>
+      {order.map((i) => {
+        const r = rows[i];
+        return (
+          <View key={r.user_id} style={styles.podCol}>
+            {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -2 }} />}
+            <View style={[styles.podFace, { borderColor: tone[i] }]}>
+              <AvatarFrame frameId={r.map_frame} shape={r.map_shape} photo={r.photo_url} initial={initialOf(r.name)} size={i === 0 ? 62 : 50} animate={false} />
+            </View>
+            <Text style={styles.podName} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
+            <Text style={styles.podSteps}>{fmt(r.total)}</Text>
+            <View style={[styles.step, { height: H[i], backgroundColor: tone[i] }]}>
+              <View style={styles.stepTop} />
+              <Text style={styles.stepN}>{i + 1}</Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -173,6 +241,22 @@ const styles = StyleSheet.create({
   segBtn: { minHeight: 34, paddingHorizontal: 10, borderRadius: 9, justifyContent: 'center' },
   segOn: { backgroundColor: colors.ink },
   segText: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.ink },
+  weekRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  arrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(23,22,26,0.06)', alignItems: 'center', justifyContent: 'center' },
+  weekLabel: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
+  days: { flexDirection: 'row', gap: 5 },
+  wd: { flex: 1, height: 52, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.05)', alignItems: 'center', justifyContent: 'center' },
+  wdOn: { backgroundColor: colors.ink },
+  wdText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.muted, textTransform: 'uppercase' },
+  wdNum: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
+  podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 8, paddingTop: 6 },
+  podCol: { flex: 1, maxWidth: 110, alignItems: 'center', gap: 2 },
+  podFace: { borderWidth: 3, borderRadius: 40, padding: 1, backgroundColor: '#FBFAF6' },
+  podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 4, maxWidth: 100 },
+  podSteps: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.muted2, marginBottom: 6 },
+  step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
+  stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 8, backgroundColor: 'rgba(255,255,255,0.35)' },
+  stepN: { fontFamily: fonts.display800, fontSize: 30, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.18)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
   rank: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16 },
   rankMe: { backgroundColor: 'rgba(240,82,31,0.08)' },
   place: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand },
