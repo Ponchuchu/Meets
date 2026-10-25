@@ -1,6 +1,6 @@
 # Значки карты (25 октября, FIX5)
 
-Образец всех значков: [progress/map-icons/Pins.png](progress/map-icons/Pins.png), карта: [Map.png](progress/map-icons/Map.png).
+Сцена «много событий» по городу и издалека: [progress/map-icons/Scene.png](progress/map-icons/Scene.png). Образец всех значков: [progress/map-icons/Pins.png](progress/map-icons/Pins.png), карта: [Map.png](progress/map-icons/Map.png).
 В приложении образец открывается по адресу `/pins-preview` (кнопки туда нет — только для проверки).
 
 Обновлено 25 октября (вечер): значки событий переделаны в корне — из кругов в мини-афиши с фото и временем.
@@ -23,6 +23,6 @@
 - **Подписи без наложений**: от важных к обычным, справа от значка, только если не задевают друзей, места и другие подписи (`placeLabels` в `src/map/zoom.ts`).
 - **Социальное — главное.** Если идёт друг — его мини-аватарка прямо на значке события.
 - **Выбранное** — крупная афиша 64 px в тёмной рамке на хвостике и тёмная плашка «название · сегодня, 19:30».
-- **Друг**: ободок — цвет его рамки, плашка над головой — заряд и «2 мин» или «14 км/ч →»; давно не обновлялся — бледное фото, серый ободок, «25 мин». В фокусе — крупнее, с мягким ореолом.
+- **Друг**: ободок — цвет его рамки; на краю аватарки — **одна** маленькая пометка, только самое важное: в пути — «14 км/ч» (синяя), мало заряда — красная батарейка «14%», заряжается — зелёная молния «56%», давно не обновлялся — «25 мин» и бледное фото. Всё обычно — без пометок; подробности — в карточке по нажатию. Стрелки направления нет.
 
 Источники: [MapKit JS — кластеризация](https://developer.apple.com/documentation/mapkitjs/clustering-annotations.md), [Apple Developer Forums — выбранная аннотация раздувается в «баллон»](https://developer.apple.com/forums/thread/773961), [Airbnb для Android — цены на метках и кластеры](https://mapsplatform.googleblog.com/2013/05/map-of-week-airbnb-for-android.html), [PeerJ — переиспользование кластеров на веб-картах](https://peerj.com/preprints/27858), [Zenly — обзор (TechCrunch)](https://techcrunch.com/2022/04/22/how-zenly-made-social-maps-cool-again-and-whats-next/), [Snap Map (Axios)](https://www.axios.com/snapchats-latest-feature-a-map-that-shows-friends-in-real-time-1513303145-0509a3e6-e75f-4989-b2d1-3f629101570c.html).

@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
+import { friendMark } from './social';
 import { Avatar } from '../ui/Avatar';
 import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
@@ -200,24 +201,18 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
   const moving = spot.state === 'moving';
   const paused = spot.state === 'paused';
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
-  const ago = spot.minutesAgo != null && spot.minutesAgo >= 2 ? agoShort(spot.minutesAgo) : null;
+  // Одна маленькая пометка на краю аватарки — только самое важное (src/map/social.ts friendMark).
+  const mark = friendMark(spot, agoShort);
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}${mark ? `, ${mark.text}` : ''}`} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
       <View style={styles.anchor}>
         <FriendBubble person={person} ring={paused ? '#A8A195' : undefined} faded={paused} />
-        {/* Плашка состояния над головой: заряд · скорость или «давно». */}
-        {(spot.battery != null || moving || ago) && (
-          <Tag x={4} y={-78}>
-            <View style={styles.status}>
-              {spot.battery != null && !paused && <BatteryTag level={spot.battery} charging={!!spot.charging} bare />}
-              {moving ? (
-                <View style={styles.statusPart}>
-                  <Text style={[styles.statusText, { color: colors.friend }]}>{spot.speedKmh} км/ч</Text>
-                  <Svg width={10} height={10} viewBox="0 0 24 24" style={{ transform: [{ rotate: `${(spot.heading ?? 90) - 90}deg` }] }}>
-                    <Path d="M5 12h14M13 6l6 6-6 6" stroke={colors.friend} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                  </Svg>
-                </View>
-              ) : ago ? <Text style={[styles.statusText, paused && { color: colors.muted2 }]}>{ago}</Text> : null}
+        {mark && (
+          <Tag x={10} y={-27}>
+            <View style={[styles.mark, MARK_BG[mark.kind]]}>
+              {mark.kind === 'charging' && <Ico d="M13 2L4 14h7l-1 8 9-12h-7z" size={10} color="#FFFFFF" w={2.6} />}
+              {mark.kind === 'low' && <View style={styles.markBatt}><View style={styles.markBattFill} /></View>}
+              <Text style={[styles.markText, mark.kind === 'ago' && { color: colors.muted2 }]}>{mark.text}</Text>
             </View>
           </Tag>
         )}
@@ -225,6 +220,13 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
     </Pressable>
   );
 }
+
+const MARK_BG = {
+  speed: { backgroundColor: colors.friend },
+  low: { backgroundColor: '#E5383B' },
+  charging: { backgroundColor: '#2FA35A' },
+  ago: { backgroundColor: '#FFFFFF' },
+} as const;
 
 /** Заряд друга (FIX5, как в Zenly): маленькая батарейка с процентом; заряжается — зелёная с молнией, мало — красная. */
 export function BatteryTag({ level, charging, bare }: { level: number; charging: boolean; bare?: boolean }) {
@@ -349,6 +351,10 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
+  mark: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 19, paddingHorizontal: 6, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.3)' },
+  markText: { fontFamily: fonts.body700, fontSize: 10, color: '#FFFFFF' },
+  markBatt: { width: 11, height: 6, padding: 1, borderRadius: 2, borderWidth: 1.2, borderColor: '#FFFFFF' },
+  markBattFill: { width: 2, height: '100%', borderRadius: 1, backgroundColor: '#FFFFFF' },
   battBare: { backgroundColor: 'transparent', boxShadow: 'none', paddingLeft: 0, paddingRight: 0, height: 16 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.97)', boxShadow: '0 2px 6px rgba(23,22,26,0.22)' },
   statusPart: { flexDirection: 'row', alignItems: 'center', gap: 3 },
@@ -386,11 +392,8 @@ export function FocusPin({ person, ring, bubble, speed }: { person: Person; ring
       </View>
       <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} />
       {speed && (
-        <Tag x={-34} y={8}>
-          <View style={[styles.speed, { height: 22, paddingHorizontal: 8 }]}>
-            <Text style={[styles.speedText, { fontSize: 10 }]}>{speed}</Text>
-            <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M5 12h14M13 6l6 6-6 6" stroke="#FFFFFF" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>
-          </View>
+        <Tag x={14} y={-22}>
+          <View style={[styles.mark, MARK_BG.speed]}><Text style={styles.markText}>{speed.toLowerCase()}</Text></View>
         </Tag>
       )}
       {bubble && (

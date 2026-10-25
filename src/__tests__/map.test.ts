@@ -4,6 +4,8 @@ import { calendarCells, monthsTitle, rangeLabel, weekend } from '../map/calendar
 import { activeCount, DEFAULT_FILTERS as BASE, matchesPrice, showLabel, visibleEvents } from '../map/filters';
 import { phaseOf, whenLabel } from '../map/lifecycle';
 
+import { friendMark } from '../map/social';
+
 // Тесты по датам — с выключенным «Ближайшим временем».
 const DEFAULT_FILTERS = { ...BASE, soon: false, from: 0, to: 0 };
 
@@ -130,4 +132,12 @@ describe('FIX1 И2 п.8: на карте все одобренные событ�
     expect(visibleEvents(list, { ...BASE, soon: false, from: 55, to: 62 }, base).map((e) => e.id)).toEqual(['twoMonths']);
     expect(visibleEvents(list, { ...BASE, soon: false, from: 0, to: 62 }, base).map((e) => e.id).sort()).toEqual(['far', 'next', 'twoMonths']);
   });
+});
+it('у друга на карте одна пометка — самая важная (FIX5)', () => {
+  const ago = (m: number) => `${m} мин`;
+  expect(friendMark({ state: 'moving', speedKmh: 14, battery: 10 }, ago)).toEqual({ kind: 'speed', text: '14 км/ч' });
+  expect(friendMark({ state: 'here', battery: 14 }, ago)).toEqual({ kind: 'low', text: '14%' });
+  expect(friendMark({ state: 'here', battery: 56, charging: true }, ago)?.kind).toBe('charging');
+  expect(friendMark({ state: 'paused', battery: 80, minutesAgo: 25 }, ago)).toEqual({ kind: 'ago', text: '25 мин' });
+  expect(friendMark({ state: 'here', battery: 82, minutesAgo: 2 }, ago)).toBeNull();
 });
