@@ -11,6 +11,7 @@ import { askSteps, openStepSettings, STEP_GOAL, STEP_GOALS, stepHistory, stepsTo
 import { lastWeek, stepAwards } from '../../profile/stepAwards';
 import { colors, fonts, radii } from '../../theme';
 import { ART } from '../../ui/art';
+import { BadgeMedal } from '../../ui/BadgeMedal';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { plate } from '../../ui/glass';
 
@@ -19,9 +20,6 @@ const FULL = ['Воскресенье', 'Понедельник', 'Вторни�
 const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
 const demoHistory = () => Array.from({ length: 12 }, (_, i) => ({ day: new Date(Date.now() - (i + 1) * 86400e3).toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps: [8200, 11400, 6400, 3100, 12800, 9100, 7300, 10400, 5200, 6900, 4100, 9800][i] }));
-
-/** Картинка к награде за шаги. */
-const AWARD_ART: Record<string, number> = { 'steps-first': ART.sneaker, 'steps-streak': ART.fire, 'steps-week': ART.medalGold, 'steps-marathon': ART.trophy, 'steps-month': ART.route };
 
 /** Кроссовок «шагает»: покачивается и подпрыгивает; цель выполнена — вместо него кубок. */
 function Walker({ done }: { done: boolean }) {
@@ -117,7 +115,7 @@ export function StepsCard() {
         <Text style={styles.title}>Награды за шаги</Text>
         {awards.map(a => (
           <View key={a.id} style={styles.award}>
-            <View style={[styles.awardArt, !a.got && { opacity: 0.45 }]}><Image source={AWARD_ART[a.id] ?? ART.sneaker} style={{ width: 48, height: 48 }} /></View>
+            <BadgeMedal id={a.id} got={a.got} progress={a.progress / a.goal} size={52} />
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={styles.awardName}>{a.name}</Text>
               <Text style={styles.sub}>{a.how}</Text>

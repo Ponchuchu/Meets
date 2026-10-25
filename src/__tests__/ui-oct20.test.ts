@@ -1,6 +1,7 @@
 import { shapeOf, shapePath, SHAPES, type ShapeId } from '../profile/shapes';
 import { badgeIcon, BADGES } from '../profile/badges';
-import { toneOf } from '../ui/BadgeMedal';
+import { BADGE_ART } from '../ui/badgeArt';
+import { BADGES as ALL_BADGES } from '../profile/badges';
 
 describe('форма аватарки', () => {
   it('каждая форма — замкнутый контур в пределах 64×64', () => {
@@ -23,7 +24,8 @@ describe('медали значков', () => {
     expect(badgeIcon('opener')).toBe(BADGES[0].icon);
     expect(badgeIcon('нет-такого')).toBeTruthy();
   });
-  it('цвет медали стабилен для одного значка', () => {
-    expect(toneOf('jazz')).toEqual(toneOf('jazz'));
+  it('у каждой награды своя картинка из Figma (и у наград за шаги)', () => {
+    for (const b of ALL_BADGES) expect(BADGE_ART[b.id]).toBeDefined();
+    for (const id of ['steps-first', 'steps-streak', 'steps-week', 'steps-marathon', 'steps-month', 'locked']) expect(BADGE_ART[id]).toBeDefined();
   });
 });

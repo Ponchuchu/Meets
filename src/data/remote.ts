@@ -252,17 +252,21 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   if (error) throw error;
   if (!data) return null;
   const r = data as ProfileRow;
-  const [friends, card] = await Promise.all([friendIds(me), personCard(id)]);
+  const [friends, card, mine] = await Promise.all([friendIds(me), personCard(id), withTimeout(supabase().from('profiles').select('tags').eq('id', me).maybeSingle()).then((x) => x.data as { tags?: string[] } | null).catch(() => null)]);
+  const myTags = mine?.tags ?? [];
   const seen = card?.seen_at ? seenText(card.seen_at) : null;
   return {
     id: r.id,
     about: r.about ?? '',
-    interests: [],
+    // Интересы в профиле (миграция 46) — что человек сам показал; «общие» — совпадают с моими.
+    interests: ((r as { tags?: string[] }).tags ?? []).map((label) => ({ label, common: myTags.includes(label) })),
     badges: [],
     gallery: r.photo_url ? [r.photo_url] : [],
     online: seen?.online ?? false,
     lastSeen: seen?.text,
     seenAt: card?.seen_at ?? undefined,
+    device: card?.device === 'ios' || card?.device === 'android' ? card.device : undefined,
+    status: (r as { status_line?: string | null }).status_line ?? undefined,
     stepsToday: card?.steps_today ?? undefined,
     memoriesCount: card?.memories_count ?? undefined,
     frame: card?.frame ?? (r as { map_frame?: string | null }).map_frame ?? null,
@@ -280,7 +284,7 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   };
 }
 
-interface PersonCardRow { friends_count: number; common_count: number; common_ids: string[]; seen_at: string | null; steps_today: number | null; memories_count: number | null; frame: string | null; shape: string | null }
+interface PersonCardRow { friends_count: number; common_count: number; common_ids: string[]; seen_at: string | null; steps_today: number | null; memories_count: number | null; frame: string | null; shape: string | null; device?: string | null }
 /** Сводка для страницы друга (миграция 35). Нет функции на сервере — страница просто без этих цифр. */
 async function personCard(id: string): Promise<PersonCardRow | null> {
   try {
@@ -308,7 +312,10 @@ export function seenText(at: string, now = Date.now()): { online: boolean; text:
 
 /** Отметка «я в приложении» — раз в минуту, пока оно открыто. */
 export async function touchPresence(): Promise<void> {
-  await withTimeout(supabase().rpc('touch_presence'), 5000);
+  // С устройством (миграция 46); база ещё без неё — прежний вызов, чтобы «в сети» не пропадало.
+  const dev = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
+  const { error } = await withTimeout(supabase().rpc('touch_presence', { dev }), 5000);
+  if (error) await withTimeout(supabase().rpc('touch_presence'), 5000);
 }
 
 // ——— Запись ———

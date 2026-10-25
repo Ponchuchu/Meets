@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Crown, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ART, MEDALS } from '../../ui/art';
+import { ART } from '../../ui/art';
 import { data } from '../../data';
 import { answerChallenge, createChallenge, getChallenges, getFriendsStepsDays, type Challenge } from '../../live/profileExtras';
 import { challengeState, rankFor, weekDays } from '../../profile/stepsSocial';
@@ -41,8 +41,8 @@ export function StepsLeaderboard() {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Image source={ART.medalGold} style={{ width: 30, height: 30 }} />
-        <Text style={styles.title}>Друзья</Text>
+        <Image source={ART.trophy} style={{ width: 30, height: 30 }} />
+        <Text style={styles.title}>Рейтинг друзей</Text>
         <View style={styles.seg}>
           {(['day', 'week'] as const).map((p) => (
             <Pressable key={p} onPress={() => setPeriod(p)} style={[styles.segBtn, period === p && styles.segOn]} accessibilityRole="tab" accessibilityState={{ selected: period === p }}>
@@ -97,27 +97,31 @@ export function StepsLeaderboard() {
   );
 }
 
-/** Пьедестал: 2-е место слева, 1-е по центру выше всех, 3-е справа; аватарки стоят на ступенях. */
+/**
+ * Пьедестал (26 окт., без медалей-наклеек): 2-е место слева, 1-е по центру выше всех, 3-е справа.
+ * Аватарка в кольце цвета места (золото, серебро, бронза), под ней — номер места кружком; ступени — гладкие, с крупной цифрой.
+ */
 function Podium({ rows }: { rows: { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; total: number; me: boolean }[] }) {
   const order = [1, 0, 2].filter((i) => rows[i]);
-  const H = [104, 80, 64];
-  const tone = ['#E8B12A', '#A9B1BA', '#C27D45'];
+  const H = [92, 66, 48];
+  const tone = [['#FFE07A', '#E2A21B'], ['#E6EAEE', '#A9B1BA'], ['#F2C9A2', '#C27D45']];
   return (
     <View style={styles.podium}>
       {order.map((i) => {
         const r = rows[i];
+        const size = i === 0 ? 64 : 52;
         return (
           <View key={r.user_id} style={styles.podCol}>
-            {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -2 }} />}
-            <View style={[styles.podFace, { borderColor: tone[i] }]}>
-              <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={i === 0 ? 62 : 50} />
+            {i === 0 && <Crown size={22} color="#E2A21B" fill="#F5C842" strokeWidth={1.8} style={{ marginBottom: -4 }} />}
+            <View style={[styles.podFace, { borderColor: tone[i][1], width: size + 10, height: size + 10, borderRadius: (size + 10) / 2 }]}>
+              <Avatar p={{ photo: r.photo_url, initial: initialOf(r.name), tint: '#D5CFC1' }} size={size} />
+              <View style={[styles.podPlace, { backgroundColor: tone[i][1] }]}><Text style={styles.podPlaceText}>{i + 1}</Text></View>
             </View>
             <Text style={styles.podName} numberOfLines={1}>{r.me ? 'Ты' : r.name}</Text>
             <Text style={styles.podSteps}>{fmt(r.total)}</Text>
-            <View style={[styles.step, { height: H[i], backgroundColor: tone[i] }]}>
-              <View style={styles.stepTop} />
-              {/* Медаль на ступени (картинки из Figma) вместо цифры. */}
-              <Image source={MEDALS[i]} style={{ width: i === 0 ? 54 : 44, height: i === 0 ? 54 : 44, marginTop: 4 }} accessibilityLabel={`${i + 1}-е место`} />
+            <View style={[styles.step, { height: H[i], backgroundColor: tone[i][1] }]}>
+              <View style={[styles.stepTop, { backgroundColor: tone[i][0] }]} />
+              <Text style={styles.stepN}>{i + 1}</Text>
             </View>
           </View>
         );
@@ -257,11 +261,13 @@ const styles = StyleSheet.create({
   wdNum: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
   podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 8, paddingTop: 6 },
   podCol: { flex: 1, maxWidth: 110, alignItems: 'center', gap: 2 },
-  podFace: { borderWidth: 3, borderRadius: 40, padding: 1, backgroundColor: '#FBFAF6' },
-  podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 4, maxWidth: 100 },
+  podFace: { borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBFAF6' },
+  podPlace: { position: 'absolute', bottom: -9, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center' },
+  podPlaceText: { fontFamily: fonts.display800, fontSize: 12, color: '#FFFFFF' },
+  podName: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.ink, marginTop: 12, maxWidth: 100 },
   podSteps: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.muted2, marginBottom: 6 },
-  step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
-  stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 8, backgroundColor: 'rgba(255,255,255,0.35)' },
+  step: { alignSelf: 'stretch', borderTopLeftRadius: 14, borderTopRightRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,0.12)' },
+  stepTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 10 },
   empty: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepN: { fontFamily: fonts.display800, fontSize: 30, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.18)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
   rank: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16 },

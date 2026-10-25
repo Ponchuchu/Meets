@@ -15,6 +15,7 @@ import { StepsCard } from './StepsCard';
 import AwardsPage from './AwardsPage';
 import MemoriesPage, { MemoryAlbum } from './MemoriesPage';
 import SleepoversPage from './SleepoversPage';
+import EditProfile from './EditProfile';
 
 export default function ProfileDetail() {
   const { page } = useLocalSearchParams<{ page: string }>();
@@ -33,6 +34,7 @@ export default function ProfileDetail() {
   const ids = live ? (attendance.data ?? []).filter((a) => a.status === 'arrived').map((a) => a.event_id) : local.map((a) => a.eventId);
   const events = useQuery<EventItem[]>({ queryKey: ['chronicle', ids.join(',')], queryFn: () => live ? getEventsByIds(ids) : data.getEvents().then((all) => all.filter((e) => ids.includes(e.id))), enabled: page === 'chronicle' });
   const link = profile.data?.handle ? `${APP_URL}/u/${profile.data.handle}` : profile.data?.id ? `${APP_URL}/person/${profile.data.id}` : null;
+  if (page === 'edit') return <EditProfile />;
   if (page === 'qr') return <SettingsPage title="Твой QR-код" sub="Друг отсканирует код камерой и откроет твой профиль.">
     <View style={{ alignItems: 'center', padding: 28, borderRadius: 28, backgroundColor: colors.card, gap: 20 }}>
       {link ? <QRCode value={Platform.OS==='web'?link:`meets://person/${profile.data!.id}`} size={230} color={colors.ink} backgroundColor={colors.card} /> : <Text style={{ color: colors.muted }}>Войди в аккаунт, чтобы получить ссылку на профиль</Text>}

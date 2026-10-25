@@ -40,7 +40,13 @@ export interface Suggestion {
   price?: string;
 }
 
+/** Что я показываю в профиле (демо хранит здесь, живая версия — в profiles): статус, о себе, интересы, Instagram. */
+export interface MyCard { status: string; about: string; tags: string[]; instagram: string }
+export const EMPTY_CARD: MyCard = { status: '', about: '', tags: [], instagram: '' };
+
 interface ProfileState {
+  card: MyCard;
+  setCard: (p: Partial<MyCard>) => void;
   arrivals: { eventId: string; cell: string; at: string }[];
   mapFrame: string;
   setMapFrame: (id: string) => void;
@@ -68,6 +74,8 @@ export const DEFAULT_SETTINGS: Settings = {
 export const useProfile = create<ProfileState>()(
   persist(
     (set) => ({
+      card: EMPTY_CARD,
+      setCard: (p) => set((s) => ({ card: { ...s.card, ...p } })),
       arrivals: [],
       mapFrame: 'classic',
       setMapFrame: (mapFrame) => set({ mapFrame }),

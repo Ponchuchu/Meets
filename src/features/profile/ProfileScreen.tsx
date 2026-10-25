@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
-import { BedDouble, ChevronRight, Code2, Footprints, Home, ImagePlus, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
+import { BedDouble, ChevronRight, Code2, Eye, Footprints, Home, ImagePlus, PenLine, QrCode, Settings, type LucideIcon } from 'lucide-react-native';
+import { goAwards, goLevel, Showcase } from './Showcase';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -15,6 +16,8 @@ import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { useTabInset } from '../../components/TabBar';
 import { data } from '../../data';
 import { config } from '../../lib/config';
+import { supabase } from '../../data/client';
+import { myId } from '../../live/auth';
 import { getMeStats, getProfile, uploadAvatar } from '../../live/api';
 import { exploredPct, ALMATY_CELLS } from '../../live/geo';
 import { getMemories, getProfileExtras, getSleepovers, learnMyPlaces } from '../../live/profileExtras';
@@ -84,6 +87,8 @@ export default function ProfileScreen() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
+  // Статус под именем (миграция 46); база ещё без колонки — просто без статуса.
+  const statusQ = useQuery({ queryKey: ['me', 'status'], enabled: LIVE, queryFn: async () => ((await supabase().from('profiles').select('status_line').eq('id', myId() ?? '').maybeSingle()).data as { status_line?: string | null } | null)?.status_line ?? '' });
   const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, enabled: LIVE, staleTime: 30e3 });
   const extras = useQuery({ queryKey: ['me', 'extras'], queryFn: getProfileExtras });
   const memories = useQuery({ queryKey: ['me', 'memories'], queryFn: () => getMemories() });
@@ -113,6 +118,8 @@ export default function ProfileScreen() {
   const albums = memories.data ?? [];
   const nights = sleeps.data ?? [];
   const heroH = insets.top + 270;
+  const localCard = useProfile((x) => x.card);
+  const myStatus = LIVE ? statusQ.data ?? '' : localCard.status;
   // Пока листаешь — живая рамка замирает (на слабых телефонах анимация и прокрутка вместе давали ~3 кадра в секунду).
   // Флаг живёт в маленьком хранилище: меняется только рамка, а не весь экран.
   const settle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -170,53 +177,47 @@ export default function ProfileScreen() {
         {photoError && <Text style={{ color: colors.accentText }}>{photoError}</Text>}
         {uploading && <Text style={{ color: colors.muted }}>Сохраняю фото…</Text>}
 
-        <View style={styles.grid}>
-          <Pressable onPress={() => router.push('/friends')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Друзья: ${friendCount}`}>
-            <View style={styles.faces}>
-              {friends.slice(0, 3).map((f, i) => <Avatar key={f.id} p={f} size={34} style={{ marginLeft: i ? -12 : 0, borderWidth: 2, borderColor: '#F1ECE2' }} />)}
-              {!friends.length && <View style={styles.facesEmpty}><Text style={styles.plus}>+</Text></View>}
-            </View>
-            <Text style={styles.tileN}>{friendCount}</Text>
-            <Text style={styles.tileL}>{plural(friendCount, 'друг', 'друга', 'друзей')}</Text>
+        {/* Статус и две кнопки (26 окт.): редактировать профиль и посмотреть, как его видят друзья. */}
+        {!!myStatus && <View style={styles.myStatus}><Text style={styles.myStatusText} numberOfLines={2}>{myStatus}</Text></View>}
+        <View style={styles.editRow}>
+          <Pressable onPress={() => router.push('/profile/edit')} style={({ pressed }) => [styles.editBtn, pressed && styles.pressed]} accessibilityRole="button">
+            <PenLine size={17} color={colors.paper} strokeWidth={2} /><Text style={styles.editText}>Редактировать профиль</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/profile/level')} style={({ pressed }) => [styles.tile, styles.tileDark, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Уровень ${level}, ${points} из ${nextAt} очков`}>
-            <View style={styles.ringBox}>
-              <Ring value={points / nextAt} size={52} stroke={5} color="#F7A47E" track="#3A393F" />
-              <Text style={[styles.ringText, { color: '#EEE9DE', fontSize: 18 }]}>{level}</Text>
-            </View>
-            <Text style={[styles.tileN, { color: '#EEE9DE', fontSize: 20 }]}>Уровень {level}</Text>
-            <Text style={[styles.tileL, { color: '#BDB8AD' }]} numberOfLines={1}>{points.toLocaleString('ru-RU')} / {nextAt.toLocaleString('ru-RU')}</Text>
-          </Pressable>
-          <Pressable onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Где я был: ${exploredPct(s?.cells ?? [])} Алматы`}>
-            <View style={styles.ringBox}>
-              <Ring value={pct} size={52} stroke={5} color={colors.accent} track="#D6CFC0" />
-              <Text style={styles.ringText}>{exploredPct(s?.cells ?? []).replace(' ', '').replace(',0', '')}</Text>
-            </View>
-            <Text style={[styles.tileN, { fontSize: 20 }]}>Где я был</Text>
-            <Text style={styles.tileL}>Алматы</Text>
-          </Pressable>
-          <Pressable onPress={() => router.push('/profile/steps')} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
-            <View style={styles.ringBox}>
-              <Ring value={steps / STEP_GOAL} size={52} stroke={5} color={colors.ok} track="#D6CFC0" />
-              <View style={{ position: 'absolute' }}><Footprints size={18} color={colors.ok} strokeWidth={1.9} /></View>
-            </View>
-            <Text style={[styles.tileN, { fontSize: 20 }]}>{steps.toLocaleString('ru-RU')}</Text>
-            <Text style={styles.tileL}>шагов из 10 000</Text>
+          <Pressable onPress={() => router.push({ pathname: '/person/[id]', params: { id: LIVE ? p?.id ?? 'me' : 'me', preview: '1' } })} style={({ pressed }) => [styles.viewBtn, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Как видят другие">
+            <Eye size={18} color={colors.ink} strokeWidth={2} />
           </Pressable>
         </View>
 
-        <Pressable onPress={() => router.push('/profile/awards')} style={({ pressed }) => [styles.card, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Награды: ${got.length} из ${allBadges.length}`}>
-          <View style={styles.cardHead}>
-            <Text style={styles.cardTitle}>Награды</Text>
-            <Text style={styles.cardSub}>{got.length} из {allBadges.length}</Text>
+        {/* Витрина, как в Steam: уровень, три награды на полке, км пешком, событий, % города. */}
+        <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length}
+          stats={[
+            { n: Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7), label: 'км пешком', decimals: 1 },
+            { n: LIVE ? (s as { events?: number } | undefined)?.events ?? 0 : 7, label: 'событий' },
+            { text: exploredPct(s?.cells ?? []).replace(' ', ''), label: 'Алматы открыто' },
+          ]} onLevel={goLevel} onAwards={goAwards} />
+
+        {/* Друзья и шаги — короткими строками, без больших плиток. */}
+        <View style={styles.list}>
+          <Pressable onPress={() => router.push('/friends')} style={({ pressed }) => [styles.slim, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Друзья: ${friendCount}`}>
+            <View style={styles.slimFaces}>
+              {friends.slice(0, 3).map((f, i) => <Avatar key={f.id} p={f} size={30} style={{ marginLeft: i ? -10 : 0, borderWidth: 2, borderColor: '#F1ECE2' }} />)}
+              {!friends.length && <View style={[styles.facesEmpty, { width: 30, height: 30 }]}><Text style={styles.plus}>+</Text></View>}
+            </View>
+            <Text style={styles.slimTitle}>{friendCount} {plural(friendCount, 'друг', 'друга', 'друзей')}</Text>
             <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
-          </View>
-          <View style={styles.medals}>
-            {[...got, ...allBadges.filter(b => !b.got)].slice(0, 5).map((b) => (
-              <BadgeMedal key={b.id} id={b.id} icon={badgeIcon(b.id)} got={b.got} progress={b.progress / Math.max(1, b.goal)} size={54} />
-            ))}
-          </View>
-        </Pressable>
+          </Pressable>
+          <Pressable onPress={() => router.push('/profile/steps')} style={({ pressed }) => [styles.slim, styles.slimLine, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Шаги сегодня: ${steps} из ${STEP_GOAL}`}>
+            <View style={styles.ringBox30}><Ring value={steps / STEP_GOAL} size={30} stroke={4} color={colors.ok} track="#D6CFC0" /></View>
+            <Text style={styles.slimTitle}>{steps.toLocaleString('ru-RU')} шагов сегодня</Text>
+            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+          </Pressable>
+          <Pressable onPress={() => { useMapState.getState().setLens('explore'); router.navigate('/'); }} style={({ pressed }) => [styles.slim, styles.slimLine, pressed && styles.pressed]} accessibilityRole="button">
+            <View style={styles.ringBox30}><Ring value={pct} size={30} stroke={4} color={colors.accent} track="#D6CFC0" /></View>
+            <Text style={styles.slimTitle}>Где я был</Text>
+            <Text style={styles.cardSub}>карта города</Text>
+            <ChevronRight size={18} color={colors.muted} strokeWidth={2} />
+          </Pressable>
+        </View>
 
         <View style={styles.card}>
           <Pressable onPress={() => router.push('/profile/memories')} style={styles.cardHead} accessibilityRole="button">
@@ -267,6 +268,17 @@ function Row({ Icon, title, value, onPress, last }: { Icon: LucideIcon; title: s
 }
 
 const styles = StyleSheet.create({
+  myStatus: { alignSelf: 'center', maxWidth: 320, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: '#FBFAF6', boxShadow: '0 4px 12px -6px rgba(23,22,26,0.3)' },
+  myStatusText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink, textAlign: 'center' },
+  editRow: { flexDirection: 'row', gap: 8 },
+  editBtn: { flex: 1, flexDirection: 'row', gap: 8, minHeight: 48, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  editText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },
+  viewBtn: { width: 48, minHeight: 48, borderRadius: 16, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
+  slim: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14 },
+  slimFaces: { flexDirection: 'row', alignItems: 'center' },
+  slimLine: { borderTopWidth: 1, borderTopColor: 'rgba(23,22,26,0.06)' },
+  slimTitle: { flex: 1, fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
+  ringBox30: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   memEmpty: { width: 210, justifyContent: 'center', gap: 4, paddingRight: 8 },
   memEmptyTitle: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   memEmptyText: { fontFamily: fonts.body400, fontSize: 13, lineHeight: 18, color: colors.muted },

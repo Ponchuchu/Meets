@@ -248,6 +248,10 @@ export interface PersonDetails {
   planLine?: { text: string; eventId?: string; color: string };
   /** Когда последний раз был в приложении (видят друзья). */
   seenAt?: string;
+  /** С какого телефона заходил (видят друзья): значок яблока или Android. */
+  device?: 'ios' | 'android';
+  /** Короткий статус под именем: «ищу компанию на выходные». */
+  status?: string;
   /** Шаги сегодня и число альбомов — если человек это открыл. */
   stepsToday?: number;
   memoriesCount?: number;
