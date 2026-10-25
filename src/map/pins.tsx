@@ -1,5 +1,5 @@
 // Точки на карте по макету Main: события, друзья, моя точка. Каждый пин центрирован на своей координате.
-import { useEffect, useState, type ReactNode } from 'react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -49,7 +49,7 @@ function formatK(n: number): string {
  * сверху лицевая сторона с бликом, белая кромка и мягкая тень. Издалека обычные события — маленькие точки
  * (compact), чтобы карта не рябила; выбранное — крупнее, с оранжевой кромкой и подписью.
  */
-export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact }: {
+export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
   /** Масштаб от зума карты (src/map/zoom.ts). */
   scale?: number;
@@ -122,7 +122,9 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
       </View>
     </Pressable>
   );
-}
+}, (a, b) => a.e === b.e && a.kind === b.kind && a.phase === b.phase && a.label === b.label && a.showCompany === b.showCompany && a.dark === b.dark
+  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact);
+// Нажатие не сравниваем: обработчик новый на каждой отрисовке карты, а значок от этого не меняется (FIX5 — меньше работы при зуме).
 
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
   const moving = spot.state === 'moving';

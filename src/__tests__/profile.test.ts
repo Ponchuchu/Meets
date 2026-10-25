@@ -3,6 +3,8 @@ import { BADGES, badgeStates, sortBadges } from '../profile/badges';
 import { cellOf, cityPercent, levelOf, levelProgress, nextLevelHint } from '../profile/city';
 import { DEFAULT_MARKER, speedLabel } from '../state/profile';
 
+import { rankFor, weekDays } from '../profile/stepsSocial';
+
 describe('открытый город', () => {
   it('сота h3 разрешения 8', () => {
     const c = cellOf(43.2567, 76.9453);
@@ -57,8 +59,6 @@ describe('мой значок', () => {
     expect(speedLabel(12, { ...DEFAULT_MARKER, showMoving: false })).toBeNull();
   });
 });
-
-import { rankFor, weekDays } from '../profile/stepsSocial';
 describe('шаги по дням (FIX5)', () => {
   it('неделя с понедельника и прошлая неделя', () => {
     expect(weekDays('2026-10-25')).toEqual(['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25']);

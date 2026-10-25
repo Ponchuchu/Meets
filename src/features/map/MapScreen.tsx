@@ -478,18 +478,19 @@ export default function MapScreen() {
   };
 
   // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
-  const sendSticker = async (i: number) => {
+  const sendSticker = (i: number) => {
     if (!focusPerson || blast) return;
     const st = STICKERS[i];
-    try{
-      if(LIVE){const chatId=await openDirectChat(focusPerson.id);await sendMessage(chatId,st.label,'sticker');void queryClient.invalidateQueries({queryKey:['chats']});}
-      else useChat.getState().send({ id: uid(`dm-${focusPerson.id}-st`), chatId: `dm-${focusPerson.id}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
-    }catch{showToast({text:'Не удалось отправить стикер. Проверь связь'});return;}
-    social.sticker(focusPerson.id);
-    // Действие поверх аватарки друга (он стоит на 110 px выше центра карты — см. фокус на друге), потом подпись у точки.
+    const to = focusPerson.id;
+    // Сразу показываем действие (FIX5): раньше анимация ждала ответа сервера — на медленной сети это секунды тишины.
+    // Отправка идёт фоном; не дошло — скажем об этом.
+    social.sticker(to);
     setBlast({ key: Date.now(), st });
-    if (!st.effect) setTimeout(() => setBubble({ ...st, id: focusPerson.id }), BLAST_MS.sticker - 200);
+    if (!st.effect) setTimeout(() => setBubble({ ...st, id: to }), BLAST_MS.sticker - 200);
     setTimeout(() => setBubble((b) => (b && b.label === st.label ? null : b)), BLAST_MS.sticker + 2400);
+    if (LIVE) void openDirectChat(to).then((chatId) => sendMessage(chatId, st.label, 'sticker')).then(() => void queryClient.invalidateQueries({ queryKey: ['chats'] }))
+      .catch(() => showToast({ text: 'Не удалось отправить стикер. Проверь связь' }));
+    else useChat.getState().send({ id: uid(`dm-${to}-st`), chatId: `dm-${to}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
   };
 
   const topY = Math.max(50, insets.top + 6);

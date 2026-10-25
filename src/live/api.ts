@@ -214,16 +214,22 @@ export async function getEvents(days = 92): Promise<EventItem[]> {
   const list = await withMeetupLocations(rows.map(mapLive));
   if (!list.length) return list;
   const ids = list.map((e) => e.id);
+  // Список id идёт в адрес запроса: порциями по 120, чтобы с ростом афиши не упереться в длину адреса (FIX5).
+  const parts: string[][] = [];
+  for (let i = 0; i < ids.length; i += 120) parts.push(ids.slice(i, i + 120));
   const [counts, going] = await Promise.all([
     must(sb().rpc('event_going_counts', { ids })) as Promise<{ event_id: string; going: number; looking: number }[]>,
-    must(sb().from('attendance').select('user_id,event_id,status').in('event_id', ids).in('status', ['going', 'arrived'])) as Promise<{ user_id: string; event_id: string }[]>,
+    Promise.all(parts.map((part) => must(sb().from('attendance').select('user_id,event_id,status').in('event_id', part).in('status', ['going', 'arrived'])) as Promise<{ user_id: string; event_id: string }[]>)).then((r) => r.flat()),
   ]);
   const meId = me();
+  const countBy = new Map(counts.map((c) => [c.event_id, c]));
+  const goingBy = new Map<string, string[]>();
+  for (const g of going) if (g.user_id !== meId) goingBy.set(g.event_id, [...(goingBy.get(g.event_id) ?? []), g.user_id]);
   for (const e of list) {
-    const c = counts.find((x) => x.event_id === e.id);
+    const c = countBy.get(e.id);
     e.goingCount = c?.going ?? 0;
     e.lookingCount = c?.looking ?? 0;
-    e.friendsGoing = going.filter((g) => g.event_id === e.id && g.user_id !== meId).map((g) => g.user_id);
+    e.friendsGoing = goingBy.get(e.id) ?? [];
   }
   return list;
 }
