@@ -1,4 +1,5 @@
 // Выбор даты (календарь), времени (барабан, как будильник iPhone) и места (точка на карте, как в доставке).
+import { CalendarDays } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { almaty, dayIndex, dayStart } from '../../lib/clock';
@@ -93,11 +94,82 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
   );
 }
 
-/** Даты одной колонкой, выбранная дата в центре. */
-export function DateWheel({ min, max, value, onChange }: { min: number; max: number; value: number; onChange: (v: number) => void }) {
-  const days = Array.from({ length: Math.max(1, Math.min(93, max - min + 1)) }, (_, i) => min + i);
-  const labels = days.map(d => { const a = almaty(dayStart(d)); return `${a.getUTCDate()} ${MONTHS[a.getUTCMonth()].toLowerCase()}`; });
-  return <View style={styles.wheels}><View pointerEvents="none" style={styles.wheelBand} /><Wheel items={labels} value={labels[Math.max(0, days.indexOf(value))]} onChange={label => onChange(days[labels.indexOf(label)])} label="Дата" /></View>;
+const WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const MON_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+/** «Суббота, 25 октября» / «Сегодня, 25 октября». */
+export function dayTitle(day: number, today: number): string {
+  const a = almaty(dayStart(day));
+  const wd = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'][a.getUTCDay()];
+  const head = day === today ? 'Сегодня' : day === today + 1 ? 'Завтра' : wd;
+  return `${head}, ${a.getUTCDate()} ${MONTHS[a.getUTCMonth()].toLowerCase().replace(/ь$|й$/, 'я').replace(/т$/, 'та')}`;
+}
+
+const STRIP_W = 62;
+
+/**
+ * Лента дней (как в календаре iPhone и Airbnb): «сб · 25 · окт» плашками, выбранная — тёмная, выходные — тёплым цветом.
+ * days — только доступные дни (у сеансов — дни с сеансами). Длинный период — кнопка «Календарь» в конце ленты.
+ */
+export function DayStrip({ days, value, onChange, today, marks }: { days: number[]; value: number; onChange: (d: number) => void; today: number; marks?: Record<number, number> }) {
+  const ref = useRef<ScrollView>(null);
+  const [cal, setCal] = useState(false);
+  const shown = days.slice(0, 31);
+  useEffect(() => {
+    const i = shown.indexOf(value);
+    if (i > 2) ref.current?.scrollTo({ x: (i - 2) * (STRIP_W + 8), animated: false });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <View style={{ gap: 10 }}>
+      <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingVertical: 2 }} style={{ marginHorizontal: -2 }}>
+        {shown.map((d) => {
+          const a = almaty(dayStart(d));
+          const on = d === value;
+          const weekend = a.getUTCDay() === 0 || a.getUTCDay() === 6;
+          const top = d === today ? 'сегодня' : d === today + 1 ? 'завтра' : WD_SHORT[a.getUTCDay()];
+          return (
+            <Pressable key={d} onPress={() => onChange(d)} style={({ pressed }) => [styles.day, on && styles.dayOn, pressed && { transform: [{ scale: 0.95 }] }]}
+              accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={dayTitle(d, today)}>
+              <Text style={[styles.dayWd, weekend && { color: colors.accentText }, on && { color: '#FFD9C7' }]} numberOfLines={1}>{top}</Text>
+              <Text style={[styles.dayNum, on && { color: colors.paper }]}>{a.getUTCDate()}</Text>
+              <Text style={[styles.dayMon, on && { color: '#B9B3A6' }]}>{MON_SHORT[a.getUTCMonth()]}</Text>
+              {!!marks?.[d] && <View style={[styles.dayDot, on && { backgroundColor: colors.accent }]} />}
+            </Pressable>
+          );
+        })}
+        {days.length > 7 && (
+          <Pressable onPress={() => setCal((c) => !c)} style={[styles.day, styles.dayCal, cal && styles.dayOn]} accessibilityRole="button" accessibilityLabel="Открыть календарь">
+            <CalendarDays size={22} color={cal ? colors.paper : colors.ink} strokeWidth={1.9} />
+            <Text style={[styles.dayMon, { marginTop: 4 }, cal && { color: colors.paper }]}>месяц</Text>
+          </Pressable>
+        )}
+      </ScrollView>
+      {cal && (
+        <View style={styles.calBox}>
+          <MonthCalendar now={dayStart(today)} value={value - today} markedDays={days.length < 60 ? days : []}
+            onPick={(off) => { const d = today + off; if (days.includes(d)) { onChange(d); setCal(false); const i = shown.indexOf(d); if (i >= 0) ref.current?.scrollTo({ x: Math.max(0, i - 2) * (STRIP_W + 8), animated: true }); } }} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Быстрый выбор времени чипами: «Утром 10:00», «Днём 14:00», «Вечером 19:00» — то, что подходит по часам события. */
+export function TimeChips({ options, value, onChange }: { options: { label: string; time: string }[]; value: string; onChange: (t: string) => void }) {
+  if (!options.length) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      {options.map((o) => {
+        const on = o.time === value;
+        return (
+          <Pressable key={o.time} onPress={() => onChange(o.time)} style={({ pressed }) => [styles.tchip, on && styles.dayOn, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
+            <Text style={[styles.tchipLabel, on && { color: '#B9B3A6' }]}>{o.label}</Text>
+            <Text style={[styles.tchipTime, on && { color: colors.paper }]}>{o.time}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -225,6 +297,17 @@ const styles = StyleSheet.create({
   centerPin: { position: 'absolute', left: '50%', top: '50%', marginLeft: -20, marginTop: -52, alignItems: 'center' },
   pinHead: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   pinLeg: { width: 3, height: 12, backgroundColor: colors.ink, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
+  day: { width: STRIP_W, height: 82, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 1, borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)' },
+  dayOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  dayCal: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.line2, borderStyle: 'dashed' },
+  dayWd: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.4, color: colors.muted, textTransform: 'uppercase' },
+  dayNum: { fontFamily: fonts.display800, fontSize: 25, letterSpacing: -0.6, color: colors.ink, lineHeight: 30 },
+  dayMon: { fontFamily: fonts.body600, fontSize: 11.5, color: colors.muted },
+  dayDot: { position: 'absolute', bottom: 7, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.accent },
+  calBox: { padding: 12, borderRadius: 20, backgroundColor: colors.card },
+  tchip: { flex: 1, minHeight: 58, borderRadius: 16, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 1, borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)' },
+  tchipLabel: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted },
+  tchipTime: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink, letterSpacing: -0.3 },
   input: { height: 48, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card, fontFamily: fonts.body400, fontSize: 15, color: colors.ink },
   done: { height: 54, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   doneText: { fontFamily: fonts.body600, fontSize: 16, color: colors.paper },

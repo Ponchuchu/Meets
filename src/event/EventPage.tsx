@@ -9,7 +9,7 @@ import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,7 @@ import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
 import { glass, plate } from '../ui/glass';
 import { Avatar } from '../ui/Avatar';
-import { EventCover } from '../ui/EventCover';
+import { EventCover, openCoverH } from '../ui/EventCover';
 import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
@@ -73,6 +73,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   onGo?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  // Фото — в тех же пропорциях, что на карточке ленты (FIX5): не растягивается и не режется сильнее, чем снаружи.
+  const coverH = openCoverH(winW, insets.top);
   const qc = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<{ initialId: string; event: EventItem } | null>(null);
   const [updatedEvent, setUpdatedEvent] = useState<EventItem | null>(null);
@@ -89,7 +92,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const onScroll = useAnimatedScrollHandler(ev => { scrollY.set(ev.contentOffset.y); });
   const parallax = useAnimatedStyle(() => {
     const y = scrollY.get();
-    return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / 470 }] } : { transform: [{ translateY: y * 0.35 }] };
+    return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / coverH }] } : { transform: [{ translateY: y * 0.35 }] };
   });
   // Название на обложке тает, пока лист с подробностями наезжает на фото, — текст не налезает на плашки.
   const titleFade = useAnimatedStyle(() => ({ opacity: Math.max(0, 1 - Math.max(0, scrollY.get()) / 170) }));
@@ -167,9 +170,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   return (
     <View style={styles.root}>
       <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
-        {/* V6CardOpen: фото 470, плашка «СЕГОДНЯ · 20:00», название поверх. */}
+        {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <Animated.View style={[{ zIndex: -1 }, parallax]}>
-        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.cover} iconSize={240}>
+        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">

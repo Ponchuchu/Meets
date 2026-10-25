@@ -153,9 +153,22 @@ const useDemoChallenges = create<{ list: Challenge[] }>(() => ({ list: [{
   members: [{ user_id: 'igor', name: 'Игорь', photo_url: null, status: 'joined', steps: 24800 }, { user_id: 'me', name: 'Ты', photo_url: null, status: 'joined', steps: 21300 }, { user_id: 'denis', name: 'Денис', photo_url: null, status: 'invited', steps: 18900 }],
 }] }));
 
-export async function getFriendsSteps(): Promise<StepRank[]> {
-  if (!LIVE) return DEMO_RANK;
-  return must(sb().rpc('friends_steps'));
+/** Шаги друзей по дням за период (FIX5). Сервер без функции (миграция 41) — сегодня и неделя из старой. */
+export interface StepDay { user_id: string; name: string; photo_url: string | null; map_frame: string | null; map_shape: string | null; day: string | null; steps: number; me: boolean }
+export async function getFriendsStepsDays(from: string, to: string): Promise<StepDay[]> {
+  if (!LIVE) {
+    // Демо: у каждого свой ритм по дням недели, стабильно от даты.
+    const days: string[] = [];
+    for (let t = Date.parse(from); t <= Date.parse(to); t += 86400e3) days.push(new Date(t).toISOString().slice(0, 10));
+    return DEMO_RANK.flatMap((r, k) => days.map((day) => ({ ...r, day, steps: Math.round(r.week / 7 * (0.55 + ((Date.parse(day) / 86400e3 * (k + 3)) % 9) / 10)) })));
+  }
+  try { return await must(sb().rpc('friends_steps_days', { from_day: from, to_day: to })) as StepDay[]; }
+  catch (e) {
+    if (!/friends_steps_days|function/i.test(String((e as Error)?.message ?? e))) throw e;
+    const rows = await must(sb().rpc('friends_steps')) as StepRank[];
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
+    return rows.map((r) => ({ ...r, day: from === to ? today : null, steps: from === to ? r.today : r.week }));
+  }
 }
 
 export async function getChallenges(): Promise<Challenge[]> {

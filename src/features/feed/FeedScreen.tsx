@@ -17,6 +17,7 @@ import { FeedCard } from '../../feed/FeedCard';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
 import { QuickButtons } from '../../feed/SwipeHints';
 import { UndoBar } from '../../feed/UndoBar';
+import { WhenSheet, needsWhen } from '../../feed/WhenSheet';
 import { now as clockNow } from '../../lib/clock';
 import { buildDeck, makeSignal, tasteFrom } from '../../reco';
 import { pickSpots, spotCard, weekOf, withSpots } from '../../reco/spots';
@@ -61,6 +62,8 @@ export default function ForYouScreen() {
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [when, setWhen] = useState<EventItem | null>(null);
+  const [planning, setPlanning] = useState<string | null>(null);
   const opened = useRef(new Set<string>());
   useCoverTabBar(!!open);
   const topRef = useRef<SwipeHandle>(null);
@@ -83,10 +86,17 @@ export default function ForYouScreen() {
   const [spotDone, setSpotDone] = useState<Set<string>>(() => new Set());
   const [spotOpen, setSpotOpen] = useState<Attraction | null>(null);
   const markSpot = useFeed((s) => s.markSpot);
+  // Порядок колоды «замораживается» (FIX5): видимые карточки и ближайшие за ними не переставляются после каждого свайпа —
+  // раньше вкус пересчитывался, и карточка, которая должна была прийти через четыре, вдруг выскакивала следующей.
+  const [frozen, setFrozen] = useState<string[]>([]);
   const deck = useMemo(() => {
     const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
     const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
-    let d = buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 });
+    const fresh = withSpots(buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id)));
+    const pool = new Map<string, EventItem>([...events.map((x) => [x.id, x] as const), ...fresh.map((x) => [x.id, x] as const)]);
+    const alive = (id: string) => (id === planning || !dec.has(id)) && !spotDone.has(id) && pool.has(id) && (pool.get(id)!.spotId ? true : fresh.some((x) => x.id === id) || Date.parse(pool.get(id)!.endsAt ?? pool.get(id)!.startsAt) > now.getTime());
+    const head = frozen.filter(alive).slice(0, STACK + 2).map((id) => pool.get(id)!);
+    let d = [...head, ...fresh.filter((x) => !head.some((h) => h.id === x.id))];
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
       const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
@@ -96,9 +106,11 @@ export default function ForYouScreen() {
       const preview = events.find(x => x.id === previewId);
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
-    // Постоянные места (Кок-Тобе, боулинг…) — раз в неделю, не больше двух на колоду.
-    return withSpots(d, spotCards.filter((c) => !spotDone.has(c.id)));
-  }, [taste, events, decided, goingIds, signals, now, enter, previewId, spotCards, spotDone]); // eslint-disable-line react-hooks/exhaustive-deps
+    return d;
+  }, [taste, events, decided, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
+  const headKey = deck.slice(0, STACK + 2).map((x) => x.id).join('|');
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setFrozen((f) => (f.join('|') === headKey ? f : headKey.split('|').filter(Boolean))); }, [headKey]);
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
@@ -135,14 +147,17 @@ export default function ForYouScreen() {
     }
     // Новый экземпляр карточки нужен только когда она возвращается в колоду (выбор даты, «Вернуть»).
     // Раньше он создавался при каждом свайпе: улетевшая карточка на миг снова появлялась по центру и пропадала.
-    if (kind === 'go' && (e.sessions?.length || (e.isLong && e.endsAt && new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime() > 24 * 3600e3))) { bump(e.id); openCard(e); return; }
+    // Нужен день или сеанс: карточка возвращается в колоду, сверху — шторка выбора; смахнул шторку — листаешь дальше.
+    const planned = planning === e.id;
+    if (planned) setPlanning(null);
+    if (kind === 'go' && !planned && needsWhen(e)) { bump(e.id); setEnter({ id: e.id, from: 'go' }); setWhen(e); return; }
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
     setEnter(null);
     if (kind === 'go') {
-      go(e.id);
-      addPlan();
+      // День или сеанс уже записан шторкой — в планы добавлено там.
+      if (!planned) { go(e.id); addPlan(); }
       pulsePlan();
     } else if (undosLeft > 0) {
       setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}` });
@@ -224,6 +239,8 @@ export default function ForYouScreen() {
       </View>
 
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
+        {/* Обработчики читают opened (ref) только при жесте, не при отрисовке. */}
+        {/* eslint-disable react-hooks/refs */}
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
             key={`${e.id}:${rounds[e.id] ?? 0}`}
@@ -240,9 +257,10 @@ export default function ForYouScreen() {
             drag={k === 0 ? drag : undefined}
           />
         )).reverse()}
+        {/* eslint-enable react-hooks/refs */}
       </View>
 
-      {top && !open && (
+      {top && !open && !when && (
         <View style={[styles.hints, { top: hintsTop, left: cardX - 6, width: cardW + 12 }]}>
           <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => { if (top.spotId) { const a = allSpots.find((x) => x.id === top.spotId); if (a) setSpotOpen(a); } else openCard(top); }} />
         </View>
@@ -272,8 +290,10 @@ export default function ForYouScreen() {
         </View>
       )}
 
+      {when && <WhenSheet key={when.id} e={when} events={events} now={now} onClose={() => setWhen(null)}
+        onPlanned={() => { const id = when.id; setWhen(null); setPlanning(id); setTimeout(() => topRef.current?.fly('go'), 260); }} />}
       {spotOpen && <SpotSheet key={spotOpen.id} a={spotOpen} all={allSpots} onClose={() => setSpotOpen(null)} onOpen={setSpotOpen} />}
-      {undoBar && !open && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
+      {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>

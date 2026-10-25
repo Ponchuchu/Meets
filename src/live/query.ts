@@ -30,7 +30,22 @@ queryClient.getQueryCache().subscribe((e) => {
 });
 
 export const CACHE_KEY = 'ryadom-cache-v6';
-export const persister = ssr ? undefined : createAsyncStoragePersister({ storage: AsyncStorage, key: CACHE_KEY, throttleTime: 5000 });
+const base = ssr ? undefined : createAsyncStoragePersister({ storage: AsyncStorage, key: CACHE_KEY, throttleTime: 10000 });
+/**
+ * Запись кэша на телефон — только когда сохраняемые данные правда изменились (FIX5). Раньше любое событие кэша
+ * (точка друга раз в секунду, пробки, погода) раз в 5 с превращало в JSON все события и переписки целиком —
+ * на слабом Android это заметные подвисания и задержки нажатий.
+ */
+let lastSig = '';
+export const persister = base && {
+  ...base,
+  persistClient: (c: Parameters<typeof base.persistClient>[0]) => {
+    const sig = c.clientState.queries.map((q) => `${q.queryHash}:${q.state.dataUpdatedAt}`).join('|');
+    if (sig === lastSig) return Promise.resolve();
+    lastSig = sig;
+    return base.persistClient(c);
+  },
+};
 
 /** Что сохраняем на телефон для работы без сети: ленту, чаты, сообщения, людей и свой профиль.
  *  Точки друзей, пробки, погоду, админку не сохраняем — они меняются каждые секунды, и запись всего кэша

@@ -112,13 +112,14 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
         paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'], 'fill-extrusion-opacity': 0.95,
           ...(v11 ? { 'fill-extrusion-vertical-gradient': true } : {}) },
       }] : []),
-      // Деревья: картинки «стоят» (обращены к камере) по краям парков и скверов, ели — в лесах и на склонах.
-      // Только вблизи и с пропуском при наложении — на слабом телефоне это десятки значков, а не тысячи.
+      // Деревья: картинки «стоят» (обращены к камере). В парках и скверах (FIX5) — не по кромке (она совпадает со стенами домов,
+      // отсюда «дерево на крыше»), а в самой глубине участка: точка, самая далёкая от краёв; большой парк режется на тайлы — там несколько.
+      // Ели в лесах и на склонах — по кромке: домов там почти нет.
       ...(trees ? [
         { id: 'trees-park', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
-          filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery', 'pitch'], true, false],
-          layout: { 'symbol-placement': 'line', 'symbol-spacing': 34, 'icon-image': treeImage, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
-            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.09, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false } ,
+          filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery'], true, false],
+          layout: { 'symbol-placement': 'point', 'icon-image': treeImage, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.11, 17, 0.2, 19, 0.34], 'icon-padding': 2, 'icon-allow-overlap': false } ,
           paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1], ...occlusion } },
         { id: 'trees-wood', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM - 0.5,
           filter: ['match', ['get', 'class'], ['wood', 'scrub'], true, false],

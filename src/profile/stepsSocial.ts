@@ -22,3 +22,23 @@ export function challengeState(c: Challenge, today: string) {
 
 /** Место в рейтинге: 1–3 — медаль, остальные — номер. */
 export const rankTone = (i: number) => (['#E2A21B', '#9AA3AE', '#B8733F'] as const)[i] ?? null;
+
+/** Неделя по Алматы со сдвигом (0 — эта, -1 — прошлая): даты понедельника…воскресенья «YYYY-MM-DD». */
+export function weekDays(today: string, offset = 0): string[] {
+  const t = Date.parse(`${today}T00:00:00Z`);
+  const monday = t - ((new Date(t).getUTCDay() + 6) % 7) * 86400e3 + offset * 7 * 86400e3;
+  return Array.from({ length: 7 }, (_, i) => new Date(monday + i * 86400e3).toISOString().slice(0, 10));
+}
+
+/** Рейтинг за выбранные дни: сумма шагов на человека, по убыванию; при равенстве — по имени. */
+export function rankFor<T extends { user_id: string; day: string | null; steps: number }>(rows: T[], days: string[]): (T & { total: number })[] {
+  const set = new Set(days);
+  const by = new Map<string, T & { total: number }>();
+  for (const r of rows) {
+    const cur = by.get(r.user_id) ?? { ...r, total: 0 };
+    // Строка без дня — запасной ответ старой функции: там уже сумма за период.
+    if (r.day == null || set.has(r.day)) cur.total += r.steps;
+    by.set(r.user_id, cur);
+  }
+  return [...by.values()].sort((a, b) => b.total - a.total || String((a as { name?: string }).name ?? '').localeCompare(String((b as { name?: string }).name ?? '')));
+}

@@ -180,6 +180,9 @@ export interface FriendSpot {
   doing?: string;
   note?: string;
   vehicle?: string;
+  /** Заряд телефона друга, % (FIX5), и заряжается ли он. */
+  battery?: number;
+  charging?: boolean;
 }
 
 export interface TimelineItem {

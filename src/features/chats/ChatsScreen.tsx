@@ -192,6 +192,8 @@ export default function ChatsScreen() {
         </>
       )}
       {filter === 'requests' && pending.length === 0 && <StateView kind="empty" compact title="Новых заявок нет" />}
+      {/* Список не загрузился — говорим об этом, а не показываем пустоту, будто переписок нет. */}
+      {chatsQuery.isError && !chats.length && online && <StateView kind="error" compact text="Чаты не загрузились" onAction={() => void chatsQuery.refetch()} />}
 
       {list.length > 0 && filter !== 'requests' && (
         <View style={{ gap: 8 }}>

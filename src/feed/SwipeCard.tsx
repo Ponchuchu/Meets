@@ -9,6 +9,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import type { EventItem, Person } from '../data/types';
 import { colors } from '../theme';
 import { FeedCard } from './FeedCard';
+import { HINT_IDLE_MS, hintDue, useFeed } from '../state/feed';
 
 export const THRESHOLD = 90;
 const UP = 60;
@@ -52,17 +53,16 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   useAnimatedReaction(() => dx.get(), (v) => { if (top && drag) drag.x.set(v); });
   useAnimatedReaction(() => dy.get(), (v) => { if (top && drag) drag.y.set(v); });
 
-  // Как в TikTok: если задумался на карточке, она сама «намекает» движением — чуть вправо («Пойду»), чуть вверх («Подробнее»),
-  // но не улетает: листнуть должен сам человек. Любое касание сбрасывает ожидание; не больше трёх подсказок на карточку.
+  // Подсказка жестом (FIX5): карточка сама чуть уходит вправо и вверх, только если на ней долго ничего не делают (45 с),
+  // и редко — первый раз, через 5 дней, через месяц, потом никогда. Любое касание сбрасывает ожидание.
   const [touched, setTouched] = useState(0);
   const touch = () => setTouched((c) => c + 1);
   useEffect(() => {
-    if (!top || enterFrom) return;
+    if (!top || enterFrom || !hintDue(useFeed.getState().hintShown, Date.now())) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    let n = 0;
     const play = () => {
-      if (busy.get() || revealing.get()) return;
-      n++;
+      if (busy.get() || revealing.get() || !hintDue(useFeed.getState().hintShown, Date.now())) return;
+      useFeed.getState().markHint(Date.now());
       const ease = Easing.inOut(Easing.cubic);
       dx.set(withSequence(withTiming(46, { duration: 520, easing: Easing.out(Easing.cubic) }), withDelay(260, withTiming(0, { duration: 460, easing: ease }))));
       rot.set(withSequence(withTiming(4, { duration: 520 }), withDelay(260, withTiming(0, { duration: 460 }))));
@@ -70,9 +70,8 @@ export const SwipeCard = forwardRef<SwipeHandle, {
         if (busy.get() || revealing.get()) return;
         dy.set(withSequence(withTiming(-30, { duration: 420, easing: Easing.out(Easing.cubic) }), withDelay(160, withTiming(0, { duration: 420, easing: ease }))));
       }, 1900));
-      if (n < 3) timers.push(setTimeout(play, 7500));
     };
-    timers.push(setTimeout(play, 5000));
+    timers.push(setTimeout(play, HINT_IDLE_MS));
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [top, touched, enterFrom]);

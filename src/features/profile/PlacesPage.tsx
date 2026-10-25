@@ -2,7 +2,7 @@
 // Адрес и название живут отдельно: раньше выбранный адрес подставлялся в название и путал. На карте — свой значок.
 // Избранные места (кофейня, вид, парк…) — со своими значками, видишь только ты; друзьям статус «у кофейни» не уходит.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, MapPin, X } from 'lucide-react-native';
+import { ChevronRight, MapPin, Plus, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { create } from 'zustand';
@@ -13,7 +13,8 @@ import { config } from '../../lib/config';
 import { uid } from '../../lib/uid';
 import { myId } from '../../live/auth';
 import { setShareRules, useMyPos } from '../../live/location';
-import { FAV_ICONS, lookOf, PLACE_LOOK } from '../../map/ui/PlacePin';
+import { FAV_ICONS, lookOf, PLACE_LOOK, PlacePin } from '../../map/ui/PlacePin';
+import { MapCanvas } from '../../map/MapCanvas';
 import { deviceStorage } from '../../state/storage';
 import { colors, fonts } from '../../theme';
 import { Group, Note, Row, SettingsPage } from '../../ui/v6/Settings';
@@ -22,10 +23,18 @@ interface Place { id: string; kind: string; title: string; lat: number; lon: num
 const useLocalPlaces = create<{ items: Place[] }>()(persist(() => ({ items: [] as Place[] }), { name: 'ryadom-demo-places', storage: deviceStorage() }));
 const KINDS = ['home', 'work', 'study', 'gym', 'dacha', 'fav', 'other'] as const;
 
+/** Значок места — тот же, что на карте: круг своего цвета с бликом (FIX5). */
 function Disc({ kind, icon, size = 36 }: { kind: string; icon?: string | null; size?: number }) {
   const l = lookOf(kind, icon);
-  return <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2, backgroundColor: l.color }]}><l.Icon size={size * 0.48} color="#FFFFFF" strokeWidth={2.2} /></View>;
+  return (
+    <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2, backgroundColor: l.color }]}>
+      <View pointerEvents="none" style={[styles.discShine, { width: size * 0.5, height: size * 0.18, borderRadius: size * 0.12, top: size * 0.04 }]} />
+      <l.Icon size={size * 0.48} color="#FFFFFF" strokeWidth={2.2} />
+    </View>
+  );
 }
+
+const MAIN = ['home', 'work', 'study', 'gym', 'dacha'] as const;
 
 export default function PlacesPage() {
   const live = config.dataMode !== 'demo';
@@ -70,27 +79,56 @@ export default function PlacesPage() {
   };
 
   const start = (kind: string) => { setEditing({ id: '', kind, title: '', lat: pos?.lat ?? 43.2389, lon: pos?.lon ?? 76.8897, address: null, icon: kind === 'fav' ? 'heart' : null }); setError(''); setPicking(true); };
-  // Дом, работа и т. п. — по одному; избранных и «другого» — сколько угодно.
-  const taken = new Set(list.map((p) => p.kind).filter((k) => k !== 'fav' && k !== 'other'));
+
+  const mainPlaces = MAIN.map((k) => ({ k, p: list.find((x) => x.kind === k) }));
+  const favs = list.filter((p) => p.kind === 'fav' || p.kind === 'other');
+  const open = (p: Place) => { setEditing({ ...p, title: p.title ?? '' }); setError(''); setPicking(false); };
+  // Карта со всеми местами: центр — среднее, масштаб — по разбросу точек.
+  const pts = list.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+  const spread = pts.length > 1 ? Math.max(...pts.map((p) => Math.abs(p.lat - pts[0].lat) + Math.abs(p.lon - pts[0].lon))) : 0;
+  const cam = pts.length ? { lat: pts.reduce((a, p) => a + p.lat, 0) / pts.length, lon: pts.reduce((a, p) => a + p.lon, 0) / pts.length, zoom: spread > 0.15 ? 11 : spread > 0.05 ? 12.3 : spread > 0.01 ? 13.6 : 15 } : null;
 
   return (
-    <SettingsPage title="Мои места" sub="Дом, работа, зал — на карте у тебя будут свои значки.">
-      {list.length > 0 && (
-        <Group>
-          {list.map((p, i) => (
-            <Row key={p.id} left={<Disc kind={p.kind} icon={p.icon} size={34} />} title={nameOf(p)} sub={p.address || lookOf(p.kind, p.icon).name} last={i === list.length - 1}
-              onPress={() => { setEditing({ ...p, title: p.title ?? '' }); setError(''); setPicking(false); }} />
-          ))}
-        </Group>
+    <SettingsPage title="Мои места" sub="Дом, работа, любимые места — на карте у тебя свои значки. Видишь только ты.">
+      {cam && (
+        <View style={styles.mapCard}>
+          <MapCanvas theme="paper" camera={cam} markers={pts.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, node: <PlacePin kind={p.kind} icon={p.icon} title={nameOf(p)} label /> }))} threeD still={{ pitch: 35, heading: 0 }} />
+          <View pointerEvents="none" style={styles.mapFade} />
+          <Text pointerEvents="none" style={styles.mapCount}>{pts.length} {pts.length === 1 ? 'место' : pts.length < 5 ? 'места' : 'мест'} на карте</Text>
+        </View>
       )}
-      <Text style={styles.cap}>ДОБАВИТЬ</Text>
+
+      <Text style={styles.cap}>ГЛАВНЫЕ</Text>
       <View style={styles.kinds}>
-        {KINDS.filter((k) => !taken.has(k)).map((k) => (
-          <Pressable key={k} onPress={() => start(k)} style={({ pressed }) => [styles.kind, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Добавить: ${PLACE_LOOK[k].name}`}>
-            <Disc kind={k} /><Text style={styles.kindText}>{k === 'other' ? 'Другое' : PLACE_LOOK[k].name}</Text>
+        {mainPlaces.map(({ k, p }) => (
+          <Pressable key={k} onPress={() => (p ? open(p) : start(k))} style={({ pressed }) => [styles.tile, !p && styles.tileEmpty, pressed && styles.pressed]} accessibilityRole="button"
+            accessibilityLabel={p ? `${PLACE_LOOK[k].name}: ${p.address ?? ''}` : `Добавить: ${PLACE_LOOK[k].name}`}>
+            <View style={styles.tileTop}>
+              <Disc kind={k} size={38} />
+              {!p && <View style={styles.plus}><Plus size={14} color={colors.ink} strokeWidth={2.6} /></View>}
+            </View>
+            <Text style={styles.tileTitle} numberOfLines={1}>{p ? nameOf(p) : PLACE_LOOK[k].name}</Text>
+            <Text style={styles.tileSub} numberOfLines={2}>{p ? p.address || 'точка на карте' : 'Добавить'}</Text>
           </Pressable>
         ))}
       </View>
+
+      <Text style={styles.cap}>ИЗБРАННОЕ</Text>
+      {favs.length > 0 && (
+        <Group>
+          {favs.map((p, i) => (
+            <Row key={p.id} left={<Disc kind={p.kind} icon={p.icon} size={34} />} title={nameOf(p)} sub={p.address || lookOf(p.kind, p.icon).name} last={i === favs.length - 1} onPress={() => open(p)} />
+          ))}
+        </Group>
+      )}
+      <Pressable onPress={() => start('fav')} style={({ pressed }) => [styles.addFav, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Добавить любимое место">
+        <View style={styles.addFavIcons}>{(['coffee', 'view', 'food'] as const).map((k, i) => <View key={k} style={{ marginLeft: i ? -10 : 0 }}><Disc kind="fav" icon={k} size={30} /></View>)}</View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.tileTitle}>Добавить любимое место</Text>
+          <Text style={styles.tileSub}>кофейня, вид, парк — со своим значком</Text>
+        </View>
+        <Plus size={20} color={colors.ink} strokeWidth={2.2} />
+      </Pressable>
       {q.isError && <Note>Не удалось загрузить места. Проверь связь.</Note>}
       <Note>Друзья видят только «дома» или «на работе». Точный адрес и название остаются у тебя.</Note>
 
@@ -157,11 +195,21 @@ export default function PlacesPage() {
 }
 
 const styles = StyleSheet.create({
-  disc: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
+  disc: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF', overflow: 'hidden', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
+  discShine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.28)' },
+  mapCard: { height: 210, borderRadius: 24, overflow: 'hidden', backgroundColor: '#DDD8CB', boxShadow: '0 10px 24px -16px rgba(23,22,26,0.5)' },
+  mapFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 44, backgroundColor: 'rgba(23,22,26,0.18)' },
+  mapCount: { position: 'absolute', left: 14, bottom: 12, fontFamily: fonts.body700, fontSize: 13.5, color: '#FFFFFF' },
+  tile: { width: '48.5%', minHeight: 116, padding: 14, borderRadius: 22, backgroundColor: '#FBFAF6', gap: 3, boxShadow: '0 1px 2px rgba(23,22,26,0.06), 0 8px 18px -14px rgba(23,22,26,0.4)' },
+  tileEmpty: { backgroundColor: 'transparent', borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(23,22,26,0.18)', boxShadow: 'none' },
+  tileTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
+  plus: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(23,22,26,0.08)', alignItems: 'center', justifyContent: 'center' },
+  tileTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
+  tileSub: { fontFamily: fonts.body500, fontSize: 12.5, lineHeight: 16, color: colors.muted2 },
+  addFav: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 22, backgroundColor: '#F6E3EA' },
+  addFavIcons: { flexDirection: 'row' },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted, marginTop: 4 },
-  kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  kind: { width: '31.5%', minHeight: 92, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12 },
-  kindText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
+  kinds: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
   dim: { flex: 1, backgroundColor: 'rgba(23,22,26,0.4)', justifyContent: 'flex-end' },
   sheet: { maxHeight: '94%', backgroundColor: colors.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },

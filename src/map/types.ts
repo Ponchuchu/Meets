@@ -28,6 +28,8 @@ export const PLACE_COLORS: Record<string, string> = {
 export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
+  /** Главная карта: при повторном открытии вкладки — там, где её оставили, а не на стартовой точке. */
+  remember?: boolean;
   markers: MapMarker[];
   threeD?: boolean;
   /** Сообщает, получилось ли показать настоящую карту (false — работает подложка). */

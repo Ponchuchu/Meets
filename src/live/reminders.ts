@@ -26,7 +26,9 @@ async function sync(events: EventItem[]): Promise<void> {
   if (!perm.granted && perm.canAskAgain && !asked && events.some(e => eventReminder(e, Date.now()))) { asked = true; perm = await Notifications.requestPermissionsAsync(); }
   if (!perm.granted) return;
   const all = await Notifications.getAllScheduledNotificationsAsync();
-  const want = new Map(events.filter(e => eventReminder(e, Date.now())).map((e) => [e.id, e]));
+  // Не больше 40 ближайших: Android держит ограниченное число будильников на приложение (около 500 у Samsung и Xiaomi),
+  // а при сотне планов пересборка всех напоминаний разом подвешивала и роняла приложение (FIX5).
+  const want = new Map(events.filter(e => eventReminder(e, Date.now())).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt)).slice(0, 40).map((e) => [e.id, e]));
   // Убираем лишние и устаревшие.
   for (const n of all) {
     const d = n.content.data as { kind?: string; eventId?: string; at?: string; lead?: number } | undefined;

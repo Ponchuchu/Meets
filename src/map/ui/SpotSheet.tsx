@@ -1,6 +1,7 @@
 // Карточка постоянного места (21 октября): шапка — листаемые фото места (не загрузились — цвет места), значок места
 // в углу, «открыто до 22:00 · перерыв 13–14», цена, как попасть бесплатно, советы, что внутри (у Кок-Тобе и Медеу),
 // часы на неделю — и план: день, время, «с друзьями / один». Кнопки: «Купить билет», «Kaspi», «Сайт», «Маршрут».
+import { remote } from '../../data/photos';
 import { router } from 'expo-router';
 import { ArrowUpRight, CalendarPlus, Check, ChevronDown, Lightbulb, Navigation, Ticket, User, Users, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
@@ -75,7 +76,7 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
           {photos.length > 0 ? (
             <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={StyleSheet.absoluteFill}
               onMomentumScrollEnd={(ev) => setPage(Math.round(ev.nativeEvent.contentOffset.x / Math.max(1, width)))}>
-              {photos.map((u) => <Image key={u} source={{ uri: u }} style={{ width, height: '100%' }} resizeMode="cover" onError={() => setBroken((b) => [...b, u])} accessibilityIgnoresInvertColors />)}
+              {photos.map((u) => <Image key={u} source={remote(u)} style={{ width, height: '100%' }} resizeMode="cover" onError={() => setBroken((b) => [...b, u])} accessibilityIgnoresInvertColors />)}
             </ScrollView>
           ) : (
             <View style={styles.heroIcon} pointerEvents="none"><View style={{ transform: [{ scale: 1.6 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View></View>

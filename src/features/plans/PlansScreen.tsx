@@ -1,8 +1,8 @@
-// «Планы» — design/png/V3Plans.png (V6.md §5): «Скоро | Были», неделя с точками, «Зовут» с ✕ / ✓,
-// дальше по дням — куда я иду: время, кто из друзей тоже, сколько ищут компанию. Тап — событие.
+// «Планы» (FIX5, новый вид): «Дальше по плану» крупной карточкой с обратным отсчётом, лента дней с точками,
+// «Зовут» с «Не смогу / Иду», расписание по дням на линии времени. Длинный список — порциями по 30.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { CalendarDays, CalendarRange, Trees, Bell, BellOff, UserPlus, Trash2, Check, ChevronRight, Hand, X } from 'lucide-react-native';
+import { CalendarDays, CalendarRange, Trees, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -13,7 +13,9 @@ import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
 import { config } from '../../lib/config';
 import { toggleEventReminder, answerInvite, getEventsByIds, getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
-import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
+import { CAT_COLOR } from '../../map/icons';
+import { EventCover } from '../../ui/EventCover';
+import { plural } from '../../event/text';
 import { usePlans } from '../../state/plans';
 import { MonthCalendar } from '../../event/ui/pickers';
 import { eventStatusLabel } from '../../event/availability';
@@ -22,7 +24,6 @@ import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
 import { StateView } from '../../ui/StateView';
 import { colors, fonts } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
-import { Ic } from '../../ui/Ic';
 import { plate } from '../../ui/glass';
 
 const LIVE = config.dataMode !== 'demo';
@@ -39,14 +40,6 @@ function dayTitle(d: number, today: number, iso: string): string {
   return d - today < 7 && d > today ? WD_FULL[a.getUTCDay()] : `${a.getUTCDate()} ${MON[a.getUTCMonth()]}`;
 }
 
-function Tile({ e }: { e: EventItem }) {
-  return (
-    <View style={[styles.tile, { backgroundColor: CAT_COLOR[e.category] }]}>
-      <Ic d={CAT_ICON[e.category]} size={24} color={catFg(e.category)} w={1.9} />
-    </View>
-  );
-}
-
 function Faces({ ids, people }: { ids: string[]; people: Person[] }) {
   const ps = ids.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
   if (!ps.length) return null;
@@ -54,7 +47,7 @@ function Faces({ ids, people }: { ids: string[]; people: Person[] }) {
     <View style={{ flexDirection: 'row' }}>
       {ps.slice(0, 4).map((p, i) => (
         <View key={p.id} style={{ marginLeft: i ? -6 : 0 }}>
-          <Avatar p={p} size={28} style={{ borderWidth: 2, borderColor: '#EEE9DE' }} />
+          <Avatar p={p} size={24} style={{ borderWidth: 2, borderColor: '#FBFAF6' }} />
           <View style={styles.ok}><Check size={8} color="#FFFFFF" strokeWidth={3.5} /></View>
         </View>
       ))}
@@ -66,7 +59,6 @@ export default function PlansTab() {
   const insets = useSafeAreaInsets();
   const pad = useTabInset();
   const qc = useQueryClient();
-  const tab = 'soon';
   const [pick, setPick] = useState<number[]>([]);
   const [calendar, setCalendar] = useState(false);
   const [calendarPick, setCalendarPick] = useState(false);
@@ -127,157 +119,258 @@ export default function PlansTab() {
   ].filter((a) => a.key !== 'invite' || !eventStatusLabel(e));
   const open = (e: EventItem) => router.push({ pathname: '/event/[id]', params: { id: e.id } });
 
+  // Ближайший план — крупной карточкой сверху (FIX5, как «Next up» в календарях): обратный отсчёт и кто идёт.
+  const next = !pick.length ? soon[0] : undefined;
+  const rest = next ? groups.map((g) => ({ ...g, items: g.items.filter((e) => e.id !== next.id) })).filter((g) => g.items.length) : groups;
+  // Очень длинный список не рисуем целиком: первые 30 планов, дальше — «Показать ещё».
+  const [limit, setLimit] = useState(30);
+  let shown = 0;
+  const limited = rest.map((g) => { const items = g.items.slice(0, Math.max(0, limit - shown)); shown += items.length; return { ...g, items }; }).filter((g) => g.items.length);
+  const hidden = rest.reduce((n, g) => n + g.items.length, 0) - shown;
+
   return (
-    <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 14 }}>
+    <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingBottom: pad + 20, paddingHorizontal: 16, gap: 16 }}>
       <View style={styles.head}>
-        <Text style={[styles.h1, { flex: 1 }]} accessibilityRole="header">Планы</Text>
-      </View>
-      {/* Куда ещё: постоянные места города и большие события года (21 окт.). */}
-      <View style={styles.extra}>
-        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.yearBtn, styles.soloBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Места города: парки, горы, музеи">
-          <Trees size={18} color={colors.ink} strokeWidth={2} />
-          <Text style={styles.yearText}>Места города</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/city-year')} style={({ pressed }) => [styles.yearBtn, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
-          <CalendarRange size={18} color={colors.ink} strokeWidth={2} />
-          <Text style={styles.yearText}>Год в Алматы</Text>
-        </Pressable>
-
-      </View>
-
-      {tab === 'soon' && (
-        <View style={styles.week}>
-          {(calendarPick && pick.length ? week.slice(0, 2) : week).map((d) => {
-            const a = almaty(new Date(now.getTime() + (d - today) * 86400e3));
-            const on = pick.includes(d);
-            return (
-              <Pressable key={d} onPress={() => toggleDay(d)} style={[styles.day, on && styles.dayOn]} accessibilityRole="button" accessibilityState={{ selected: pick.includes(d) }}
-                accessibilityLabel={`${WD[a.getUTCDay()]} ${a.getUTCDate()}${has(d) ? ', есть планы' : ''}`}>
-                <Text style={[styles.dayWd, on && { color: '#BDB8AD' }]}>{WD[a.getUTCDay()]}</Text>
-                <Text style={[styles.dayN, on && { color: colors.paper }]}>{a.getUTCDate()}</Text>
-                <View style={[styles.dayDot, { opacity: has(d) ? 1 : 0 }]} />
-              </Pressable>
-            );
-          })}
-          <Pressable onPress={() => setCalendar(true)} style={[styles.day, calendarPick && pick.length > 0 && styles.dayOn]} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={22} color={calendarPick && pick.length ? colors.paper : colors.ink} /></Pressable>
-          {calendarPick && pick.length > 0 && [...pick].sort((a,b) => a-b).slice(0, 4).map(d => { const date = almaty(new Date(now.getTime() + (d-today)*86400e3)); return <Pressable key={`picked-${d}`} onPress={() => toggleDay(d)} style={[styles.day, styles.dayOn]} accessibilityLabel={`Убрать ${date.getUTCDate()} ${MON[date.getUTCMonth()]}`}><Text style={[styles.dayN, {color:colors.paper}]}>{date.getUTCDate()}</Text><Text style={[styles.dayWd,{color:'#BDB8AD'}]}>{MON[date.getUTCMonth()]}</Text></Pressable>; })}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.h1} accessibilityRole="header">Планы</Text>
+          <Text style={styles.headSub}>{soon.length ? `${soon.length} ${plural(soon.length, 'план', 'плана', 'планов')} впереди` : 'Пока ничего не запланировано'}</Text>
         </View>
+        <Pressable onPress={() => setCalendar(true)} style={styles.headBtn} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={21} color={colors.ink} strokeWidth={1.9} /></Pressable>
+      </View>
+
+      {/* Неделя: дни с планами — с точками; можно выбрать несколько. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
+        {(calendarPick && pick.length ? [...new Set([...week, ...pick])].sort((a, b) => a - b) : week).map((d) => {
+          const a = almaty(new Date(now.getTime() + (d - today) * 86400e3));
+          const on = pick.includes(d);
+          const n = soon.filter((e) => dayIndex(e.startsAt) === d).length;
+          const weekend = a.getUTCDay() === 0 || a.getUTCDay() === 6;
+          return (
+            <Pressable key={d} onPress={() => toggleDay(d)} style={({ pressed }) => [styles.day, on && styles.dayOn, pressed && { transform: [{ scale: 0.95 }] }]} accessibilityRole="button" accessibilityState={{ selected: on }}
+              accessibilityLabel={`${WD[a.getUTCDay()]} ${a.getUTCDate()}${has(d) ? ', есть планы' : ''}`}>
+              <Text style={[styles.dayWd, weekend && { color: colors.accentText }, on && { color: '#FFD9C7' }]}>{d === today ? 'сегодня' : WD[a.getUTCDay()].toLowerCase()}</Text>
+              <Text style={[styles.dayN, on && { color: colors.paper }]}>{a.getUTCDate()}</Text>
+              <View style={styles.dots}>{Array.from({ length: Math.min(3, n) }, (_, i) => <View key={i} style={[styles.dayDot, on && { backgroundColor: colors.accent }]} />)}{!n && has(d) && <View style={styles.dayDot} />}</View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      {pick.length > 0 && (
+        <Pressable onPress={() => { setPick([]); setCalendarPick(false); }} style={styles.clear} accessibilityRole="button" accessibilityLabel="Показать все планы">
+          <X size={14} color={colors.ink} strokeWidth={2.4} /><Text style={styles.clearText}>Выбрано дней: {pick.length} · показать все</Text>
+        </Pressable>
       )}
-      <Pressable onPress={() => { setPick([]); setCalendarPick(false); }} accessibilityRole="button" accessibilityLabel="Показать все планы"><Text style={styles.sub}>{pick.length ? `Выбрано дат: ${pick.length} · показать все` : 'Все предстоящие планы'}</Text></Pressable>
       {!!actionError && <Text style={{ color: colors.accentText, fontFamily: fonts.body500 }}>{actionError}</Text>}
 
-      {tab === 'soon' && incoming.length > 0 && (
-        <View style={{ gap: 8 }}>
+      {incoming.length > 0 && (
+        <View style={{ gap: 10 }}>
           <View style={styles.secRow}><Text style={styles.sec}>Зовут</Text><View style={styles.count}><Text style={styles.countText}>{incoming.length}</Text></View></View>
           {incoming.map((inv) => {
             const e = byId(inv.event_id!)!;
             const from = people.find((p) => p.id === inv.from_id);
             const d = dayIndex(e.startsAt);
             return (
-              <Animated.View key={inv.id} entering={FadeIn} exiting={FadeOut} layout={LinearTransition} style={[styles.row, styles.inviteRow]}>
+              <Animated.View key={inv.id} entering={FadeIn} exiting={FadeOut} layout={LinearTransition} style={styles.invite}>
                 <Pressable onPress={() => open(e)} style={styles.rowMain} accessibilityRole="button">
                   <View>
-                    <Tile e={e} />
-                    {from && <Avatar p={from} size={24} style={styles.fromFace} />}
+                    <Cover e={e} size={54} />
+                    {from && <Avatar p={from} size={26} style={styles.fromFace} />}
                   </View>
-                  <View style={{ flex: 1, gap: 3 }}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.inviteFrom} numberOfLines={1}>{from?.name ?? 'Друг'} зовёт</Text>
                     <Text style={styles.title} numberOfLines={1}>{e.title}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{from?.name ?? 'Друг'} · {d === today ? 'сегодня' : d === today + 1 ? 'завтра' : WD[almaty(e.startsAt).getUTCDay()]} {hm(e.startsAt)}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>{d === today ? 'сегодня' : d === today + 1 ? 'завтра' : WD[almaty(e.startsAt).getUTCDay()].toLowerCase()} · {hm(e.startsAt)}</Text>
                   </View>
                 </Pressable>
-                <Pressable onPress={() => void answer(inv, false)} style={[styles.round, { backgroundColor: '#D5CFC1' }]} accessibilityRole="button" accessibilityLabel={`Не смогу: ${e.title}`}>
-                  <X size={20} color={colors.ink} strokeWidth={2.2} />
-                </Pressable>
-                <Pressable onPress={() => void answer(inv, true)} style={[styles.round, { backgroundColor: colors.accent }]} accessibilityRole="button" accessibilityLabel={`Иду: ${e.title}`}>
-                  <Check size={20} color={colors.ink} strokeWidth={2.6} />
-                </Pressable>
+                <View style={styles.inviteBtns}>
+                  <Pressable onPress={() => void answer(inv, false)} style={[styles.answerBtn, { backgroundColor: 'rgba(23,22,26,0.07)' }]} accessibilityRole="button" accessibilityLabel={`Не смогу: ${e.title}`}>
+                    <Text style={styles.answerText}>Не смогу</Text>
+                  </Pressable>
+                  <Pressable onPress={() => void answer(inv, true)} style={[styles.answerBtn, { backgroundColor: colors.ink }]} accessibilityRole="button" accessibilityLabel={`Иду: ${e.title}`}>
+                    <Check size={16} color={colors.paper} strokeWidth={2.6} /><Text style={[styles.answerText, { color: colors.paper }]}>Иду</Text>
+                  </Pressable>
+                </View>
               </Animated.View>
             );
           })}
         </View>
       )}
 
-      {groups.map((g) => (
-        <View key={g.day} style={{ gap: 8 }}>
-          <Text style={styles.cap}>{dayTitle(g.day, today, g.items[0].startsAt)}</Text>
-          {g.items.map((e) => {
+      {next && <NextUp e={next} now={now} people={people} onOpen={() => open(next)} />}
+
+      {limited.map((g) => (
+        <View key={g.day} style={{ gap: 2 }}>
+          <View style={styles.dayHead}>
+            <Text style={[styles.dayHeadText, g.day === today && { color: colors.accentText }]}>{dayTitle(g.day, today, g.items[0].startsAt)}</Text>
+            <View style={styles.dayLine} />
+          </View>
+          {g.items.map((e, i) => {
             const sent = sentFor(e.id);
             const looking = Math.max(e.lookingCount, e.lookers?.length ?? 0);
+            const status = eventStatusLabel(e);
+            const live = Date.parse(e.startsAt) <= now.getTime() && endOf(e) > now.getTime();
             return (
-              <SwipeRow iconOnly key={e.id} actions={rowActions(e)} background="#EEE9DE" radius={20}><Pressable onPress={() => open(e)} style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
-                <Tile e={e} />
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View style={styles.titleRow}>
-                    <Text style={[styles.title, { flex: 1 }]} numberOfLines={1}>{e.title}</Text>
-                    <Text style={styles.time}>{hm(e.startsAt)}</Text>
-                  </View>
-                  {eventStatusLabel(e) && <Text style={[styles.sub, { color: colors.accentText }]}>{eventStatusLabel(e)}</Text>}
-                  {(e.friendsGoing.length > 0 || looking > 0 || sent.length > 0) && <View style={styles.meta}>
-                    <Faces ids={e.friendsGoing} people={people} />
-                    {looking > 0 && <View style={styles.look}><Hand size={13} color={colors.accentText} strokeWidth={2} /><Text style={styles.lookText}>{looking}</Text></View>}
-                    {sent.map((i) => {
-                      const p = people.find((x) => x.id === i.to_id);
-                      return <Text key={i.id} style={styles.ans} numberOfLines={1}>{p?.name ?? 'Друг'}: {i.answer === 'yes' ? 'идёт ✓' : i.answer === 'no' ? 'не сможет' : 'ждём ответ'}</Text>;
-                    })}
-                  </View>}
+              <View key={e.id} style={styles.slot}>
+                {/* Линия времени: время слева, точка цвета события и тонкая линия к следующему плану. */}
+                <View style={styles.rail}>
+                  <Text style={[styles.railTime, live && { color: colors.accentText }]}>{e.isLong && !visits[e.id] ? 'весь\nдень' : hm(e.startsAt)}</Text>
+                  <View style={[styles.railDot, { backgroundColor: CAT_COLOR[e.category] }, live && styles.railLive]} />
+                  {i < g.items.length - 1 && <View style={styles.railLine} />}
                 </View>
-                <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
-              </Pressable></SwipeRow>
+                <View style={{ flex: 1, paddingBottom: 10 }}>
+                  <SwipeRow iconOnly actions={rowActions(e)} background="#EEE9DE" radius={20}>
+                    <Pressable onPress={() => open(e)} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]} accessibilityRole="button" accessibilityLabel={`${e.title}, ${hm(e.startsAt)}`}>
+                      <Cover e={e} size={56} />
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text style={styles.title} numberOfLines={2}>{e.title}</Text>
+                        <Text style={styles.sub} numberOfLines={1}>{e.venueName ?? e.address.split(',')[0]}</Text>
+                        {status && <Text style={[styles.sub, { color: colors.accentText }]}>{status}</Text>}
+                        {(e.friendsGoing.length > 0 || looking > 0 || sent.length > 0 || muted[e.id]) && <View style={styles.meta}>
+                          <Faces ids={e.friendsGoing} people={people} />
+                          {looking > 0 && <View style={styles.look}><Hand size={12} color={colors.accentText} strokeWidth={2} /><Text style={styles.lookText}>{looking}</Text></View>}
+                          {muted[e.id] && <BellOff size={14} color={colors.muted} strokeWidth={2} />}
+                          {sent.slice(0, 2).map((x) => {
+                            const p = people.find((y) => y.id === x.to_id);
+                            return <Text key={x.id} style={styles.ans} numberOfLines={1}>{p?.name ?? 'Друг'}: {x.answer === 'yes' ? 'идёт' : x.answer === 'no' ? 'не сможет' : 'ждём'}</Text>;
+                          })}
+                        </View>}
+                      </View>
+                    </Pressable>
+                  </SwipeRow>
+                </View>
+              </View>
             );
           })}
         </View>
       ))}
-
-      {!groups.length && !(tab === 'soon' && incoming.length) && (
-        <StateView kind="empty" style={{ paddingTop: 48 }}
-          title={tab === 'soon' ? (!pick.length ? 'Пока пусто' : 'В этот день ничего') : 'Пока нигде не был'}
-          text={tab === 'soon' ? 'Смахни карточку вправо в «Рекомендациях» — она прилетит сюда.' : 'Здесь появятся события, на которых ты был.'}
-          action={tab === 'soon' ? 'Открыть рекомендации' : undefined} onAction={tab === 'soon' ? () => router.navigate('/foryou') : undefined} />
+      {hidden > 0 && (
+        <Pressable onPress={() => setLimit((l) => l + 30)} style={styles.more} accessibilityRole="button">
+          <Text style={styles.moreText}>Показать ещё {hidden}</Text>
+        </Pressable>
       )}
+
+      {!groups.length && !incoming.length && (
+        <StateView kind="empty" style={{ paddingTop: 24 }}
+          title={!pick.length ? 'Пока пусто' : 'В этот день ничего'}
+          text="Смахни карточку вправо в «Рекомендациях» — она прилетит сюда."
+          action="Открыть рекомендации" onAction={() => router.navigate('/foryou')} />
+      )}
+
+      {/* Куда ещё: постоянные места города и большие события года (21 окт.). */}
+      <View style={styles.extra}>
+        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.extraCard, { backgroundColor: '#DCE8D6' }, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Места города: парки, горы, музеи">
+          <View style={[styles.extraIcon, { backgroundColor: '#2F8F5B' }]}><Trees size={18} color="#FFFFFF" strokeWidth={2} /></View>
+          <Text style={styles.extraTitle}>Места города</Text>
+          <Text style={styles.extraSub}>парки, горы, музеи</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/city-year')} style={({ pressed }) => [styles.extraCard, { backgroundColor: '#F7D9C9' }, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
+          <View style={[styles.extraIcon, { backgroundColor: colors.accent }]}><CalendarRange size={18} color="#FFFFFF" strokeWidth={2} /></View>
+          <Text style={styles.extraTitle}>Год в Алматы</Text>
+          <Text style={styles.extraSub}>большие события</Text>
+        </Pressable>
+      </View>
     </ScrollView>
     {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => { setCalendarPick(pick.length > 0); setCalendar(false); }} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
     </View>
   );
 }
 
+/** Обложка плана: фото события, иначе плитка цвета раздела с иконкой. */
+function Cover({ e, size }: { e: EventItem; size: number }) {
+  return <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={{ width: size, height: size, borderRadius: 16 }} iconSize={Math.round(size * 0.46)} />;
+}
+
+/** «Дальше по плану»: фото, обратный отсчёт, место и кто идёт; кнопки «Маршрут» и «Позвать». */
+function NextUp({ e, now, people, onOpen }: { e: EventItem; now: Date; people: Person[]; onOpen: () => void }) {
+  const start = Date.parse(e.startsAt);
+  const left = start - now.getTime();
+  const when = left <= 0 ? 'идёт сейчас' : left < 3600e3 ? `через ${Math.max(1, Math.round(left / 60000))} мин` : left < 24 * 3600e3 ? `через ${Math.floor(left / 3600e3)} ч ${Math.round((left % 3600e3) / 60000)} мин` : `через ${Math.round(left / 86400e3)} ${plural(Math.round(left / 86400e3), 'день', 'дня', 'дней')}`;
+  const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
+  return (
+    <Pressable onPress={onOpen} style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Дальше по плану: ${e.title}, ${when}`}>
+      <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={90}>
+        <View style={styles.nextShade} />
+        <View style={styles.nextBadge}><View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} /><Text style={styles.nextBadgeText}>{when.toUpperCase()}</Text></View>
+      </EventCover>
+      <View style={styles.nextBody}>
+        <Text style={styles.nextCap}>ДАЛЬШЕ ПО ПЛАНУ</Text>
+        <Text style={styles.nextTitle} numberOfLines={2}>{e.title}</Text>
+        <Text style={styles.sub} numberOfLines={1}>{hm(e.startsAt)} · {e.venueName ?? e.address.split(',')[0]}</Text>
+        <View style={styles.nextRow}>
+          {friends.length > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+            <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={26} style={{ marginLeft: i ? -8 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
+            <Text style={styles.sub} numberOfLines={1}>{friends.length === 1 ? `${friends[0].name} тоже идёт` : `${friends.length} друга идут`}</Text>
+          </View> : <View style={{ flex: 1 }} />}
+          <Pressable onPress={() => router.push({ pathname: '/route', params: { id: e.id } })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
+            <Navigation size={15} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  extra: { flexDirection: 'row', gap: 8 },
-  yearBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, paddingHorizontal: 12, borderRadius: 23, ...plate },
-  soloBtn: { backgroundColor: '#F7D9C9' },
-  yearText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, color: colors.ink },
-  seg: { flexDirection: 'row', padding: 4, borderRadius: 22, backgroundColor: '#D5CFC1' },
-  segBtn: { height: 36, paddingHorizontal: 18, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  segOn: { backgroundColor: colors.ink },
-  segText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
-  week: { flexDirection: 'row', gap: 0, marginHorizontal: -12 },
-  day: { flex: 1, minWidth: 0, borderWidth: 2, borderColor: colors.paper, height: 60, borderRadius: 14, backgroundColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center', gap: 1 },
-  dayOn: { backgroundColor: colors.ink },
-  dayWd: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted },
-  dayN: { fontFamily: fonts.body600, fontSize: 19, color: colors.ink },
+  headSub: { fontFamily: fonts.body500, fontSize: 13.5, color: colors.muted, marginTop: 1 },
+  headBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', ...plate },
+  day: { width: 54, height: 74, borderRadius: 18, backgroundColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center', gap: 1, borderWidth: 1, borderColor: 'rgba(23,22,26,0.05)' },
+  dayOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  dayWd: { fontFamily: fonts.mono600, fontSize: 9, letterSpacing: 0.3, color: colors.muted, textTransform: 'uppercase' },
+  dayN: { fontFamily: fonts.display800, fontSize: 22, letterSpacing: -0.5, color: colors.ink, lineHeight: 27 },
+  dots: { flexDirection: 'row', gap: 3, height: 5 },
   dayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.accent },
+  clear: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: 'rgba(23,22,26,0.07)', marginTop: -6 },
+  clearText: { fontFamily: fonts.body600, fontSize: 13, color: colors.ink },
   secRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sec: { fontFamily: fonts.display700, fontSize: 19, color: colors.ink },
   count: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   countText: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.ink },
-  cap: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted, marginTop: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, ...plate },
-  inviteRow: { borderColor: colors.accent, gap: 8 },
-  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  tile: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#EEE9DE' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontFamily: fonts.display700, fontSize: 16, color: colors.ink },
-  time: { fontFamily: fonts.mono600, fontSize: 13.5, color: colors.ink },
-  sub: { fontFamily: fonts.mono500, fontSize: 12.5, color: colors.muted2 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 0 },
-  ok: { position: 'absolute', right: -2, bottom: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.ok, borderWidth: 1.5, borderColor: '#EEE9DE', alignItems: 'center', justifyContent: 'center' },
-  look: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#F0C5AE' },
-  lookText: { fontFamily: fonts.body700, fontSize: 12.5, color: colors.accentText },
-  ans: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
-  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  invite: { padding: 12, gap: 12, borderRadius: 22, backgroundColor: '#FBFAF6', borderWidth: 1.5, borderColor: 'rgba(240,82,31,0.45)', boxShadow: '0 8px 20px -12px rgba(240,82,31,0.5)' },
+  inviteFrom: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.5, color: colors.accentText, textTransform: 'uppercase' },
+  inviteBtns: { flexDirection: 'row', gap: 8 },
+  answerBtn: { flex: 1, height: 44, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  answerText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
+  rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#FBFAF6' },
+  next: { borderRadius: 26, overflow: 'hidden', backgroundColor: '#FBFAF6', boxShadow: '0 16px 32px -18px rgba(23,22,26,0.45), 0 2px 6px rgba(23,22,26,0.06)' },
+  nextCover: { height: 150, justifyContent: 'flex-end' },
+  nextShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(23,22,26,0.12)' },
+  nextBadge: { position: 'absolute', left: 12, top: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.72)' },
+  nextDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
+  nextBadgeText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.6, color: '#FFFFFF' },
+  nextBody: { padding: 14, gap: 4 },
+  nextCap: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.8, color: colors.muted },
+  nextTitle: { fontFamily: fonts.display800, fontSize: 21, letterSpacing: -0.4, lineHeight: 25, color: colors.ink },
+  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.ink },
+  nextBtnText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.paper },
+  dayHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 8 },
+  dayHeadText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted },
+  dayLine: { flex: 1, height: 1, backgroundColor: 'rgba(23,22,26,0.08)' },
+  slot: { flexDirection: 'row', gap: 10 },
+  rail: { width: 46, alignItems: 'center' },
+  railTime: { fontFamily: fonts.mono600, fontSize: 12.5, color: colors.ink, textAlign: 'center', marginTop: 4 },
+  railDot: { width: 11, height: 11, borderRadius: 6, marginTop: 7, borderWidth: 2, borderColor: colors.paper, boxShadow: '0 0 0 1px rgba(23,22,26,0.12)' },
+  railLive: { width: 13, height: 13, borderRadius: 7, boxShadow: '0 0 0 4px rgba(240,82,31,0.22)' },
+  railLine: { flex: 1, width: 2, borderRadius: 1, backgroundColor: 'rgba(23,22,26,0.1)', marginTop: 4 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 20, backgroundColor: '#FBFAF6', boxShadow: '0 1px 2px rgba(23,22,26,0.06), 0 6px 16px -12px rgba(23,22,26,0.35)' },
+  title: { fontFamily: fonts.display700, fontSize: 15.5, lineHeight: 19, color: colors.ink },
+  sub: { fontFamily: fonts.body500, fontSize: 13, color: colors.muted2 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 },
+  ok: { position: 'absolute', right: -2, bottom: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.ok, borderWidth: 1.5, borderColor: '#FBFAF6', alignItems: 'center', justifyContent: 'center' },
+  look: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 22, paddingHorizontal: 7, borderRadius: 11, backgroundColor: '#F6D5C3' },
+  lookText: { fontFamily: fonts.body700, fontSize: 12, color: colors.accentText },
+  ans: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted2 },
+  more: { alignSelf: 'center', height: 44, paddingHorizontal: 18, borderRadius: 22, justifyContent: 'center', backgroundColor: 'rgba(23,22,26,0.07)' },
+  moreText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
+  extra: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  extraCard: { flex: 1, padding: 14, borderRadius: 22, gap: 2 },
+  extraIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  extraTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
+  extraSub: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   emptyBtn: { marginTop: 8, height: 48, paddingHorizontal: 22, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
-  emptyBtnText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper },
+  emptyBtnText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper, textAlign: 'center' },
 });

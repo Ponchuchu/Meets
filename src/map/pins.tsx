@@ -1,5 +1,5 @@
 // Точки на карте по макету Main: события, друзья, моя точка. Каждый пин центрирован на своей координате.
-import { useEffect, useState, type ReactNode } from 'react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -8,6 +8,7 @@ import { MapAvatar } from './MapAvatar';
 import type { EventItem, FriendSpot, Person } from '../data/types';
 import { colors, fonts } from '../theme';
 import { CAT_COLOR, CAT_ICON, catFg } from './icons';
+import { shade } from '../ui/EventCover';
 import type { Phase } from './lifecycle';
 
 export type PinKind = 'hot' | 'popular' | 'labeled' | 'plain';
@@ -43,7 +44,12 @@ function formatK(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',').replace(',0', '')}K` : String(n);
 }
 
-export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected }: {
+/**
+ * Значок события (FIX5): объёмная «пуговица» вместо плоского квадрата — снизу тёмный бортик того же цвета (толщина),
+ * сверху лицевая сторона с бликом, белая кромка и мягкая тень. Издалека обычные события — маленькие точки
+ * (compact), чтобы карта не рябила; выбранное — крупнее, с оранжевой кромкой и подписью.
+ */
+export const EventPin = memo(function EventPin({ e, kind, phase, label, showCompany, dark, onPress, scale = 1, count = 1, selected, compact }: {
   e: EventItem; kind: PinKind; phase: Phase; label?: string; showCompany: boolean; dark: boolean; onPress: () => void;
   /** Масштаб от зума карты (src/map/zoom.ts). */
   scale?: number;
@@ -51,30 +57,46 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
   count?: number;
   /** Выбранная точка: крупнее, с оранжевой обводкой и подписью. Остальные — без текста, чтобы не налезали. */
   selected?: boolean;
+  /** Издалека — точка вместо значка. */
+  compact?: boolean;
 }) {
   const soon = phase === 'soon';
   // Пульсирует только разовое событие «идёт сейчас»; выставки и маркеты открыты весь день — без пульса.
   const live = phase === 'live' && !e.isLong;
-  const outline = dark ? colors.ink : colors.cardAlt;
-  const size = kind === 'hot' ? 44 : kind === 'popular' ? 46 : kind === 'labeled' ? 40 : soon ? 38 : 34;
-  const radius = kind === 'hot' ? 15 : kind === 'popular' ? 16 : kind === 'labeled' ? 14 : 11;
   const bg = CAT_COLOR[e.category];
   const fg = catFg(e.category);
-  // Свои и дружеские события сегодня — с тёмной обводкой, остальные — со светлой.
-  const ring = selected ? colors.accent : kind === 'hot' ? (dark ? colors.paper : colors.ink) : outline;
   const looking = e.lookingCount;
+  if (compact && !selected) {
+    return (
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={e.title} style={styles.hit} hitSlop={6}>
+        <View style={styles.anchor}>
+          <View style={[styles.dot, { backgroundColor: shade(bg, 0.18), borderColor: dark ? colors.paper : '#FFFFFF' }]}>
+            <View style={[styles.dotFace, { backgroundColor: bg }]} />
+          </View>
+          {count > 1 && <View pointerEvents="none" style={[styles.dotCount, { borderColor: dark ? colors.ink : '#FFFFFF' }]}><Text style={styles.dotCountText}>{count}</Text></View>}
+        </View>
+      </Pressable>
+    );
+  }
+  const size = kind === 'hot' ? 40 : kind === 'popular' ? 40 : kind === 'labeled' ? 36 : soon ? 35 : 33;
+  const depth = Math.round(size * 0.09);
+  const ring = selected ? colors.accent : kind === 'hot' ? colors.ink : '#FFFFFF';
+  const icon = kind === 'plain' ? 16 : 19;
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${e.title}${count > 1 ? `, ещё ${count - 1} в этом месте` : ''}${label ? `, ${label}` : ''}`} style={styles.hit} hitSlop={6}>
-      <View style={[styles.anchor, { transform: [{ scale: selected ? Math.max(1.1, scale * 1.2) : scale }] }]}>
-        {kind === 'popular' && <View pointerEvents="none" style={[styles.halo, { backgroundColor: dark ? 'rgba(243,240,232,0.08)' : 'rgba(23,22,26,0.06)' }]} />}
-        {live && <Pulse size={size + 22} color={bg} />}
-        <View style={{ width: size + 6, height: size + 6, borderRadius: radius + 3, backgroundColor: ring, alignItems: 'center', justifyContent: 'center', opacity: e.isLong && kind === 'plain' ? 0.9 : 1 }}>
-          <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-            <Ico d={CAT_ICON[e.category]} size={kind === 'plain' ? (soon ? 18 : 17) : kind === 'popular' ? 22 : 20} color={fg} w={kind === 'hot' ? 2.2 : 2} />
+      <View style={[styles.anchor, { transform: [{ scale: selected ? Math.max(1.12, scale * 1.22) : scale }] }]}>
+        {live && <Pulse size={size + 24} color={bg} />}
+        {/* Кромка → бортик (толщина) → лицевая сторона с бликом */}
+        <View style={[styles.rim, { width: size + 5, height: size + 5 + depth, borderRadius: (size + 5) / 2, backgroundColor: ring, opacity: e.isLong && kind === 'plain' ? 0.94 : 1 }]}>
+          <View style={{ width: size, height: size + depth, borderRadius: size / 2, backgroundColor: shade(bg, 0.3) }}>
+            <View style={[styles.face, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
+              <View pointerEvents="none" style={[styles.shine, { width: size * 0.62, height: size * 0.3, borderRadius: size * 0.2, top: size * 0.08 }]} />
+              <Ico d={CAT_ICON[e.category]} size={icon} color={fg} w={2.1} />
+            </View>
           </View>
         </View>
         {count > 1 && (
-          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 4, top: -size / 2 - 8, borderColor: outline }]}>
+          <View pointerEvents="none" style={[styles.stack, { left: size / 2 - 6, top: -size / 2 - 8, borderColor: '#FFFFFF' }]}>
             <Text style={styles.stackText}>{count}</Text>
           </View>
         )}
@@ -84,14 +106,14 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
           </Tag>
         )}
         {label && (
-          <Tag x={size / 2 + 11} y={-11}>
+          <Tag x={0} y={size / 2 + depth + 6} align="center">
             <View style={[styles.label, { backgroundColor: dark ? colors.paper : colors.ink }]}>
               <Text style={[styles.labelText, { color: dark ? colors.ink : colors.paper }]}>{label}</Text>
             </View>
           </Tag>
         )}
         {showCompany && looking > 0 && !label && (
-          <Tag x={kind === 'plain' ? 4 : -size / 2 - 12} y={kind === 'plain' ? -size / 2 - 12 : size / 2 - 10}>
+          <Tag x={size / 2 - 10} y={size / 2 - 8}>
             <View style={[styles.looking, { backgroundColor: colors.cardAlt, borderColor: colors.ink }]}>
               <Text style={styles.lookingText}>{kind === 'plain' ? looking : `${formatK(looking)} ИЩУТ`}</Text>
             </View>
@@ -100,7 +122,9 @@ export function EventPin({ e, kind, phase, label, showCompany, dark, onPress, sc
       </View>
     </Pressable>
   );
-}
+}, (a, b) => a.e === b.e && a.kind === b.kind && a.phase === b.phase && a.label === b.label && a.showCompany === b.showCompany && a.dark === b.dark
+  && a.scale === b.scale && a.count === b.count && a.selected === b.selected && a.compact === b.compact);
+// Нажатие не сравниваем: обработчик новый на каждой отрисовке карты, а значок от этого не меняется (FIX5 — меньше работы при зуме).
 
 export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
   const moving = spot.state === 'moving';
@@ -116,6 +140,11 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
       <View style={{ alignItems: 'center' }} pointerEvents="none">
         <MapAvatar person={person} ring={paused ? '#8C8577' : undefined} />
       </View>
+      {spot.battery != null && !paused && (
+        <Tag x={8} y={-34}>
+          <BatteryTag level={spot.battery} charging={!!spot.charging} />
+        </Tag>
+      )}
       {moving && (
         <Tag x={-26} y={21}>
           <View style={styles.speed}>
@@ -133,6 +162,22 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
       )}
     </View>
     </Pressable>
+  );
+}
+
+/** Заряд друга (FIX5, как в Zenly): маленькая батарейка с процентом; заряжается — зелёная с молнией, мало — красная. */
+export function BatteryTag({ level, charging }: { level: number; charging: boolean }) {
+  const low = level <= 20 && !charging;
+  const fill = charging ? '#2FA35A' : low ? '#E5383B' : colors.ink;
+  return (
+    <View style={styles.batt} accessibilityLabel={`Заряд ${level}%${charging ? ', заряжается' : ''}`}>
+      <View style={styles.battBody}>
+        <View style={{ width: `${Math.max(8, Math.min(100, level))}%`, height: '100%', borderRadius: 1.5, backgroundColor: fill }} />
+        {charging && <View style={styles.bolt}><Ico d="M13 2L4 14h7l-1 8 9-12h-7z" size={9} color="#FFFFFF" w={2.6} /></View>}
+      </View>
+      <View style={styles.battCap} />
+      <Text style={[styles.battText, low && { color: '#C2272A' }, charging && { color: '#1F7A40' }]}>{level}%</Text>
+    </View>
   );
 }
 
@@ -212,7 +257,13 @@ const styles = StyleSheet.create({
   togetherText: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.4, color: colors.ink },
   // Нулевой якорь: всё содержимое центрируется на координате.
   anchor: { width: 0, height: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  halo: { position: 'absolute', width: 96, height: 96, borderRadius: 48 },
+  dot: { width: 16, height: 18, borderRadius: 9, borderWidth: 2.5, overflow: 'hidden', boxShadow: '0 3px 6px -1px rgba(23,22,26,0.4)' },
+  dotFace: { position: 'absolute', left: 0, right: 0, top: 0, height: 11, borderRadius: 6 },
+  dotCount: { position: 'absolute', left: 4, top: -16, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  dotCountText: { fontFamily: fonts.mono600, fontSize: 9.5, color: colors.paper },
+  rim: { alignItems: 'center', paddingTop: 2.5, boxShadow: '0 7px 10px -5px rgba(23,22,26,0.55), 0 2px 3px rgba(23,22,26,0.12)' },
+  face: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  shine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.32)' },
   count: { height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: colors.cardAlt, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   countText: { fontFamily: fonts.mono600, fontSize: 10, color: colors.ink },
   label: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 7 },
@@ -227,6 +278,11 @@ const styles = StyleSheet.create({
   speedText: { fontFamily: fonts.mono600, fontSize: 9.5, color: '#FFFFFF' },
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
+  batt: { flexDirection: 'row', alignItems: 'center', height: 18, paddingLeft: 5, paddingRight: 6, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.96)', boxShadow: '0 2px 6px rgba(23,22,26,0.22)' },
+  battBody: { width: 17, height: 9, padding: 1, borderRadius: 3, borderWidth: 1.3, borderColor: colors.ink, justifyContent: 'center' },
+  battCap: { width: 1.6, height: 4, marginLeft: 0.5, borderTopRightRadius: 1, borderBottomRightRadius: 1, backgroundColor: colors.ink },
+  bolt: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  battText: { marginLeft: 4, fontFamily: fonts.body700, fontSize: 10, color: colors.ink },
   ago: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.94)', boxShadow: '0 2px 6px rgba(23,22,26,0.18)' },
   agoText: { fontFamily: fonts.body700, fontSize: 10.5, color: colors.muted2 },
   meHalo: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.1)', alignItems: 'center', justifyContent: 'center' },

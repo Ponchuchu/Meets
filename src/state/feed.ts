@@ -7,6 +7,17 @@ import { deviceStorage } from './storage';
 
 export const MAX_UNDO_PER_SESSION = 10;
 
+/** Паузы между подсказками жестов: сразу, через 5 дней, через 30 дней; после трёх — не показываем. */
+const HINT_GAPS = [0, 5 * 86400e3, 30 * 86400e3];
+/** Сколько ждать бездействия на карточке, прежде чем подсказать жест. */
+export const HINT_IDLE_MS = 45000;
+
+export function hintDue(shown: number[] | undefined, now: number): boolean {
+  const n = shown?.length ?? 0;
+  if (n >= HINT_GAPS.length) return false;
+  return n === 0 || now - shown![n - 1] >= HINT_GAPS[n];
+}
+
 export interface Decision {
   eventId: string;
   kind: 'go' | 'skip';
@@ -22,6 +33,9 @@ interface FeedState {
   spotSeen: Record<string, number>;
   spotSkipped: Record<string, number>;
   markSpot: (id: string, week: number, skipped?: boolean) => void;
+  /** Когда показывали подсказку жестов (мс): первый раз, через 5 дней, через месяц — и больше никогда. */
+  hintShown: number[];
+  markHint: (at: number) => void;
   decide: (d: Decision, s: Signal) => void;
   addSignal: (s: Signal) => void;
   removeSignal: (id: string) => void;
@@ -42,6 +56,8 @@ export const useFeed = create<FeedState>()(
       undosLeft: MAX_UNDO_PER_SESSION,
       spotSeen: {},
       spotSkipped: {},
+      hintShown: [],
+      markHint: (at) => set((st) => ({ hintShown: [...(st.hintShown ?? []), at].slice(-5) })),
       markSpot: (id, week, skipped = false) => set((st) => ({ spotSeen: { ...st.spotSeen, [id]: week }, ...(skipped ? { spotSkipped: { ...st.spotSkipped, [id]: week } } : {}) })),
       decide: (d, s) => {
         pushSignal(s);

@@ -4,6 +4,8 @@ import type { EventItem } from '../data/types';
 import { buildDeck, eventTags, makeSignal, scoreEvent, tasteFrom, type Signal } from '../reco';
 import type { StartAnswers } from '../reco/startTaste';
 
+import { hintDue } from '../state/feed';
+
 const NOW = new Date('2026-09-28T12:00:00+05:00');
 const ANSWERS: StartAnswers = { interests: ['music', 'games', 'hike'], times: ['weekday', 'weekend'], withWho: 'friends', budget: 'mid' };
 const events = [...demoEvents(NOW), ...seedEvents()];
@@ -112,5 +114,16 @@ describe('колода', () => {
     const now2 = buildDeck(after, events, { decided: new Set(['standup']), swipes: 20 }, ctx, { size: 20 });
     const pos = (d: EventItem[]) => d.findIndex((e) => e.category === 'standup');
     expect(pos(now2)).toBeLessThanOrEqual(pos(before));
+  });
+});
+describe('подсказка жестов (FIX5)', () => {
+  it('сразу, через 5 дней, через месяц и больше никогда', () => {
+    const d = 86400e3;
+    expect(hintDue([], 0)).toBe(true);
+    expect(hintDue([0], 4 * d)).toBe(false);
+    expect(hintDue([0], 5 * d)).toBe(true);
+    expect(hintDue([0, 5 * d], 20 * d)).toBe(false);
+    expect(hintDue([0, 5 * d], 35 * d)).toBe(true);
+    expect(hintDue([0, 5 * d, 35 * d], 400 * d)).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 // «Места города» (21 октября, после отзыва владельца): раньше — «Сходить одному», слишком громко. Теперь спокойно:
 // постоянные места по настроению (погулять, посмотреть, подвигаться), что открыто сейчас, бесплатное, и в конце —
 // тихая подборка событий, куда приходят без своей компании. Карточка места та же, что на карте.
+import { remote } from '../../data/photos';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -46,7 +47,7 @@ export default function SoloScreen() {
     return (
       <Pressable onPress={() => setOpen(a)} style={({ pressed }) => [styles.tile, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${a.name}, ${KIND_LABEL[a.kind]}`}>
         {a.photos?.[0] && !broken.includes(a.id)
-          ? <Image source={{ uri: a.photos[0] }} style={styles.tilePhoto} resizeMode="cover" onError={() => setBroken((b) => [...b, a.id])} />
+          ? <Image source={remote(a.photos[0])} style={styles.tilePhoto} resizeMode="cover" onError={() => setBroken((b) => [...b, a.id])} />
           : <View style={styles.tileIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
         <Text style={styles.tileName} numberOfLines={2}>{a.name}</Text>
         <Text style={[styles.tileSub, st.state === 'open' && { color: colors.ok }]} numberOfLines={1}>{a.free ? 'бесплатно' : st.state === 'unknown' ? KIND_LABEL[a.kind].toLowerCase() : st.text.toLowerCase()}</Text>

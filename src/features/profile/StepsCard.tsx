@@ -4,6 +4,7 @@ import { getProfileExtras, saveProfileExtras } from '../../live/profileExtras';
 import { Group, ToggleRow } from '../../ui/v6/Settings';
 import { StepsChallenges, StepsLeaderboard } from './StepsSocial';
 import { Footprints } from 'lucide-react-native';
+import { useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { config } from '../../lib/config';
@@ -15,6 +16,8 @@ import { BADGE_ICONS } from '../../profile/badges';
 import { plate } from '../../ui/glass';
 
 const DAY = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const FULL = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
 const demoHistory = () => Array.from({ length: 12 }, (_, i) => ({ day: new Date(Date.now() - (i + 1) * 86400e3).toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps: [8200, 11400, 6400, 3100, 12800, 9100, 7300, 10400, 5200, 6900, 4100, 9800][i] }));
 
@@ -32,7 +35,12 @@ export function StepsCard() {
   const awards = stepAwards(days, { day: todayKey(), steps });
   const next = STEP_GOALS.find(g => steps < g.steps);
   const r = 64, len = 2 * Math.PI * r;
-  const avg = Math.round(week.reduce((a, d) => a + d.steps, 0) / 7);
+  const sum = week.reduce((a, d) => a + d.steps, 0);
+  const avg = Math.round(sum / 7);
+  // Нажатый столбик (FIX5): сколько шагов в этот день; по умолчанию — сегодня.
+  const [pick, setPick] = useState(6);
+  const picked = week[pick] ?? week[6];
+  const pickedName = picked ? (pick === 6 ? 'Сегодня' : `${FULL[new Date(`${picked.day}T12:00:00Z`).getUTCDay()]}, ${Number(picked.day.slice(8))} ${MON[Number(picked.day.slice(5, 7)) - 1]}`) : '';
 
   return (
     <View style={{ gap: 12 }}>
@@ -60,19 +68,25 @@ export function StepsCard() {
       </View>
 
       <View style={styles.card}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <Text style={styles.title}>Неделя</Text>
-          <Text style={styles.sub}>в среднем {avg.toLocaleString('ru-RU')} в день</Text>
+          <Text style={styles.sub}>{sum.toLocaleString('ru-RU')} за 7 дней · в среднем {avg.toLocaleString('ru-RU')}</Text>
         </View>
+        {picked && (
+          <View style={styles.pickRow}>
+            <Text style={styles.pickDay}>{pickedName}</Text>
+            <Text style={styles.pickSteps}>{picked.steps.toLocaleString('ru-RU')} <Text style={styles.sub}>шагов</Text></Text>
+          </View>
+        )}
         <View style={styles.bars}>
           {week.map((d, i) => {
             const h = Math.max(4, Math.round((d.steps / max) * 96));
             const on = d.steps >= STEP_GOAL;
             return (
-              <View key={d.day} style={styles.barCol} accessibilityLabel={`${DAY[new Date(`${d.day}T12:00:00Z`).getUTCDay()]}: ${d.steps} шагов`}>
-                <View style={[styles.bar, { height: h, backgroundColor: on ? colors.ok : i === 6 ? colors.ink : '#BFB8A7' }]} />
-                <Text style={[styles.barDay, i === 6 && { color: colors.ink }]}>{DAY[new Date(`${d.day}T12:00:00Z`).getUTCDay()]}</Text>
-              </View>
+              <Pressable key={d.day} onPress={() => setPick(i)} style={styles.barCol} accessibilityRole="button" accessibilityState={{ selected: pick === i }} accessibilityLabel={`${DAY[new Date(`${d.day}T12:00:00Z`).getUTCDay()]}: ${d.steps} шагов`}>
+                <View style={[styles.bar, { height: h, backgroundColor: pick === i ? colors.accent : on ? colors.ok : '#BFB8A7' }]} />
+                <Text style={[styles.barDay, pick === i && { color: colors.ink, fontFamily: fonts.mono600 }]}>{i === 6 ? 'сег' : DAY[new Date(`${d.day}T12:00:00Z`).getUTCDay()]}</Text>
+              </Pressable>
             );
           })}
           <View pointerEvents="none" style={[styles.goalLine, { bottom: 22 + Math.round((STEP_GOAL / max) * 96) }]} />
@@ -120,6 +134,9 @@ const styles = StyleSheet.create({
   btnText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.paper },
   title: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 12.5, lineHeight: 17, color: colors.muted },
+  pickRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, backgroundColor: 'rgba(240,82,31,0.08)' },
+  pickDay: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
+  pickSteps: { fontFamily: fonts.display800, fontSize: 20, color: colors.ink },
   bars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 122, paddingTop: 4 },
   barCol: { flex: 1, alignItems: 'center', gap: 6 },
   bar: { width: 22, borderRadius: 8 },

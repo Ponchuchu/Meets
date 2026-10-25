@@ -197,9 +197,9 @@ export const MESSAGES: Message[] = [
 
 // Точки разложены как на макете Main (демо-координаты, адреса — текстом). Где друзья сейчас: Игорь в кофейне у джаза, Денис едет по Абая, Антон на выставке, Тимур на паузе.
 export const FRIEND_SPOTS: FriendSpot[] = [
-  { personId: 'igor', lat: 43.2529, lon: 76.9476, state: 'here', place: 'Кофейня на Панфилова', minutesAgo: 2, note: 'джаз с 19:00' },
-  { personId: 'denis', lat: 43.2620, lon: 76.9415, state: 'moving', place: 'Едет по Абая к аниме-выставке', speedKmh: 14, heading: 90, doing: 'едет на аниме-выставку', vehicle: 'самокат', note: 'выставка до 21:00' },
-  { personId: 'anton', lat: 43.2631, lon: 76.9537, state: 'here', place: 'Аниме-выставка, ТРЦ на Абая', minutesAgo: 1, note: 'свободен весь вечер' },
+  { personId: 'igor', lat: 43.2529, lon: 76.9476, state: 'here', place: 'Кофейня на Панфилова', minutesAgo: 2, note: 'джаз с 19:00', battery: 82 },
+  { personId: 'denis', lat: 43.2620, lon: 76.9415, state: 'moving', place: 'Едет по Абая к аниме-выставке', speedKmh: 14, heading: 90, doing: 'едет на аниме-выставку', vehicle: 'самокат', note: 'выставка до 21:00', battery: 14 },
+  { personId: 'anton', lat: 43.2631, lon: 76.9537, state: 'here', place: 'Аниме-выставка, ТРЦ на Абая', minutesAgo: 1, note: 'свободен весь вечер', battery: 56, charging: true },
   { personId: 'timur', lat: 43.2561, lon: 76.9373, state: 'paused', place: 'Был здесь 25 минут назад', minutesAgo: 25 },
 ];
 export const MY_SPOT = { lat: 43.2533, lon: 76.9409 };

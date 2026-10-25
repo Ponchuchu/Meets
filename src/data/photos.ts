@@ -18,5 +18,11 @@ export const photos: Record<string, ImageSourcePropType> = {
 /** Ключ демо-фото ('igor') или адрес картинки (галерея, Storage). */
 export function photo(key: string | null | undefined): ImageSourcePropType | undefined {
   if (!key) return undefined;
-  return photos[key] ?? { uri: key };
+  return photos[key] ?? remote(key);
+}
+
+/** Wikimedia отклоняет запросы без подписи приложения (их правила User-Agent) — фото мест подписываем. */
+const UA = { 'User-Agent': 'Ryadom/1.0 (Almaty events app; https://ryadom.app)' };
+export function remote(uri: string): ImageSourcePropType {
+  return uri.includes('wikimedia.org') ? { uri, headers: UA } : { uri };
 }
