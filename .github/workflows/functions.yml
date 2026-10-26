@@ -30,10 +30,6 @@ jobs:
             exit 1
           fi
       - run: npm run typecheck && npm test -- --ci --runInBand && npm run test:sql
-      - name: Встречи, группы и награды
-        run: npm run db:migrate -- 20261006000018
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - name: Исправления панели и сохранение планов
         id: migration
         run: |
