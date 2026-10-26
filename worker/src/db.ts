@@ -14,8 +14,14 @@ export interface Db {
   markPost(id: string, cls: string, eventId: string | null): Promise<void>;
   insertEvent(d: Draft, sourceId: string): Promise<string>;
   cancel(eventId: string, sure: boolean): Promise<void>;
+  /** Ещё одна дата у события (повтор спектакля или шоу). */
+  addSession(eventId: string, at: string): Promise<void>;
   touchSource(id: string, cursor: string | null): Promise<void>;
   notifyStaff(): Promise<void>;
+  /** Файл в публичное хранилище event-media → его адрес. */
+  upload(path: string, body: ArrayBuffer, type: string): Promise<string>;
+  /** Итоги сбора источника для панели (дописываются к прежним). */
+  sourceStats(id: string, patch: Record<string, unknown>): Promise<void>;
   /** Закончившиеся черновики убираем в архив, сохраняя защиту от повторного поиска. */
   purgeExpiredDrafts(): Promise<number>;
 }
@@ -36,7 +42,7 @@ export function createDb(url: string, key: string): Db {
   const patch = (path: string, body: unknown) => rest(path, { method: 'PATCH', body: JSON.stringify(body), headers: { Prefer: 'return=minimal' } });
 
   return {
-    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual)&select=*'),
+    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual,instagram,threads)&select=*'),
     shortAbouts: async (urls) => {
       const out: { id: string; source_url: string; about: string | null }[] = [];
       for (let i = 0; i < urls.length; i += 40) {
@@ -52,17 +58,17 @@ export function createDb(url: string, key: string): Db {
       const now = new Date().toISOString();
       // Долгие события пересекают окно; запреты и старые названия сохраняем независимо от даты.
       // Читаем по страницам: Supabase ограничивает размер одного ответа.
-      type Row = { id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; is_long?: boolean; venues: { name: string } | null };
-      const out: { id: string; title: string; starts_at: string; venue_name: string | null; is_long?: boolean }[] = [];
+      type Row = { id: string; title: string; orig_title: string | null; status: string; rejected: boolean; starts_at: string; is_long?: boolean; sessions?: string[] | null; venues: { name: string } | null };
+      const out: KnownEvent[] = [];
       let after: string | null = null;
       for (;;) {
         const rows: Row[] = await rest<Row[]>(
-          `events?select=id,title,orig_title,status,rejected,starts_at,is_long,venues(name)&visibility=eq.public&or=(starts_at.gte.${since},ends_at.gte.${now},rejected.eq.true,orig_title.not.is.null)&order=id.asc&limit=500${after ? `&id=gt.${after}` : ''}`,
+          `events?select=id,title,orig_title,status,rejected,starts_at,is_long,sessions,venues(name)&visibility=eq.public&or=(starts_at.gte.${since},ends_at.gte.${now},rejected.eq.true,orig_title.not.is.null)&order=id.asc&limit=500${after ? `&id=gt.${after}` : ''}`,
         );
         for (const r of rows) {
           const live = !r.rejected && (r.status === 'draft' || r.status === 'published');
           const venue_name = r.venues?.name ?? null;
-          out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
+          out.push({ id: live ? r.id : `new:gone-${r.id}`, title: r.title, starts_at: r.starts_at, venue_name, is_long: r.is_long, sessions: r.sessions ?? undefined });
           if (r.orig_title) out.push({ id: `new:orig-${r.id}`, title: r.orig_title, starts_at: r.starts_at, venue_name, is_long: r.is_long });
         }
         if (rows.length < 500) break;
@@ -74,7 +80,7 @@ export function createDb(url: string, key: string): Db {
       if (!posts.length) return [];
       const rows = await post<{ id: string; external_id: string }[]>(
         'raw_posts?on_conflict=source_id,external_id',
-        posts.map((p) => ({ source_id: p.sourceId, external_id: p.externalId, url: p.url, text: p.text.slice(0, 4000), images: p.images, posted_at: p.postedAt })),
+        posts.map((p) => ({ source_id: p.sourceId, external_id: p.externalId, url: p.url, text: p.text.slice(0, 4000), images: p.images, posted_at: p.postedAt, media: p.media ?? [] })),
         'resolution=ignore-duplicates,return=representation',
       );
       const ids = new Map(rows.map((r) => [r.external_id, r.id]));
@@ -93,11 +99,14 @@ export function createDb(url: string, key: string): Db {
       const [e] = await post<{ id: string }[]>('events', [{
         title: d.title, category: d.category, tags: d.tags, starts_at: d.starts_at, ends_at: d.ends_at, is_long: d.is_long,
         venue_id: venueId, address: d.address, address_note: d.address_note, price_min: d.price_min, price_max: d.price_max,
-        is_free: d.is_free, about: d.about, organizer: d.organizer, cover_url: d.cover_url, source_url: d.source_url,
+        is_free: d.is_free, about: d.about, organizer: d.organizer, cover_url: d.cover_url, media: d.media ?? [], sessions: d.sessions ?? [], source_url: d.source_url,
         ai_confidence: d.ai_confidence, flags: d.flags, status: d.status, source_id: sourceId,
         published_at: d.status === 'published' ? new Date().toISOString() : null,
       }]);
       return e.id;
+    },
+    addSession: async (eventId, at) => {
+      await post('rpc/event_add_session', { ev: eventId, at }, 'return=minimal');
     },
     cancel: async (eventId, sure) => {
       await post('rpc/worker_cancel', { ev: eventId, sure }, 'return=minimal');
@@ -113,6 +122,15 @@ export function createDb(url: string, key: string): Db {
         { method: 'PATCH', body: JSON.stringify({ status: 'archived', rejected: true, updated_at: now }), headers: { Prefer: 'return=representation' } },
       );
       return gone?.length ?? 0;
+    },
+    upload: async (path, body, type) => {
+      const res = await fetch(`${url}/storage/v1/object/event-media/${path}`, { method: 'POST', headers: { ...headers, 'Content-Type': type, 'x-upsert': 'true' }, body });
+      if (!res.ok) throw new Error(`Хранилище ${res.status}: ${(await res.text()).slice(0, 120)}`);
+      return `${url}/storage/v1/object/public/event-media/${path}`;
+    },
+    sourceStats: async (id, p) => {
+      const [row] = await rest<{ stats: Record<string, unknown> | null }[]>(`sources?id=eq.${id}&select=stats`);
+      await patch(`sources?id=eq.${id}`, { stats: { ...(row?.stats ?? {}), ...p } });
     },
     notifyStaff: async () => {
       await post('rpc/notify_staff', {}, 'return=minimal');

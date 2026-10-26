@@ -105,7 +105,7 @@ describe('весь проход на примерах', () => {
     const understand = async (p: RawPost) => ({ ...extract(p.text, p.postedAt), by: 'heuristics' as const });
     const known = [{ id: 'jazz', title: 'Джаз во дворе', starts_at: '2026-10-03T19:30:00+05:00', venue_name: 'Панфилова 110' }];
     const res = await processPosts(posts, { ...source, trusted: false }, { understand, geocode: async () => null, venues, known });
-    expect(summary(res)).toEqual({ posts: 9, events: 4, ad: 1, meme: 1, not_almaty: 1, duplicate: 1, cancel: 1, unclear: 0, published: 0 });
+    expect(summary(res)).toEqual({ posts: 9, events: 4, ad: 1, meme: 1, not_almaty: 1, duplicate: 1, session: 0, cancel: 1, unclear: 0, published: 0 });
     const cancel = res.find((r) => r.kind === 'cancel');
     expect(cancel).toMatchObject({ of: { id: 'jazz' }, sure: false });
   });

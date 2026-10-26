@@ -1,6 +1,7 @@
 // «Искать сейчас» и «Стоп» в панели разработчика (V6 §10.2). Только staff.
-// POST { action: 'start', topics?: string[], days?: number, limit?: number, model?: string, sources?: 'sites'|'ai'|'all', find_images?: 0..20 } → { run_id }
-//   какие афиши читать и включён ли Telegram — берётся из таблицы sources (переключатели «собирать»)
+// POST { action: 'start', days?: number, limit?: number } → { run_id }
+//   какие афиши читать, включены ли Telegram, Instagram и Threads — берётся из таблицы sources (переключатели «собирать»).
+//   ИИ-поиск по интернету выключен (26 окт., решение владельца): всё собирает скрипт.
 // POST { action: 'stop', run_id }  → { ok }
 // POST { action: 'check' }          → { ok, error? } — токен GitHub на месте и видит воркфлоу (ничего не запускает)
 // Из robot-tick (CRON_SECRET): { action: 'start', task: 'search' | 'covers', scheduled: true }
@@ -36,16 +37,18 @@ Deno.serve(async (req) => {
   if(body.action !== 'start') return json({error:'unknown action'},400);
   if(body.sources != null && !['sites','ai','all'].includes(body.sources)) return json({error:'invalid search parameters'},400);
   if(body.find_images != null && (!Number.isInteger(body.find_images)||body.find_images<0||body.find_images>20)) return json({error:'invalid search parameters'},400);
-  if(body.days != null && (!Number.isInteger(body.days)||body.days<1||body.days>30) || body.limit != null && (!Number.isInteger(body.limit)||body.limit<1||body.limit>100) || body.model != null && !/^(gemini|kimi|moonshot)-[a-zA-Z0-9.-]+$/.test(body.model) || body.topics != null && (!Array.isArray(body.topics)||body.topics.some(t=>!['music','standup','cinema','art','food','sport'].includes(t))))return json({error:'invalid search parameters'},400);
+  if(body.days != null && (!Number.isInteger(body.days)||body.days<1||body.days>30) || body.limit != null && (!Number.isInteger(body.limit)||body.limit<1||body.limit>100))return json({error:'invalid search parameters'},400);
   const task = body.task === 'covers' ? 'covers' : 'search';
   // Что читать, решают переключатели «собирать» в «Настройки → Источники»: какие афиши и есть ли Telegram.
   const sites: string[] = [];
   let telegram = false;
+  let social = false;
   if (task === 'search') {
-    const { data: srcs } = await db.from('sources').select('kind,handle').eq('enabled', true).in('kind', ['site', 'telegram']);
+    const { data: srcs } = await db.from('sources').select('kind,handle').eq('enabled', true).in('kind', ['site', 'telegram', 'instagram', 'threads']);
     for (const s of srcs ?? []) {
       const h = String(s.handle).toLowerCase();
-      if (s.kind === 'telegram') telegram = true;
+      if (s.kind === 'instagram' || s.kind === 'threads') social = true;
+      else if (s.kind === 'telegram') telegram = true;
       // Новые афиши (21 окт.) — раньше кино: «kino.kz/ru/concert» — концерты, а не сеансы.
       else if (h.includes('kino.kz/ru/concert')) sites.push('kino-concert');
       else if (h.includes('onvibe.me')) sites.push('onvibe');
@@ -64,14 +67,14 @@ Deno.serve(async (req) => {
       else if (h.includes('kino.kz')) sites.push('kino');
       else if (h.includes('ticketon.kz') && h.includes('cinema')) sites.push('ticketon');
     }
-    if ((body.sources ?? 'sites') !== 'ai' && !sites.length && !telegram) return json({ error: 'Включи хотя бы один источник: Настройки → Источники → «собирать»' }, 400);
+    if (!sites.length && !telegram && !social) return json({ error: 'Включи хотя бы один источник: Источники → переключатель «собирать»' }, 400);
   }
-  const params = { task, topics: body.topics ?? [], days: body.days ?? 7, limit: body.limit ?? 40, model: body.model ?? 'gemini-2.5-flash', sources: body.sources ?? 'sites', find_images: body.find_images ?? 6, sites, telegram, scheduled: !!body.scheduled };
+  const params = { task, topics: [], days: body.days ?? 14, limit: body.limit ?? 100, sources: 'sites', sites, telegram, social, scheduled: !!body.scheduled };
   const { data: run, error } = await db.from('robot_runs').insert({ params, status: 'queued', started_by: me }).select('id').single();
   if (error || !run) return json({ error: error?.message ?? 'insert' }, 500);
-  await db.from('robot_log').insert({ run_id: run.id, text: `${body.scheduled ? 'по расписанию' : 'вручную'} · ${task === 'search' ? 'поиск событий' : 'обложки ИИ'} · жду GitHub Actions` });
+  await db.from('robot_log').insert({ run_id: run.id, text: `${body.scheduled ? 'по расписанию' : 'вручную'} · ${task === 'search' ? `сбор: сайтов ${sites.length}${telegram ? ', Telegram' : ''}${social ? ', Instagram и Threads' : ''}` : 'обложки ИИ'} · жду GitHub Actions` });
   const err = await dispatch(task === 'search' ? 'search.yml' : 'covers.yml', {
-    run_id: run.id, ...(task === 'search' ? { topics: params.topics.join(','), days: String(params.days), limit: String(params.limit), model: params.model, sources: params.sources, sites: sites.join(',') || 'none', telegram: telegram ? '1' : '0', find_images: String(params.find_images) } : {}),
+    run_id: run.id, ...(task === 'search' ? { days: String(params.days), limit: String(params.limit), sources: 'sites', sites: sites.join(',') || 'none', telegram: telegram ? '1' : '0', social: social ? '1' : '0', find_images: '0' } : {}),
   });
   if (err) {
     await db.from('robot_runs').update({ status: 'failed', finished_at: new Date().toISOString() }).eq('id', run.id);

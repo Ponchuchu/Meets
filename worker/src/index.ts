@@ -1,7 +1,8 @@
 // Сборщик событий. Запуск: GitHub Actions каждые 2 часа с 08:00 до 00:00 по Алматы (.github/workflows/worker.yml).
 //   node worker/src/index.ts            — все включённые Telegram-источники → черновики в базе
 //   node worker/src/index.ts --demo     — посты из worker/fixtures, печать черновиков, без записи в базу
-//   node worker/src/index.ts --search search.json [--demo] — события, найденные Gemini CLI (search.ts) → «Согласование»
+//   node worker/src/index.ts --search search.json [--demo] — события с сайтов-афиш (search.ts) → «Согласование»
+//   node worker/src/index.ts --social        — страницы Instagram и Threads (функция Supabase social) → события
 // Переменные: SUPABASE_URL, SUPABASE_SECRET_KEY (или SUPABASE_SERVICE_ROLE_KEY), ANTHROPIC_API_KEY или KIMI_API_KEY.
 import {cancelled,robotUpdate,robotLog,robotMergeStats} from './robot.ts';
 import { LANG_TAG, polishAbouts } from './polish.ts';
@@ -13,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { understand } from './ai.ts';
 import { createDb } from './db.ts';
-import { processPosts, summary, type Outcome } from './pipeline.ts';
+import { processPosts, storeOutcomes, summary, type Outcome } from './pipeline.ts';
 import { fillImages, parseGeminiOutput, toPost, type Found } from './search.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
 import type { Db } from './db.ts';
@@ -21,6 +22,7 @@ import type { Extraction, RawPost, Source } from './types.ts';
 import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
 import { geocode, type VenueRow } from './venues.ts';
 import { EVENT_SITES, type EventSite } from './eventSites.ts';
+import { runSocial, splitPosts } from './socialRun.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -73,6 +75,7 @@ function print(results: Outcome[]) {
       console.log(`  ✚ ${d.status === 'published' ? 'НА КАРТУ' : 'черновик'} ${Math.round(d.ai_confidence * 100)}% · ${d.title} · ${d.starts_at} · ${d.venue_name ?? d.address ?? '—'}${d.flags.length ? ` · ${d.flags.join(', ')}` : ''} (${r.by})`);
     } else if (r.kind === 'junk') console.log(`  ✕ ${r.cls}: ${head}`);
     else if (r.kind === 'duplicate') console.log(`  = дубль «${r.of.title}»: ${head}`);
+    else if (r.kind === 'session') console.log(`  + дата у «${r.of.title}»: ${r.sessions.join(', ')}`);
     else if (r.kind === 'cancel') console.log(`  ⊘ отмена ${r.of ? `«${r.of.title}»` : '(не нашли событие)'}${r.sure ? '' : ' → модератору'}`);
     else console.log(`  ? ${r.reason}: ${head}`);
   }
@@ -103,25 +106,6 @@ async function demo() {
   print(results);
 }
 
-/** Результаты конвейера → база: черновики, корзина, дубли, отмены. Возвращает число новых черновиков. */
-async function store(db: Db, results: Outcome[], sourceId: string): Promise<number> {
-  let drafts = 0;
-  for (const r of results) {
-    const id = (r.post as RawPost & { id: string }).id;
-    if (r.kind === 'draft') {
-      const ev = await db.insertEvent(r.draft, sourceId);
-      await db.markPost(id, 'event', ev);
-      if (r.draft.status === 'draft') drafts++;
-    } else if (r.kind === 'junk') await db.markPost(id, r.cls, null);
-    else if (r.kind === 'duplicate') await db.markPost(id, 'duplicate', r.of.id.startsWith('new:') ? null : r.of.id);
-    else if (r.kind === 'cancel') {
-      if (r.of && !r.of.id.startsWith('new:')) await db.cancel(r.of.id, r.sure);
-      await db.markPost(id, 'cancel', r.of?.id.startsWith('new:') ? null : (r.of?.id ?? null));
-    }
-  }
-  return drafts;
-}
-
 async function live() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -150,6 +134,15 @@ async function live() {
   // Просроченные черновики никому не нужны: чистим при каждом запуске, чтобы «Согласование» не копило мусор.
   const purged = await db.purgeExpiredDrafts().catch((err) => { console.error(`Чистка просроченных: ${(err as Error).message}`); return 0; });
   if (purged) { console.log(`Убрано из очереди просроченных черновиков: ${purged}`); await robotLog(`Убрано из очереди просроченных черновиков: ${purged}`); }
+  if (args.has('--social')) {
+    const res = await runSocial(db, sources, venues, known, geocode, (t, level = 'info') => robotLog(t, level), cancelled);
+    const sum = summary(res.outcomes);
+    console.log('Instagram и Threads:', sum);
+    await robotMergeStats({ social: res.stats });
+    await robotLog(`Instagram и Threads: событий ${sum.events}, дублей ${sum.duplicate}, на карту сразу ${sum.published}, на проверку ${res.drafts}`, 'ok');
+    if (res.drafts) await db.notifyStaff();
+    return;
+  }
   if (searchFile) {
     if(await cancelled()){await robotLog('Остановлено до публикации черновиков');return;}
     // ИИ-поиск может быть выключен — тогда находки афиш записываем на «Добавлено вручную» (FIX3: запуск падал целиком).
@@ -207,7 +200,7 @@ async function live() {
           price_unsure: !f.is_free && f.price_min == null, address: f.address ?? x.address }];
       }));
       const results = await processPosts(fresh, src, { understand: async (p: RawPost) => better.get(p.externalId) ?? understandFound(p), geocode, venues, known, now: new Date() });
-      drafts += await store(db, results, src.id);
+      drafts += await storeOutcomes(db, results, src.id, known);
       print(results);
       all.push(...results);
       await db.touchSource(src.id, null);
@@ -227,8 +220,10 @@ async function live() {
       const fetched = await fetchChannel(source.handle, source.id, source.cursor);
       const fresh = await db.savePosts(fetched);
       console.log(`${source.title}: новых постов ${fresh.length}`);
-      const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known, now: new Date() });
-      drafts += await store(db, results, source.id);
+      // Разбор скриптом, как у Instagram (26 окт.: без ИИ).
+      const { subs, parsed } = await splitPosts(db, fresh, source, venues);
+      const results = await processPosts(subs, source, { understand: async (p) => ({ ...parsed.get(p.externalId)!, by: 'heuristics' as const }), geocode, venues, known, now: new Date() });
+      drafts += await storeOutcomes(db, results, source.id, known);
       print(results);
       if (source.kind === 'telegram') {
         const t = telegramStat(source.handle, results);

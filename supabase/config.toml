@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.traffic-score]
 verify_jwt = false
+
+[functions.social]
+verify_jwt = false
