@@ -27,7 +27,7 @@ import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard
 import { StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { detailOf, focusZoom, groupByPoint, pinBudget, pinScale, pxToLat } from '../../map/zoom';
+import { asDots, detailOf, focusZoom, groupByPoint, MALL_DOT, pinBudget, pinScale, pxToLat, spotDot } from '../../map/zoom';
 import { accusative } from '../../lib/names';
 import { timeNow, useChat } from '../../state/chat';
 import { uid } from '../../lib/uid';
@@ -83,6 +83,8 @@ const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. �
 
 type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue' | 'spot';
 const LIVE = config.dataMode !== 'demo';
+/** Друг не обновлял точку больше суток — на карте его не рисуем. */
+const STALE_MIN = 24 * 60;
 
 function pinKind(e: EventItem, today: number, going: boolean): PinKind {
   const isToday = dayIndex(e.startsAt) === today;
@@ -332,6 +334,7 @@ export default function MapScreen() {
   useEffect(() => { select(null); }, [select]);
 
   const detail = detailOf(zoom);
+  const dots = asDots(zoom);
   const scale = pinScale(zoom);
   // Тап по точке: приближаемся к ней, карточка снизу — точка остаётся видна над ней.
   const openPin = useCallback((e: EventItem, group: EventItem[]) => {
@@ -381,7 +384,8 @@ export default function MapScreen() {
         });
         continue;
       }
-      const compact = (kind === 'plain' && detail !== 'near') || (detail === 'far' && kind !== 'hot');
+      // Точками — все сразу и только издалека (весь город на экране), без разницы, обычное событие или нет.
+      const compact = dots;
       // Только значок (26 октября, решение владельца): без времени, даты и цифр — всё видно по нажатию.
       const id = `e-${e.id}`;
       // eslint-disable-next-line react-hooks/refs -- вызывается только по тапу, не при отрисовке
@@ -393,7 +397,9 @@ export default function MapScreen() {
       });
     }
     // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
-    const budget = eco ? Math.max(6, Math.round(pinBudget(zoom) / 2)) : pinBudget(zoom);
+    // Точки мелкие — их можно больше, чем объёмных значков.
+    const budget0 = pinBudget(zoom) * (dots ? 3 : 1);
+    const budget = eco ? Math.max(6, Math.round(budget0 / 2)) : budget0;
     if (syms.length > budget) {
       const keep = [...syms].sort((a, b) => b.z - a.z).slice(0, budget);
       syms.splice(0, syms.length, ...keep);
@@ -403,31 +409,32 @@ export default function MapScreen() {
       if (!c.e.point || (c.status !== 'now' && c.status !== 'soon')) continue;
       list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
     }
-    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} icon={pl.icon} label={zoom >= 14.5} /> });
+    // Я дома или на работе — булавку места прячем: она налезала на мою точку и аватарку (26 октября).
+    const here = fix ?? myPos;
+    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon) && !(here && distM(here, pl) < 150)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} icon={pl.icon} label={zoom >= 14.5} /> });
     // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
     // Каждый значок — отдельный слой поверх карты, а их перерисовка при движении дорогая на слабых телефонах:
     // издалека — только горы и канатки, с района — ещё парки и музеи, всё остальное — вблизи; в экономии — вдвое меньше.
     for (const a of topSpots(places)) {
       const big = a.kind === 'ski' || a.kind === 'skate' || a.kind === 'cable';
       const mid = big || a.kind === 'park' || a.kind === 'garden' || a.kind === 'museum' || a.kind === 'zoo';
-      if (detail === 'far' && !big) continue;
-      if (detail === 'mid' && (!mid || (eco && !big))) continue;
-      if (detail === 'near' && eco && !mid) continue;
+      // Издалека места — такие же точки, как события; вблизи — значки. В экономии — только крупные.
+      if (eco && !mid) continue;
       const id = `a-${a.id}`;
       taps.set(id, () => { setSpotPlace(a); setSheet('spot'); });
-      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId });
+      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId, dot: dots ? spotDot(a.kind) : undefined });
     }
-    if (detail !== 'far') for (const m of malls) {
+    for (const m of malls) {
       const id = `v-${m.id}`;
       taps.set(id, () => { setMall(m); setSheet('venue'); });
-      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId });
+      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId, dot: dots ? MALL_DOT : undefined });
     }
     if (filters.friends) {
       const grouped = new Set<string>();
       const own = fix ?? myPos;
       const mePerson = { id: 'map-self', name: draft.name || 'Ты', photo: myProfile?.photo_url ?? draft.photo, mapFrame: myProfile?.map_frame, mapShape: myProfile?.map_shape, initial: draft.name?.[0] ?? 'Я', tint: '#DDE8D9', isFriend: true };
       const ownSpot = own ? { ...own, personId: 'map-self', place: 'Сейчас', state: 'here' as const, minutesAgo: 0 } : null;
-      if (!focusId && detail !== 'far') for (const group of closeGroups([...spots.filter(s => { const p = people.find(p => p.id === s.personId); return p && !social.removed[p.id] && (LIVE || !!detailsOf(p.id) && canSee('friend', 'location', detailsOf(p.id)!.privacy)); }), ...(ownSpot ? [ownSpot] : [])])) {
+      if (!focusId && detail !== 'far') for (const group of closeGroups([...spots.filter(s => { const p = people.find(p => p.id === s.personId); return p && !social.removed[p.id] && (s.minutesAgo ?? 0) <= STALE_MIN && (LIVE || !!detailsOf(p.id) && canSee('friend', 'location', detailsOf(p.id)!.privacy)); }), ...(ownSpot ? [ownSpot] : [])])) {
         if (group.length < 2) continue;
         group.forEach(s => grouped.add(s.personId));
         const ps = group.map(s => s.personId === 'map-self' ? mePerson : people.find(p => p.id === s.personId)!);
@@ -440,6 +447,9 @@ export default function MapScreen() {
         // Только друзья, которые сами включили геолокацию, и не в зоне дома (правила «Кто что видит»).
         // Альфа: кому видна точка, решает сервер (can_see_location) — здесь только убранные из друзей.
         if (!p || social.removed[p.id] || (!LIVE && (!d || !canSee('friend', 'location', d.privacy)))) continue;
+        // Точка старше суток — уже не «где он сейчас»: на карте не показываем (друг «в непонятном месте» 4 дня назад).
+        // Из профиля «На карте» она всё равно откроется — там видно «был 22 окт.».
+        if ((s.minutesAgo ?? 0) > STALE_MIN && focusId !== p.id) continue;
         if (focusId === p.id) {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
           if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
@@ -456,7 +466,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return { markers: list, symbols: syms as MapSymbol[], taps };
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
   // Тап по значку слоя карты: обработчики меняются вместе со значками, сама функция — одна.
   const tapsRef = useRef(taps);
   useEffect(() => { tapsRef.current = taps; }, [taps]);

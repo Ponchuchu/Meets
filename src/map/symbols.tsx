@@ -129,6 +129,6 @@ export function SymbolPin({ s, onPress }: { s: MapSymbol; onPress: () => void })
 }
 
 const styles = StyleSheet.create({
-  dot: { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#FFFFFF' },
+  dot: { width: 13, height: 13, borderRadius: 7, borderWidth: 2.2, borderColor: '#FFFFFF', boxShadow: '0 1.5px 3px rgba(23,22,26,0.3)' },
   text: { fontFamily: fonts.mono500, fontSize: 10, color: '#4A4640', marginTop: 1, textAlign: 'center', lineHeight: 12, textShadowColor: '#FFFFFF', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

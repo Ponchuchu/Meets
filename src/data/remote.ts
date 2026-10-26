@@ -409,5 +409,6 @@ export async function getPersonFriends(id: string): Promise<{ person: Person; co
     const card = await personCard(id);
     rows = (await profiles(card?.common_ids ?? [])).map((r) => ({ ...r, common: true }));
   }
-  return rows.filter((r) => r.id !== me).map((r) => ({ person: mapProfile(r, mine), common: r.common }));
+  // Себя не выкидываем: у друга в друзьях есть и ты, иначе «1 друг» в профиле и пустой список (26 октября).
+  return rows.map((r) => ({ person: mapProfile(r, mine), common: r.id !== me && r.common }));
 }
