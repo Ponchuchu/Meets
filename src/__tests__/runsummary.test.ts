@@ -93,9 +93,10 @@ describe('источники', () => {
     expect(sourceMark('telegram', 'Telegram · @afisha_almaty')).toBe('TG');
     expect(sourceMark('search', 'Поиск · ИИ')).toBe('ИИ');
   });
-  it('как читается: сайты бесплатно, Telegram и поиск — с ИИ', () => {
+  it('как читается: сайты, Telegram и Instagram — скриптом, ИИ-поиск — платно', () => {
     expect(sourceHow('site')).toEqual({ label: 'Код читает афишу сам · без ИИ', free: true });
-    expect(sourceHow('telegram').free).toBe(false);
+    expect(sourceHow('telegram').free).toBe(true);
+    expect(sourceHow('instagram').free).toBe(true);
     expect(sourceHow('search').free).toBe(false);
   });
   it('что читается при поиске: включённые сайты + Telegram + ИИ', () => {

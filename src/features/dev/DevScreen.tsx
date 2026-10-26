@@ -1,9 +1,10 @@
-// Панель разработчика /dev. Шапка: «Панель» и колокольчик «Уведомления» (что сломано или ждёт решения — отдельным экраном).
+// Панель разработчика /dev (переделана 26 октября). Шапка: «Панель» и колокольчик «Уведомления».
 // Четыре вкладки, у каждой одна задача:
-//   Обзор     — главные цифры, метрики рекомендаций и «вкус человека» (свёрнуты);
-//   События   — новые на проверку с кнопкой «Опубликовать всё» и все события на карте;
-//   Поиск     — запуск поиска, его ход (анимация — только пока идёт) и история запусков;
-//   Настройки — источники, фото, публикация, расписание, ИИ, подключения (всё свёрнуто).
+//   Сводка    — главные цифры, откуда события на карте, метрики рекомендаций и «вкус человека» (свёрнуты);
+//   Проверка  — новые события на проверку и все события на карте;
+//   Источники — страницы Instagram, Threads, Telegram и сайты по папкам: работают ли, сколько дают, добавить и удалить;
+//   Сбор      — «Собрать сейчас», что происходит, итоги по страницам, история, расписание и публикация.
+// ИИ-поиска больше нет: всё собирает скрипт.
 // Рисуется только открытая вкладка: запросы других вкладок не идут. Настоящие данные — только команде (таблица staff).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -12,23 +13,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isStaff, loadStats } from '../../admin/api';
-import { useRobotView } from '../../admin/useRobot';
 import { Notifications, useAttention, type DevTab, type Goto } from '../../admin/ui/Attention';
 import { EventsList, type ListFilter } from '../../admin/ui/EventsList';
 import { Metrics } from '../../admin/ui/Metrics';
 import { Moderation } from '../../admin/ui/Moderation';
 import { OverviewBlock } from '../../admin/ui/Overview';
-import { RunHistory } from '../../admin/ui/RunHistory';
-import { SearchCard } from '../../admin/ui/SearchCard';
-import { SettingsTab } from '../../admin/ui/SettingsTab';
+import { CollectTab } from '../../admin/ui/CollectTab';
+import { SourcesTab, SourcesTop } from '../../admin/ui/SourcesTab';
 import { TasteAdmin } from '../../admin/ui/TasteAdmin';
 import { Chip, Section } from '../../admin/ui/kit';
 import { colors, fonts } from '../../theme';
 
 type Sub = 'queue' | 'map';
-const TABS: [DevTab, string][] = [['overview', 'Обзор'], ['events', 'События'], ['search', 'Поиск'], ['settings', 'Настройки']];
-// Старые ссылки (/dev?tab=analytics) ведут в «Обзор».
-const OLD: Record<string, DevTab> = { analytics: 'overview' };
+const TABS: [DevTab, string][] = [['overview', 'Сводка'], ['events', 'Проверка'], ['sources', 'Источники'], ['collect', 'Сбор']];
+// Старые ссылки (/dev?tab=search и т. п.) ведут в новые вкладки.
+const OLD: Record<string, DevTab> = { analytics: 'overview', search: 'collect', settings: 'sources' };
 
 export default function Admin() {
   const insets = useSafeAreaInsets();
@@ -52,7 +51,6 @@ export default function Admin() {
     if (s === 'map') { setSub('map'); setFilter('all'); }
     if (s === 'gaps') { setSub('map'); setFilter('gaps'); }
   }, []);
-  const showFound = useCallback(() => setSub('queue'), []);
   // «Назад» на Android закрывает уведомления, а не всю панель.
   useEffect(() => {
     if (!alertsOpen) return;
@@ -96,6 +94,7 @@ export default function Admin() {
             <>
               {/* Уведомления — только в колокольчике сверху (21 окт.): в самих вкладках не дублируем. */}
               <OverviewBlock live={staff} />
+              <SourcesTop live={staff} onOpen={() => go('sources')} />
               <View style={{ gap: 12 }}>
                 <Section fold="closed" icon={ChartColumn} title="Рекомендации" hint="Доля «пойду», дошли, возвраты и отмены.">
                   <Metrics live={staff} />
@@ -115,21 +114,11 @@ export default function Admin() {
               {sub === 'queue' ? <Moderation live={staff} /> : <EventsList live={staff} filter={filter} onFilter={setFilter} />}
             </>
           )}
-          {tab === 'search' && <SearchTab live={staff} onSettings={() => go('settings')} onDone={showFound} onReview={() => go('events', 'queue')} />}
-          {tab === 'settings' && <SettingsTab live={staff} />}
+          {tab === 'sources' && <SourcesTab live={staff} />}
+          {tab === 'collect' && <CollectTab live={staff} onReview={() => go('events', 'queue')} />}
         </View>
       </ScrollView>
     </View>
-  );
-}
-
-function SearchTab({ live, onSettings, onDone, onReview }: { live: boolean; onSettings: () => void; onDone: () => void; onReview: () => void }) {
-  const view = useRobotView(live);
-  return (
-    <>
-      <SearchCard live={live} onSettings={onSettings} onDone={onDone} onReview={onReview} />
-      <RunHistory live={live} runs={view.runs} loading={view.loading} />
-    </>
   );
 }
 

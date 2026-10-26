@@ -123,19 +123,20 @@ export function keyHelp(k: KeyStatus): string | null {
 
 // ——— Источники: как читаются ———
 
-export type SourceKind = 'telegram' | 'site' | 'threads' | 'manual' | 'user' | 'search';
+export type SourceKind = 'telegram' | 'site' | 'threads' | 'instagram' | 'manual' | 'user' | 'search';
 const SITE_MARK: [RegExp, string][] = [[/sxodim/i, 'СХ'], [/yandex|яндекс/i, 'ЯА']];
 
 /** Две буквы на плашке источника. */
 export function sourceMark(kind: SourceKind, title: string, handle = ''): string {
   if (kind === 'site') return SITE_MARK.find(([re]) => re.test(`${title} ${handle}`))?.[1] ?? 'WW';
-  return { telegram: 'TG', threads: 'TH', manual: 'РУ', user: 'ПП', search: 'ИИ' }[kind] ?? '··';
+  return { telegram: 'TG', threads: 'TH', instagram: 'IG', manual: 'РУ', user: 'ПП', search: 'ИИ' }[kind] ?? '··';
 }
 
 /** Как источник читается и сколько это стоит. */
 export function sourceHow(kind: SourceKind): { label: string; free: boolean } {
   if (kind === 'site') return { label: 'Код читает афишу сам · без ИИ', free: true };
-  if (kind === 'telegram') return { label: 'ИИ отсеивает рекламу и мемы · токены только на новые посты', free: false };
+  if (kind === 'telegram') return { label: 'Скрипт разбирает новые посты канала · без ИИ', free: true };
+  if (kind === 'instagram' || kind === 'threads') return { label: 'Посты страницы через API Facebook, разбор скриптом · без ИИ', free: true };
   if (kind === 'search') return { label: 'ИИ ищет по интернету · платно', free: false };
   return { label: '', free: true };
 }

@@ -19,7 +19,7 @@ import { useOverview } from './Overview';
 import { useScheduleRow } from './Schedule';
 import { Banner, Empty } from './kit';
 
-export type DevTab = 'overview' | 'events' | 'search' | 'settings';
+export type DevTab = 'overview' | 'events' | 'sources' | 'collect';
 export type Goto = (to: DevTab, sub?: 'queue' | 'map' | 'gaps') => void;
 
 type Target = { tab: DevTab; sub?: 'queue' | 'map' | 'gaps' } | 'crashes' | 'clean' | 'retry';
@@ -53,7 +53,7 @@ export function useAttention(live: boolean) {
   const paused = live && !!sched.data?.paused;
   const rows = useMemo(() => {
     const out: AttentionRow[] = [];
-    if (robot.state === 'failed' && robot.error) out.push({ key: 'fail', tone: 'error', icon: SearchX, title: robot.error.title, sub: robot.error.hint, target: { tab: 'search' } });
+    if (robot.state === 'failed' && robot.error) out.push({ key: 'fail', tone: 'error', icon: SearchX, title: robot.error.title, sub: robot.error.hint, target: { tab: 'collect' } });
     if (cr.length) out.push({ key: 'crash', tone: cr.some((c) => c.fatal) ? 'error' : 'warn', icon: Bug, title: `Ошибки в приложении за неделю: ${cr.length}`, sub: `Последняя: ${cr[0].screen ?? 'экран не известен'} · ${ago(cr[0].at)}`, target: 'crashes' });
     if (d) {
       if (d.events_draft > 0) out.push({ key: 'q', tone: 'warn', icon: Inbox, title: `${d.events_draft} ${plural(d.events_draft, 'событие ждёт', 'события ждут', 'событий ждут')} проверки`, sub: 'Открыть «События → Новые»', target: { tab: 'events', sub: 'queue' } });
@@ -62,7 +62,7 @@ export function useAttention(live: boolean) {
       if (d.events_no_price > 0) out.push({ key: 'pr', tone: 'info', icon: Tag, title: `${d.events_no_price} без цены`, sub: 'Открыть «Чего-то нет»', target: { tab: 'events', sub: 'gaps' } });
       if (d.events_no_cover > 0) out.push({ key: 'cv', tone: 'info', icon: ImageOff, title: `${d.events_no_cover} без фото`, sub: 'Покажем постер раздела' });
     }
-    if (paused) out.push({ key: 'sch', tone: 'info', icon: CirclePause, title: 'Автопоиск выключен', sub: 'События ищутся только по кнопке', target: { tab: 'settings' } });
+    if (paused) out.push({ key: 'sch', tone: 'info', icon: CirclePause, title: 'Автосбор выключен', sub: 'События собираются только по кнопке', target: { tab: 'collect' } });
     if (o.isError) out.push({ key: 'err', tone: 'error', icon: CloudOff, title: 'Сводка не загрузилась', sub: 'Нажми, чтобы повторить', target: 'retry' });
     return out.filter((r) => !dismissed.includes(sig(r)));
   }, [robot.state, robot.error, cr, d, paused, o.isError, dismissed]);

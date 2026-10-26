@@ -2,8 +2,6 @@
 import type { QueueItem, SourceItem } from './model';
 import { modelOk, type SearchSources } from './robotConfig';
 
-export const PERIODS = [7, 14, 30] as const;
-export const TOPIC_TITLE: Record<string, string> = { cinema: 'Кино и театр', music: 'Музыка', standup: 'Стендап', art: 'Выставки', sport: 'Спорт', food: 'Еда' };
 
 /** Почему нельзя запустить поиск (или null, если можно). Сайты работают без ИИ — им нужны только дни. */
 export function searchProblem(c: { sources: SearchSources; model: string; topics: string[]; days: number }): string | null {
@@ -68,8 +66,8 @@ export function activeSources(s: SearchSources, model: string, sites: string[] =
   ];
 }
 
-export type SourceType = 'yandex' | 'site' | 'telegram' | 'threads' | 'manual' | 'search';
-const TYPE_LABEL: Record<SourceType, string> = { yandex: 'Яндекс Афиша', site: 'Сайт', telegram: 'Telegram', threads: 'Threads', manual: 'Вручную', search: 'ИИ-поиск' };
+export type SourceType = 'yandex' | 'site' | 'telegram' | 'threads' | 'instagram' | 'manual' | 'search';
+const TYPE_LABEL: Record<SourceType, string> = { yandex: 'Яндекс Афиша', site: 'Сайт', telegram: 'Telegram', threads: 'Threads', instagram: 'Instagram', manual: 'Вручную', search: 'ИИ-поиск' };
 
 /**
  * Как показать источник одной строкой: тип (для значка), подпись типа и вторая строка — адрес сайта или @канал.
@@ -78,9 +76,9 @@ const TYPE_LABEL: Record<SourceType, string> = { yandex: 'Яндекс Афиш�
 export function sourceInfo(s: Pick<SourceItem, 'kind' | 'title' | 'handle'>): { type: SourceType; label: string; line: string } {
   const text = `${s.title} ${s.handle ?? ''}`;
   const type: SourceType = s.kind === 'site' ? (/yandex|яндекс/i.test(text) ? 'yandex' : 'site')
-    : s.kind === 'telegram' || s.kind === 'threads' || s.kind === 'search' ? s.kind : 'manual';
+    : s.kind === 'telegram' || s.kind === 'threads' || s.kind === 'instagram' || s.kind === 'search' ? s.kind : 'manual';
   const tail = s.title.includes(' · ') ? s.title.split(' · ').slice(1).join(' · ') : '';
-  const line = s.kind === 'telegram' || s.kind === 'threads'
+  const line = s.kind === 'telegram' || s.kind === 'threads' || s.kind === 'instagram'
     ? (s.handle ? `@${s.handle}` : tail || s.title)
     : s.handle ? s.handle.replace(/^https?:\/\//, '') : tail || TYPE_LABEL[type];
   return { type, label: TYPE_LABEL[type], line };

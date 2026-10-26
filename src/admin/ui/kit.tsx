@@ -95,20 +95,6 @@ export function Banner({ tone, text, title, hint, action }: { tone: 'error' | 'o
 }
 
 /** Переключатель из 2–3 вариантов: одна полоса, выбранный чёрный. */
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string; sub?: string }[]; onChange: (v: T) => void }) {
-  return (
-    <View style={styles.seg} accessibilityRole="tablist">
-      {options.map((o) => (
-        <Pressable key={o.id} onPress={() => onChange(o.id)} accessibilityRole="tab" accessibilityState={{ selected: value === o.id }} style={[styles.segBtn, value === o.id && styles.segOn]}>
-          <Text style={[styles.segText, value === o.id && { color: colors.paper }]} numberOfLines={1}>{o.label}</Text>
-          {!!o.sub && <Text style={[styles.segSub, value === o.id && { color: '#BDB8AD' }]} numberOfLines={1}>{o.sub}</Text>}
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-/** Число с кнопками − и +: без клавиатуры и опечаток. */
 export function Stepper({ value, min, max, step = 1, onChange, label, unit }: { value: number; min: number; max: number; step?: number; onChange: (v: number) => void; label: string; unit?: string }) {
   const set = (v: number) => onChange(Math.max(min, Math.min(max, v)));
   return (

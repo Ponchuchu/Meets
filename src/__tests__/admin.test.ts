@@ -75,8 +75,10 @@ describe('админка: «Опубликовать всё»', () => {
 });
 
 describe('админка: источники', () => {
-  it('@канал — это Telegram', () => {
-    expect(parseSourceLink('@afisha_almaty')).toEqual({ kind: 'telegram', handle: 'afisha_almaty', title: 'Telegram · @afisha_almaty' });
+  it('@ник — это Instagram (основной источник с 26 окт.), t.me — Telegram', () => {
+    expect(parseSourceLink('@almatyarena')).toEqual({ kind: 'instagram', handle: 'almatyarena', title: 'almatyarena' });
+    expect(parseSourceLink('https://www.instagram.com/Total_Theater/')).toEqual({ kind: 'instagram', handle: 'total_theater', title: 'Total_Theater' });
+    expect(parseSourceLink('t.me/afisha_almaty')).toMatchObject({ kind: 'telegram', handle: 'afisha_almaty' });
   });
   it('тип и вторая строка', () => {
     expect(sourceInfo({ kind: 'site', title: 'afisha.yandex.kz', handle: 'afisha.yandex.kz/almaty' })).toEqual({ type: 'yandex', label: 'Яндекс Афиша', line: 'afisha.yandex.kz/almaty' });
