@@ -1,10 +1,12 @@
 // «Планы» (FIX5, новый вид): «Дальше по плану» крупной карточкой с обратным отсчётом, лента дней с точками,
 // «Зовут» с «Не смогу / Иду», расписание по дням на линии времени. Длинный список — порциями по 30.
+// 26 окт.: любой план (и «Дальше по плану») смахивается влево и открывает меню по удержанию; «+» — встреча или своё дело
+// («в 15:00 встретиться с Ерланом»); нижние плитки «Места города / Год в Алматы» убраны — они есть на карте.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { CalendarDays, CalendarRange, Trees, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X } from 'lucide-react-native';
+import { CalendarDays, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X, Plus, Users, ListTodo } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
@@ -17,7 +19,8 @@ import { CAT_COLOR } from '../../map/icons';
 import { EventCover } from '../../ui/EventCover';
 import { plural } from '../../event/text';
 import { usePlans } from '../../state/plans';
-import { MonthCalendar } from '../../event/ui/pickers';
+import { DayTimeWheel, MonthCalendar, wheelDayLabel } from '../../event/ui/pickers';
+import { uid } from '../../lib/uid';
 import { eventStatusLabel } from '../../event/availability';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { SwipeRow, type RowAction } from '../../ui/SwipeRow';
@@ -63,6 +66,8 @@ export default function PlansTab() {
   const [calendar, setCalendar] = useState(false);
   const [calendarPick, setCalendarPick] = useState(false);
   const [actionError,setActionError]=useState('');
+  const [menu, setMenu] = useState<EventItem | null>(null);
+  const [adding, setAdding] = useState<null | 'choose' | 'task'>(null);
   const muted = usePlans((s) => s.muted);
   const toggleDay = (d: number) => setPick((p) => p.includes(d) ? p.filter((x) => x !== d) : [...p, d]);
   const [now,setNow] = useState(clockNow);
@@ -136,6 +141,7 @@ export default function PlansTab() {
           <Text style={styles.headSub}>{soon.length ? `${soon.length} ${plural(soon.length, 'план', 'плана', 'планов')} впереди` : 'Пока ничего не запланировано'}</Text>
         </View>
         <Pressable onPress={() => setCalendar(true)} style={styles.headBtn} accessibilityRole="button" accessibilityLabel="Календарь планов"><CalendarDays size={21} color={colors.ink} strokeWidth={1.9} /></Pressable>
+        <Pressable onPress={() => setAdding('choose')} style={[styles.headBtn, { backgroundColor: colors.ink }]} accessibilityRole="button" accessibilityLabel="Добавить в планы: встреча или своё дело"><Plus size={22} color={colors.paper} strokeWidth={2.2} /></Pressable>
       </View>
 
       {/* Неделя: дни с планами — с точками; можно выбрать несколько. */}
@@ -196,7 +202,7 @@ export default function PlansTab() {
         </View>
       )}
 
-      {next && <NextUp e={next} now={now} people={people} onOpen={() => open(next)} />}
+      {next && <SwipeRow iconOnly actions={rowActions(next)} background="#EEE9DE" radius={26}><NextUp e={next} now={now} people={people} onOpen={() => open(next)} onMenu={() => setMenu(next)} /></SwipeRow>}
 
       {limited.map((g) => (
         <View key={g.day} style={{ gap: 2 }}>
@@ -219,7 +225,7 @@ export default function PlansTab() {
                 </View>
                 <View style={{ flex: 1, paddingBottom: 10 }}>
                   <SwipeRow iconOnly actions={rowActions(e)} background="#EEE9DE" radius={20}>
-                    <Pressable onPress={() => open(e)} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]} accessibilityRole="button" accessibilityLabel={`${e.title}, ${hm(e.startsAt)}`}>
+                    <Pressable onPress={() => open(e)} onLongPress={() => setMenu(e)} delayLongPress={350} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]} accessibilityRole="button" accessibilityLabel={`${e.title}, ${hm(e.startsAt)}`}>
                       <Cover e={e} size={56} />
                       <View style={{ flex: 1, gap: 4 }}>
                         <StartPill e={e} now={now} />
@@ -257,20 +263,20 @@ export default function PlansTab() {
           action="Открыть рекомендации" onAction={() => router.navigate('/foryou')} />
       )}
 
-      {/* Куда ещё: постоянные места города и большие события года (21 окт.). */}
-      <View style={styles.extra}>
-        <Pressable onPress={() => router.push('/solo')} style={({ pressed }) => [styles.extraCard, { backgroundColor: '#DCE8D6' }, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Места города: парки, горы, музеи">
-          <View style={[styles.extraIcon, { backgroundColor: '#2F8F5B' }]}><Trees size={18} color="#FFFFFF" strokeWidth={2} /></View>
-          <Text style={styles.extraTitle}>Места города</Text>
-          <Text style={styles.extraSub}>парки, горы, музеи</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/city-year')} style={({ pressed }) => [styles.extraCard, { backgroundColor: '#F7D9C9' }, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel="Год в Алматы: большие события города">
-          <View style={[styles.extraIcon, { backgroundColor: colors.accent }]}><CalendarRange size={18} color="#FFFFFF" strokeWidth={2} /></View>
-          <Text style={styles.extraTitle}>Год в Алматы</Text>
-          <Text style={styles.extraSub}>большие события</Text>
-        </Pressable>
-      </View>
     </ScrollView>
+    {menu && <PlanMenu e={menu} muted={!!muted[menu.id]} onClose={() => setMenu(null)} actions={rowActions(menu)} />}
+    {adding === 'choose' && <><Backdrop label="Закрыть" onPress={() => setAdding(null)} /><BottomSheet label="Добавить в планы" onClose={() => setAdding(null)}>
+      <Text style={styles.sheetTitle}>Добавить в планы</Text>
+      <Pressable onPress={() => { setAdding(null); router.push('/create'); }} style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+        <View style={[styles.addIcon, { backgroundColor: colors.friend }]}><Users size={20} color="#FFFFFF" strokeWidth={2} /></View>
+        <View style={{ flex: 1 }}><Text style={styles.title}>Встреча с друзьями</Text><Text style={styles.sub}>Место на карте, время, кого позвать</Text></View>
+      </Pressable>
+      <Pressable onPress={() => setAdding('task')} style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+        <View style={[styles.addIcon, { backgroundColor: colors.accent }]}><ListTodo size={20} color="#FFFFFF" strokeWidth={2} /></View>
+        <View style={{ flex: 1 }}><Text style={styles.title}>Своё дело</Text><Text style={styles.sub}>«В 15:00 встретиться с Ерланом» — напомню за час</Text></View>
+      </Pressable>
+    </BottomSheet></>}
+    {adding === 'task' && <TaskSheet now={now} onClose={() => setAdding(null)} />}
     {calendar && <><Backdrop label="Закрыть календарь" onPress={() => setCalendar(false)} /><BottomSheet label="Календарь планов" onClose={() => setCalendar(false)}><MonthCalendar now={now} value={pick.length ? pick[0] - today : 0} selectedDays={pick} markedDays={soon.map((e) => dayIndex(e.startsAt))} onPick={(off) => toggleDay(today + off)} /><Pressable onPress={() => { setCalendarPick(pick.length > 0); setCalendar(false); }} style={styles.emptyBtn}><Text style={styles.emptyBtnText}>Показать планы</Text></Pressable></BottomSheet></>}
     </View>
   );
@@ -313,13 +319,13 @@ function PulseDot({ color }: { color: string }) {
 }
 
 /** «Дальше по плану»: фото, обратный отсчёт, место и кто идёт; кнопки «Маршрут» и «Позвать». */
-function NextUp({ e, now, people, onOpen }: { e: EventItem; now: Date; people: Person[]; onOpen: () => void }) {
+function NextUp({ e, now, people, onOpen, onMenu }: { e: EventItem; now: Date; people: Person[]; onOpen: () => void; onMenu: () => void }) {
   const start = Date.parse(e.startsAt);
   const left = start - now.getTime();
   const when = left <= 0 ? 'идёт сейчас' : left < 3600e3 ? `через ${Math.max(1, Math.round(left / 60000))} мин` : left < 24 * 3600e3 ? `через ${Math.floor(left / 3600e3)} ч ${Math.round((left % 3600e3) / 60000)} мин` : `через ${Math.round(left / 86400e3)} ${plural(Math.round(left / 86400e3), 'день', 'дня', 'дней')}`;
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
   return (
-    <Pressable onPress={onOpen} style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Дальше по плану: ${e.title}, ${when}`}>
+    <Pressable onPress={onOpen} onLongPress={onMenu} delayLongPress={350} style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Дальше по плану: ${e.title}, ${when}`}>
       <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={90}>
         <View style={styles.nextShade} />
         <View style={styles.nextBadge}><View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} /><Text style={styles.nextBadgeText}>{when.toUpperCase()}</Text></View>
@@ -342,7 +348,76 @@ function NextUp({ e, now, people, onOpen }: { e: EventItem; now: Date; people: P
   );
 }
 
+/** Меню плана по удержанию: те же действия, что под смахиванием, крупными строками. */
+function PlanMenu({ e, actions, onClose }: { e: EventItem; muted: boolean; actions: RowAction[]; onClose: () => void }) {
+  return (
+    <>
+      <Backdrop label="Закрыть меню" onPress={onClose} />
+      <BottomSheet label={e.title} onClose={onClose}>
+        <View style={styles.menuHead}><Cover e={e} size={48} /><View style={{ flex: 1 }}><Text style={styles.title} numberOfLines={2}>{e.title}</Text><Text style={styles.sub}>{hm(e.startsAt)} · {e.venueName ?? (e.address.split(',')[0] || 'без места')}</Text></View></View>
+        {!e.noPoint && <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: { id: e.id } }); }} style={styles.menuRow} accessibilityRole="button"><Navigation size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.menuText}>Маршрут</Text></Pressable>}
+        {actions.map((a) => (
+          <Pressable key={a.key} onPress={() => { onClose(); void a.onPress(); }} style={styles.menuRow} accessibilityRole="button">
+            {a.key === 'del' ? <Trash2 size={20} color="#D8362A" strokeWidth={1.9} /> : a.key === 'invite' ? <UserPlus size={20} color={colors.ink} strokeWidth={1.9} /> : <Bell size={20} color={colors.ink} strokeWidth={1.9} />}
+            <Text style={[styles.menuText, a.key === 'del' && { color: '#D8362A' }]}>{a.key === 'del' ? 'Убрать из планов' : a.label}</Text>
+          </Pressable>
+        ))}
+      </BottomSheet>
+    </>
+  );
+}
+
+/** Своё дело (26 окт.): название, где (необязательно), день и время барабаном. Живёт в «Планах» с напоминанием за час. */
+function TaskSheet({ now, onClose }: { now: Date; onClose: () => void }) {
+  const [title, setTitle] = useState('');
+  const [place, setPlace] = useState('');
+  const today = dayIndex(now);
+  const nowMin = (almaty(now).getUTCHours() * 60 + almaty(now).getUTCMinutes());
+  const days = useMemo(() => Array.from({ length: 30 }, (_, k) => ({ key: today + k, label: wheelDayLabel(today + k, today),
+    times: Array.from({ length: 96 }, (_, i) => i * 15).filter((m) => k > 0 || m > nowMin + 10).map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`) }))
+    .filter((d) => d.times.length), [today, nowMin]);
+  const [day, setDay] = useState(days[0]?.key ?? today);
+  const [time, setTime] = useState<string | null>(null);
+  const cur = days.find((d) => d.key === day) ?? days[0];
+  const t = time && cur?.times.includes(time) ? time : (cur?.times.find((x) => x >= '18:00') ?? cur?.times[0]);
+  const add = () => {
+    if (!title.trim() || !cur || !t) return;
+    const ymd = new Date(Date.UTC(1970, 0, 1) + cur.key * 86400e3).toISOString().slice(0, 10);
+    const startsAt = new Date(`${ymd}T${t}:00+05:00`).toISOString();
+    const e = {
+      id: `task-${uid()}`, title: title.trim(), category: 'meetup', tags: ['дело'], startsAt, endsAt: new Date(Date.parse(startsAt) + 3600e3).toISOString(), isLong: false,
+      venueName: place.trim() || null, address: place.trim(), lat: 43.2389, lon: 76.8897, needsPin: true, noPoint: true,
+      priceMin: null, priceMax: null, isFree: true, about: '', organizer: 'Ты', sourceUrl: null, cover: null, visibility: 'friends', origin: 'demo',
+      friendsGoing: [], lookingCount: 0, goingCount: 1, meetup: { kind: 'task', plusOne: false, invited: [], items: [] },
+    } as EventItem;
+    usePlans.getState().addMeetup(e);
+    onClose();
+  };
+  return (
+    <>
+      <Backdrop label="Закрыть" onPress={onClose} />
+      <BottomSheet label="Своё дело" onClose={onClose} scroll>
+        <Text style={styles.sheetTitle}>Своё дело</Text>
+        <TextInput value={title} onChangeText={setTitle} placeholder="Встретиться с Ерланом" placeholderTextColor={colors.muted3} style={styles.input} accessibilityLabel="Что за дело" autoFocus maxLength={80} />
+        <TextInput value={place} onChangeText={setPlace} placeholder="Где (необязательно)" placeholderTextColor={colors.muted3} style={styles.input} accessibilityLabel="Где" maxLength={80} />
+        {cur && <View style={styles.wheelBox}><DayTimeWheel days={days} day={cur.key} time={t ?? null} onChange={(d, x) => { setDay(d); setTime(x); }} /></View>}
+        <Pressable disabled={!title.trim()} onPress={add} style={({ pressed }) => [styles.emptyBtn, !title.trim() && { opacity: 0.4 }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
+          <Text style={styles.emptyBtnText}>{cur && t ? `Добавить · ${cur.label.toLowerCase()} ${t}` : 'Добавить'}</Text>
+        </Pressable>
+      </BottomSheet>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
+  sheetTitle: { fontFamily: fonts.display800, fontSize: 24, letterSpacing: -0.5, color: colors.ink },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, padding: 12, borderRadius: 18, backgroundColor: colors.card },
+  addIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  menuHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 6 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 52, paddingHorizontal: 6, borderTopWidth: 1, borderTopColor: 'rgba(23,22,26,0.07)' },
+  menuText: { fontFamily: fonts.body600, fontSize: 16, color: colors.ink },
+  input: { minHeight: 50, borderRadius: 16, backgroundColor: colors.card, paddingHorizontal: 14, fontFamily: fonts.body500, fontSize: 16, color: colors.ink },
+  wheelBox: { borderRadius: 20, backgroundColor: colors.card, overflow: 'hidden' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 22, paddingHorizontal: 9, borderRadius: 11 },
   pillLive: { backgroundColor: 'rgba(47,163,90,0.14)' },
   pillSoon: { backgroundColor: 'rgba(240,82,31,0.12)' },
@@ -404,11 +479,6 @@ const styles = StyleSheet.create({
   ans: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted2 },
   more: { alignSelf: 'center', height: 44, paddingHorizontal: 18, borderRadius: 22, justifyContent: 'center', backgroundColor: 'rgba(23,22,26,0.07)' },
   moreText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
-  extra: { flexDirection: 'row', gap: 10, marginTop: 6 },
-  extraCard: { flex: 1, padding: 14, borderRadius: 22, gap: 2 },
-  extraIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  extraTitle: { fontFamily: fonts.display700, fontSize: 15.5, color: colors.ink },
-  extraSub: { fontFamily: fonts.body500, fontSize: 12.5, color: colors.muted2 },
   emptyBtn: { marginTop: 8, height: 48, paddingHorizontal: 22, borderRadius: 15, backgroundColor: colors.ink, justifyContent: 'center' },
   emptyBtnText: { fontFamily: fonts.body700, fontSize: 15, color: colors.paper, textAlign: 'center' },
 });

@@ -3,10 +3,10 @@
 // Ниже — плитки разного размера (bento): друзья, шаги, награды, город. Одинаково у меня и у друга.
 import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { photo as photoSrc } from '../../data/photos';
@@ -14,26 +14,40 @@ import { colors, fonts } from '../../theme';
 
 export const HERO_H = 452;
 
-/** Большое фото профиля. Несколько фото — полоски сверху, нажатие справа/слева листает.
- *  Свайп вниз по фото — все фото на весь экран, листаются вбок, как в Telegram. */
-export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra, meta, corner, onPhoto, photoLabel, viewerAction }: {
+/** Прокрутка экрана профиля для PhotoHero: позиция (на потоке анимаций) и жест прокрутки. */
+export interface HeroScroll { y: SharedValue<number>; native: ReturnType<typeof Gesture.Native> }
+export function useHeroScroll() {
+  const y = useSharedValue(0);
+  const native = useMemo(() => Gesture.Native(), []);
+  const onScroll = useAnimatedScrollHandler((ev) => { y.set(ev.contentOffset.y); });
+  return { scroll: { y, native } as HeroScroll, onScroll };
+}
+
+/** Большое фото профиля. Несколько фото — полоски сверху, нажатие справа/слева листает, удержание — на весь экран.
+ *  Свайп вниз по фото (экран в самом верху) или нажатие на единственное фото — все фото на весь экран, листаются вбок. */
+export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra, meta, corner, onPhoto, photoLabel, viewerAction, scroll }: {
   photos: string[]; initial: string; tint: string; accent: string; top: ReactNode; name: string; nameExtra?: ReactNode;
   meta?: ReactNode; corner?: ReactNode; onPhoto?: () => void; photoLabel?: string; viewerAction?: { label: string; onPress: () => void };
+  /** Прокрутка экрана (useHeroScroll): жест «потянуть вниз» работает вместе с ней, а не теряется в ней (APK 30). */
+  scroll?: HeroScroll;
 }) {
   const [viewer, setViewer] = useState(false);
   const pull = useSharedValue(0);
   const openViewer = () => { if (photos.length) setViewer(true); else onPhoto?.(); };
-  const swipe = Gesture.Pan().activeOffsetY(18).failOffsetY(-12).failOffsetX([-18, 18])
-    .onUpdate((ev) => { pull.set(Math.max(0, ev.translationY)); })
-    .onEnd((ev) => { if (ev.translationY > 60 || ev.velocityY > 700) runOnJS(openViewer)(); pull.set(withTiming(0, { duration: 220 })); });
+  // Тянуть вниз имеет смысл только когда экран в самом верху — иначе это обычная прокрутка назад.
+  const pan = Gesture.Pan().activeOffsetY(14).failOffsetY(-10).failOffsetX([-22, 22])
+    .onUpdate((ev) => { if (!scroll || scroll.y.get() <= 2) pull.set(Math.max(0, ev.translationY)); })
+    .onEnd((ev) => { if ((!scroll || scroll.y.get() <= 2) && (ev.translationY > 60 || ev.velocityY > 700)) runOnJS(openViewer)(); pull.set(withTiming(0, { duration: 220 })); });
+  const swipe = scroll ? pan.simultaneousWithExternalGesture(scroll.native) : pan;
   const pullSt = useAnimatedStyle(() => ({ transform: [{ scale: 1 + Math.min(pull.get(), 140) / 900 }] }));
   const insets = useSafeAreaInsets();
   const [i, setI] = useState(0);
   const h = HERO_H + insets.top;
   const cur = photos[i % Math.max(1, photos.length)];
+  // Одно фото — нажатие открывает его на весь экран; несколько — края листают, удержание открывает.
   const tap = (right: boolean) => {
     if (photos.length > 1) setI((x) => (x + (right ? 1 : photos.length - 1)) % photos.length);
-    else onPhoto?.();
+    else openViewer();
   };
   return (
     <GestureDetector gesture={swipe}>
@@ -61,8 +75,8 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
       {/* Зоны нажатия: левая половина — назад, правая — вперёд (как в сторис). */}
       <View style={StyleSheet.absoluteFill}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <Pressable style={{ flex: 1 }} onPress={() => tap(false)} accessibilityRole="button" accessibilityLabel={photos.length > 1 ? 'Предыдущее фото' : photoLabel ?? 'Фото'} />
-          <Pressable style={{ flex: 1 }} onPress={() => tap(true)} accessibilityRole="button" accessibilityLabel={photos.length > 1 ? 'Следующее фото' : photoLabel ?? 'Фото'} />
+          <Pressable style={{ flex: 1 }} onPress={() => tap(false)} onLongPress={openViewer} delayLongPress={300} accessibilityRole="button" accessibilityLabel={photos.length > 1 ? 'Предыдущее фото' : photoLabel ?? 'Фото'} />
+          <Pressable style={{ flex: 1 }} onPress={() => tap(true)} onLongPress={openViewer} delayLongPress={300} accessibilityRole="button" accessibilityLabel={photos.length > 1 ? 'Следующее фото' : photoLabel ?? 'Фото'} />
         </View>
       </View>
       {photos.length > 1 && (

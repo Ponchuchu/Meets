@@ -55,7 +55,7 @@ export function MonthCalendar({ now, value, onPick, selectedDays, markedDays = [
 const ROW = 44;
 
 /** Одна колонка барабана: прокрутка со «щелчком» на значении, выбранное — в центре под плашкой. */
-function Wheel({ items, value, onChange, label }: { items: string[]; value: string; onChange: (v: string) => void; label: string }) {
+function Wheel({ items, value, onChange, label, width }: { items: string[]; value: string; onChange: (v: string) => void; label: string; width?: number }) {
   const ref = useRef<ScrollView>(null);
   const idx = Math.max(0, items.indexOf(value));
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +73,7 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
   };
 
   return (
-    <View style={styles.wheel} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}
+    <View style={[styles.wheel, width ? { width } : null]} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(a) => {
         const i = idx + (a.nativeEvent.actionName === 'increment' ? 1 : -1);
@@ -86,7 +86,7 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
         contentContainerStyle={{ paddingVertical: ROW * 2 }}>
         {items.map((it) => (
           <Pressable key={it} onPress={() => { onChange(it); ref.current?.scrollTo({ y: items.indexOf(it) * ROW, animated: true }); }} style={styles.wheelRow}>
-            <Text style={[styles.wheelText, it === value && styles.wheelOn]}>{it}</Text>
+            <Text style={[styles.wheelText, it === value && styles.wheelOn, width ? styles.wheelWide : null, width && it === value ? styles.wheelWideOn : null]} numberOfLines={1}>{it}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -105,73 +105,6 @@ export function dayTitle(day: number, today: number): string {
   return `${head}, ${a.getUTCDate()} ${MONTHS[a.getUTCMonth()].toLowerCase().replace(/ь$|й$/, 'я').replace(/т$/, 'та')}`;
 }
 
-const STRIP_W = 62;
-
-/**
- * Лента дней (как в календаре iPhone и Airbnb): «сб · 25 · окт» плашками, выбранная — тёмная, выходные — тёплым цветом.
- * days — только доступные дни (у сеансов — дни с сеансами). Длинный период — кнопка «Календарь» в конце ленты.
- */
-export function DayStrip({ days, value, onChange, today, marks }: { days: number[]; value: number; onChange: (d: number) => void; today: number; marks?: Record<number, number> }) {
-  const ref = useRef<ScrollView>(null);
-  const [cal, setCal] = useState(false);
-  const shown = days.slice(0, 31);
-  useEffect(() => {
-    const i = shown.indexOf(value);
-    if (i > 2) ref.current?.scrollTo({ x: (i - 2) * (STRIP_W + 8), animated: false });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return (
-    <View style={{ gap: 10 }}>
-      <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 2, paddingVertical: 2 }} style={{ marginHorizontal: -2 }}>
-        {shown.map((d) => {
-          const a = almaty(dayStart(d));
-          const on = d === value;
-          const weekend = a.getUTCDay() === 0 || a.getUTCDay() === 6;
-          const top = d === today ? 'сегодня' : d === today + 1 ? 'завтра' : WD_SHORT[a.getUTCDay()];
-          return (
-            <Pressable key={d} onPress={() => onChange(d)} style={({ pressed }) => [styles.day, on && styles.dayOn, pressed && { transform: [{ scale: 0.95 }] }]}
-              accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={dayTitle(d, today)}>
-              <Text style={[styles.dayWd, weekend && { color: colors.accentText }, on && { color: '#FFD9C7' }]} numberOfLines={1}>{top}</Text>
-              <Text style={[styles.dayNum, on && { color: colors.paper }]}>{a.getUTCDate()}</Text>
-              <Text style={[styles.dayMon, on && { color: '#B9B3A6' }]}>{MON_SHORT[a.getUTCMonth()]}</Text>
-              {!!marks?.[d] && <View style={[styles.dayDot, on && { backgroundColor: colors.accent }]} />}
-            </Pressable>
-          );
-        })}
-        {days.length > 7 && (
-          <Pressable onPress={() => setCal((c) => !c)} style={[styles.day, styles.dayCal, cal && styles.dayOn]} accessibilityRole="button" accessibilityLabel="Открыть календарь">
-            <CalendarDays size={22} color={cal ? colors.paper : colors.ink} strokeWidth={1.9} />
-            <Text style={[styles.dayMon, { marginTop: 4 }, cal && { color: colors.paper }]}>месяц</Text>
-          </Pressable>
-        )}
-      </ScrollView>
-      {cal && (
-        <View style={styles.calBox}>
-          <MonthCalendar now={dayStart(today)} value={value - today} markedDays={days.length < 60 ? days : []}
-            onPick={(off) => { const d = today + off; if (days.includes(d)) { onChange(d); setCal(false); const i = shown.indexOf(d); if (i >= 0) ref.current?.scrollTo({ x: Math.max(0, i - 2) * (STRIP_W + 8), animated: true }); } }} />
-        </View>
-      )}
-    </View>
-  );
-}
-
-/** Быстрый выбор времени чипами: «Утром 10:00», «Днём 14:00», «Вечером 19:00» — то, что подходит по часам события. */
-export function TimeChips({ options, value, onChange }: { options: { label: string; time: string }[]; value: string; onChange: (t: string) => void }) {
-  if (!options.length) return null;
-  return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      {options.map((o) => {
-        const on = o.time === value;
-        return (
-          <Pressable key={o.time} onPress={() => onChange(o.time)} style={({ pressed }) => [styles.tchip, on && styles.dayOn, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-            <Text style={[styles.tchipLabel, on && { color: '#B9B3A6' }]}>{o.label}</Text>
-            <Text style={[styles.tchipTime, on && { color: colors.paper }]}>{o.time}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
@@ -187,6 +120,34 @@ export function TimeWheel({ value, onChange }: { value: string; onChange: (v: st
       <Wheel items={MINUTES} value={mm} onChange={(x) => onChange(`${h}:${x}`)} label="Минуты" />
     </View>
   );
+}
+
+export interface WheelDay { key: number; label: string; times: string[] }
+
+/**
+ * День и время барабаном, как в iPhone (26 окт.): только настоящие варианты — дни, когда открыто или есть сеанс,
+ * и времена этого дня с шагом места (12:00, 12:30…) или времена сеансов. Не «13:59», а то, на что реально можно прийти.
+ */
+export function DayTimeWheel({ days, day, time, onChange }: { days: WheelDay[]; day: number; time: string | null; onChange: (day: number, time: string) => void }) {
+  const cur = days.find((d) => d.key === day) ?? days[0];
+  if (!cur) return null;
+  const t = time && cur.times.includes(time) ? time : cur.times[0];
+  return (
+    <View style={styles.wheels}>
+      <View pointerEvents="none" style={styles.wheelBand} />
+      {/* key: при смене дня колонка времени встаёт на первое время дня. */}
+      <Wheel width={168} items={days.map((d) => d.label)} value={cur.label} label="День"
+        onChange={(label) => { const d = days.find((x) => x.label === label); if (d) onChange(d.key, d.times.includes(t) ? t : d.times[0]); }} />
+      <Wheel key={cur.key} width={110} items={cur.times} value={t} label="Время" onChange={(x) => onChange(cur.key, x)} />
+    </View>
+  );
+}
+
+/** «Сегодня, 26 окт», «Завтра, 27 окт», «Пт, 31 окт» — подпись дня для барабана. */
+export function wheelDayLabel(day: number, today: number): string {
+  const a = almaty(dayStart(day));
+  const head = day === today ? 'Сегодня' : day === today + 1 ? 'Завтра' : ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][a.getUTCDay()];
+  return `${head}, ${a.getUTCDate()} ${MON_SHORT[a.getUTCMonth()]}`;
 }
 
 export interface PlaceValue {
@@ -291,13 +252,14 @@ const styles = StyleSheet.create({
   wheelRow: { height: ROW, alignItems: 'center', justifyContent: 'center' },
   wheelText: { fontFamily: fonts.display600, fontSize: 22, color: colors.muted3 },
   wheelOn: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
+  wheelWide: { fontSize: 17 },
+  wheelWideOn: { fontSize: 20 },
   colon: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card },
   mapBox: { height: 230, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, backgroundColor: '#DDD8CB' },
   centerPin: { position: 'absolute', left: '50%', top: '50%', marginLeft: -20, marginTop: -52, alignItems: 'center' },
   pinHead: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   pinLeg: { width: 3, height: 12, backgroundColor: colors.ink, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
-  day: { width: STRIP_W, height: 82, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 1, borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)' },
   dayOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   dayCal: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.line2, borderStyle: 'dashed' },
   dayWd: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.4, color: colors.muted, textTransform: 'uppercase' },

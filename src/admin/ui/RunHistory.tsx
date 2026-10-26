@@ -10,7 +10,7 @@ import { Card, Empty, Section } from './kit';
 const STATUS: Record<Run['status'], [string, string]> = {
   queued: ['в очереди', colors.muted3], running: ['идёт', colors.accent], done: ['готово', '#4E7A52'], failed: ['ошибка', colors.accent], cancelled: ['остановлен', colors.muted3],
 };
-const HOW: Record<string, string> = { sites: 'Скрипт', ai: 'ИИ', all: 'Скрипт + ИИ' };
+const HOW: Record<string, string> = { sites: 'Сбор', ai: 'ИИ-поиск', all: 'Сбор + ИИ' };
 
 const Line = memo(function Line({ r, last }: { r: Run; last: boolean }) {
   const [label, color] = STATUS[r.status];
@@ -19,18 +19,25 @@ const Line = memo(function Line({ r, last }: { r: Run; last: boolean }) {
       <View style={[styles.dot, { backgroundColor: color }]} />
       <View style={{ flex: 1, gap: 1 }}>
         <Text style={styles.t}>{ago(r.started_at)} · {HOW[r.params?.sources ?? ''] ?? 'Поиск'}</Text>
-        <Text style={styles.s}>{label}{r.status === 'done' || r.found ? ` · найдено ${r.found}, в очередь ${r.queued}` : ''}</Text>
+        <Text style={styles.s}>{label}{socialLine(r)}{r.status === 'done' && r.found ? ` · с сайтов ${r.found}` : ''}</Text>
       </View>
     </View>
   );
 });
 
+/** Итог Instagram и Threads из stats запуска: « · страниц 40, событий 12». */
+function socialLine(r: Run): string {
+  const soc = (r.stats as { social?: { events: number; posts: number }[] } | null)?.social;
+  if (!soc?.length) return '';
+  return ` · страниц ${soc.length}, постов ${soc.reduce((n, x) => n + (x.posts ?? 0), 0)}, событий ${soc.reduce((n, x) => n + (x.events ?? 0), 0)}`;
+}
+
 export function RunHistory({ live, runs, loading }: { live: boolean; runs: Run[]; loading: boolean }) {
   return (
     <Section title="История" right={runs.length ? <Text style={styles.count}>{runs.length}</Text> : undefined}>
-      {!live ? <Empty icon={History} title="История появится после входа" text="Здесь будут последние запуски поиска: когда, чем искали и сколько нашли." />
+      {!live ? <Empty icon={History} title="История появится после входа" text="Здесь будут последние сборы: когда и сколько нашли." />
         : loading ? <Empty loading title="Загружаю историю…" />
-          : !runs.length ? <Empty icon={History} title="Поиск ещё не запускали" text="Нажми «Найти» выше — запуск появится здесь." />
+          : !runs.length ? <Empty icon={History} title="Сбор ещё не запускали" text="Нажми «Собрать сейчас» выше — запуск появится здесь." />
             : <Card style={{ paddingVertical: 4, gap: 0 }}>{runs.map((r, i) => <Line key={r.id} r={r} last={i === runs.length - 1} />)}</Card>}
     </Section>
   );

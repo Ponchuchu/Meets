@@ -47,6 +47,7 @@ export async function buildDraft(
     organizer: x.organizer,
     source_url: post.url,
     cover_url: post.images[0] ?? null,
+    sessions: x.sessions && x.sessions.length > 1 ? x.sessions.map((a) => new Date(a).toISOString()) : undefined,
     ai_confidence: confidence,
     flags,
     status: autoPublish(source, confidence, flags) ? 'published' : 'draft',

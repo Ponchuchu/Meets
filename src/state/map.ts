@@ -19,6 +19,9 @@ interface MapState {
   /** «Год в Алматы»: к какому большому событию подлететь на карте. */
   cityFocus: string | null;
   setCityFocus: (id: string | null) => void;
+  /** «Показать на карте» из «Моих мест»: куда подлететь (один раз). */
+  flyTarget: { lat: number; lon: number; zoom: number } | null;
+  flyTo: (t: { lat: number; lon: number; zoom: number } | null) => void;
 }
 
 export const useMapState = create<MapState>((set) => ({
@@ -35,4 +38,6 @@ export const useMapState = create<MapState>((set) => ({
   select: (id) => set({ selectedId: id }),
   cityFocus: null,
   setCityFocus: (id) => set({ cityFocus: id }),
+  flyTarget: null,
+  flyTo: (t) => set({ flyTarget: t }),
 }));

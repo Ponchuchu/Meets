@@ -35,6 +35,9 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
     glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
     sources: {
       streets: { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' },
+      // Деревья — из тех же данных, но всегда из тайлов 15-го масштаба (дальше они только растягиваются):
+      // при приближении форма парка не меняется, и деревья стоят на своих местах, а не «перепрыгивают».
+      trees: { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8', maxzoom: 15 },
       terrain: { type: 'vector', url: 'mapbox://mapbox.mapbox-terrain-v2' },
       ...(threeD ? { landmarks: { type: 'geojson', data: landmarksGeoJSON() } } : {}),
       ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
@@ -116,15 +119,18 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
       // отсюда «дерево на крыше»), а в самой глубине участка: точка, самая далёкая от краёв; большой парк режется на тайлы — там несколько.
       // Ели в лесах и на склонах — по кромке: домов там почти нет.
       ...(trees ? [
-        { id: 'trees-park', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
+        // Деревья не участвуют в «борьбе за место» с подписями (allow-overlap + ignore-placement): иначе при повороте
+        // и наклоне карты одно дерево пряталось, другое появлялось (26 окт.).
+        { id: 'trees-park', type: 'symbol', source: 'trees', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
           filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery'], true, false],
           layout: { 'symbol-placement': 'point', 'icon-image': treeImage, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
-            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.11, 17, 0.2, 19, 0.34], 'icon-padding': 2, 'icon-allow-overlap': false } ,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.11, 17, 0.2, 19, 0.34], 'icon-padding': 0, 'icon-allow-overlap': true, 'icon-ignore-placement': true } ,
           paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1], ...occlusion } },
-        { id: 'trees-wood', type: 'symbol', source: 'streets', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM - 0.5,
+        { id: 'trees-wood', type: 'symbol', source: 'trees', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM - 0.5,
           filter: ['match', ['get', 'class'], ['wood', 'scrub'], true, false],
-          layout: { 'symbol-placement': 'line', 'symbol-spacing': 26, 'icon-image': 'pine', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
-            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0.08, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': false },
+          // Шаг между елями — постоянный «на земле» (растёт вдвое с каждым шагом масштаба), а не на экране: при приближении не появляются новые.
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': ['interpolate', ['exponential', 2], ['zoom'], 14, 26, 22, 6656], 'icon-image': 'pine', 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0.08, 17, 0.17, 19, 0.3], 'icon-padding': 0, 'icon-allow-overlap': true, 'icon-ignore-placement': true },
           paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM - 0.5, 0, TREES_MIN_ZOOM, 1], ...occlusion } },
       ] : []),
       {

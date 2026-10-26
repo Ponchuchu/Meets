@@ -34,7 +34,16 @@ export interface QueueStats {
 
 export interface SourceItem {
   id: string;
-  kind: 'telegram' | 'site' | 'threads' | 'manual' | 'user' | 'search';
+  kind: 'telegram' | 'site' | 'threads' | 'instagram' | 'manual' | 'user' | 'search';
+  /** Папка в панели: Афиши, Площадки, ТЦ, Театры… (миграция 51). */
+  folder?: string;
+  /** Место по умолчанию у страницы площадки («Almaty Arena»). */
+  venueName?: string | null;
+  /** Итоги последнего сбора: когда работало, ошибка, сколько постов и событий, профиль страницы. */
+  stats?: { ok_at?: string; error?: string | null; error_at?: string; posts?: number; events?: number; dups?: number; junk?: number; name?: string | null; followers?: number | null; avatar?: string | null; last_post_at?: string } | null;
+  /** Отчёт из базы: всего событий, на карте сейчас, ждут проверки, за неделю. */
+  report?: { total: number; live: number; drafts: number; week: number; postsWeek: number };
+  lastRunAt?: string | null;
   /** Адрес/ник: по нему отличаем Sxodim от Яндекса. */
   handle?: string;
   title: string;
@@ -114,7 +123,16 @@ export function demoQueue(now: Date): QueueItem[] {
 }
 
 export const DEMO_SOURCES: SourceItem[] = [
-  { id: 's-ya', kind: 'site', title: 'Яндекс Афиша · Алматы', note: 'ссылка на раздел города', trusted: true, autoPublish: true, enabled: true },
-  { id: 's-th', kind: 'threads', title: 'Threads · @almaty.weekend', note: 'посты и картинки-афиши', trusted: false, autoPublish: false, enabled: true },
-  { id: 's-tg', kind: 'telegram', title: 'Telegram · @afisha_almaty', note: 'канал читается целиком', trusted: false, autoPublish: false, enabled: true },
+  { id: 's-arena', kind: 'instagram', handle: 'almatyarena', title: 'Almaty Arena', folder: 'venue', venueName: 'Almaty Arena', note: null, trusted: true, autoPublish: true, enabled: true,
+    stats: { ok_at: new Date(Date.now() - 2 * 3600e3).toISOString(), posts: 8, events: 4, followers: 128000, last_post_at: new Date(Date.now() - 5 * 3600e3).toISOString() }, report: { total: 4, live: 4, drafts: 0, week: 4, postsWeek: 8 } },
+  { id: 's-total', kind: 'instagram', handle: 'total_theater', title: 'Тотальный театр', folder: 'theatre', venueName: 'Тотальный театр', note: null, trusted: true, autoPublish: true, enabled: true,
+    stats: { ok_at: new Date(Date.now() - 2 * 3600e3).toISOString(), posts: 25, events: 6 }, report: { total: 6, live: 5, drafts: 1, week: 6, postsWeek: 25 } },
+  { id: 's-mega', kind: 'instagram', handle: 'mega_center', title: 'MEGA Alma-Ata', folder: 'mall', venueName: 'MEGA Alma-Ata', note: null, trusted: true, autoPublish: false, enabled: true,
+    stats: { ok_at: new Date(Date.now() - 2 * 3600e3).toISOString(), posts: 30, events: 0 }, report: { total: 0, live: 0, drafts: 0, week: 0, postsWeek: 30 } },
+  { id: 's-monte', kind: 'instagram', handle: 'monte_almaty', title: 'Monte · походы в горы', folder: 'hike', note: null, trusted: false, autoPublish: false, enabled: true,
+    stats: { ok_at: new Date(Date.now() - 2 * 3600e3).toISOString(), posts: 4, events: 2 }, report: { total: 2, live: 2, drafts: 1, week: 2, postsWeek: 4 } },
+  { id: 's-ya', kind: 'site', handle: 'afisha.yandex.kz/almaty', title: 'Яндекс Афиша · Алматы', folder: 'afisha', note: 'ссылка на раздел города', trusted: true, autoPublish: true, enabled: true, report: { total: 64, live: 19, drafts: 0, week: 12, postsWeek: 30 } },
+  { id: 's-th', kind: 'threads', handle: 'almaty.weekend', title: 'Threads · @almaty.weekend', folder: 'afisha', note: 'посты и картинки-афиши', trusted: false, autoPublish: false, enabled: true,
+    stats: { error: 'Нет ключа THREADS_TOKEN — как получить, в docs/KEYS.md', error_at: new Date().toISOString() } },
+  { id: 's-tg', kind: 'telegram', handle: 'afisha_almaty', title: 'Telegram · @afisha_almaty', folder: 'afisha', note: 'канал читается целиком', trusted: false, autoPublish: false, enabled: true },
 ];

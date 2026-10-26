@@ -1,6 +1,7 @@
 // Посты-воспоминания (26 октября, как в Instagram): фото, подпись, карточка события, отмеченные друзья, комментарии, лайки.
 // В базе пост — строка memories (note = подпись), фото — memory_photos, остальное — миграция 50.
 // В демо всё живёт на телефоне (посты друзей из макета + свои), чтобы экраны работали без сети.
+import { recordCrash } from '../lib/crash';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, withTimeout } from '../data/client';
@@ -57,16 +58,27 @@ interface Row {
 }
 const signed = async (paths: string[]): Promise<Record<string, string>> => {
   if (!paths.length) return {};
-  const r = await withTimeout(sb().storage.from('memories').createSignedUrls(paths, 3600), 10000);
-  if (r.error) return {};
-  return Object.fromEntries((r.data ?? []).filter((x) => x.signedUrl && x.path).map((x) => [x.path!, x.signedUrl as string]));
+  const bucket = sb().storage.from('memories');
+  const r = await withTimeout(bucket.createSignedUrls(paths, 3600), 10000).catch((e: unknown) => ({ data: null, error: e as Error }));
+  const out: Record<string, string> = {};
+  if (!r.error) for (const x of r.data ?? []) if (x.signedUrl && x.path) out[x.path] = x.signedUrl;
+  // Пачка не подписалась (одна битая ссылка роняла все — посты пропадали из профиля): подписываем по одной.
+  const left = paths.filter((p) => !out[p]);
+  if (left.length) {
+    if (r.error) void recordCrash(new Error(`Фото постов: ${r.error.message}`), false);
+    await Promise.all(left.map(async (p) => {
+      const one = await withTimeout(bucket.createSignedUrl(p, 3600), 10000).catch(() => null);
+      if (one?.data?.signedUrl) out[p] = one.data.signedUrl;
+    }));
+  }
+  return out;
 };
 async function mapRows(rows: Row[]): Promise<Post[]> {
-  const urls = await signed(rows.flatMap((r) => r.memory_photos.map((p) => p.path)));
+  const urls = await signed(rows.flatMap((r) => (r.memory_photos ?? []).map((p) => p.path)));
   const my = myId();
   return rows.map((r) => ({
     id: r.id, owner: r.user_id, caption: r.note ?? '', created_at: r.created_at ?? r.happened_at,
-    photos: [...r.memory_photos].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((p) => ({ id: p.id, url: urls[p.path] })).filter((p) => p.url),
+    photos: [...(r.memory_photos ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((p) => ({ id: p.id, url: urls[p.path] })).filter((p) => p.url),
     event: r.events ? { id: r.events.id, title: r.events.title, category: r.events.category, starts_at: r.events.starts_at, venue_name: r.events.venues?.name ?? null } : null, tags: (r.memory_tags ?? []).map((t) => t.user_id),
     likes: (r.memory_likes ?? []).length, liked: (r.memory_likes ?? []).some((l) => l.user_id === my), comments: r.memory_comments?.[0]?.count ?? 0,
   })).filter((p) => p.photos.length);

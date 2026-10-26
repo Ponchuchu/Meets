@@ -73,14 +73,14 @@ async function main(){
   if(!runId)return;
   const action=process.argv[2];
   const covers=process.env.ROBOT_TASK==='covers';
-  if(action==='start'){await robotUpdate({status:'running'});await robotLog(covers?'Генерация обложек запущена':'Поиск запущен');for(const l of await keyLines())await robotLog(l.text,l.level);}
+  if(action==='start'){await robotUpdate({status:'running'});await robotLog(covers?'Генерация обложек запущена':'Сбор запущен');}
   else if(action==='finish'){
     const stopped=await cancelled();const status=stopped?'cancelled':process.env.ROBOT_JOB_STATUS==='success'?'done':'failed';
     let reason='';try{reason=explainFailure(await readFile('search.log','utf8'));}catch{reason=explainFailure('');}
     let lines:string[]=[];try{lines=sourceLines(await readFile('search.log','utf8'));}catch{/* лога нет */}
     for(const t of lines)await robotLog(t,t.endsWith('не открылся')?'warn':'info');
     let found=0;try{found=(JSON.parse(await readFile('search.json','utf8')) as unknown[]).length;}catch{/* шаг поиска завершился с ошибкой */}
-    await robotUpdate({status,...(!covers?{found}:{}),finished_at:new Date().toISOString()});await robotLog(status==='done'?(covers?'Генерация обложек завершена':`Готово · проверено ${found} событий · новые карточки в согласовании`):stopped?'Остановлено':reason,status==='failed'?'error':'ok');
+    await robotUpdate({status,...(!covers?{found}:{}),finished_at:new Date().toISOString()});await robotLog(status==='done'?(covers?'Генерация обложек завершена':`Готово · с сайтов-афиш ${found} событий`):stopped?'Остановлено':reason,status==='failed'?'error':'ok');
   }
 }
 if(process.argv[1]?.endsWith('robot.ts'))void main().catch(error=>{console.error(error);process.exitCode=1;});

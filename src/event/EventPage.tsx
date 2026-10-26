@@ -21,6 +21,7 @@ import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
 import { useFeed } from '../state/feed';
+import { WhenSheet } from '../feed/WhenSheet';
 import { activeCompany, usePlans } from '../state/plans';
 import { useProfile } from '../state/profile';
 import { colors, fonts } from '../theme';
@@ -49,7 +50,7 @@ import { eventStatusLabel } from './availability';
 const LIVE = config.dataMode !== 'demo';
 
 
-type Sheet = 'visit' | 'reschedule' | null | 'company' | 'invite' | 'route' | 'share' | 'going';
+type Sheet = 'visit' | 'reschedule' | null | 'company' | 'invite' | 'route' | 'share' | 'going' | 'dates';
 
 export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, onPlanned, initialSheet = null }: {
   /** Событие попало в планы изнутри карточки (дата, сеанс): лента сворачивает её как «Пойду». */
@@ -116,6 +117,8 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const toggleGo = () => {
     if (statusLabel && !going) return;
     if (e.sessions?.length) { show({ text: 'Выбери дату в карточке события' }); return; }
+    // Несколько дат у одной карточки — сначала какая (решение владельца 26 окт.).
+    if ((e.dates?.length ?? 0) > 1 && !going) { setSheet('dates'); return; }
     if (multiDay && !going && !visitAt) { setSheet('visit'); return; }
     if (onGo && !going && e.id === initialEvent.id) { onGo(); return; }
     if (going) { ungo(e.id); removePlan(); show(null); return; }
@@ -194,6 +197,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             {soon && <View style={[styles.chip, styles.soon]} accessibilityLabel={`Начало ${soon}`}><View style={styles.soonDot} /><Text style={[styles.chipText, { color: colors.accentText }]}>{soon}</Text></View>}
             {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
+            {(e.dates?.length ?? 0) > 1 && <Pressable onPress={() => setSheet('dates')} style={styles.chip} accessibilityRole="button" accessibilityLabel="Даты события"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : `${e.dates!.length} ${e.dates!.length < 5 ? 'даты' : 'дат'}: ${e.dates!.slice(0, 3).map((d) => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short' })).join(', ')}${e.dates!.length > 3 ? '…' : ''}`}</Text></Pressable>}
             {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
             {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
             {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
@@ -293,6 +297,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         </View>
       )}
 
+      {sheet === 'dates' && <WhenSheet e={e} events={[]} now={now} onClose={() => setSheet(null)} onPlanned={() => { setSheet(null); if (onPlanned) onPlanned(); else show({ text: 'Добавил в «Планы» на выбранную дату. Напомню за час' }); }} />}
       {(sheet === 'visit' || sheet === 'reschedule') && <><Backdrop label="Закрыть выбор времени" onPress={() => setSheet(null)} /><BottomSheet label={sheet === 'visit' ? 'Когда пойти' : 'Перенести встречу'} onClose={() => setSheet(null)} scroll>
         <ScheduleSheet e={e} now={now} reschedule={sheet === 'reschedule'} initial={visitAt} onSave={async at => {
           if (sheet === 'reschedule') {

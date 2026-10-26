@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../data/types';
 import { ScheduleSheet } from '../event/ScheduleSheet';
 import { occurrencesOf } from '../event/occurrences';
-import { DayStrip, dayTitle } from '../event/ui/pickers';
+import { DayTimeWheel, dayTitle, wheelDayLabel } from '../event/ui/pickers';
 import { config } from '../lib/config';
 import { almaty, dayIndex } from '../lib/clock';
 import { chooseEventVisit } from '../live/api';
@@ -18,12 +18,13 @@ import { colors, fonts } from '../theme';
 import { EventCover } from '../ui/EventCover';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 
+const plural = (n: number, [one, few, many]: [string, string, string]) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
 const hhmm = (iso: string) => { const a = almaty(iso); return `${String(a.getUTCHours()).padStart(2, '0')}:${String(a.getUTCMinutes()).padStart(2, '0')}`; };
 
 /** Нужно ли выбрать день перед «Пойду»: сеансы или событие дольше суток. */
 export function needsWhen(e: EventItem): boolean {
   if (e.spotId) return false;
-  return !!e.sessions?.length || (!!e.isLong && !!e.endsAt && Date.parse(e.endsAt) - Date.parse(e.startsAt) > 24 * 3600e3);
+  return !!e.sessions?.length || (e.dates?.length ?? 0) > 1 || (!!e.isLong && !!e.endsAt && Date.parse(e.endsAt) - Date.parse(e.startsAt) > 24 * 3600e3);
 }
 
 export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem; events: EventItem[]; now: Date; onClose: () => void; onPlanned: () => void }) {
@@ -31,23 +32,33 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
   const addPlan = useApp((s) => s.addPlan);
   const today = dayIndex(now);
   // Сеансы: из серии (e.sessions) или такие же события на той же площадке.
+  // Даты одной карточки (спектакль в два дня) — выбор даты; id даты — «событие@время».
+  const own = (e.dates?.length ?? 0) > 1;
   const sessions = useMemo(() => {
-    const list = e.sessions?.length
+    const list = own
+      ? e.dates!.filter((s) => Date.parse(s) > now.getTime() - 3 * 3600e3).map((s) => ({ id: `${e.id}@${s}`, startsAt: s, venue: null as string | null }))
+      : e.sessions?.length
       ? e.sessions.filter((s) => Date.parse(s.startsAt) > now.getTime()).map((s) => ({ id: s.id, startsAt: s.startsAt, venue: null as string | null }))
       : occurrencesOf(e, events, now).filter((x) => !x.isLong).map((x) => ({ id: x.id, startsAt: x.startsAt, venue: e.category === 'movie' ? x.venueName ?? null : null }));
     return list.sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-  }, [e, events, now]);
-  const bySession = sessions.length > 1 || !!e.sessions?.length;
+  }, [e, events, now, own]);
+  const bySession = own || sessions.length > 1 || !!e.sessions?.length;
   const days = useMemo(() => [...new Set(sessions.map((s) => dayIndex(s.startsAt)))], [sessions]);
-  const marks = useMemo(() => sessions.reduce<Record<number, number>>((m, s) => { const d = dayIndex(s.startsAt); m[d] = (m[d] ?? 0) + 1; return m; }, {}), [sessions]);
   const [day, setDay] = useState(days[0] ?? today);
   const [pick, setPick] = useState<string | null>(null);
-  const ofDay = sessions.filter((s) => dayIndex(s.startsAt) === day);
-  const chosen = sessions.find((s) => s.id === pick);
+  // Подпись времени в барабане: «19:00», у кино — с кинотеатром. Одинаковые подписи в один день не склеиваются.
+  const label = (x: { startsAt: string; venue: string | null }) => (x.venue ? `${hhmm(x.startsAt)} · ${x.venue}` : hhmm(x.startsAt));
+  const wheelDays = useMemo(() => days.map((d) => ({ key: d, label: wheelDayLabel(d, today), times: [...new Set(sessions.filter((x) => dayIndex(x.startsAt) === d).map(label))] })), [days, sessions, today]);
+  // Выбор по умолчанию — первый сеанс в барабане: «Добавить в планы» сразу активна.
+  const chosen = sessions.find((s) => s.id === pick) ?? sessions.find((x) => dayIndex(x.startsAt) === day) ?? sessions[0];
 
   const planSession = () => {
     if (!chosen) return;
-    usePlans.getState().go(chosen.id);
+    if (own) {
+      // Одна карточка — несколько дат: в планы идёт само событие с выбранной датой (как день выставки).
+      if (config.dataMode !== 'demo') void chooseEventVisit(e.id, chosen.startsAt).then(() => qc.invalidateQueries({ queryKey: ['me', 'attendance'] })).catch(() => undefined);
+      usePlans.setState((s) => ({ visits: { ...s.visits, [e.id]: chosen.startsAt }, going: { ...s.going, [e.id]: chosen.startsAt } }));
+    } else usePlans.getState().go(chosen.id);
     addPlan();
     onPlanned();
   };
@@ -70,24 +81,16 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
           sessions.length === 0 ? <Text style={styles.venue}>Ближайших сеансов нет</Text> : <>
             <View style={{ gap: 4 }}>
               <Text style={styles.h1}>Выбери день</Text>
-              <Text style={styles.sub}>{sessions.length} {sessions.length % 10 === 1 && sessions.length % 100 !== 11 ? 'сеанс' : sessions.length % 10 >= 2 && sessions.length % 10 <= 4 && (sessions.length % 100 < 12 || sessions.length % 100 > 14) ? 'сеанса' : 'сеансов'} впереди</Text>
+              <Text style={styles.sub}>{sessions.length} {plural(sessions.length, own ? ['дата', 'даты', 'дат'] : ['сеанс', 'сеанса', 'сеансов'])} впереди</Text>
             </View>
-            <DayStrip days={days} value={day} today={today} marks={marks} onChange={(d) => { setDay(d); setPick(null); }} />
-            <Text style={styles.cap}>{dayTitle(day, today).toUpperCase()}</Text>
-            <View style={styles.times}>
-              {ofDay.map((s) => {
-                const on = s.id === pick;
-                return (
-                  <Pressable key={s.id} onPress={() => setPick(s.id)} style={({ pressed }) => [styles.time, on && styles.timeOn, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-                    <Text style={[styles.timeText, on && { color: colors.paper }]}>{hhmm(s.startsAt)}</Text>
-                    {!!s.venue && <Text style={[styles.timeVenue, on && { color: '#B9B3A6' }]} numberOfLines={1}>{s.venue}</Text>}
-                  </Pressable>
-                );
-              })}
+            {/* День и время барабаном, как в iPhone (26 окт.): только настоящие сеансы. */}
+            <View style={styles.wheelBox}>
+              <DayTimeWheel days={wheelDays} day={day} time={chosen ? hhmm(chosen.startsAt) : null}
+                onChange={(d, t) => { setDay(d); setPick(sessions.find((x) => dayIndex(x.startsAt) === d && label(x) === t)?.id ?? null); }} />
             </View>
             <Pressable disabled={!chosen} onPress={planSession} style={({ pressed }) => [styles.btn, !chosen && { backgroundColor: colors.sand }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
               <Text style={[styles.btnText, !chosen && { color: colors.muted }]}>Добавить в планы</Text>
-              <Text style={[styles.btnSub, !chosen && { color: colors.muted }]}>{chosen ? `${dayTitle(day, today)} · ${hhmm(chosen.startsAt)}` : 'выбери время'}</Text>
+              <Text style={[styles.btnSub, !chosen && { color: colors.muted }]}>{chosen ? `${dayTitle(dayIndex(chosen.startsAt), today)} · ${hhmm(chosen.startsAt)}` : 'выбери время'}</Text>
             </Pressable>
           </>
         ) : (
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
   h1: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.6, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 14.5, color: colors.muted },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
+  wheelBox: { borderRadius: 20, backgroundColor: colors.card, overflow: 'hidden' },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   time: { minWidth: 84, minHeight: 52, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)' },
   timeOn: { backgroundColor: colors.ink, borderColor: colors.ink },

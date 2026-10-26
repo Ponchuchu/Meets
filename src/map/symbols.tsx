@@ -33,8 +33,9 @@ const RATIO = SPRITE_PT.h / SPRITE_PT.w;
 
 /** Значок по разделу, если в названии нет ничего точнее. */
 const CATEGORY_ICON: Record<Category, SpriteName> = {
-  music: 'ev-concert', concert: 'ev-rock', standup: 'ev-standup', art: 'ev-art', hike: 'ev-camping', games: 'ev-games', food: 'ev-burger',
-  sport: 'ev-football', talks: 'ev-talks', movie: 'ev-movie', theatre: 'ev-theatre', lecture: 'ev-lecture', meetup: 'ev-business', party: 'ev-party', bike: 'ev-bike',
+  // 26 окт.: концерт — сцена (а не электрогитара у Меладзе и Преснякова), встреча — разговор (а не рукопожатие «бизнес»), еда — без бургера по умолчанию.
+  music: 'ev-concert', concert: 'ev-stage', standup: 'ev-standup', art: 'ev-art', hike: 'ev-camping', games: 'ev-games', food: 'ev-streetfood',
+  sport: 'ev-football', talks: 'ev-talks', movie: 'ev-movie', theatre: 'ev-theatre', lecture: 'ev-lecture', meetup: 'ev-talks', party: 'ev-party', bike: 'ev-bike',
 };
 
 /** Места Алматы со своим значком — и для событий там, и для самих мест на карте. */
@@ -48,6 +49,10 @@ const PLACE_WORDS: [RegExp, SpriteName][] = [
 /** Значок по смыслу названия (узкие темы — раньше общих). Набор владельца, 99 значков (assets/map/icons.json). */
 const WORD_ICON: [RegExp, SpriteName][] = [
   ...PLACE_WORDS,
+  // Кино за едой и показы — попкорн; импровизация — микрофон; интеллектуальные игры — квиз (до общих «ужин», «игра»).
+  [/кино-?ужин|кинопоказ|киновечер|кинотеатр под|open ?air кино|фильм[а-я]* «|(^|\s)фильм/i, 'ev-movie'], [/импров|improv/i, 'ev-standup'],
+  [/интеллектуал|teztap|брейн|brain|что\? где\? когда/i, 'ev-quiz'], [/ролев/i, 'ev-games'], [/фламенко|flamenco|танц|сальса|бачата|dance/i, 'ev-party'],
+  [/(^|\s)курс|course|тренинг|семинар/i, 'ev-lecture'], [/(^|\s)трио(\s|$)|квартет|(^|\s)trio|бэнд|(^|\s)band(\s|$)/i, 'ev-jazz'],
   // Музыка и вечеринки.
   [/джаз|jazz|саксофон|блюз|blues/i, 'ev-jazz'], [/оркестр|симфон|филармон|классическ\w* музык|органн|квартет|скрипк|опер[аы]/i, 'ev-orchestra'],
   [/караоке|karaoke/i, 'ev-karaoke'], [/(^|\s)рок|rock|панк|punk|метал|гранж/i, 'ev-rock'], [/\bdj\b|диджей|техно|techno|house|клуб/i, 'ev-club'],
@@ -59,7 +64,7 @@ const WORD_ICON: [RegExp, SpriteName][] = [
   [/плов/i, 'ev-plov'], [/шаурм|донер/i, 'ev-shawarma'], [/пицц|pizza/i, 'ev-pizza'], [/суши|роллы|sushi/i, 'ev-sushi'], [/рамен|ramen|лапш/i, 'ev-ramen'],
   [/шашлык|барбекю|bbq|гриль/i, 'ev-shashlik'], [/выпечк|пекар|круассан|bakery|бранч|завтрак/i, 'ev-bakery'], [/десерт|торт|cake/i, 'ev-dessert'],
   [/мороженое|ice ?cream/i, 'ev-icecream'], [/стрит-?фуд|street ?food|фудтрак|food ?truck/i, 'ev-streetfood'], [/кофе|coffee|каппинг|бариста/i, 'ev-coffee'],
-  [/вин[оа]|wine|сомелье/i, 'ev-wine'], [/пив[оа]|beer|крафт/i, 'ev-beer'], [/сыр[ыа]?(\s|$)|cheese/i, 'ev-cheese'], [/чайн|чаепит|(^|\s)чай(\s|$)|tea/i, 'ev-tea'],
+  [/(^|[\s«"])вин(о|а|н)|wine|сомелье|дегустац\w* вин/i, 'ev-wine'], [/пив[оа]|beer|крафт/i, 'ev-beer'], [/сыр[ыа]?(\s|$)|cheese/i, 'ev-cheese'], [/чайн|чаепит|(^|\s)чай(\s|$)|tea/i, 'ev-tea'],
   [/коктейл|(^|\s)бар(\s|$)|cocktail/i, 'ev-bar'], [/мастер-?класс|workshop|воркшоп|кулинар/i, 'ev-cooking'],
   // Спорт.
   [/баскетбол|basketball|стритбол/i, 'ev-basket'], [/теннис|tennis|падел|padel/i, 'ev-tennis'], [/футбол|football|soccer/i, 'ev-football'],
@@ -96,7 +101,7 @@ export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName
 /** Значок постоянного места по виду. */
 const KIND_ICON: Record<AttractionKind, SpriteName> = {
   ski: 'pl-shymbulak', skate: 'pl-skate', cable: 'pl-cable', wheel: 'pl-wheel', bowling: 'pl-bowling', trampoline: 'pl-trampoline', climb: 'pl-climb',
-  quest: 'pl-quest', vr: 'pl-vr', golf: 'pl-golf', paintball: 'pl-paintball', aqua: 'pl-aqua', photo: 'ev-photo', zipline: 'pl-coaster', park: 'pl-gogol',
+  quest: 'pl-quest', vr: 'pl-vr', golf: 'pl-golf', paintball: 'pl-paintball', aqua: 'pl-aqua', photo: 'ev-photo', zipline: 'pl-zipline', park: 'pl-gogol',
   museum: 'pl-museum', zoo: 'pl-zoo', garden: 'pl-garden', view: 'pl-view', fun: 'pl-coaster', billiards: 'pl-billiard', gallery: 'ev-art', horse: 'pl-horse',
 };
 export const placeSprite = (kind: AttractionKind): SpriteName => KIND_ICON[kind] ?? 'pl-view';

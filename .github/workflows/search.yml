@@ -1,7 +1,6 @@
-# Поиск событий ИИ: Gemini API ищет в интернете → проверка страниц → «Согласование».
-# Сам по расписанию НЕ запускается (выключено 5 октября по просьбе владельца). Запуск — вручную (Actions → Run workflow), позже — кнопкой «Искать сейчас» в панели разработчика.
-# Секреты (docs/KEYS.md): GEMINI_API_KEY или KIMI_API_KEY (ИИ выбирается по имени модели: gemini-… или kimi-…), SUPABASE_SECRET_KEY. Модель — переменная GEMINI_MODEL (необязательно).
-# Без ключа Gemini шаг поиска пропускается, ничего не ломается. Обычно весь запуск — 1–2 минуты.
+# Сбор событий скриптом, без ИИ (26 октября, решение владельца): сайты-афиши → Telegram → Instagram и Threads → «Согласование» или сразу на карту.
+# Запуск — кнопкой «Собрать сейчас» в панели разработчика или по расписанию (robot-tick). Instagram читает функция Supabase social (ключи IG_TOKEN, IG_USER_ID — в секретах Supabase).
+# Секрет GitHub: SUPABASE_SECRET_KEY. Обычно весь запуск — 3–6 минут.
 name: search
 on:
   workflow_dispatch:
@@ -35,13 +34,17 @@ on:
         default: 'yandex,sxodim'
       telegram:
         type: string
-        description: '1 — после афиш разобрать новые посты Telegram-каналов (ИИ отсеивает рекламу и мемы)'
+        description: '1 — после афиш разобрать новые посты Telegram-каналов'
         default: '0'
+      social:
+        type: string
+        description: '1 — страницы Instagram и Threads из «Источников»'
+        default: '1'
 concurrency: worker
 jobs:
   search:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       ROBOT_RUN_ID: ${{ inputs.run_id }}
     steps:
@@ -54,23 +57,15 @@ jobs:
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          # Сами ключи в журнал не попадают: только «есть / нет» и баланс Kimi.
-          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
-          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
-          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
       # Шаг поиска не видит ключей базы: страницы из интернета читает ИИ, и они не должны до них дотянуться.
-      - name: Поиск событий (Gemini или Kimi, 6 разделов параллельно + проверка страниц)
+      # ИИ-поиск по интернету выключен (26 окт.): только сайты-афиши, их читает код.
+      - name: Сайты-афиши (код, без ИИ)
         timeout-minutes: 15
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
-          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
-          GEMINI_MODEL: ${{ inputs.model || vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
           SEARCH_TOPICS: ${{ inputs.topics }}
-          SEARCH_SOURCES: ${{ inputs.sources || 'sites' }}
+          SEARCH_SOURCES: sites
           SEARCH_SITES_ON: ${{ inputs.sites || 'yandex,sxodim' }}
-          SEARCH_FIND_IMAGES: ${{ inputs.find_images || '6' }}
+          SEARCH_FIND_IMAGES: '0'
           SEARCH_DAYS: ${{ inputs.days }}
           SEARCH_LIMIT: ${{ inputs.limit }}
         run: node worker/src/search.ts --run > search.json 2> search.log || code=$?; cat search.log >&2; exit ${code:-0}
@@ -83,14 +78,12 @@ jobs:
             search-report.json
           retention-days: 14
       - name: Черновики в «Согласование»
+        if: ${{ inputs.sites != 'none' }}
         run: node worker/src/index.ts --search search.json --no-images
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          # Описания карточек оформляет Kimi (worker/src/polish.ts); без ключа — аккуратно обрезанный текст афиши.
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
-          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
-      # Telegram: ИИ решает, где событие, а где реклама и мемы. Явная реклама отсеивается без ИИ. Сбой канала не роняет весь запуск.
+      # Telegram: разбор скриптом, как у Instagram. Сбой канала не роняет весь запуск.
       - name: Telegram-каналы (новые посты)
         if: ${{ !cancelled() && inputs.telegram == '1' }}
         continue-on-error: true
@@ -98,9 +91,16 @@ jobs:
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
-          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
+      # Instagram и Threads: посты страниц → события (одна карточка — все даты), фото и видео — копии в хранилище.
+      - name: Instagram и Threads
+        if: ${{ !cancelled() && inputs.social != '0' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: node worker/src/index.ts --social
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SOCIAL_VIDEOS: '20'
       # Постоянные места: часы с перерывами и цены (с сайтов мест). Сбой не роняет запуск.
       - name: Постоянные места — часы и цены
         if: ${{ !cancelled() }}

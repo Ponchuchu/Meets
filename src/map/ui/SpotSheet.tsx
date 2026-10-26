@@ -1,16 +1,18 @@
 // Карточка постоянного места (21 октября): шапка — листаемые фото места (не загрузились — цвет места), значок места
 // в углу, «открыто до 22:00 · перерыв 13–14», цена, как попасть бесплатно, советы, что внутри (у Кок-Тобе и Медеу),
-// часы на неделю — и план: день, время, «с друзьями / один». Кнопки: «Купить билет», «Kaspi», «Сайт», «Маршрут».
+// часы на неделю — и план: день и время барабаном (только реальные времена с шагом места). Кнопки: «Купить билет», «Kaspi», «Сайт», «Маршрут».
+// «Один / с друзьями» убрано (26 окт.): просто «Запланировать», а позвать друзей можно сразу после.
 import { remote } from '../../data/photos';
 import { router } from 'expo-router';
-import { ArrowUpRight, CalendarPlus, Check, ChevronDown, Lightbulb, Navigation, Ticket, User, Users, X } from 'lucide-react-native';
+import { ArrowUpRight, CalendarPlus, Check, ChevronDown, Lightbulb, Navigation, Ticket, Users, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { inSeason, KIND_COLOR, KIND_LABEL, partsOf, seasonText, type Attraction } from '../../data/attractions';
 import { almatyNow, openStatus, slotsFor, weekLines } from '../../data/hours';
 import { spotPlan } from '../../data/spots';
-import { now as clockNow } from '../../lib/clock';
+import { dayIndex, now as clockNow } from '../../lib/clock';
+import { DayTimeWheel, wheelDayLabel } from '../../event/ui/pickers';
 import { config } from '../../lib/config';
 import { createMeetup } from '../../live/api';
 import { myId } from '../../live/auth';
@@ -33,7 +35,6 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
   const [week, setWeek] = useState(false);
   const [day, setDay] = useState(0);
   const [time, setTime] = useState<string | null>(null);
-  const [solo, setSolo] = useState(false);
   const { width } = useWindowDimensions();
   const [broken, setBroken] = useState<string[]>([]);
   const [page, setPage] = useState(0);
@@ -43,21 +44,24 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
   const addMeetup = usePlans((s) => s.addMeetup);
   const addPlan = useApp((s) => s.addPlan);
   const { day: todayIso, min } = almatyNow(now);
-  const days = useMemo(() => Array.from({ length: 7 }, (_, k) => {
+  const today = dayIndex(now);
+  // Две недели вперёд, только дни, когда открыто; времена — с шагом места.
+  const days = useMemo(() => Array.from({ length: 14 }, (_, k) => {
     const iso = ((todayIso - 1 + k) % 7) + 1;
-    const date = new Date(now.getTime() + k * 86400e3);
-    const slots = slotsFor(a.hours, iso, k === 0 ? min + 30 : 0);
-    return { k, iso, label: k === 0 ? 'сегодня' : k === 1 ? 'завтра' : WD[iso - 1], num: new Date(date.getTime() + 5 * 3600e3).getUTCDate(), slots };
-  }), [a.hours, todayIso, min]); // eslint-disable-line react-hooks/exhaustive-deps
-  const slots = days[day]?.slots ?? [];
+    const slots = slotsFor(a.hours, iso, k === 0 ? min + 30 : 0, a.stepMin ?? 30);
+    return { k, iso, label: k === 0 ? 'сегодня' : k === 1 ? 'завтра' : WD[iso - 1], slots };
+  }).filter((d) => d.slots.length), [a.hours, a.stepMin, todayIso, min]);
+  const cur = days.find((d) => d.k === day) ?? days[0];
+  const pick = cur && (time && cur.slots.includes(time) ? time : cur.slots[0]);
   const go = (url: string) => { void Linking.openURL(url).catch(() => undefined); };
 
   const plan = async () => {
-    if (!time || busy) return;
+    if (!cur || !pick || busy) return;
     setBusy(true);
-    const base = new Date(now.getTime() + 5 * 3600e3 + day * 86400e3);
+    const base = new Date(now.getTime() + 5 * 3600e3 + cur.k * 86400e3);
     const ymd = base.toISOString().slice(0, 10);
-    let e = spotPlan(a, `${ymd}T${time}:00+05:00`, solo);
+    setDay(cur.k); setTime(pick);
+    let e = spotPlan(a, `${ymd}T${pick}:00+05:00`, false);
     // На сервере план живёт как своя встреча без приглашённых: переживёт переустановку, друзья увидят «идёт на Кок-Тобе».
     if (config.dataMode !== 'demo') { try { e = { ...e, id: await createMeetup(e), createdBy: myId() ?? undefined, origin: 'real' }; } catch { /* без сети — только на телефоне */ } }
     addMeetup(e); addPlan();
@@ -128,7 +132,8 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
                   <Pressable key={p.id} onPress={() => onOpen?.(p)} style={({ pressed }) => [styles.part, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={p.name}>
                     <View style={{ height: 52, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none"><AttractionPin a={p} label={false} onPress={() => undefined} /></View>
                     <Text style={styles.partName} numberOfLines={2}>{p.name}</Text>
-                    {p.free && <Text style={styles.partFree}>бесплатно</Text>}
+                    {p.free ? <Text style={styles.partFree}>бесплатно</Text> : p.priceFrom ? <Text style={styles.partFree}>от {p.priceFrom.toLocaleString('ru-RU')} ₸</Text> : null}
+                    {p.hours && Object.keys(p.hours).length > 0 && <Text style={styles.partHours} numberOfLines={1}>{openStatus(p.hours, now).text}</Text>}
                   </Pressable>
                 ))}
               </ScrollView>
@@ -147,46 +152,24 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
             </View>
           )}
 
-          {/* План: день → время → один или с друзьями. Время предлагается только когда место открыто. */}
+          {/* План: день и время барабаном. Время предлагается только когда место открыто. */}
           <View style={styles.planBox}>
             <Text style={styles.planTitle}>Когда пойдёшь?</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {days.map((d) => {
-                const off = !d.slots.length;
-                return (
-                  <Pressable key={d.k} disabled={off} onPress={() => { setDay(d.k); setTime(null); setSaved(null); }} style={[styles.day, day === d.k && styles.dayOn, off && { opacity: 0.35 }]} accessibilityRole="button" accessibilityState={{ selected: day === d.k, disabled: off }}>
-                    <Text style={[styles.dayWd, day === d.k && { color: '#BDB8AD' }]}>{d.label}</Text>
-                    <Text style={[styles.dayNum, day === d.k && { color: colors.paper }]}>{d.num}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            {slots.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {slots.map((t) => (
-                  <Pressable key={t} onPress={() => { setTime(t); setSaved(null); }} style={[styles.slot, time === t && styles.slotOn]} accessibilityRole="button" accessibilityState={{ selected: time === t }}>
-                    <Text style={[styles.slotText, time === t && { color: colors.paper }]}>{t}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : <Text style={styles.statusSub}>В этот день закрыто — выбери другой</Text>}
-            <View style={styles.mode}>
-              <Pressable onPress={() => setSolo(false)} style={[styles.modeBtn, !solo && styles.modeOn]} accessibilityRole="radio" accessibilityState={{ selected: !solo }}>
-                <Users size={16} color={!solo ? colors.paper : colors.ink} strokeWidth={2} /><Text style={[styles.modeText, !solo && { color: colors.paper }]}>С друзьями</Text>
-              </Pressable>
-              <Pressable onPress={() => setSolo(true)} style={[styles.modeBtn, solo && styles.modeOn]} accessibilityRole="radio" accessibilityState={{ selected: solo }}>
-                <User size={16} color={solo ? colors.paper : colors.ink} strokeWidth={2} /><Text style={[styles.modeText, solo && { color: colors.paper }]}>Сам</Text>
-              </Pressable>
-            </View>
+            {cur ? (
+              <View style={styles.wheelBox}>
+                <DayTimeWheel days={days.map((d) => ({ key: d.k, label: wheelDayLabel(today + d.k, today), times: d.slots }))} day={cur.k} time={pick ?? null}
+                  onChange={(k, t) => { setDay(k); setTime(t); setSaved(null); }} />
+              </View>
+            ) : <Text style={styles.statusSub}>Ближайшие две недели закрыто{season ? '' : ` — ${seasonText(a, now)}`}</Text>}
             {saved ? (
               <View style={{ gap: 8 }}>
-                <View style={styles.done}><Check size={18} color="#1F6B43" strokeWidth={2.6} /><Text style={styles.doneText}>В планах · {days[day].label} {time}. Напомню за час</Text></View>
-                {!solo && <Pressable onPress={() => { onClose(); router.push({ pathname: '/event/[id]', params: { id: saved, invite: '1' } }); }} style={[styles.btn, styles.main]} accessibilityRole="button"><Users size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Позвать друзей</Text></Pressable>}
+                <View style={styles.done}><Check size={18} color="#1F6B43" strokeWidth={2.6} /><Text style={styles.doneText}>В планах · {cur ? wheelDayLabel(today + cur.k, today).toLowerCase() : ''} {pick}. Напомню за час</Text></View>
+                {<Pressable onPress={() => { onClose(); router.push({ pathname: '/event/[id]', params: { id: saved, invite: '1' } }); }} style={[styles.btn, styles.main]} accessibilityRole="button"><Users size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Позвать друзей</Text></Pressable>}
               </View>
             ) : (
-              <Pressable disabled={!time || busy} onPress={() => void plan()} style={[styles.btn, styles.main, (!time || busy) && { opacity: 0.45 }]} accessibilityRole="button">
+              <Pressable disabled={!pick || busy} onPress={() => void plan()} style={[styles.btn, styles.main, (!pick || busy) && { opacity: 0.45 }]} accessibilityRole="button">
                 <CalendarPlus size={18} color={colors.ink} strokeWidth={2} />
-                <Text style={styles.btnText}>{busy ? 'Сохраняю…' : time ? `Запланировать · ${days[day].label} ${time}` : 'Выбери время'}</Text>
+                <Text style={styles.btnText}>{busy ? 'Сохраняю…' : pick && cur ? `Пойду · ${cur.label} ${pick}` : 'Выбери время'}</Text>
               </Pressable>
             )}
           </View>
@@ -243,17 +226,8 @@ const styles = StyleSheet.create({
   weekTime: { fontFamily: fonts.mono500, fontSize: 12.5, color: colors.ink },
   planBox: { padding: 14, borderRadius: 22, borderWidth: 1.5, borderColor: colors.line2, gap: 10 },
   planTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
-  day: { width: 56, height: 58, borderRadius: 16, backgroundColor: '#EDE8DD', alignItems: 'center', justifyContent: 'center' },
-  dayOn: { backgroundColor: colors.ink },
-  dayWd: { fontFamily: fonts.body500, fontSize: 11.5, color: colors.muted2 },
-  dayNum: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
-  slot: { height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#EDE8DD', justifyContent: 'center' },
-  slotOn: { backgroundColor: colors.ink },
-  slotText: { fontFamily: fonts.mono600, fontSize: 13, color: colors.ink },
-  mode: { flexDirection: 'row', gap: 6 },
-  modeBtn: { flex: 1, flexDirection: 'row', gap: 6, height: 44, borderRadius: 14, backgroundColor: '#EDE8DD', alignItems: 'center', justifyContent: 'center' },
-  modeOn: { backgroundColor: colors.ink },
-  modeText: { fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
+  partHours: { fontFamily: fonts.body500, fontSize: 11, color: colors.muted },
+  wheelBox: { borderRadius: 20, backgroundColor: '#EDE8DD', overflow: 'hidden' },
   done: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#D7EBDD' },
   doneText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: '#1F6B43' },
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },

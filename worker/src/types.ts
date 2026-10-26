@@ -1,6 +1,6 @@
 // Типы сборщика событий (docs/PIPELINE.md).
 
-export type SourceKind = 'telegram' | 'site' | 'search' | 'threads' | 'manual' | 'user';
+export type SourceKind = 'telegram' | 'site' | 'search' | 'threads' | 'instagram' | 'manual' | 'user';
 
 export interface Source {
   id: string;
@@ -11,6 +11,16 @@ export interface Source {
   auto_publish: boolean;
   enabled: boolean;
   cursor: string | null;
+  /** Папка в панели (afisha, venue, mall, theatre…) и место по умолчанию у страницы площадки. */
+  folder?: string;
+  venue_name?: string | null;
+}
+
+/** Фото или видео события (копия в хранилище event-media). */
+export interface MediaItem {
+  type: 'image' | 'video';
+  url: string;
+  poster?: string | null;
 }
 
 /** Сырой пост из источника. */
@@ -21,6 +31,8 @@ export interface RawPost {
   text: string;
   images: string[];
   postedAt: string | null;
+  /** Фото и видео поста (Instagram, Threads). */
+  media?: MediaItem[];
 }
 
 export type PostClass = 'event' | 'ad' | 'meme' | 'not_almaty' | 'cancel';
@@ -53,6 +65,10 @@ export interface Extraction {
   /** Точка площадки, если источник её отдаёт (Яндекс Афиша): геокодер тогда не нужен. */
   lat?: number | null;
   lon?: number | null;
+  /** Время начала написано в посте. Нет — дубли ищем по дню, а не по минуте. */
+  time_known?: boolean;
+  /** Все даты показов (ISO), если их несколько. */
+  sessions?: string[];
 }
 
 export type Flag = 'needs_pin' | 'check_price' | 'cancel_reported';
@@ -82,6 +98,8 @@ export interface Draft {
   organizer: string | null;
   source_url: string;
   cover_url: string | null;
+  media?: MediaItem[];
+  sessions?: string[];
   ai_confidence: number;
   flags: Flag[];
   status: 'draft' | 'published';
@@ -90,6 +108,7 @@ export interface Draft {
 /** Известное событие для поиска дублей (из базы или из этого же запуска). */
 export interface KnownEvent {
   is_long?: boolean;
+  sessions?: string[];
   id: string;
   title: string;
   starts_at: string;

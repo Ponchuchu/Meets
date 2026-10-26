@@ -354,6 +354,13 @@ export default function MapScreen() {
     if (c?.point) mapRef.current?.flyTo(c.point.lat, c.point.lon, 14.5);
     useMapState.getState().setCityFocus(null);
   }, [cityFocus, mapMode]);
+  // «Показать на карте» из «Моих мест» (26 окт.): подлетаем к дому или работе.
+  const flyTarget = useMapState((s) => s.flyTarget);
+  useEffect(() => {
+    if (!flyTarget || mapMode !== 'mapbox') return;
+    mapRef.current?.flyTo(flyTarget.lat, flyTarget.lon, flyTarget.zoom);
+    useMapState.getState().flyTo(null);
+  }, [flyTarget, mapMode]);
 
   const { markers, symbols, taps } = useMemo(() => {
     const groups = groupByPoint(visible);
@@ -625,7 +632,7 @@ export default function MapScreen() {
 
       {sheet === 'venue' && mall && (
         <View style={[styles.card, { bottom: tabPad }]}>
-          <PlaceCard key={mall.id} m={mall} events={upcoming} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} />
+          <PlaceCard key={mall.id} m={mall} events={upcoming} spots={places} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} onSpot={(a) => { setSpotPlace(a); setSheet('spot'); }} />
         </View>
       )}
 

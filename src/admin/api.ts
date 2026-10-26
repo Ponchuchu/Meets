@@ -88,13 +88,39 @@ export async function saveDraft(id: string, patch: { title: string; about: strin
 }
 
 export async function loadSources(): Promise<SourceItem[]> {
-  const { data, error } = await withTimeout(supabase().from('sources').select('id,kind,handle,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at'));
-  if (error) throw error;
-  return (data as { id: string; kind: SourceItem['kind']; handle: string; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean }[])
-    .map((r) => ({ id: r.id, kind: r.kind, handle: r.handle, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled }));
+  type Row = { id: string; kind: SourceItem['kind']; handle: string; title: string; note: string | null; trusted: boolean; auto_publish: boolean; enabled: boolean; folder?: string; venue_name?: string | null; stats?: SourceItem['stats']; last_run_at?: string | null };
+  // Новые колонки (миграция 51) — с запасным запросом, если база ещё старая.
+  const full = await withTimeout(supabase().from('sources').select('id,kind,handle,title,note,trusted,auto_publish,enabled,folder,venue_name,stats,last_run_at').neq('kind', 'user').order('created_at'));
+  const res = full.error ? await withTimeout(supabase().from('sources').select('id,kind,handle,title,note,trusted,auto_publish,enabled').neq('kind', 'user').order('created_at')) : full;
+  if (res.error) throw res.error;
+  const rep = await withTimeout(supabase().rpc('source_report')).catch(() => null);
+  const byId = new Map(((rep?.data ?? []) as { id: string; events_total: number; events_live: number; drafts: number; events_week: number; posts_week: number }[]).map((r) => [r.id, r]));
+  return (res.data as Row[]).map((r) => {
+    const x = byId.get(r.id);
+    return {
+      id: r.id, kind: r.kind, handle: r.handle, title: r.title, note: r.note, trusted: r.trusted, autoPublish: r.auto_publish, enabled: r.enabled,
+      folder: r.folder ?? 'other', venueName: r.venue_name ?? null, stats: r.stats ?? null, lastRunAt: r.last_run_at ?? null,
+      ...(x ? { report: { total: x.events_total, live: x.events_live, drafts: x.drafts, week: x.events_week, postsWeek: x.posts_week } } : {}),
+    };
+  });
 }
 
-export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean; title: string }>): Promise<void> {
+/** Профиль страницы Instagram или Threads и 12 последних постов — до добавления (функция social, ключи только в Supabase). */
+export interface Probe { ok: boolean; error?: string; profile?: { name: string | null; followers: number | null; avatar: string | null; posts: number | null }; posts?: { id: string; url: string; text: string; at: string; media: { type: string; url: string; poster?: string | null }[] }[] }
+export async function probeSource(kind: 'instagram' | 'threads', handle: string): Promise<Probe> {
+  const r = await withTimeout(supabase().functions.invoke('social', { body: { action: 'probe', kind, handle } }), 30000);
+  if (r.error) throw r.error;
+  return r.data as Probe;
+}
+
+/** Срок токена Instagram (IG_TOKEN живёт 60 дней) и есть ли ключ Threads. */
+export async function socialTokens(): Promise<{ instagram: { ok: boolean; expires_at?: string | null; error?: string }; threads: { ok: boolean } }> {
+  const r = await withTimeout(supabase().functions.invoke('social', { body: { action: 'token' } }), 20000);
+  if (r.error) throw r.error;
+  return r.data;
+}
+
+export async function updateSource(id: string, patch: Partial<{ trusted: boolean; auto_publish: boolean; enabled: boolean; title: string; folder: string; venue_name: string | null }>): Promise<void> {
   const { error } = await withTimeout(supabase().from('sources').update(patch).eq('id', id));
   if (error) throw error;
 }
@@ -105,11 +131,16 @@ export async function setAutoPublish(on: boolean): Promise<void> {
   if (error) throw error;
 }
 
-/** Ссылка → источник. Понимает t.me/<канал>, @канал (Telegram), threads.net/@<ник> и просто адрес сайта. */
+/**
+ * Ссылка → источник. Понимает instagram.com/<ник> и @ник (Instagram — основной источник с 26 окт.), t.me/<канал> (Telegram),
+ * threads.net/@<ник> и просто адрес сайта.
+ */
 export function parseSourceLink(link: string): { kind: SourceItem['kind']; handle: string; title: string } | null {
   const s = link.trim();
-  const at = /^@([A-Za-z0-9_]{4,})$/.exec(s);
-  if (at) return { kind: 'telegram', handle: at[1], title: `Telegram · @${at[1]}` };
+  const ig = /instagram\.com\/([A-Za-z0-9_.]{2,30})/i.exec(s);
+  if (ig) return { kind: 'instagram', handle: ig[1].toLowerCase(), title: ig[1] };
+  const at = /^@([A-Za-z0-9_.]{2,30})$/.exec(s);
+  if (at) return { kind: 'instagram', handle: at[1].toLowerCase(), title: at[1] };
   const tg = /(?:t\.me\/(?:s\/)?|^@)([A-Za-z0-9_]{4,})/.exec(s);
   if (/t\.me\//.test(s) && tg) return { kind: 'telegram', handle: tg[1], title: `Telegram · @${tg[1]}` };
   const th = /threads\.(?:net|com)\/@([\w.]+)/.exec(s);
@@ -120,10 +151,13 @@ export function parseSourceLink(link: string): { kind: SourceItem['kind']; handl
 }
 
 /** Новый источник. title — своё название (по умолчанию — из ссылки). */
-export async function addSource(link: string, title?: string): Promise<void> {
+export async function addSource(link: string, title?: string, opts: { folder?: string; kind?: SourceItem['kind']; venueName?: string | null } = {}): Promise<void> {
   const src = parseSourceLink(link);
   if (!src) throw new Error('bad-link');
-  const { error } = await withTimeout(supabase().from('sources').insert({ ...src, title: title?.trim() || src.title, enabled: src.kind === 'telegram' }));
+  // Новый источник сразу читается при следующем сборе (раньше сайты добавлялись выключенными — их забывали включить).
+  const row = { ...src, kind: opts.kind ?? src.kind, title: title?.trim() || src.title, enabled: true, folder: opts.folder ?? 'other', venue_name: opts.venueName?.trim() || null };
+  let { error } = await withTimeout(supabase().from('sources').insert(row));
+  if (error && /folder|venue_name/.test(error.message)) ({ error } = await withTimeout(supabase().from('sources').insert({ kind: row.kind, handle: row.handle, title: row.title, enabled: true })));
   if (error) throw error;
 }
 

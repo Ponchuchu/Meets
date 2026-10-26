@@ -244,3 +244,21 @@ Workflow **Supabase backend** (`functions.yml`) теперь есть: запу�
 ## Часы и цены постоянных мест
 
 Ключ не нужен: сборщик сам читает часы и цены с сайтов мест (Шымбулак, Кок-Тобе и др.). 2ГИС убран совсем (решение владельца, 21 октября).
+
+## Instagram и Threads (26 октября)
+
+Сборщик читает страницы Instagram через API Facebook (Business Discovery). Ключи лежат **только в секретах Supabase** (Project Settings → Edge Functions → Secrets), в GitHub их нет:
+
+- `IG_TOKEN` — долгий токен пользователя Facebook (начинается с `EAA…`), права `instagram_basic`, `pages_show_list`, `pages_read_engagement`.
+- `IG_USER_ID` — номер твоего бизнес-аккаунта Instagram (17 цифр).
+
+**Токен живёт 60 дней.** Сейчас он действует до **25 декабря 2026**. Панель разработчика (вкладка «Источники») за 2 недели до конца покажет предупреждение. Как продлить:
+1. Открой [Graph API Explorer](https://developers.facebook.com/tools/explorer/), выбери своё приложение и нажми «Generate Access Token» с теми же правами.
+2. Открой [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/), вставь токен и нажми «Extend Access Token» — получишь долгий токен на 60 дней.
+3. Вставь его в Supabase → Edge Functions → Secrets → `IG_TOKEN` (заменить старое значение). Больше ничего делать не нужно.
+
+**Лимит Facebook:** около 200 запросов в час. Один сбор тратит по 1 запросу на страницу (≈60), поэтому сбор раз в 2 часа укладывается. Если лимит кончился, сбор сам остановится и продолжит с остальных страниц в следующий раз.
+
+**Чтение хэштегов** (#афишаалматы — посты обычных людей) Facebook открывает только после проверки приложения (App Review → «Instagram Public Content Access»). Когда одобрят — скажи, подключу хэштеги как источники.
+
+**Threads** — отдельный ключ: создай в том же приложении сценарий «Access the Threads API», запроси права `threads_basic` и `threads_profile_discovery` (последнее — через App Review), получи токен и положи в секреты Supabase как `THREADS_TOKEN`. До этого страницы Threads в панели помечены «нужен ключ».

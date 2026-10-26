@@ -336,10 +336,8 @@ const styles = StyleSheet.create({
   // вокруг нулевого якоря, а не внутри него (раньше из-за этого нажатие на друга на карте не срабатывало).
   hit: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   hitWide: { width: 120, height: 64, alignItems: 'center', justifyContent: 'center' },
-  meet: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingLeft: 4, paddingRight: 8, borderRadius: 18, backgroundColor: colors.ink, borderWidth: 2, borderColor: '#FFFFFF', marginTop: -20,
+  meet: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 4, justifyContent: 'center', borderRadius: 18, backgroundColor: colors.ink, borderWidth: 2, borderColor: '#FFFFFF', marginTop: -20,
     boxShadow: '0 8px 16px -6px rgba(23,22,26,0.55)' },
-  meetTime: { width: 50, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  meetTimeText: { width: 50, textAlign: 'center', fontFamily: fonts.mono600, fontSize: 12, color: colors.ink },
   meetTail: { width: 0, height: 0, marginTop: -1, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.ink },
   city: { width: 56, height: 56, borderRadius: 19, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 10px 20px -6px rgba(23,22,26,0.5)', transform: [{ rotate: '-6deg' }] },
@@ -462,18 +460,17 @@ export function CityPin({ title, when, color, Icon, onPress }: { title: string; 
   );
 }
 
-/** Своя встреча на карте: тёмная капля со временем и лицами тех, кого позвали; выбранная — крупнее с названием. */
+/** Своя встреча на карте: тёмная капля с лицами тех, кого позвали (без времени — 26 окт., решение владельца); выбранная — крупнее с названием. */
 export function MeetupPin({ e, people, selected, onPress }: { e: EventItem; people: Person[]; selected: boolean; onPress: () => void }) {
   const faces = (e.meetup?.invited ?? []).map((id) => people.find((p) => p.id === id)).filter(Boolean).slice(0, 3) as Person[];
   const at = new Date(Date.parse(e.startsAt) + 5 * 3600e3);
   const time = `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
-  // Ширина задана числом: пин живёт в «якоре» нулевой ширины, и на Android текст времени сжимался в пустую оранжевую плашку.
-  const width = 4 + 50 + 6 + (faces.length ? 24 + 16 * (faces.length - 1) : 18) + 10 + 4;
+  // Ширина задана числом: пин живёт в «якоре» нулевой ширины (на Android иначе содержимое сжимается).
+  const width = 4 + 4 + (faces.length ? 24 + 16 * (faces.length - 1) : 26) + 4 + 4;
   return (
     <Pressable onPress={onPress} style={styles.hitWide} accessibilityRole="button" accessibilityLabel={`Встреча: ${e.title}, ${time}`}>
       <View style={styles.anchor} pointerEvents="none">
         <View style={[styles.meet, { width }, selected && { transform: [{ scale: 1.12 }] }]}>
-          <View style={styles.meetTime}><Text style={styles.meetTimeText} numberOfLines={1}>{time}</Text></View>
           {faces.length > 0 ? (
             <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><Avatar p={p} size={24} style={{ borderWidth: 1.5, borderColor: '#FFFFFF' }} /></View>)}</View>
           ) : <Ico d="M16 20v-1.5a3.5 3.5 0 00-3.5-3.5h-1A3.5 3.5 0 008 18.5V20M12 12a3 3 0 100-6 3 3 0 000 6z" size={18} color="#FFFFFF" />}
