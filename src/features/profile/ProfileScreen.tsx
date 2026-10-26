@@ -8,8 +8,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
 import { BedDouble, Cake, CalendarDays, Camera, ChevronRight, Code2, Eye, Footprints, Home, Map as MapIcon, PenLine, QrCode, Route, Settings, UserPlus, type LucideIcon } from 'lucide-react-native';
 import { goAwards, goLevel, Showcase } from './Showcase';
-import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard } from './ProfileKit';
-import { EmptyRow, FriendsPill, PlansStrip } from './PlansStrip';
+import { GlassBtn, HeroChip, kit, PhotoHero, useHeroScroll, StatsCard } from './ProfileKit';
+import Animated from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { EmptyRow, FriendsPill, PlansStrip , SectionHead } from './PlansStrip';
 import { PostsGrid } from '../posts/PostsGrid';
 import { getPosts } from '../../live/posts';
 import { birthdayText } from '../../lib/format';
@@ -18,7 +20,7 @@ import { now as clockNow } from '../../lib/clock';
 import { usePlans } from '../../state/plans';
 import { eventsSnapshot , data } from '../../data';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTabInset } from '../../components/TabBar';
 import { config } from '../../lib/config';
@@ -59,6 +61,7 @@ export const Aura = memo(function Aura({ color, height }: { color: string; heigh
 });
 
 export default function ProfileScreen() {
+  const hero = useHeroScroll();
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
   const demoFrame = useProfile(s => s.mapFrame);
@@ -75,7 +78,7 @@ export default function ProfileScreen() {
   const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const steps = useSteps(st => (LIVE ? stepsToday(st) : 6240));
   const stepDays = useQuery({ queryKey: ['me', 'steps'], queryFn: stepHistory, enabled: LIVE, staleTime: 60e3 });
-  useFocusEffect(useCallback(() => { if (LIVE) { void stats.refetch(); void prof.refetch(); } }, [])); // eslint-disable-line react-hooks/exhaustive-deps
+  useFocusEffect(useCallback(() => { if (LIVE) { void stats.refetch(); void prof.refetch(); void postsQ.refetch(); } }, [])); // eslint-disable-line react-hooks/exhaustive-deps
   // «Мои места» сами: раз за запуск спрашиваем сервер — он сам найдёт дом, работу или учёбу и ночёвки.
   useEffect(() => { void learnMyPlaces().then(r => { if (r && (r.places || r.sleepovers)) { void stats.refetch(); void sleeps.refetch(); } }).catch(() => undefined); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -102,7 +105,9 @@ export default function ProfileScreen() {
   const points = s?.points ?? 0;
   const nextAt = level <= 10 ? level * 1000 : 10000 + (level - 10) * 1500;
   const pct = s ? s.cells.length / ALMATY_CELLS : 0;
-  const km = String(Math.round(((stepDays.data ?? []).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7));
+  // Километры за 4 недели: история без сегодняшнего дня (он уже в steps) — раньше сегодня считалось дважды.
+  const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' });
+  const km = String(Math.round(((stepDays.data ?? []).filter((d) => d.day !== todayKey).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7));
   const walk = stepAwards(stepDays.data ?? [], { day: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps });
   const allBadges = [...walk, ...(s?.badges ?? [])];
   const got = allBadges.filter((b) => b.got);
@@ -129,8 +134,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
-      <PhotoHero photos={photos} initial={(name[0] ?? '·').toUpperCase()} tint="#D5CFC1" accent={frame.color} name={name}
+    <GestureDetector gesture={hero.scroll.native}><Animated.ScrollView onScroll={hero.onScroll} scrollEventThrottle={16} style={styles.root} contentContainerStyle={{ paddingBottom: pad + 16 }} showsVerticalScrollIndicator={false}>
+      <PhotoHero scroll={hero.scroll} photos={photos} initial={(name[0] ?? '·').toUpperCase()} tint="#D5CFC1" accent={frame.color} name={name}
         photoLabel="Добавить фото" onPhoto={() => void pickPhoto()} viewerAction={{ label: 'Изменить фото', onPress: () => router.push('/profile/edit') }}
         nameExtra={shown.map((id) => <BadgeMedal key={id} id={id} got size={34} />)}
         top={<>
@@ -152,8 +157,6 @@ export default function ProfileScreen() {
           {!!p?.handle && <HeroChip>{`@${p.handle}`}</HeroChip>}
           {!photos.length && <Pressable onPress={() => void pickPhoto()} accessibilityRole="button"><HeroChip icon={<Camera size={14} color="#FFFFFF" strokeWidth={2.1} />}>добавь фото</HeroChip></Pressable>}
           {!!birthday && <HeroChip icon={<Cake size={14} color="#FFFFFF" strokeWidth={2.1} />}>{birthday}</HeroChip>}
-          <Pressable onPress={goLevel} accessibilityRole="button"><HeroChip>{`уровень ${level}`}</HeroChip></Pressable>
-          {!shown.length && <Pressable onPress={() => router.push('/profile/awards')} accessibilityRole="button"><HeroChip>+ награда к имени</HeroChip></Pressable>}
         </>} />
 
       <View style={kit.actions}>
@@ -171,9 +174,10 @@ export default function ProfileScreen() {
 
         {/* Друзья — одной строкой, планы — лентой вбок, ниже плитки (bento): шаги и город, витрина наград. */}
         {/* Друзья: нет никого — зовём найти; много — лица и «+N». */}
+        <SectionHead title="Друзья" n={friendCount || undefined} onPress={() => router.push('/friends')} />
         {friendCount ? (
-          <FriendsPill faces={friends} total={friendCount} onPress={() => router.push('/friends')} title={`${friendCount} ${plural(friendCount, 'друг', 'друга', 'друзей')}`}
-            sub={onMap ? `${onMap} сейчас на карте` : 'посмотреть всех'} />
+          <FriendsPill faces={friends} total={friendCount} onPress={() => router.push('/friends')} title={onMap ? `${onMap} сейчас на карте` : `${friendCount} ${plural(friendCount, 'друг', 'друга', 'друзей')}`}
+            sub="посмотреть всех" />
         ) : (
           <EmptyRow icon={<UserPlus size={20} color={colors.ink} strokeWidth={1.9} />} text="Друзей пока нет. Добавь по номеру, QR-коду или рядом" action="Найти" onAction={() => router.push('/friends')} />
         )}
@@ -181,23 +185,27 @@ export default function ProfileScreen() {
         <PlansStrip title="Мои планы" items={myPlans} total={myPlansTotal} onAll={() => router.navigate('/plans')}
           empty={<EmptyRow icon={<CalendarDays size={20} color={colors.ink} strokeWidth={1.9} />} text="Планов пока нет. Свайпни пару событий в «Для тебя»" action="Смотреть" onAction={() => router.navigate('/foryou')} />} />
 
+        <SectionHead title="Активность" onPress={() => router.push('/profile/steps')} />
         <StatsCard items={[
           { key: 'steps', icon: <Footprints size={19} color={colors.ok} strokeWidth={2} />, value: steps.toLocaleString('ru-RU'), label: 'шагов сегодня', progress: steps / STEP_GOAL, color: colors.ok, onPress: () => router.push('/profile/steps') },
-          { key: 'km', icon: <Route size={19} color={colors.friend} strokeWidth={2} />, value: km.replace('.', ','), label: 'км пешком', color: colors.friend, onPress: () => router.push('/profile/steps') },
-          { key: 'city', icon: <MapIcon size={19} color={colors.accentText} strokeWidth={2} />, value: exploredPct(s?.cells ?? []).replace(' ', ''), label: 'Алматы открыто', progress: pct, color: colors.accent, onPress: () => { useMapState.getState().setLens('explore'); router.navigate('/'); } },
+          { key: 'km', icon: <Route size={19} color={colors.friend} strokeWidth={2} />, value: km.replace('.', ','), label: 'км за 4 недели', color: colors.friend, onPress: () => router.push('/profile/steps') },
+          { key: 'city', icon: <MapIcon size={19} color={colors.accentText} strokeWidth={2} />, value: exploredPct(s?.cells ?? []).replace(' ', ''), label: 'города открыто', progress: pct, color: colors.accent, onPress: () => { useMapState.getState().setLens('explore'); router.navigate('/'); } },
         ]} />
 
         <Showcase level={level} points={points} nextAt={nextAt} badges={allBadges} total={allBadges.length} stats={[]} onLevel={goLevel} onAwards={goAwards} />
 
+        <SectionHead title="Места" />
         <View style={styles.list}>
           <Row Icon={Home} title="Мои места" value={s?.places.length ? s.places.join(', ') : 'найдём сами'} onPress={() => router.push('/settings/places')} />
           <Row Icon={BedDouble} title="Ночёвки" value={nights.length ? `${nights.length} ${plural(nights.length, 'ночь', 'ночи', 'ночей')}` : 'пока нет'} onPress={() => router.push('/profile/sleepovers')} last />
         </View>
 
         {/* Воспоминания — посты, как в Instagram (26 окт.): сетка фото, «+» — новый пост. */}
-        <PostsGrid posts={myPosts} mine />
+        {postsQ.isError && !myPosts.length ? (
+          <EmptyRow icon={<Camera size={20} color={colors.ink} strokeWidth={1.9} />} text="Воспоминания не загрузились. Проверь связь" action="Повторить" onAction={() => void postsQ.refetch()} />
+        ) : <PostsGrid posts={myPosts} mine />}
       </View>
-    </ScrollView>
+    </Animated.ScrollView></GestureDetector>
   );
 }
 

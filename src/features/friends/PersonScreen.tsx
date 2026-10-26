@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StateView } from '../../ui/StateView';
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { APP_URL } from '../../lib/config';
 import { ART } from '../../ui/art';
@@ -13,7 +13,9 @@ import { EventIcon } from '../../ui/EventIcon';
 import { EmptyRow, FriendsPill, PlansStrip } from '../profile/PlansStrip';
 import { PostsGrid } from '../posts/PostsGrid';
 import { getPosts } from '../../live/posts';
-import { GlassBtn, HeroChip, kit, PhotoHero, StatsCard, Tile, TileCap, type StatItem } from '../profile/ProfileKit';
+import { GlassBtn, HeroChip, kit, PhotoHero, useHeroScroll, StatsCard, Tile, TileCap, type StatItem } from '../profile/ProfileKit';
+import Animated from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
@@ -49,6 +51,7 @@ function selfDetails(card: MyCard, frame: string): PersonDetails {
 const REASONS = ['Спам или реклама', 'Оскорбления', 'Фейковый профиль', 'Неприемлемые фото', 'Младше 18', 'Другое'];
 
 export default function PersonScreen() {
+  const hero = useHeroScroll();
   const insets = useSafeAreaInsets();
   const { id, preview: previewParam } = useLocalSearchParams<{ id: string; preview?: string }>();
   // «Как видят другие» (26 окт.): свой профиль глазами друга — без кнопок, с плашкой сверху.
@@ -119,8 +122,8 @@ export default function PersonScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
-        <PhotoHero photos={gallery.length ? gallery : d.photo ? [d.photo] : []} initial={p.initial} tint={p.tint} accent={frame.color} name={p.name}
+      <GestureDetector gesture={hero.scroll.native}><Animated.ScrollView onScroll={hero.onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
+        <PhotoHero scroll={hero.scroll} photos={gallery.length ? gallery : d.photo ? [d.photo] : []} initial={p.initial} tint={p.tint} accent={frame.color} name={p.name}
           photoLabel={`Фото: ${p.name}`}
           nameExtra={shownBadges.slice(0, 1).map((b) => <BadgeMedal key={b} id={b} got size={34} />)}
           top={<>
@@ -264,7 +267,7 @@ export default function PersonScreen() {
 
           <PostsGrid posts={posts} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView></GestureDetector>
 
       {toast && <Toast t={toast} style={{ position: 'absolute', left: 16, right: 16, bottom: 20 + insets.bottom }} />}
       {sheet && (
