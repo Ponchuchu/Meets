@@ -214,7 +214,8 @@ export function StatusChip({ mark, big }: { mark: NonNullable<FriendMark>; big?:
   return (
     <View style={[styles.chip, MARK_BG[mark.kind], big && styles.chipBig]}>
       {Icon && <Icon size={big ? 12 : 10.5} color={fg} strokeWidth={2.6} />}
-      <Text style={[styles.chipText, big && { fontSize: 11 }, { color: fg }]}>{mark.text}</Text>
+      {/* Ширина текста — числом: внутри пина на карте Android обрезал «4 дн» до «· дн». */}
+      <Text numberOfLines={1} style={[styles.chipText, big && { fontSize: 11 }, { color: fg, width: Math.ceil(mark.text.length * (big ? 7 : 6.4)) + 2 }]}>{mark.text}</Text>
     </View>
   );
 }
@@ -337,8 +338,8 @@ const styles = StyleSheet.create({
   hitWide: { width: 120, height: 64, alignItems: 'center', justifyContent: 'center' },
   meet: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingLeft: 4, paddingRight: 8, borderRadius: 18, backgroundColor: colors.ink, borderWidth: 2, borderColor: '#FFFFFF', marginTop: -20,
     boxShadow: '0 8px 16px -6px rgba(23,22,26,0.55)' },
-  meetTime: { height: 26, paddingHorizontal: 8, borderRadius: 13, backgroundColor: colors.accent, justifyContent: 'center' },
-  meetTimeText: { fontFamily: fonts.mono600, fontSize: 11.5, color: colors.ink },
+  meetTime: { width: 50, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  meetTimeText: { width: 50, textAlign: 'center', fontFamily: fonts.mono600, fontSize: 12, color: colors.ink },
   meetTail: { width: 0, height: 0, marginTop: -1, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.ink },
   city: { width: 56, height: 56, borderRadius: 19, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 10px 20px -6px rgba(23,22,26,0.5)', transform: [{ rotate: '-6deg' }] },
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   badgeSlot: { position: 'absolute', bottom: -10, left: -20, right: -20, alignItems: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 19, paddingHorizontal: 6, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.28)' },
   chipBig: { height: 22, paddingHorizontal: 8, borderRadius: 11 },
-  chipText: { fontFamily: fonts.body700, fontSize: 10, letterSpacing: -0.1 },
+  chipText: { fontFamily: fonts.body700, fontSize: 10, letterSpacing: -0.1, textAlign: 'center', includeFontPadding: false },
   trail: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   streak: { position: 'absolute', width: 16, height: 3, borderRadius: 2, backgroundColor: colors.friend },
   battBare: { backgroundColor: 'transparent', boxShadow: 'none', paddingLeft: 0, paddingRight: 0, height: 16 },
@@ -466,11 +467,13 @@ export function MeetupPin({ e, people, selected, onPress }: { e: EventItem; peop
   const faces = (e.meetup?.invited ?? []).map((id) => people.find((p) => p.id === id)).filter(Boolean).slice(0, 3) as Person[];
   const at = new Date(Date.parse(e.startsAt) + 5 * 3600e3);
   const time = `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
+  // Ширина задана числом: пин живёт в «якоре» нулевой ширины, и на Android текст времени сжимался в пустую оранжевую плашку.
+  const width = 4 + 50 + 6 + (faces.length ? 24 + 16 * (faces.length - 1) : 18) + 10 + 4;
   return (
     <Pressable onPress={onPress} style={styles.hitWide} accessibilityRole="button" accessibilityLabel={`Встреча: ${e.title}, ${time}`}>
       <View style={styles.anchor} pointerEvents="none">
-        <View style={[styles.meet, selected && { transform: [{ scale: 1.12 }] }]}>
-          <View style={styles.meetTime}><Text style={styles.meetTimeText}>{time}</Text></View>
+        <View style={[styles.meet, { width }, selected && { transform: [{ scale: 1.12 }] }]}>
+          <View style={styles.meetTime}><Text style={styles.meetTimeText} numberOfLines={1}>{time}</Text></View>
           {faces.length > 0 ? (
             <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><Avatar p={p} size={24} style={{ borderWidth: 1.5, borderColor: '#FFFFFF' }} /></View>)}</View>
           ) : <Ico d="M16 20v-1.5a3.5 3.5 0 00-3.5-3.5h-1A3.5 3.5 0 008 18.5V20M12 12a3 3 0 100-6 3 3 0 000 6z" size={18} color="#FFFFFF" />}

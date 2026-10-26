@@ -51,7 +51,7 @@ const useDemo = create<DemoPosts>()(persist(() => ({ posts: SEED, comments: SEED
 // ——— Живая база ———
 interface Row {
   id: string; user_id: string; note: string | null; title: string; created_at: string; happened_at: string;
-  events: { id: string; title: string; category: string; starts_at: string; venue_name: string | null } | null;
+  events: { id: string; title: string; category: string; starts_at: string; venues?: { name: string | null } | null } | null;
   memory_photos: { id: string; path: string; created_at: string }[];
   memory_tags?: { user_id: string }[]; memory_likes?: { user_id: string }[]; memory_comments?: { count: number }[];
 }
@@ -67,12 +67,13 @@ async function mapRows(rows: Row[]): Promise<Post[]> {
   return rows.map((r) => ({
     id: r.id, owner: r.user_id, caption: r.note ?? '', created_at: r.created_at ?? r.happened_at,
     photos: [...r.memory_photos].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((p) => ({ id: p.id, url: urls[p.path] })).filter((p) => p.url),
-    event: r.events, tags: (r.memory_tags ?? []).map((t) => t.user_id),
+    event: r.events ? { id: r.events.id, title: r.events.title, category: r.events.category, starts_at: r.events.starts_at, venue_name: r.events.venues?.name ?? null } : null, tags: (r.memory_tags ?? []).map((t) => t.user_id),
     likes: (r.memory_likes ?? []).length, liked: (r.memory_likes ?? []).some((l) => l.user_id === my), comments: r.memory_comments?.[0]?.count ?? 0,
   })).filter((p) => p.photos.length);
 }
-const FULL = 'id,user_id,note,title,created_at,happened_at,events(id,title,category,starts_at,venue_name),memory_photos(id,path,created_at),memory_tags(user_id),memory_likes(user_id),memory_comments(count)';
-const BASIC = 'id,user_id,note,title,created_at,happened_at,events(id,title,category,starts_at,venue_name),memory_photos(id,path,created_at)';
+const FULL = 'id,user_id,note,title,created_at,happened_at,events(id,title,category,starts_at,venues(name)),memory_photos(id,path,created_at),memory_tags(user_id),memory_likes(user_id),memory_comments(count)';
+// В events нет venue_name — название площадки берётся из venues (из-за этого запрос падал с 400 и пост был «недоступен»).
+const BASIC = 'id,user_id,note,title,created_at,happened_at,events(id,title,category,starts_at,venues(name)),memory_photos(id,path,created_at)';
 
 /** Посты человека (свои — без owner), новые сверху. Видимость решает сервер (can_see_memories). */
 export async function getPosts(owner?: string): Promise<Post[]> {

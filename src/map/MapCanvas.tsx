@@ -86,9 +86,25 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
     if (!okPoint([camera.lon, camera.lat]) || !Number.isFinite(camera.zoom)) return;
     if (!moved.current) cam.current?.setCamera({ centerCoordinate: [camera.lon, camera.lat], zoomLevel: camera.zoom, pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, ...(still ? { heading: still.heading } : {}), animationDuration: 0 });
   };
+  // Сторож камеры (пустая голубая карта, шестая попытка): Android теряет центр камеры, оставляя масштаб, — и показывает
+  // океан у точки (0, 0). Раньше чинили только «если камеру ещё не двигали», а перелёт после заставки уже ставил «двигали».
+  // Теперь помним, куда камера должна смотреть (want), и если она оказалась у (0, 0) или далеко от цели без жеста
+  // человека — возвращаем её туда. Проверка — на каждой остановке карты и несколько раз после загрузки.
+  const want = useRef<{ lat: number; lon: number; zoom?: number }>({ lat: camera.lat, lon: camera.lon, zoom: camera.zoom });
+  const center = useRef<{ lat: number; lon: number } | null>(null);
+  const gestured = useRef(false);
+  const aim = (lat: number, lon: number, zoom?: number) => { want.current = { lat, lon, zoom: zoom ?? want.current.zoom }; };
   const checkCenter = (lat: number, lon: number) => {
-    if (!moved.current && Math.hypot(lat - camera.lat, lon - camera.lon) > 0.5) toStart();
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const lost = Math.abs(lat) < 3 && Math.abs(lon) < 3;
+    const astray = !gestured.current && Math.hypot(lat - want.current.lat, lon - want.current.lon) > 0.5;
+    if (!lost && !astray) return;
+    const w = want.current;
+    if (!okPoint([w.lon, w.lat])) return;
+    console.warn('[map] камера потеряла центр — возвращаю', lat, lon);
+    cam.current?.setCamera({ centerCoordinate: [w.lon, w.lat], ...(w.zoom != null && Number.isFinite(w.zoom) ? { zoomLevel: w.zoom } : {}), pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, animationDuration: 0 });
   };
+  const recheck = () => { const c = center.current; if (c) checkCenter(c.lat, c.lon); else toStart(); };
 
   useImperativeHandle(ref, () => ({
     fitBounds: (all, padding) => {
@@ -99,15 +115,17 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       // Одна точка или отступы больше карты — Mapbox на Android считал бесконечный масштаб; расширяем рамку и ужимаем отступы.
       const pad = 0.0015;
       const ne = [Math.max(...lons) + pad, Math.max(...lats) + pad], sw = [Math.min(...lons) - pad, Math.min(...lats) - pad];
+      aim((ne[1] + sw[1]) / 2, (ne[0] + sw[0]) / 2, undefined);
       const vScale = Math.min(1, (box.current.h * 0.7) / Math.max(1, padding.top + padding.bottom));
       const hScale = Math.min(1, (box.current.w * 0.7) / Math.max(1, padding.left + padding.right));
       const p = [padding.top * vScale, padding.right * hScale, padding.bottom * vScale, padding.left * hScale].map(v => Math.max(0, Math.round(v)));
       if (cam.current) cam.current.fitBounds(ne, sw, p, 450);
       else staticRef.current?.fitBounds?.(coords, padding);
     },
-    navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if (!okPoint([lon, lat])) return; moved.current = true; heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, heading, pitch, animationDuration: 900 });else staticRef.current?.navigateTo(lat,lon,heading); },
+    navigateTo: (lat, lon, heading, zoom = 17, pitch = 60) => { if (!okPoint([lon, lat])) return; moved.current = true; aim(lat, lon, zoom); heading = Number.isFinite(heading) ? heading : 0; if(cam.current)cam.current.setCamera({ centerCoordinate: [lon, lat], zoomLevel: zoom, heading, pitch, animationDuration: 900 });else staticRef.current?.navigateTo(lat,lon,heading); },
     flyTo: (lat, lon, zoom, durationMs = 600) => {
       if (!okPoint([lon, lat])) return;
+      aim(lat, lon, zoom);
       if (cam.current && !loaded.current) { pendingFly.current = { lat, lon, zoom }; return; }
       moved.current = true;
       if (zoom != null) z.current = zoom;
@@ -162,7 +180,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         attributionEnabled={config.mapAttribution}
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
-          if (st.gestures?.isGestureActive) { moved.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
+          if (Array.isArray(st.properties.center)) center.current = { lat: st.properties.center[1], lon: st.properties.center[0] };
+          if (st.gestures?.isGestureActive) { moved.current = true; gestured.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
           // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
           if (!Number.isFinite(st.properties.zoom)) return;
@@ -172,12 +191,16 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
-        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); if (props.remember && loaded.current) lastView = { lat: st.properties.center[1], lon: st.properties.center[0], zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
+        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
+          // Потерянный центр (0, 0) не запоминаем — иначе при следующем входе карта сразу откроется в океане.
+          if (props.remember && loaded.current && !(Math.abs(lat) < 3 && Math.abs(lon) < 3)) lastView = { lat, lon, zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => {
           loaded.current = true; toStart(); setReady(true); onMode?.('mapbox');
           const p = pendingFly.current;
           if (p) { pendingFly.current = null; moved.current = true; if (p.zoom != null) z.current = p.zoom; cam.current?.setCamera({ centerCoordinate: [p.lon, p.lat], zoomLevel: p.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 }); }
+          // Android может «съесть» и эту установку камеры — проверяем ещё несколько раз, пока карта устаканивается.
+          for (const ms of [400, 1200, 2500, 5000]) setTimeout(recheck, ms);
         }}
         onMapLoadingError={() => {
           if (loaded.current) { console.warn('[map] ошибка тайлов после загрузки — карта остаётся'); return; }
@@ -221,7 +244,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             Источник постоянный: меняются только данные (удаление источника во время отрисовки роняло Android). */}
         <M.ShapeSource id="syms" shape={symShape as never} hitbox={{ width: 40, height: 40 }}
           onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
-          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: 5, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: 2, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'map' }} />
+          {/* Точки издалека (26 октября): мягкая тень под точкой, белый ободок, точка растёт с приближением —
+              от бусинки на весь город до 7 px у границы, где её сменяет значок. Одинаково у событий, ТРЦ и мест. */}
+          <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 4.5, 12.5, 9] as never, circleColor: '#17161A', circleOpacity: ['*', 0.22, ['get', 'op']] as never, circleBlur: 0.7, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
+          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 3, 12.5, 6.5] as never, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12.5, 2.2] as never, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
             iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
             iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',

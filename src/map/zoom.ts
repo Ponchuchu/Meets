@@ -14,6 +14,23 @@ export function pinBudget(zoom: number): number {
 
 export type Detail = 'far' | 'mid' | 'near';
 
+/**
+ * Ниже этого масштаба все значки — события, ТРЦ и места — разом становятся точками (26 октября, просьба владельца:
+ * «чуть отдалил — и уже точки», ТРЦ и места пропадали иначе, чем события). Выше — у всех объёмные значки.
+ * 12,5 — примерно весь город на экране; старт карты — 14,9.
+ */
+export const DOT_ZOOM = 12.5;
+export const asDots = (zoom: number) => zoom < DOT_ZOOM;
+
+/** Цвет точки для мест и ТРЦ — в тон их значкам. */
+export function spotDot(kind: string): string {
+  if (kind === 'ski' || kind === 'skate' || kind === 'cable' || kind === 'view') return '#3D8FD6';
+  if (kind === 'park' || kind === 'garden' || kind === 'zoo' || kind === 'horse' || kind === 'golf') return '#3E9B5F';
+  if (kind === 'museum' || kind === 'gallery') return '#8A63D2';
+  return '#E8902A';
+}
+export const MALL_DOT = '#5A6BD8';
+
 /** far — только иконки; mid — подписи у своих и дружеских событий; near — подписи у всех. */
 export function detailOf(zoom: number): Detail {
   if (zoom < 12.6) return 'far';

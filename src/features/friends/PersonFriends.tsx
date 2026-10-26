@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { data } from '../../data';
 import type { Person } from '../../data/types';
+import { myId } from '../../live/auth';
 import { useSocialActions } from '../../live/socialActions';
 import { isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';
@@ -28,11 +29,13 @@ export default function PersonFriends() {
   const who = people.find((x) => x.id === id);
   const friend = !!who && isFriendNow(who, social);
   const all = q.data ?? [];
-  const common = all.filter((x) => x.common);
-  const others = all.filter((x) => !x.common);
+  const isMe = (p: Person) => p.id === 'me' || p.id === myId();
+  const meRow = all.filter((x) => isMe(x.person));
+  const common = all.filter((x) => x.common && !isMe(x.person));
+  const others = all.filter((x) => !x.common && !isMe(x.person));
   const cur = tab === 'common' || !friend ? 'common' : 'all';
   const match = (p: Person) => !query.trim() || p.name.toLowerCase().includes(query.trim().toLowerCase());
-  const sections = cur === 'common' ? [{ title: '', list: common }] : [{ title: 'Общие', list: common }, { title: 'Остальные', list: others }];
+  const sections = cur === 'common' ? [{ title: '', list: common }] : [{ title: '', list: meRow }, { title: 'Общие', list: common }, { title: 'Остальные', list: others }];
   const shown = sections.map((s) => ({ ...s, list: s.list.filter((x) => match(x.person)) })).filter((s) => s.list.length);
   const title = who ? `Друзья ${genitive(who.name)}` : 'Друзья';
 
@@ -76,10 +79,19 @@ export default function PersonFriends() {
           {!query && cur === 'common' && <Text style={styles.emptyText}>Сходите куда-нибудь вместе — познакомишь со своими.</Text>}
         </View>
       ) : shown.map((sec) => (
-        <View key={sec.title || 'one'} style={{ gap: 8, marginTop: 4 }}>
+        <View key={sec.title || (sec.list === meRow ? 'me' : 'one')} style={{ gap: 8, marginTop: 4 }}>
           {!!sec.title && <Text style={styles.cap}>{sec.title} · {sec.list.length}</Text>}
           <View style={styles.group}>
             {sec.list.map(({ person: fp, common: c }, i) => {
+              if (isMe(fp)) return (
+                <Pressable key={fp.id} onPress={() => router.push('/me')} style={({ pressed }) => [styles.row, pressed && { backgroundColor: '#ECE6DA' }]} accessibilityRole="button" accessibilityLabel="Это ты">
+                  <Avatar p={fp} size={50} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.name} numberOfLines={1}>{fp.name}</Text>
+                    <Text style={styles.sub} numberOfLines={1}>это ты</Text>
+                  </View>
+                </Pressable>
+              );
               const mine = isFriendNow(fp, social);
               const sent = !!social.sent[fp.id];
               return (

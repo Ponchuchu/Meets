@@ -48,3 +48,16 @@ it('плашка времени на мини-афише (FIX5)', () => {
   expect(pinTime({ startsAt: '2026-10-26T05:00:00Z', endsAt: null, isLong: false }, now)?.text).toBe('26.10');
   expect(pinTime({ startsAt: '2026-10-20T05:00:00Z', endsAt: '2026-10-30T15:00:00Z', isLong: true }, now)).toBeNull();
 });
+
+describe('точки издалека (26 октября)', () => {
+  const { asDots, DOT_ZOOM, spotDot, MALL_DOT } = jest.requireActual('../map/zoom') as typeof import('../map/zoom');
+  it('чуть отдалил от старта — ещё значки, весь город — точки', () => {
+    expect(asDots(14.9)).toBe(false);
+    expect(asDots(13)).toBe(false);
+    expect(asDots(DOT_ZOOM - 0.5)).toBe(true);
+  });
+  it('у мест и ТРЦ свой цвет точки', () => {
+    expect(spotDot('ski')).not.toBe(spotDot('park'));
+    expect(MALL_DOT).toMatch(/^#/);
+  });
+});
