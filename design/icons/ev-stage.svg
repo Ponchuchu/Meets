@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 70" width="64" height="70">
+  <ellipse cx="32" cy="64" rx="22" ry="3.4" fill="#000" opacity="0.22"/>
+  <!-- лучи прожекторов -->
+  <!-- задник -->
+  <rect x="6" y="12" width="52" height="40" rx="5" fill="#3A2F5C" stroke="#2B2730" stroke-width="2.4"/>
+  <circle cx="16" cy="22" r="1.3" fill="#FFE27A"/><circle cx="47" cy="19" r="1.1" fill="#FFFFFF"/><circle cx="40" cy="28" r="0.9" fill="#FFE27A"/><circle cx="22" cy="31" r="0.9" fill="#FFFFFF"/>
+  <path d="M12 9 L22 50 L34 50 Z" fill="#FFE27A" opacity="0.35"/>
+  <path d="M52 9 L42 50 L30 50 Z" fill="#FFB4D2" opacity="0.3"/>
+  <!-- занавес -->
+  <path d="M6.5 13 Q14 26 9 51 L6.5 51 Z" fill="#E0453A" stroke="#2B2730" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M57.5 13 Q50 26 55 51 L57.5 51 Z" fill="#E0453A" stroke="#2B2730" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M6 13 L58 13 L58 18 Q49 21 41 18 Q32 21 23 18 Q15 21 6 18 Z" fill="#F0521F" stroke="#2B2730" stroke-width="2" stroke-linejoin="round"/>
+  <!-- прожекторы -->
+  <rect x="9" y="5" width="7" height="6" rx="2" transform="rotate(-18 12.5 8)" fill="#5B5F66" stroke="#2B2730" stroke-width="1.8"/>
+  <rect x="48" y="5" width="7" height="6" rx="2" transform="rotate(18 51.5 8)" fill="#5B5F66" stroke="#2B2730" stroke-width="1.8"/>
+  <!-- микрофон на стойке -->
+  <path d="M32 33 L32 49 M27.5 49.5 L36.5 49.5" stroke="#2B2730" stroke-width="2.4" stroke-linecap="round"/>
+  <rect x="28.8" y="24" width="6.4" height="10" rx="3.2" fill="#C9CDD4" stroke="#2B2730" stroke-width="2"/>
+  <path d="M29.5 27.5 H34.5 M29.5 30 H34.5" stroke="#8C9098" stroke-width="1"/>
+  <!-- сцена -->
+  <path d="M3 50 H61 L58 58 H6 Z" fill="#B5651D" stroke="#2B2730" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M7 53 H57" stroke="#E0A260" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- ноты -->
+  <path d="M45 33 v-6 l5 -1.5 v6" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44" cy="33" r="1.6" fill="#FFFFFF"/><circle cx="49" cy="31.5" r="1.6" fill="#FFFFFF"/>
+</svg>
