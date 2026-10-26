@@ -16,6 +16,7 @@ import { createDb } from './db.ts';
 import { processPosts, summary, type Outcome } from './pipeline.ts';
 import { fillImages, parseGeminiOutput, toPost, type Found } from './search.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
+import { fetchInstagram } from './instagram.ts';
 import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
 import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
@@ -221,10 +222,11 @@ async function live() {
   const tgStats: TelegramStat[] = [];
   for (const source of sources) {
     // Сайты-афиши читает поиск (код, без ИИ); здесь только каналы. Режим --telegram: только Telegram, с отчётом для панели.
-    if (source.kind !== 'telegram') continue;
-    if (args.has('--telegram') && source.kind !== 'telegram') continue;
+    if (source.kind !== 'telegram' && source.kind !== 'instagram') continue;
     try {
-      const fetched = await fetchChannel(source.handle, source.id, source.cursor);
+      const fetched = source.kind === 'instagram'
+        ? await fetchInstagram(source.handle, source.id, source.cursor)
+        : await fetchChannel(source.handle, source.id, source.cursor);
       const fresh = await db.savePosts(fetched);
       console.log(`${source.title}: новых постов ${fresh.length}`);
       const results = await processPosts(fresh, source, { understand: (p) => understand(p), geocode, venues, known, now: new Date() });
@@ -235,7 +237,7 @@ async function live() {
         tgStats.push(t);
         await robotLog(telegramLine(t));
       }
-      await db.touchSource(source.id, fresh.at(-1)?.externalId ?? source.cursor);
+      await db.touchSource(source.id, source.kind === 'instagram' ? (fresh.at(-1)?.postedAt ?? source.cursor) : (fresh.at(-1)?.externalId ?? source.cursor));
     } catch (err) {
       console.error(`${source.title}: ${(err as Error).message}`);
       if (source.kind === 'telegram') await robotLog(`Источник · Telegram @${source.handle} · не открылся`, 'warn');

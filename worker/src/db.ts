@@ -36,7 +36,7 @@ export function createDb(url: string, key: string): Db {
   const patch = (path: string, body: unknown) => rest(path, { method: 'PATCH', body: JSON.stringify(body), headers: { Prefer: 'return=minimal' } });
 
   return {
-    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual)&select=*'),
+    sources: () => rest<Source[]>('sources?enabled=eq.true&kind=in.(telegram,site,search,manual,instagram)&select=*'),
     shortAbouts: async (urls) => {
       const out: { id: string; source_url: string; about: string | null }[] = [];
       for (let i = 0; i < urls.length; i += 40) {
