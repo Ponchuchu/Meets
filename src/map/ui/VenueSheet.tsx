@@ -1,13 +1,10 @@
 // Карточка места (ТРЦ) — design/png/V6Venue.png: значок, название, адрес и часы, события внутри и сеансы кино (если есть в базе).
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Clock, MapPin, X } from 'lucide-react-native';
-import { useEffect } from 'react';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CAT_COLOR, CAT_ICON, catFg } from '../icons';
 import { EventCover } from '../../ui/EventCover';
 import { Ic } from '../../ui/Ic';
-import { useEco } from '../../state/perf';
 import type { EventItem } from '../../data/types';
 import { almaty } from '../../lib/clock';
 import { getSessions, type Mall } from '../../live/api';
@@ -17,7 +14,7 @@ import { colors, fonts, radii, space } from '../../theme';
 import { StateView } from '../../ui/StateView';
 import { glass } from '../../ui/glass';
 import { useBackClose } from '../../state/app';
-import Animated, { cancelAnimation, Easing, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 /** Событие «в этом центре»: точка в пределах 350 м от центра или название площадки содержит имя центра. */
 export function insideMall(m: Mall, events: EventItem[]): EventItem[] {
@@ -44,48 +41,6 @@ function shade(hex: string, k: number) {
   const n = parseInt(hex.slice(1), 16);
   const ch = (v: number) => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k));
   return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
-}
-
-/** Значок ТРЦ (21 окт.): маленькое объёмное здание висит над местом центра и мягко покачивается, под ним — тень.
- *  Грани своего цвета у каждого центра, окна-полосы и стеклянный блик; число событий — на крыше. */
-export function MallPin({ m, onPress, events = 0 }: { m: Mall; onPress: () => void; events?: number }) {
-  const look = mallLook(m.name);
-  const eco = useEco();
-  const lift = useSharedValue(0);
-  useEffect(() => {
-    if (eco) return;
-    // Несколько покачиваний при появлении и замирает в воздухе: бесконечная анимация на карте греет телефон.
-    lift.set(withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }), 5, true));
-    return () => cancelAnimation(lift);
-  }, [eco, lift]);
-  const float = useAnimatedStyle(() => ({ transform: [{ translateY: -4 * lift.get() }] }));
-  const shadow = useAnimatedStyle(() => ({ transform: [{ scaleX: 1 - 0.18 * lift.get() }], opacity: 0.32 - 0.1 * lift.get() }));
-  const top = shade(look.color, 0.35), left = shade(look.color, 0.05), right = shade(look.color, -0.3);
-  return (
-    <Pressable onPress={onPress} style={styles.mall} accessibilityRole="button" accessibilityLabel={`ТРЦ ${m.name}${events ? `, событий: ${events}` : ''}`} hitSlop={6}>
-      <Animated.View style={[styles.mallShadow, shadow]} />
-      <Animated.View style={float}>
-        <Svg width={46} height={54} viewBox="0 0 46 54">
-          <Defs>
-            <LinearGradient id={`g-${m.id}`} x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.55} />
-              <Stop offset="0.5" stopColor="#FFFFFF" stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-          {/* Корпус: крыша, левая и правая грани (изометрия). */}
-          <Path d="M23 4 L42 13 L23 22 L4 13 Z" fill={top} />
-          <Path d="M4 13 L23 22 L23 50 L4 41 Z" fill={left} />
-          <Path d="M23 22 L42 13 L42 41 L23 50 Z" fill={right} />
-          {/* Окна-полосы. */}
-          {[0, 1, 2, 3].map(i => <Path key={`l${i}`} d={`M7 ${20 + i * 6} L20 ${26 + i * 6}`} stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={1.6} strokeLinecap="round" />)}
-          {[0, 1, 2, 3].map(i => <Path key={`r${i}`} d={`M26 ${26 + i * 6} L39 ${20 + i * 6}`} stroke="#FFFFFF" strokeOpacity={0.28} strokeWidth={1.6} strokeLinecap="round" />)}
-          <Path d="M4 13 L23 22 L23 50 L4 41 Z" fill={`url(#g-${m.id})`} />
-          <Path d="M23 4 L42 13 L23 22 L4 13 Z M4 13 L4 41 L23 50 L42 41 L42 13 M23 22 L23 50" fill="none" stroke="#FFFFFF" strokeOpacity={0.6} strokeWidth={1} strokeLinejoin="round" />
-        </Svg>
-        {events > 0 && <View style={styles.count}><Text style={styles.countText}>{events > 9 ? '9+' : events}</Text></View>}
-      </Animated.View>
-    </Pressable>
-  );
 }
 
 /** Плавающая карточка места над нижней панелью (референс «Айналма»): карта остаётся живой, крестик — закрыть. */

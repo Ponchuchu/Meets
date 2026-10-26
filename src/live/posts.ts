@@ -114,11 +114,6 @@ export async function deletePost(id: string): Promise<void> {
   await must(sb().from('memories').delete().eq('id', id));
 }
 
-export async function editCaption(id: string, caption: string): Promise<void> {
-  if (!LIVE) { useDemo.setState((s) => ({ posts: s.posts.map((p) => (p.id === id ? { ...p, caption } : p)) })); return; }
-  await must(sb().from('memories').update({ note: caption.trim().slice(0, 1000) || null }).eq('id', id));
-}
-
 export async function toggleLike(id: string, on: boolean): Promise<void> {
   if (!LIVE) { useDemo.setState((s) => ({ posts: s.posts.map((p) => (p.id === id ? { ...p, liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) } : p)) })); return; }
   if (on) await must(sb().from('memory_likes').insert({ memory_id: id, user_id: me() }));

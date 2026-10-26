@@ -20,9 +20,6 @@ export function challengeState(c: Challenge, today: string) {
   };
 }
 
-/** Место в рейтинге: 1–3 — медаль, остальные — номер. */
-export const rankTone = (i: number) => (['#E2A21B', '#9AA3AE', '#B8733F'] as const)[i] ?? null;
-
 /** Неделя по Алматы со сдвигом (0 — эта, -1 — прошлая): даты понедельника…воскресенья «YYYY-MM-DD». */
 export function weekDays(today: string, offset = 0): string[] {
   const t = Date.parse(`${today}T00:00:00Z`);

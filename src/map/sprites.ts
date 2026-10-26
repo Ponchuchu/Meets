@@ -1,5 +1,5 @@
 // Создано scripts/map-icons.py — не править руками. Значки карты владельца: 64×70 pt, якорь — низ (тень внутри картинки).
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 export const SPRITES = {
   'ev-jazz': require('../../assets/map/sprites/ev-jazz.png'),
   'ev-rock': require('../../assets/map/sprites/ev-rock.png'),

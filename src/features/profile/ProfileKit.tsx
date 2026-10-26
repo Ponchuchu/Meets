@@ -167,12 +167,6 @@ export function Tile({ onPress, label, dark, accent, style, children }: { onPres
 export function TileCap({ children, light }: { children: string; light?: boolean }) {
   return <Text style={[styles.cap, light && { color: 'rgba(255,255,255,0.72)' }]}>{children}</Text>;
 }
-export function TileNum({ children, light, size = 34 }: { children: string; light?: boolean; size?: number }) {
-  return <Text style={[styles.num, { fontSize: size, lineHeight: size * 1.05 }, light && { color: '#FFFFFF' }]} numberOfLines={1} adjustsFontSizeToFit>{children}</Text>;
-}
-export function TileSub({ children, light }: { children: string; light?: boolean }) {
-  return <Text style={[styles.sub, light && { color: 'rgba(255,255,255,0.78)' }]} numberOfLines={2}>{children}</Text>;
-}
 
 export function Ring({ value, size, stroke, color, track }: { value: number; size: number; stroke: number; color: string; track: string }) {
   const r = (size - stroke) / 2;

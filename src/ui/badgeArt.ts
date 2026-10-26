@@ -1,5 +1,5 @@
 // Картинки наград (26 октября, нарисованы в Figma): круглые эмалевые значки с золотым ободком, как достижения в играх.
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 export const BADGE_ART: Record<string, number> = {
   'above': require('../../assets/badges/above.png'),
   'art': require('../../assets/badges/art.png'),

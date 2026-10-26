@@ -1,7 +1,7 @@
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import type { StickerSound } from './catalog';
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 const files: Record<StickerSound, number> = {
   heart: require('../../assets/stickers/sfx/heart.wav'), punch: require('../../assets/stickers/sfx/punch.wav'), squeak: require('../../assets/stickers/sfx/squeak.wav'),
   confetti: require('../../assets/stickers/sfx/confetti.wav'), sizzle: require('../../assets/stickers/sfx/sizzle.wav'), clap: require('../../assets/stickers/sfx/clap.wav'),
@@ -9,7 +9,7 @@ const files: Record<StickerSound, number> = {
   whoosh: require('../../assets/stickers/sfx/whoosh.wav'), boing: require('../../assets/stickers/sfx/boing.wav'), chime: require('../../assets/stickers/sfx/chime.wav'),
   snore: require('../../assets/stickers/sfx/snore.wav'), slam: require('../../assets/stickers/sfx/slam.wav'),
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
+ 
 let player: AudioPlayer | null = null;
 let cleanup: ReturnType<typeof setTimeout> | undefined;
 

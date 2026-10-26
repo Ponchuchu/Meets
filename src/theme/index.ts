@@ -61,12 +61,6 @@ export const fonts = {
   hand: 'Pacifico_400Regular',
 } as const;
 
-export const shadows = {
-  card: { shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 17, shadowOffset: { width: 0, height: 14 }, elevation: 8 },
-  float: { shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
-  small: { shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 1.5, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-} as const;
-
 /** Радиусы: плашки и чипсы — sm, кнопки и поля — md, карточки — lg, шторки и плавающие панели — xl. */
 export const radii = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
 /** Шаг отступов: 4 · 8 · 12 · 16 · 24. Края экрана — 16, между карточками — 10–12. */

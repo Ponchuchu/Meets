@@ -1,7 +1,6 @@
 import { shapeOf, shapePath, SHAPES, type ShapeId } from '../profile/shapes';
-import { badgeIcon, BADGES } from '../profile/badges';
+import { badgeIcon, BADGES , BADGES as ALL_BADGES } from '../profile/badges';
 import { BADGE_ART } from '../ui/badgeArt';
-import { BADGES as ALL_BADGES } from '../profile/badges';
 
 describe('форма аватарки', () => {
   it('каждая форма — замкнутый контур в пределах 64×64', () => {

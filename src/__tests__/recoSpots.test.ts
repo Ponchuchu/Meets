@@ -1,7 +1,7 @@
 // Места в ленте: не чаще раза в неделю, «мимо» — на 4 недели, вне сезона — нет, вставка в колоду.
-jest.mock('lucide-react-native', () => new Proxy({}, { get: (_t, name) => ({ icon: String(name) }) }));
 import { ATTRACTIONS } from '../data/attractions';
 import { pickSpots, spotCard, weekOf, withSpots } from '../reco/spots';
+jest.mock('lucide-react-native', () => new Proxy({}, { get: (_t, name) => ({ icon: String(name) }) }));
 
 const taste = { tags: { прогулка: 1, 'можно одному': 0.5 }, timeGrid: [], friendsMultiplier: 1, priceCeiling: null } as never;
 const now = new Date('2026-10-21T12:00:00+05:00');

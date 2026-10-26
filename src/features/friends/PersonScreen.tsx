@@ -18,7 +18,7 @@ import { useSession } from '../../state/session';
 import { useProfile, type MyCard } from '../../state/profile';
 import type { PersonDetails } from '../../data/types';
 import { DEFAULT_PRIVACY , canSee } from '../../people/visibility';
-import { Award, Cake, CalendarCheck, CalendarDays, ChevronRight, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, Images, MessageCircle, Navigation, Sparkles, UserMinus, UserPlus } from 'lucide-react-native';
+import { Cake, CalendarCheck, CalendarDays, ChevronRight, CalendarPlus, Check, Hand, Lock, ChevronLeft, EyeOff, Flag, Link2, MoreHorizontal, PenLine, Share2, Footprints, MessageCircle, Navigation, Sparkles, UserMinus, UserPlus } from 'lucide-react-native';
 import { frameById } from '../../profile/frames';
 import { plate } from '../../ui/glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

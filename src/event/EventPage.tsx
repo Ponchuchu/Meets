@@ -51,17 +51,6 @@ const LIVE = config.dataMode !== 'demo';
 
 type Sheet = 'visit' | 'reschedule' | null | 'company' | 'invite' | 'route' | 'share' | 'going';
 
-export function goingLine(e: EventItem, people: Person[], iAmGoing: boolean): { title: string; sub: string; faces: Person[] } | null {
-  const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
-  const total = e.goingCount + (iAmGoing ? 1 : 0);
-  // «Кто идёт» показываем от 3 человек.
-  if (total < 3 && friends.length === 0) return null;
-  const others = Math.max(0, e.goingCount - friends.length);
-  if (!friends.length) return { title: 'Друзей пока нет', sub: `идут ${total.toLocaleString('ru-RU')} ${plural(total, 'человек', 'человека', 'человек')}`, faces: [] };
-  const title = friends.length === 1 ? friends[0].name : friends.length === 2 ? `${friends[0].name} и ${friends[1].name}` : `${friends[0].name}, ${friends[1].name} и ещё ${friends.length - 2}`;
-  return { title, sub: others ? `и ещё ${others} ${plural(others, 'человек', 'человека', 'человек')}` : 'из твоих друзей', faces: friends };
-}
-
 export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Свернуть', onGo, onSkip, onPlanned, initialSheet = null }: {
   /** Событие попало в планы изнутри карточки (дата, сеанс): лента сворачивает её как «Пойду». */
   onPlanned?: () => void;
