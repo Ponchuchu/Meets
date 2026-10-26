@@ -12,6 +12,10 @@ export interface EventItem {
   spotId?: string;
   spot?: import('./attractions').Attraction;
   sessions?: { id: string; startsAt: string; endsAt: string | null }[];
+  /** Несколько дат одной карточки (спектакль 31 окт. и 1 нояб.): ISO по возрастанию. «Пойду» спрашивает, какую. */
+  dates?: string[];
+  /** Фото и видео из поста источника (Instagram): копии в хранилище. */
+  media?: { type: 'image' | 'video'; url: string; poster?: string | null }[];
   createdBy?: string;
   title: string;
   category: Category;

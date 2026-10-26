@@ -65,7 +65,9 @@ export interface SocialStat { handle: string; kind: string; ok: boolean; error?:
 
 export async function runSocial(db: Db, sources: Source[], venues: VenueRow[], known: KnownEvent[], geocode: (q: string) => Promise<Point | null>,
   log: (text: string, level?: string) => Promise<void>, cancelled: () => Promise<boolean>): Promise<{ drafts: number; stats: SocialStat[]; outcomes: Outcome[] }> {
-  const list = sources.filter((s) => (s.kind === 'instagram' || s.kind === 'threads') && s.enabled);
+  // Сначала те, кого дольше всех не читали: если Instagram упрётся в лимит, в следующий раз начнём с остальных.
+  const okAt = (s: Source) => String((s as Source & { stats?: { ok_at?: string } }).stats?.ok_at ?? '');
+  const list = sources.filter((s) => (s.kind === 'instagram' || s.kind === 'threads') && s.enabled).sort((a, b) => okAt(a).localeCompare(okAt(b)));
   const stats: SocialStat[] = [];
   const outcomes: Outcome[] = [];
   let drafts = 0;
@@ -83,12 +85,15 @@ export async function runSocial(db: Db, sources: Source[], venues: VenueRow[], k
       await log(`Instagram: ${(err as Error).message}`, 'warn');
       continue;
     }
+    const limitHit = pulled.some((r) => /Лимит запросов/.test(r.error ?? ''));
     for (const [k, r] of pulled.entries()) {
       const source = chunk[k];
       const stat: SocialStat = { handle: source.handle, kind: source.kind, ok: r.ok, error: r.error, posts: r.posts?.length ?? 0, events: 0, dups: 0, junk: 0 };
       stats.push(stat);
       const profile = r.profile ? { name: r.profile.name, followers: r.profile.followers, avatar: r.profile.avatar } : {};
       if (!r.ok && !r.posts?.length) {
+        // Лимит — не ошибка страницы: её прошлые итоги не трогаем.
+        if (/Лимит запросов/.test(r.error ?? '')) { stat.error = r.error; continue; }
         await db.sourceStats(source.id, { error: r.error ?? 'не ответил', error_at: new Date().toISOString() });
         await log(`Источник · ${source.title} · ${r.error ?? 'не открылся'}`, 'warn');
         continue;
@@ -117,6 +122,7 @@ export async function runSocial(db: Db, sources: Source[], venues: VenueRow[], k
       await db.sourceStats(source.id, { ...profile, ok_at: new Date().toISOString(), error: null, posts: stat.posts, events: stat.events, dups: stat.dups, junk: stat.junk, last_post_at: newest ?? undefined });
       await log(`Источник · ${source.title} · постов ${stat.posts}, событий ${stat.events}${stat.dups ? `, дублей ${stat.dups}` : ''}`);
     }
+    if (limitHit) { await log('Instagram: лимит запросов — остальные страницы прочитаем в следующий запуск', 'warn'); break; }
   }
   return { drafts, stats, outcomes };
 }

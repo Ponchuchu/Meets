@@ -67,6 +67,8 @@ async function instagram(handle: string, since: string | null, pages: number, li
     }
     const body = await res.json().catch(() => ({})) as { error?: Parameters<typeof reason>[0]; business_discovery?: { name?: string; followers_count?: number; media_count?: number; profile_picture_url?: string; media?: { data?: IgMedia[]; paging?: { cursors?: { after?: string } } } } };
     const bd = body.business_discovery;
+    // Слишком большой ответ (длинные карусели) — просим меньше постов за раз.
+    if (!bd && /reduce the amount of data/i.test(body.error?.message ?? '') && limit > 8) return instagram(handle, since, pages, Math.floor(limit / 3));
     if (!res.ok || !bd) return { kind: 'instagram', handle, ok: posts.length > 0, profile, posts, error: reason(body.error, res.status) };
     profile ??= { name: bd.name ?? null, followers: bd.followers_count ?? null, avatar: bd.profile_picture_url ?? null, posts: bd.media_count ?? null };
     const list = (bd.media?.data ?? []).map(igPost);
@@ -132,12 +134,16 @@ Deno.serve(async (req) => {
     const pages = Math.min(Math.max(Number(body.pages) || 1, 1), 3);
     const results: Result[] = new Array(items.length);
     let next = 0;
+    let limited = false;
     // По 4 страницы одновременно: быстро и без всплеска запросов к лимиту Facebook.
+    // Упёрлись в лимит — остальные не дёргаем (каждый лишний запрос продлевает блокировку), они пойдут первыми в следующий раз.
     const worker = async () => {
       while (next < items.length) {
         const i = next++;
         const it = items[i];
+        if (limited && it.kind === 'instagram') { results[i] = { kind: it.kind, handle: it.handle, ok: false, error: 'Лимит запросов Instagram — продолжим в следующий запуск' }; continue; }
         results[i] = it.kind === 'threads' ? await threads(it.handle, it.since) : await instagram(it.handle, it.since, pages);
+        if (/Лимит запросов/.test(results[i].error ?? '')) limited = true;
       }
     };
     await Promise.all([worker(), worker(), worker(), worker()]);

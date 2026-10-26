@@ -18,12 +18,13 @@ import { colors, fonts } from '../theme';
 import { EventCover } from '../ui/EventCover';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 
+const plural = (n: number, [one, few, many]: [string, string, string]) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
 const hhmm = (iso: string) => { const a = almaty(iso); return `${String(a.getUTCHours()).padStart(2, '0')}:${String(a.getUTCMinutes()).padStart(2, '0')}`; };
 
 /** Нужно ли выбрать день перед «Пойду»: сеансы или событие дольше суток. */
 export function needsWhen(e: EventItem): boolean {
   if (e.spotId) return false;
-  return !!e.sessions?.length || (!!e.isLong && !!e.endsAt && Date.parse(e.endsAt) - Date.parse(e.startsAt) > 24 * 3600e3);
+  return !!e.sessions?.length || (e.dates?.length ?? 0) > 1 || (!!e.isLong && !!e.endsAt && Date.parse(e.endsAt) - Date.parse(e.startsAt) > 24 * 3600e3);
 }
 
 export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem; events: EventItem[]; now: Date; onClose: () => void; onPlanned: () => void }) {
@@ -31,13 +32,17 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
   const addPlan = useApp((s) => s.addPlan);
   const today = dayIndex(now);
   // Сеансы: из серии (e.sessions) или такие же события на той же площадке.
+  // Даты одной карточки (спектакль в два дня) — выбор даты; id даты — «событие@время».
+  const own = (e.dates?.length ?? 0) > 1;
   const sessions = useMemo(() => {
-    const list = e.sessions?.length
+    const list = own
+      ? e.dates!.filter((s) => Date.parse(s) > now.getTime() - 3 * 3600e3).map((s) => ({ id: `${e.id}@${s}`, startsAt: s, venue: null as string | null }))
+      : e.sessions?.length
       ? e.sessions.filter((s) => Date.parse(s.startsAt) > now.getTime()).map((s) => ({ id: s.id, startsAt: s.startsAt, venue: null as string | null }))
       : occurrencesOf(e, events, now).filter((x) => !x.isLong).map((x) => ({ id: x.id, startsAt: x.startsAt, venue: e.category === 'movie' ? x.venueName ?? null : null }));
     return list.sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-  }, [e, events, now]);
-  const bySession = sessions.length > 1 || !!e.sessions?.length;
+  }, [e, events, now, own]);
+  const bySession = own || sessions.length > 1 || !!e.sessions?.length;
   const days = useMemo(() => [...new Set(sessions.map((s) => dayIndex(s.startsAt)))], [sessions]);
   const marks = useMemo(() => sessions.reduce<Record<number, number>>((m, s) => { const d = dayIndex(s.startsAt); m[d] = (m[d] ?? 0) + 1; return m; }, {}), [sessions]);
   const [day, setDay] = useState(days[0] ?? today);
@@ -47,7 +52,11 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
 
   const planSession = () => {
     if (!chosen) return;
-    usePlans.getState().go(chosen.id);
+    if (own) {
+      // Одна карточка — несколько дат: в планы идёт само событие с выбранной датой (как день выставки).
+      if (config.dataMode !== 'demo') void chooseEventVisit(e.id, chosen.startsAt).then(() => qc.invalidateQueries({ queryKey: ['me', 'attendance'] })).catch(() => undefined);
+      usePlans.setState((s) => ({ visits: { ...s.visits, [e.id]: chosen.startsAt }, going: { ...s.going, [e.id]: chosen.startsAt } }));
+    } else usePlans.getState().go(chosen.id);
     addPlan();
     onPlanned();
   };
@@ -70,7 +79,7 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
           sessions.length === 0 ? <Text style={styles.venue}>Ближайших сеансов нет</Text> : <>
             <View style={{ gap: 4 }}>
               <Text style={styles.h1}>Выбери день</Text>
-              <Text style={styles.sub}>{sessions.length} {sessions.length % 10 === 1 && sessions.length % 100 !== 11 ? 'сеанс' : sessions.length % 10 >= 2 && sessions.length % 10 <= 4 && (sessions.length % 100 < 12 || sessions.length % 100 > 14) ? 'сеанса' : 'сеансов'} впереди</Text>
+              <Text style={styles.sub}>{sessions.length} {plural(sessions.length, own ? ['дата', 'даты', 'дат'] : ['сеанс', 'сеанса', 'сеансов'])} впереди</Text>
             </View>
             <DayStrip days={days} value={day} today={today} marks={marks} onChange={(d) => { setDay(d); setPick(null); }} />
             <Text style={styles.cap}>{dayTitle(day, today).toUpperCase()}</Text>

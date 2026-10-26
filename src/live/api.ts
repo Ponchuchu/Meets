@@ -202,10 +202,15 @@ interface LiveRow {
   created_by?: string;
   cover_url: string | null; source_url: string | null; visibility: 'public' | 'friends';
   status?: EventItem['status'];
+  sessions?: string[] | null; media?: EventItem['media'] | null;
 }
 
 export function mapLive(r: LiveRow): EventItem {
+  const now = Date.now() - 3 * 3600e3;
+  const dates = (r.sessions ?? []).filter((s) => Date.parse(s) > now);
   return {
+    ...(dates.length > 1 ? { dates } : {}),
+    ...(r.media?.length ? { media: r.media } : {}),
     id: r.id, createdBy: r.created_by, title: r.title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
     venueId: r.venue_id ?? undefined, venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
