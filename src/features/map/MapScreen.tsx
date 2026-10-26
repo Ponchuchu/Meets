@@ -53,7 +53,7 @@ import { useTabInset } from '../../components/TabBar';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { config } from '../../lib/config';
 import { getProfile, sendInvite, getMalls, getRoute, getTrafficScore, getTrail, pingDb, setSetting, getSettings, type Mall } from '../../live/api';
-import { insideMall, PlaceCard } from '../../map/ui/VenueSheet';
+import { PlaceCard } from '../../map/ui/VenueSheet';
 import { eventSprite, mallSprite, spotSprite, type MapSymbol } from '../../map/symbols';
 import { CAT_COLOR } from '../../map/icons';
 import { PlacePin } from '../../map/ui/PlacePin';

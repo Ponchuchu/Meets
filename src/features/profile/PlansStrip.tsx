@@ -2,12 +2,7 @@
 // Карточка: объёмный значок события, когда (сегодня — оранжевым), название и пометка («вы идёте вместе»).
 import { router } from 'expo-router';
 import { ChevronRight, Users } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
-import { Image } from 'expo-image';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { photo as photoSrc } from '../../data/photos';
-import type { Memory } from '../../live/profileExtras';
-import { PhotoViewer } from './ProfileKit';
+import { type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EventItem, Person } from '../../data/types';
 import { colors, fonts } from '../../theme';
@@ -47,33 +42,6 @@ export function PlansStrip({ title, items, onAll, total, empty }: { title: strin
 
 const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const shortDate = (iso: string) => { const d = new Date(iso); return `${d.getDate()} ${MON[d.getMonth()]}`; };
-
-/** Витрина воспоминаний (26 окт.): альбомы обложками вбок, как «Актуальное». Нажатие — фото альбома на весь экран. */
-export function MemoriesStrip({ title, albums }: { title: string; albums: Memory[] }) {
-  const [open, setOpen] = useState<Memory | null>(null);
-  if (!albums.length) return null;
-  return (
-    <View style={{ gap: 10 }}>
-      <SectionHead title={title} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }} style={{ marginHorizontal: -16 }}>
-        {albums.map((m, k) => (
-          <Pressable key={m.id} onPress={() => m.photos.length && setOpen(m)} style={({ pressed }) => [styles.album, k === 0 && styles.albumBig, pressed && { transform: [{ scale: 0.97 }] }]}
-            accessibilityRole="button" accessibilityLabel={`Альбом ${m.title}, ${m.photos.length} фото`}>
-            {m.cover ? <Image source={photoSrc(m.cover)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sand }]} />}
-            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-              <Defs><LinearGradient id={`mg${k}`} x1="0" y1="0" x2="0" y2="1"><Stop offset="0.45" stopColor="#000" stopOpacity={0} /><Stop offset="1" stopColor="#000" stopOpacity={0.72} /></LinearGradient></Defs>
-              <Rect x="0" y="0" width="100%" height="100%" fill={`url(#mg${k})`} />
-            </Svg>
-            {m.photos.length > 1 && <View style={styles.albumN}><Text style={styles.albumNText}>{m.photos.length}</Text></View>}
-            <Text style={styles.albumTitle} numberOfLines={2}>{m.title}</Text>
-            <Text style={styles.albumDate}>{shortDate(m.happened_at)}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-      {open && <PhotoViewer photos={open.photos.map((x) => x.url)} start={0} title={open.title} onClose={() => setOpen(null)} />}
-    </View>
-  );
-}
 
 /** Пустое место в профиле: картинка, пара слов и кнопка — вместо пустоты. */
 export function EmptyRow({ icon, text, action, onAction }: { icon: ReactNode; text: string; action?: string; onAction?: () => void }) {

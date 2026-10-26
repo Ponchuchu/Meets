@@ -32,7 +32,7 @@ export const PACKS = [
   { id: 'memes' as const, title: 'Мемы', level: 1 },
 ];
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 const art = (id: string, label: string, pack: StickerPack, anim: StickerAnim, sound: StickerSound, img: ImageSourcePropType, level = 1, rot = 0): Sticker =>
   ({ id, label, pack, level, img, anim, sound, rot });
 const meme = (id: string, text: string, tint: string, anim: StickerAnim, sound: StickerSound, level = 1, rot = -4): Sticker =>
@@ -64,7 +64,7 @@ export const STICKERS: Sticker[] = [
   meme('cringe', 'КРИНЖ', '#C9B48A', 'wobble', 'squeak', 3, -6),
   meme('wait', 'ЖДУ', '#9EE37D', 'sway', 'pop', 3, 3),
 ];
-/* eslint-enable @typescript-eslint/no-require-imports */
+ 
 
 export const stickerUnlocked = (s: Pick<Sticker, 'level'>, level: number) => level >= s.level;
 

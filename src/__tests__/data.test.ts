@@ -1,7 +1,8 @@
 import { createDemoSource, demoEvents, mergeEvents } from '../data/demo';
 import { isLongEvent, mapSeedEvent, seedEvents, ALMATY_CENTER } from '../data/seed';
 import { mapFeedRow } from '../data/supabase';
-import { formatPrice, formatWhen } from '../lib/format';
+import { formatPrice, formatWhen , birthdayText } from '../lib/format';
+
 
 
 describe('демо-данные', () => {
@@ -126,8 +127,6 @@ describe('FIX1 И2 п.12: «Нет связи с сервером» — толь
     expect(isDbError({ name: 'Error', message: 'Failed to fetch' })).toBe(true);
   });
 });
-
-import { birthdayText } from '../lib/format';
 describe('день рождения без года', () => {
   it('понимает разные записи', () => {
     expect(birthdayText('07-22')).toBe('22 июля');

@@ -22,8 +22,6 @@ export const BLAST_MS: Record<StickerAnim, number> = {
   heartbeat: 2900, punch: 1500, wobble: 1700, confetti: 1900, flicker: 2200, clap: 1600, laugh: 1900, rattle: 1800, look: 2000, pop: 1800,
   launch: 1700, steam: 2400, sway: 2600, shine: 2000, float: 2400, hug: 2100, slam: 1700, sixseven: 2200,
 };
-/** Сколько ждать, прежде чем показать облачко-стикер над другом (FIX5: облачко после действия). */
-export const blastMs = (st: Sticker) => BLAST_MS[st.anim];
 
 /** Вибрация в такт: моменты (мс) и сила. */
 const BEATS: Partial<Record<StickerAnim, [number, Haptics.ImpactFeedbackStyle][]>> = {

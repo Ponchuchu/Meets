@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { colors, fonts } from '../../theme';
+import { fonts } from '../../theme';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 
 export interface ShowcaseBadge { id: string; name: string; got: boolean; progress: number; goal: number }

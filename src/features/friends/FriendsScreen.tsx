@@ -24,7 +24,6 @@ import { now as clockNow } from '../../lib/clock';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import { planWhen } from '../../lib/planWhen';
 import { useApp } from '../../state/app';
-import { StateView } from '../../ui/StateView';
 import { usePlans } from '../../state/plans';
 import { displayName, isFriendNow } from '../../state/social';
 import { colors, fonts } from '../../theme';

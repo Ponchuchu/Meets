@@ -1,5 +1,5 @@
 // Картинки интерфейса (26 октября, нарисованы в Figma, как стикеры): глянцевые наклейки с белой вырубкой.
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 export const ART = {
   sneaker: require('../../assets/ui/art/sneaker.png'),
   medalGold: require('../../assets/ui/art/medal-gold.png'),
@@ -13,4 +13,3 @@ export const ART = {
   fire: require('../../assets/stickers/art/fire.png'),
   rocket: require('../../assets/stickers/art/rocket.png'),
 } as const;
-export const MEDALS = [ART.medalGold, ART.medalSilver, ART.medalBronze] as const;

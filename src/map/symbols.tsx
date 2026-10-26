@@ -1,11 +1,10 @@
 // Объёмные значки карты — набор владельца (99 штук, assets/map/icons-v2): микрофон у стендапа, Медеу, Терренкур, свой ТРЦ у каждого центра.
 // На телефоне их рисует сам движок карты (слой SymbolLayer в MapCanvas) — значки пришиты к карте и не отстают при вращении.
 // В web и на подложке «бумага» те же картинки ставятся обычными маркерами (symbolMarkers).
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text } from 'react-native';
 import type { Category, EventItem } from '../data/types';
 import type { AttractionKind } from '../data/attractions';
 import { fonts } from '../theme';
-import { CAT_COLOR } from './icons';
 import { SPRITE_PT, SPRITES, type SpriteName } from './sprites';
 import type { MapMarker } from './types';
 
@@ -112,13 +111,6 @@ const MALL_ICON: [RegExp, SpriteName][] = [
   [/dostyk|достык/i, 'mall-dome'], [/esentai|есентай/i, 'mall-tower'], [/mega|мега/i, 'mall-stripes'], [/aport|апорт/i, 'mall-long'], [/forum|форум/i, 'mall-columns'],
 ];
 export const mallSprite = (name: string): SpriteName => MALL_ICON.find(([re]) => re.test(name))?.[1] ?? 'pl-shopping';
-
-/** Подпись времени — тихая, в тон категории: темнее её цвета на светлой карте, светлее — на тёмной. */
-export function timeColor(c: Category, dark: boolean): string {
-  const n = parseInt(CAT_COLOR[c].slice(1), 16);
-  const mix = (v: number) => Math.round(dark ? v + (255 - v) * 0.55 : v * 0.62);
-  return `rgb(${mix(n >> 16)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
-}
 
 /** Web и подложка: те же значки маркерами. Центр маркера — в точке, поэтому картинка стоит над ней, подпись — под ней. */
 export function symbolMarkers(symbols: MapSymbol[], onSymbol?: (id: string) => void): MapMarker[] {
