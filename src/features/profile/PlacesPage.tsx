@@ -2,7 +2,9 @@
 // Адрес и название живут отдельно: раньше выбранный адрес подставлялся в название и путал. На карте — свой значок.
 // Избранные места (кофейня, вид, парк…) — со своими значками, видишь только ты; друзьям статус «у кофейни» не уходит.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, MapPin, Plus, X } from 'lucide-react-native';
+import { ChevronRight, MapPin, Navigation, PenLine, Plus, X } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useMapState } from '../../state/map';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { create } from 'zustand';
@@ -82,7 +84,11 @@ export default function PlacesPage() {
 
   const mainPlaces = MAIN.map((k) => ({ k, p: list.find((x) => x.kind === k) }));
   const favs = list.filter((p) => p.kind === 'fav' || p.kind === 'other');
-  const open = (p: Place) => { setEditing({ ...p, title: p.title ?? '' }); setError(''); setPicking(false); };
+  const open = (p: Place) => { setViewing(null); setEditing({ ...p, title: p.title ?? '' }); setError(''); setPicking(false); };
+  // Нажатие на место (26 окт.): сначала карточка — где оно, «Показать на карте» и «Маршрут»; изменить — отдельной кнопкой.
+  const [viewing, setViewing] = useState<Place | null>(null);
+  const showOnMap = (p: Place) => { setViewing(null); useMapState.getState().flyTo({ lat: p.lat, lon: p.lon, zoom: 16 }); router.navigate('/'); };
+  const routeTo = (p: Place) => { setViewing(null); router.push({ pathname: '/route', params: { id: `myplace-${p.id}`, lat: String(p.lat), lon: String(p.lon), title: nameOf(p), address: p.address ?? '' } }); };
   // Карта со всеми местами: центр — среднее, масштаб — по разбросу точек.
   const pts = list.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
   const spread = pts.length > 1 ? Math.max(...pts.map((p) => Math.abs(p.lat - pts[0].lat) + Math.abs(p.lon - pts[0].lon))) : 0;
@@ -101,7 +107,7 @@ export default function PlacesPage() {
       <Text style={styles.cap}>ГЛАВНЫЕ</Text>
       <View style={styles.kinds}>
         {mainPlaces.map(({ k, p }) => (
-          <Pressable key={k} onPress={() => (p ? open(p) : start(k))} style={({ pressed }) => [styles.tile, !p && styles.tileEmpty, pressed && styles.pressed]} accessibilityRole="button"
+          <Pressable key={k} onPress={() => (p ? setViewing(p) : start(k))} style={({ pressed }) => [styles.tile, !p && styles.tileEmpty, pressed && styles.pressed]} accessibilityRole="button"
             accessibilityLabel={p ? `${PLACE_LOOK[k].name}: ${p.address ?? ''}` : `Добавить: ${PLACE_LOOK[k].name}`}>
             <View style={styles.tileTop}>
               <Disc kind={k} size={38} />
@@ -117,7 +123,7 @@ export default function PlacesPage() {
       {favs.length > 0 && (
         <Group>
           {favs.map((p, i) => (
-            <Row key={p.id} left={<Disc kind={p.kind} icon={p.icon} size={34} />} title={nameOf(p)} sub={p.address || lookOf(p.kind, p.icon).name} last={i === favs.length - 1} onPress={() => open(p)} />
+            <Row key={p.id} left={<Disc kind={p.kind} icon={p.icon} size={34} />} title={nameOf(p)} sub={p.address || lookOf(p.kind, p.icon).name} last={i === favs.length - 1} onPress={() => setViewing(p)} />
           ))}
         </Group>
       )}
@@ -131,6 +137,37 @@ export default function PlacesPage() {
       </Pressable>
       {q.isError && <Note>Не удалось загрузить места. Проверь связь.</Note>}
       <Note>Друзья видят только «дома» или «на работе». Точный адрес и название остаются у тебя.</Note>
+
+      <Modal visible={!!viewing} transparent animationType="slide" onRequestClose={() => setViewing(null)}>
+        <Pressable style={styles.dim} onPress={() => setViewing(null)} accessibilityLabel="Закрыть">
+          {viewing && (
+            <Pressable style={[styles.sheet, { padding: 20, paddingBottom: 36, gap: 14 }]} onPress={() => undefined}>
+              <View style={styles.head}>
+                <Disc kind={viewing.kind} icon={viewing.icon} size={44} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.h} numberOfLines={1}>{nameOf(viewing)}</Text>
+                  {!!viewing.address && <Text style={styles.tileSub} numberOfLines={2}>{viewing.address}</Text>}
+                </View>
+                <Pressable onPress={() => setViewing(null)} style={styles.x} accessibilityRole="button" accessibilityLabel="Закрыть"><X size={20} color={colors.ink} strokeWidth={2.2} /></Pressable>
+              </View>
+              <View style={[styles.mapCard, { height: 180 }]}>
+                <MapCanvas theme="paper" camera={{ lat: viewing.lat, lon: viewing.lon, zoom: 16 }} markers={[{ id: viewing.id, lat: viewing.lat, lon: viewing.lon, node: <PlacePin kind={viewing.kind} icon={viewing.icon} title={nameOf(viewing)} label /> }]} threeD still={{ pitch: 40, heading: 0 }} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Pressable onPress={() => showOnMap(viewing)} style={({ pressed }) => [styles.viewBtn, styles.viewMain, pressed && styles.pressed]} accessibilityRole="button">
+                  <MapPin size={18} color={colors.paper} strokeWidth={2} /><Text style={[styles.viewText, { color: colors.paper }]}>На карте</Text>
+                </Pressable>
+                <Pressable onPress={() => routeTo(viewing)} style={({ pressed }) => [styles.viewBtn, pressed && styles.pressed]} accessibilityRole="button">
+                  <Navigation size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.viewText}>Маршрут</Text>
+                </Pressable>
+              </View>
+              <Pressable onPress={() => open(viewing)} style={({ pressed }) => [styles.viewBtn, { flex: 0 }, pressed && styles.pressed]} accessibilityRole="button">
+                <PenLine size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.viewText}>Изменить место</Text>
+              </Pressable>
+            </Pressable>
+          )}
+        </Pressable>
+      </Modal>
 
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={close}>
         <View style={styles.dim}>
@@ -195,6 +232,9 @@ export default function PlacesPage() {
 }
 
 const styles = StyleSheet.create({
+  viewBtn: { flex: 1, minHeight: 50, borderRadius: 16, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  viewMain: { backgroundColor: colors.ink },
+  viewText: { fontFamily: fonts.body700, fontSize: 15, color: colors.ink },
   disc: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF', overflow: 'hidden', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
   discShine: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.28)' },
   mapCard: { height: 210, borderRadius: 24, overflow: 'hidden', backgroundColor: '#DDD8CB', boxShadow: '0 10px 24px -16px rgba(23,22,26,0.5)' },
