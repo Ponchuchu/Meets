@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../data/types';
 import { ScheduleSheet } from '../event/ScheduleSheet';
 import { occurrencesOf } from '../event/occurrences';
-import { DayStrip, dayTitle } from '../event/ui/pickers';
+import { DayTimeWheel, dayTitle, wheelDayLabel } from '../event/ui/pickers';
 import { config } from '../lib/config';
 import { almaty, dayIndex } from '../lib/clock';
 import { chooseEventVisit } from '../live/api';
@@ -44,11 +44,13 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
   }, [e, events, now, own]);
   const bySession = own || sessions.length > 1 || !!e.sessions?.length;
   const days = useMemo(() => [...new Set(sessions.map((s) => dayIndex(s.startsAt)))], [sessions]);
-  const marks = useMemo(() => sessions.reduce<Record<number, number>>((m, s) => { const d = dayIndex(s.startsAt); m[d] = (m[d] ?? 0) + 1; return m; }, {}), [sessions]);
   const [day, setDay] = useState(days[0] ?? today);
   const [pick, setPick] = useState<string | null>(null);
-  const ofDay = sessions.filter((s) => dayIndex(s.startsAt) === day);
-  const chosen = sessions.find((s) => s.id === pick);
+  // Подпись времени в барабане: «19:00», у кино — с кинотеатром. Одинаковые подписи в один день не склеиваются.
+  const label = (x: { startsAt: string; venue: string | null }) => (x.venue ? `${hhmm(x.startsAt)} · ${x.venue}` : hhmm(x.startsAt));
+  const wheelDays = useMemo(() => days.map((d) => ({ key: d, label: wheelDayLabel(d, today), times: [...new Set(sessions.filter((x) => dayIndex(x.startsAt) === d).map(label))] })), [days, sessions, today]);
+  // Выбор по умолчанию — первый сеанс в барабане: «Добавить в планы» сразу активна.
+  const chosen = sessions.find((s) => s.id === pick) ?? sessions.find((x) => dayIndex(x.startsAt) === day) ?? sessions[0];
 
   const planSession = () => {
     if (!chosen) return;
@@ -81,22 +83,14 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
               <Text style={styles.h1}>Выбери день</Text>
               <Text style={styles.sub}>{sessions.length} {plural(sessions.length, own ? ['дата', 'даты', 'дат'] : ['сеанс', 'сеанса', 'сеансов'])} впереди</Text>
             </View>
-            <DayStrip days={days} value={day} today={today} marks={marks} onChange={(d) => { setDay(d); setPick(null); }} />
-            <Text style={styles.cap}>{dayTitle(day, today).toUpperCase()}</Text>
-            <View style={styles.times}>
-              {ofDay.map((s) => {
-                const on = s.id === pick;
-                return (
-                  <Pressable key={s.id} onPress={() => setPick(s.id)} style={({ pressed }) => [styles.time, on && styles.timeOn, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityState={{ selected: on }}>
-                    <Text style={[styles.timeText, on && { color: colors.paper }]}>{hhmm(s.startsAt)}</Text>
-                    {!!s.venue && <Text style={[styles.timeVenue, on && { color: '#B9B3A6' }]} numberOfLines={1}>{s.venue}</Text>}
-                  </Pressable>
-                );
-              })}
+            {/* День и время барабаном, как в iPhone (26 окт.): только настоящие сеансы. */}
+            <View style={styles.wheelBox}>
+              <DayTimeWheel days={wheelDays} day={day} time={chosen ? hhmm(chosen.startsAt) : null}
+                onChange={(d, t) => { setDay(d); setPick(sessions.find((x) => dayIndex(x.startsAt) === d && label(x) === t)?.id ?? null); }} />
             </View>
             <Pressable disabled={!chosen} onPress={planSession} style={({ pressed }) => [styles.btn, !chosen && { backgroundColor: colors.sand }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
               <Text style={[styles.btnText, !chosen && { color: colors.muted }]}>Добавить в планы</Text>
-              <Text style={[styles.btnSub, !chosen && { color: colors.muted }]}>{chosen ? `${dayTitle(day, today)} · ${hhmm(chosen.startsAt)}` : 'выбери время'}</Text>
+              <Text style={[styles.btnSub, !chosen && { color: colors.muted }]}>{chosen ? `${dayTitle(dayIndex(chosen.startsAt), today)} · ${hhmm(chosen.startsAt)}` : 'выбери время'}</Text>
             </Pressable>
           </>
         ) : (
@@ -122,6 +116,7 @@ const styles = StyleSheet.create({
   h1: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: -0.6, color: colors.ink },
   sub: { fontFamily: fonts.body400, fontSize: 14.5, color: colors.muted },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
+  wheelBox: { borderRadius: 20, backgroundColor: colors.card, overflow: 'hidden' },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   time: { minWidth: 84, minHeight: 52, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(23,22,26,0.06)' },
   timeOn: { backgroundColor: colors.ink, borderColor: colors.ink },

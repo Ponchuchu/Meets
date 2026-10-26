@@ -625,7 +625,7 @@ export default function MapScreen() {
 
       {sheet === 'venue' && mall && (
         <View style={[styles.card, { bottom: tabPad }]}>
-          <PlaceCard key={mall.id} m={mall} events={upcoming} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} />
+          <PlaceCard key={mall.id} m={mall} events={upcoming} spots={places} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} onSpot={(a) => { setSpotPlace(a); setSheet('spot'); }} />
         </View>
       )}
 

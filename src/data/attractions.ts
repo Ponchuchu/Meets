@@ -45,6 +45,10 @@ export interface Attraction {
   photos?: string[];
   /** Как попасть бесплатно и прочее, что важно знать до выхода. */
   howTo?: string;
+  /** В каком ТРЦ (аквапарк — в Aport Mall West): карточка центра показывает место с фото. */
+  mall?: string;
+  /** Шаг выбора времени, мин: колесо показывает только реальные времена (12:00, 12:30…). */
+  stepMin?: number;
 }
 
 /** Открыто всегда (парки, тропы). */
@@ -92,7 +96,11 @@ export const ATTRACTIONS: Attraction[] = [
     tips: ['Одному лучше всего к закату: подняться на канатке и смотреть, как зажигается город', 'Обратно можно пешком по тропе — 30–40 минут вниз'] },
   { id: 'koktobe-view', parent: 'koktobe', name: 'Смотровая площадка', kind: 'view', lat: 43.23390, lon: 76.97590, about: 'Весь город и горы в одном кадре, вечером — огни', free: true },
   { id: 'koktobe-beatles', parent: 'koktobe', name: 'Памятник The Beatles', kind: 'photo', lat: 43.23390, lon: 76.97590, about: 'Четвёрка на скамейке — можно сесть рядом и сфотографироваться', free: true },
-  { id: 'koktobe-rides', parent: 'koktobe', name: 'Аттракционы и колесо', kind: 'wheel', lat: 43.23390, lon: 76.97590, about: 'Колесо обозрения на вершине, горки и тир' },
+  { id: 'koktobe-rides', parent: 'koktobe', name: 'Парк аттракционов', kind: 'fun', lat: 43.23390, lon: 76.97590, about: 'Горки, автодром, тир и детские карусели на вершине' },
+  { id: 'koktobe-wheel', parent: 'koktobe', name: 'Колесо обозрения', kind: 'wheel', lat: 43.23395, lon: 76.97585, about: 'Закрытые кабинки над городом: весь Алматы и горы', solo: true, stepMin: 15 },
+  { id: 'koktobe-rope', parent: 'koktobe', name: 'Верёвочный парк', kind: 'climb', lat: 43.23380, lon: 76.97560, about: 'Трассы на высоте среди деревьев, со страховкой' },
+  { id: 'koktobe-coaster', parent: 'koktobe', name: 'Fast Coaster', kind: 'fun', lat: 43.23400, lon: 76.97620, about: 'Горка-бобслей по склону горы', stepMin: 15 },
+  { id: 'koktobe-zoo', parent: 'koktobe', name: 'Контактный зоопарк', kind: 'zoo', lat: 43.23370, lon: 76.97600, about: 'Козы, кролики и птицы — можно покормить' },
   // ——— Сходить одному: город ———
   { id: 'panfilov-park', photos: [commons('Алматы, парк 28 панфиловцев сверху (2).jpg'), commons('Zenkov Cathedral Winter.jpg')], hours: ALWAYS, name: 'Парк 28 панфиловцев', kind: 'park', lat: 43.25883, lon: 76.95413, address: 'ул. Гоголя, 40', about: 'Старый парк в центре: Вознесенский собор, аллеи, кофе с собой', free: true, solo: true,
     tips: ['Утром в выходные тихо и красиво', 'Рядом Зелёный базар — можно зайти за фруктами'] },
@@ -115,7 +123,9 @@ export const ATTRACTIONS: Attraction[] = [
   // ——— Активно ———
   { id: 'happy-eye', name: 'Колесо Happy Eye', kind: 'wheel', lat: 43.20108, lon: 76.89373, address: 'ул. Розыбакиева, 273', about: 'Колесо обозрения с видом на горы и город', solo: true },
   { id: 'octopus', name: 'Аквапарк «Осьминог»', kind: 'aqua', lat: 43.26234, lon: 76.97124, address: 'Парк Горького, ул. Гоголя, 1', about: 'Летний аквапарк в Центральном парке', season: [6, 8] },
-  { id: 'gorilla', name: 'Gorilla Zipline', kind: 'zipline', lat: 43.21041, lon: 76.93334, address: 'пр. аль-Фараби, 128/В', about: 'Зиплайн и верёвочный парк' },
+  { id: 'gorilla', name: 'Gorilla Zipline · Сункар', kind: 'zipline', lat: 43.21041, lon: 76.93334, address: 'проспект Аль-Фараби, 128/8 (трамплины «Сункар»)', about: 'Спуск по тросу над трамплинами — сидя или лёжа, и прыжок rope jumping', priceFrom: 10000 },
+  { id: 'gorilla-medeu', name: 'Gorilla Zipline · Медеу', kind: 'zipline', lat: 43.16306, lon: 77.05164, address: 'станция гондолы Медеу', about: 'Зиплайн над ущельем у катка Медеу', priceFrom: 4500 },
+  { id: 'hawaii-miami', name: 'Аквапарк Hawaii & Miami', kind: 'aqua', lat: 43.23306, lon: 76.82176, address: 'Ташкентский тракт, 17к (Aport Mall West)', about: 'Круглый год: горки, волновой бассейн, тёплые бассейны и летняя зона Miami Sunrise', mall: 'Aport Mall West', priceFrom: 13940, stepMin: 60 },
   { id: 'zhailjau', name: 'Гольф-клуб «Жайляу»', kind: 'golf', lat: 43.18163, lon: 76.87844, address: 'мкр. Мирас, 188', about: 'Поле для гольфа с видом на горы', season: [4, 10] },
   // Конные прогулки (26 октября): адреса и точки — из справочника адресов; часы и цены уточняются по записи.
   { id: 'argamak', name: 'КСК «Аргамак»', kind: 'horse', lat: 43.31039, lon: 76.92518, address: 'улица Омарова, 10а (Центральный ипподром)', about: 'Прогулки верхом и занятия с тренером на ипподроме — по записи', solo: true },

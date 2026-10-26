@@ -96,7 +96,7 @@ export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName
 /** Значок постоянного места по виду. */
 const KIND_ICON: Record<AttractionKind, SpriteName> = {
   ski: 'pl-shymbulak', skate: 'pl-skate', cable: 'pl-cable', wheel: 'pl-wheel', bowling: 'pl-bowling', trampoline: 'pl-trampoline', climb: 'pl-climb',
-  quest: 'pl-quest', vr: 'pl-vr', golf: 'pl-golf', paintball: 'pl-paintball', aqua: 'pl-aqua', photo: 'ev-photo', zipline: 'pl-coaster', park: 'pl-gogol',
+  quest: 'pl-quest', vr: 'pl-vr', golf: 'pl-golf', paintball: 'pl-paintball', aqua: 'pl-aqua', photo: 'ev-photo', zipline: 'pl-zipline', park: 'pl-gogol',
   museum: 'pl-museum', zoo: 'pl-zoo', garden: 'pl-garden', view: 'pl-view', fun: 'pl-coaster', billiards: 'pl-billiard', gallery: 'ev-art', horse: 'pl-horse',
 };
 export const placeSprite = (kind: AttractionKind): SpriteName => KIND_ICON[kind] ?? 'pl-view';

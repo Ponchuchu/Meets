@@ -1,7 +1,10 @@
 // Карточка места (ТРЦ) — design/png/V6Venue.png: значок, название, адрес и часы, события внутри и сеансы кино (если есть в базе).
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Clock, MapPin, X } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KIND_COLOR, KIND_LABEL, type Attraction } from '../../data/attractions';
+import { remote } from '../../data/photos';
+import { AttractionPin } from './AttractionPin';
 import { CAT_COLOR, CAT_ICON, catFg } from '../icons';
 import { EventCover } from '../../ui/EventCover';
 import { Ic } from '../../ui/Ic';
@@ -22,6 +25,11 @@ export function insideMall(m: Mall, events: EventItem[]): EventItem[] {
   return events
     .filter((e) => (!e.noPoint && !e.needsPin && distM(e, m) <= 350) || (!!e.venueName && e.venueName.toLowerCase().includes(name)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+}
+/** Постоянные места в этом центре: явно привязанные (mall) или стоящие в пределах 250 м от его точки. */
+export function spotsInMall(m: Mall, spots: Attraction[]): Attraction[] {
+  const name = m.name.toLowerCase();
+  return spots.filter((a) => !a.parent && ((a.mall && (a.mall.toLowerCase() === name || name.includes(a.mall.toLowerCase()) || a.mall.toLowerCase().includes(name))) || distM(a, m) <= 250));
 }
 const dayHm = (iso: string) => { const d = almaty(iso); const n = almaty(new Date().toISOString()); const same = d.getUTCDate() === n.getUTCDate() && d.getUTCMonth() === n.getUTCMonth(); return `${same ? '' : `${d.getUTCDate()}.${String(d.getUTCMonth() + 1).padStart(2, '0')} `}${hm(iso)}`; };
 const hm = (iso: string) => { const d = almaty(iso); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
@@ -44,19 +52,21 @@ function shade(hex: string, k: number) {
 }
 
 /** Плавающая карточка места над нижней панелью (референс «Айналма»): карта остаётся живой, крестик — закрыть. */
-export function PlaceCard({ m, events, onEvent, onClose }: { m: Mall; events: EventItem[]; onEvent: (e: EventItem) => void; onClose: () => void }) {
+export function PlaceCard({ m, events, spots = [], onEvent, onSpot, onClose }: { m: Mall; events: EventItem[]; spots?: Attraction[]; onEvent: (e: EventItem) => void; onSpot?: (a: Attraction) => void; onClose: () => void }) {
   useBackClose(onClose);
   return (
     <Animated.View entering={SlideInDown.duration(260)} exiting={SlideOutDown.duration(200)} style={[styles.card, glass]} accessibilityLabel={`Место: ${m.name}`}>
-      <VenueSheet m={m} events={events} onEvent={onEvent} onClose={onClose} />
+      <VenueSheet m={m} events={events} spots={spots} onEvent={onEvent} onSpot={onSpot} onClose={onClose} />
     </Animated.View>
   );
 }
 
-export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: EventItem[]; onEvent: (e: EventItem) => void; onClose?: () => void }) {
+export function VenueSheet({ m, events, spots = [], onEvent, onSpot, onClose }: { m: Mall; events: EventItem[]; spots?: Attraction[]; onEvent: (e: EventItem) => void; onSpot?: (a: Attraction) => void; onClose?: () => void }) {
   const q = useQuery({ queryKey: ['sessions', m.id], queryFn: () => getSessions(m.id), enabled: config.dataMode !== 'demo' });
   const sessions = q.data ?? [];
   const inside = insideMall(m, events);
+  // Что есть в центре постоянно (26 окт.): аквапарк в Aport Mall West, батуты в MEGA, боулинг в Forum — с фото.
+  const fun = spotsInMall(m, spots);
   return (
     <View style={{ gap: space.m }}>
       <View style={styles.head}>
@@ -72,6 +82,23 @@ export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: E
           </Pressable>
         )}
       </View>
+      {fun.length > 0 && <Text style={styles.cap}>РАЗВЛЕЧЕНИЯ ВНУТРИ</Text>}
+      {fun.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }} style={{ marginHorizontal: -2 }}>
+          {fun.map((a) => (
+            <Pressable key={a.id} onPress={() => onSpot?.(a)} style={({ pressed }) => [styles.tile, { backgroundColor: KIND_COLOR[a.kind] }, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button" accessibilityLabel={`${a.name}, ${KIND_LABEL[a.kind]}`}>
+              {a.photos?.[0] ? <Image source={remote(a.photos[0])} style={styles.tileCover} resizeMode="cover" accessibilityIgnoresInvertColors />
+                : <View style={[styles.tileCover, { alignItems: 'center', justifyContent: 'center', paddingBottom: 50 }]}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
+              <View style={styles.tileShade} />
+              {!!a.priceFrom && <View style={styles.tileWhen}><Text style={styles.tileWhenText}>от {a.priceFrom.toLocaleString('ru-RU')} ₸</Text></View>}
+              <View style={styles.tileBody}>
+                <Text style={styles.tileKind}>{KIND_LABEL[a.kind].toUpperCase()}</Text>
+                <Text style={styles.tileTitle} numberOfLines={2}>{a.name}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
       {inside.length > 0 && <Text style={styles.cap}>СОБЫТИЯ ВНУТРИ · {inside.length}</Text>}
       {inside.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }} style={{ marginHorizontal: -2 }}>
@@ -95,7 +122,7 @@ export function VenueSheet({ m, events, onEvent, onClose }: { m: Mall; events: E
           <Text style={styles.name} numberOfLines={1}>{s.title}{s.format ? ` · ${s.format}` : ''}</Text>
         </View>
       ))}
-      {!inside.length && !sessions.length && (q.isLoading ? <StateView kind="loading" compact title="Загружаю сеансы…" />
+      {!inside.length && !sessions.length && !fun.length && (q.isLoading ? <StateView kind="loading" compact title="Загружаю сеансы…" />
         : q.isError ? <StateView kind="error" compact text="Сеансы не загрузились." onAction={() => void q.refetch()} />
         : <StateView kind="empty" compact title="Пока нет событий и сеансов" text="Как только появятся — покажу здесь." />)}
     </View>
@@ -114,6 +141,7 @@ const styles = StyleSheet.create({
   tileWhenText: { fontFamily: fonts.mono600, fontSize: 11, color: colors.ink },
   tileBody: { position: 'absolute', left: 10, right: 10, bottom: 10, gap: 6 },
   tileCat: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  tileKind: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.6, color: 'rgba(255,255,255,0.85)' },
   tileTitle: { fontFamily: fonts.display700, fontSize: 14.5, lineHeight: 17, color: '#FFFFFF' },
   card: { borderRadius: radii.xl, padding: space.l, paddingTop: space.l },
   close: { width: 44, height: 44, borderRadius: 22, marginTop: -6, marginRight: -8, alignItems: 'center', justifyContent: 'center' },

@@ -131,11 +131,52 @@ export async function fromSite(s: Pick<SpotRow, 'info_url'>): Promise<{ hours: H
   return hours || price ? { hours, price } : null;
 }
 
+/**
+ * Фото мест — копии в нашем хранилище (event-media/spots/<id>/<n>.jpg). Викисклад отвечает приложениям 429/403,
+ * поэтому телефон получает фото только от нас. Источники: photo_src (Викисклад) и страница места в Instagram (ig).
+ */
+export async function copyPhotos(url: string, h: Record<string, string>, fetchFn: typeof fetch = fetch): Promise<number> {
+  const res = await fetchFn(`${url}/rest/v1/spots?select=id,photo_src,photos,ig&enabled=eq.true`, { headers: h });
+  if (!res.ok) return 0;
+  const rows = (await res.json()) as { id: string; photo_src: string[] | null; photos: string[] | null; ig: string | null }[];
+  let done = 0;
+  for (const r of rows) {
+    if ((r.photos ?? []).length || (!(r.photo_src ?? []).length && !r.ig)) continue;
+    const src = [...(r.photo_src ?? [])];
+    if (r.ig) {
+      // Последние фото со страницы места в Instagram (функция social; ключи — в Supabase).
+      const ig = await fetchFn(`${url}/functions/v1/social`, { method: 'POST', headers: h, body: JSON.stringify({ action: 'probe', handle: r.ig }) }).then((x) => x.json()).catch(() => null) as { posts?: { media: { type: string; url: string; poster?: string | null }[] }[] } | null;
+      for (const p of ig?.posts ?? []) { const m = p.media.find((x) => x.type === 'image') ?? p.media[0]; const u = m?.type === 'image' ? m.url : m?.poster; if (u) src.push(u); }
+    }
+    const out: string[] = [];
+    for (const [i, u] of src.slice(0, 8).entries()) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const img = await fetchFn(u, { headers: { 'User-Agent': 'ryadom-worker/0.2 (https://github.com/Ponchuchu/ryadom)' }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
+        if (img?.status === 429) { await new Promise((w) => setTimeout(w, 3000 * (attempt + 1))); continue; }
+        if (!img?.ok) break;
+        const type = (img.headers.get('content-type') ?? 'image/jpeg').split(';')[0];
+        if (!type.startsWith('image/')) break;
+        const path = `spots/${r.id}/${i}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
+        const up = await fetchFn(`${url}/storage/v1/object/event-media/${path}`, { method: 'POST', headers: { ...h, 'Content-Type': type, 'x-upsert': 'true' }, body: await img.arrayBuffer() });
+        if (up.ok) out.push(`${url}/storage/v1/object/public/event-media/${path}`);
+        break;
+      }
+      await new Promise((w) => setTimeout(w, 700));
+    }
+    if (!out.length) continue;
+    await fetchFn(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify({ photos: out }) });
+    console.log(`  Места · ${r.id} · фото ${out.length}`);
+    done++;
+  }
+  return done;
+}
+
 async function main() {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) { console.log('Нет SUPABASE_URL / SUPABASE_SECRET_KEY — места не обновляю'); return; }
   const h = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
-  const res = await fetch(`${url}/rest/v1/spots?select=id,name,lat,lon,info_url,gis_id,checked_at&enabled=eq.true&order=checked_at.asc.nullsfirst&limit=40`, { headers: h });
+  await copyPhotos(url, h).catch((e) => console.log(`Фото мест: ${(e as Error).message}`));
+  const res = await fetch(`${url}/rest/v1/spots?select=id,name,lat,lon,info_url,gis_id,checked_at,source&enabled=eq.true&order=checked_at.asc.nullsfirst&limit=40`, { headers: h });
   if (!res.ok) { console.log(`Таблицы мест ещё нет или нет доступа (${res.status}) — пропускаю`); return; }
   const spots = (await res.json()) as SpotRow[];
   let updated = 0;
@@ -145,7 +186,8 @@ async function main() {
     const site = await fromSite(s);
     const hours = site?.hours ?? null;
     const patch: Record<string, unknown> = { checked_at: new Date().toISOString() };
-    if (hours) { patch.hours = hours; patch.source = 'site'; }
+    // Часы, внесённые вручную (source = manual), сайт не перезаписывает.
+    if (hours && (s as SpotRow & { source?: string }).source !== 'manual') { patch.hours = hours; patch.source = 'site'; }
     if (site?.price) patch.price_from = site.price;
     const up = await fetch(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(s.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify(patch) });
     if (up.ok && (hours || site?.price)) updated++;

@@ -100,6 +100,8 @@ export const SPRITES = {
   'pl-shopping': require('../../assets/map/sprites/pl-shopping.png'),
   'pl-boutique': require('../../assets/map/sprites/pl-boutique.png'),
   'pl-foodcourt': require('../../assets/map/sprites/pl-foodcourt.png'),
+  // Дорисован 26 окт. (исходник design/icons/pl-zipline.svg): человек на тросе вместо вагонетки у зиплайна.
+  'pl-zipline': require('../../assets/map/sprites/pl-zipline.png'),
 } as const;
 export type SpriteName = keyof typeof SPRITES;
 /** Размер значка в pt (ширина × высота). */

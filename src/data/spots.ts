@@ -10,12 +10,14 @@ interface SpotRow {
   id: string; parent_id: string | null; name: string; kind: string; lat: number; lon: number; address: string | null; about: string; tips: string[] | null;
   solo: boolean; free: boolean; season: number[] | null; buy_url: string | null; info_url: string | null; kaspi_url: string | null;
   hours: Hours | null; price_from: number | null; price_note: string | null; checked_at: string | null;
+  photos?: string[] | null; mall?: string | null; step_min?: number | null;
 }
 
 const toSpot = (r: SpotRow): Attraction => ({
   id: r.id, parent: r.parent_id ?? undefined, name: r.name, kind: r.kind as AttractionKind, lat: r.lat, lon: r.lon, address: r.address ?? undefined,
   about: r.about, tips: r.tips ?? undefined, solo: r.solo, free: r.free, season: r.season?.length === 2 ? [r.season[0], r.season[1]] : undefined,
   buy: r.buy_url ?? undefined, info: r.info_url ?? undefined, kaspi: r.kaspi_url, hours: r.hours, priceFrom: r.price_from, priceNote: r.price_note, checkedAt: r.checked_at,
+  ...(r.photos?.length ? { photos: r.photos } : {}), ...(r.mall ? { mall: r.mall } : {}), ...(r.step_min ? { stepMin: r.step_min } : {}),
 });
 
 /** Места: из базы (там часы и цены от сборщика), без базы или без таблицы — встроенный список. */
@@ -28,7 +30,8 @@ export async function getSpots(): Promise<Attraction[]> {
     const local = new Map(ATTRACTIONS.map((a) => [a.id, a]));
     const rows = (data as SpotRow[]).map(toSpot).map((x) => {
       const l = local.get(x.id);
-      return l ? { ...x, photos: l.photos, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
+      // Фото — наши копии из базы (Викисклад напрямую телефонам не отдаёт), иначе встроенный список.
+      return l ? { ...x, photos: x.photos?.length ? x.photos : l.photos, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
     });
     const missing = ATTRACTIONS.filter((a) => !rows.some((r) => r.id === a.id));
     return [...rows, ...missing];

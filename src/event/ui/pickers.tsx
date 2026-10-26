@@ -55,7 +55,7 @@ export function MonthCalendar({ now, value, onPick, selectedDays, markedDays = [
 const ROW = 44;
 
 /** Одна колонка барабана: прокрутка со «щелчком» на значении, выбранное — в центре под плашкой. */
-function Wheel({ items, value, onChange, label }: { items: string[]; value: string; onChange: (v: string) => void; label: string }) {
+function Wheel({ items, value, onChange, label, width }: { items: string[]; value: string; onChange: (v: string) => void; label: string; width?: number }) {
   const ref = useRef<ScrollView>(null);
   const idx = Math.max(0, items.indexOf(value));
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +73,7 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
   };
 
   return (
-    <View style={styles.wheel} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}
+    <View style={[styles.wheel, width ? { width } : null]} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(a) => {
         const i = idx + (a.nativeEvent.actionName === 'increment' ? 1 : -1);
@@ -86,7 +86,7 @@ function Wheel({ items, value, onChange, label }: { items: string[]; value: stri
         contentContainerStyle={{ paddingVertical: ROW * 2 }}>
         {items.map((it) => (
           <Pressable key={it} onPress={() => { onChange(it); ref.current?.scrollTo({ y: items.indexOf(it) * ROW, animated: true }); }} style={styles.wheelRow}>
-            <Text style={[styles.wheelText, it === value && styles.wheelOn]}>{it}</Text>
+            <Text style={[styles.wheelText, it === value && styles.wheelOn, width ? styles.wheelWide : null, width && it === value ? styles.wheelWideOn : null]} numberOfLines={1}>{it}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -187,6 +187,34 @@ export function TimeWheel({ value, onChange }: { value: string; onChange: (v: st
       <Wheel items={MINUTES} value={mm} onChange={(x) => onChange(`${h}:${x}`)} label="Минуты" />
     </View>
   );
+}
+
+export interface WheelDay { key: number; label: string; times: string[] }
+
+/**
+ * День и время барабаном, как в iPhone (26 окт.): только настоящие варианты — дни, когда открыто или есть сеанс,
+ * и времена этого дня с шагом места (12:00, 12:30…) или времена сеансов. Не «13:59», а то, на что реально можно прийти.
+ */
+export function DayTimeWheel({ days, day, time, onChange }: { days: WheelDay[]; day: number; time: string | null; onChange: (day: number, time: string) => void }) {
+  const cur = days.find((d) => d.key === day) ?? days[0];
+  if (!cur) return null;
+  const t = time && cur.times.includes(time) ? time : cur.times[0];
+  return (
+    <View style={styles.wheels}>
+      <View pointerEvents="none" style={styles.wheelBand} />
+      {/* key: при смене дня колонка времени встаёт на первое время дня. */}
+      <Wheel width={168} items={days.map((d) => d.label)} value={cur.label} label="День"
+        onChange={(label) => { const d = days.find((x) => x.label === label); if (d) onChange(d.key, d.times.includes(t) ? t : d.times[0]); }} />
+      <Wheel key={cur.key} width={110} items={cur.times} value={t} label="Время" onChange={(x) => onChange(cur.key, x)} />
+    </View>
+  );
+}
+
+/** «Сегодня, 26 окт», «Завтра, 27 окт», «Пт, 31 окт» — подпись дня для барабана. */
+export function wheelDayLabel(day: number, today: number): string {
+  const a = almaty(dayStart(day));
+  const head = day === today ? 'Сегодня' : day === today + 1 ? 'Завтра' : ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][a.getUTCDay()];
+  return `${head}, ${a.getUTCDate()} ${MON_SHORT[a.getUTCMonth()]}`;
 }
 
 export interface PlaceValue {
@@ -291,6 +319,8 @@ const styles = StyleSheet.create({
   wheelRow: { height: ROW, alignItems: 'center', justifyContent: 'center' },
   wheelText: { fontFamily: fonts.display600, fontSize: 22, color: colors.muted3 },
   wheelOn: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
+  wheelWide: { fontSize: 17 },
+  wheelWideOn: { fontSize: 20 },
   colon: { fontFamily: fonts.display800, fontSize: 28, color: colors.ink },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.line2, backgroundColor: colors.card },
   mapBox: { height: 230, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.line, backgroundColor: '#DDD8CB' },
