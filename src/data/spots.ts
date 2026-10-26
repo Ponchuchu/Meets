@@ -51,7 +51,8 @@ export function spotPlan(a: Attraction, startsAt: string, solo: boolean): EventI
     startsAt, endsAt: new Date(Date.parse(startsAt) + 2 * 3600e3).toISOString(), isLong: false,
     venueName: a.name, address: a.address ?? a.name, lat: a.lat, lon: a.lon, needsPin: false,
     priceMin: a.priceFrom ?? (a.free ? 0 : null), priceMax: null, isFree: !!a.free, about: a.about, organizer: 'Ты', sourceUrl: a.buy ?? a.info ?? null,
-    cover: null, visibility: 'friends', origin: 'demo', friendsGoing: [], lookingCount: 0, goingCount: 1,
+    // Фото места — обложкой плана (в «Планах» видно, куда идёшь).
+    cover: a.photos?.[0] ?? null, visibility: 'friends', origin: 'demo', friendsGoing: [], lookingCount: 0, goingCount: 1,
     meetup: { kind: 'walk', plusOne: false, invited: [], items: [] },
   } as EventItem;
 }
