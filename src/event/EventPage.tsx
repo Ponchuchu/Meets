@@ -6,13 +6,13 @@ import { track } from '../analytics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { config } from '../lib/config';
 import { chooseEventVisit, rescheduleMeetup, sendInvite } from '../live/api';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useRef,useState } from 'react';
+import { useCallback, useMemo, useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { editorialText } from './editorial';
 import { AboutBlock, langOf } from './ui/AboutBlock';
@@ -20,7 +20,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
 import type { EventItem, Person } from '../data/types';
 import { almaty, dayIndex } from '../lib/clock';
-import { formatPrice } from '../lib/format';
 import { useApp, useBackClose } from '../state/app';
 import { cellOf } from '../profile/city';
 import { makeSignal } from '../reco';
@@ -33,12 +32,13 @@ import { glass, plate } from '../ui/glass';
 import { Avatar } from '../ui/Avatar';
 import { EventCover, openCoverH } from '../ui/EventCover';
 import { EventMedia, eventMedia } from '../ui/EventMedia';
+import { EventFacts } from './ui/EventFacts';
 import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, Share2, Ticket, Users, CalendarPlus, UserPlus, Check, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, Share2, Users, CalendarPlus, UserPlus, Check, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import { TicketBlock } from './ui/TicketBlock';
 import { ShareCardSheet } from './ui/ShareCard';
@@ -71,11 +71,17 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const { width: winW } = useWindowDimensions();
   // Фото — в тех же пропорциях, что на карточке ленты (FIX5): не растягивается и не режется сильнее, чем снаружи.
   const coverH = openCoverH(winW, insets.top);
+  const controlsTop = Math.max(14, insets.top + 6);
+  useFocusEffect(useCallback(() => {
+    const status = StatusBar.pushStackEntry({ barStyle: 'light-content' });
+    return () => StatusBar.popStackEntry(status);
+  }, []));
   const qc = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<{ initialId: string; event: EventItem } | null>(null);
   const [updatedEvent, setUpdatedEvent] = useState<EventItem | null>(null);
   const base = selectedSession?.initialId === initialEvent.id ? selectedSession.event : initialEvent;
   const e = updatedEvent?.id === base.id ? updatedEvent : base;
+  const media = useMemo(() => eventMedia(e), [e]);
   const visitAt = usePlans(s => s.visits[e.id]);
   const multiDay = !!e.endsAt && dayIndex(e.endsAt) > dayIndex(e.startsAt) && e.isLong;
   const mine = LIVE ? e.createdBy === myId() : !!e.meetup;
@@ -160,11 +166,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const text = shareText(e.title, whenTitle(e, now).toLowerCase());
   const site = e.sourceUrl ? e.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : null;
   const dist = me && !e.needsPin ? kmText(distM(me, e)) : null;
-  const priceText = formatPrice(e.priceMin, e.priceMax, e.isFree);
-  // Обратный отсчёт до начала (в пределах суток) — «через 2 ч 15 мин», идёт сейчас — «уже идёт».
-  const toStart = startMs - now.getTime();
-  const soon = toStart > 0 && toStart < 24 * 3600e3 ? `через ${toStart >= 3600e3 ? `${Math.floor(toStart / 3600e3)} ч ` : ''}${Math.max(1, Math.round((toStart % 3600e3) / 60000))} мин`
-    : toStart <= 0 && now.getTime() < endMs ? 'уже идёт' : null;
   const sessions = occurrencesOf(e, sameVenue, now);
   const sessionTime = (x: EventItem) => { const at = almaty(x.startsAt); return `${at.getUTCDate()}.${String(at.getUTCMonth() + 1).padStart(2, '0')} · ${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`; };
   const friendsGoing = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is Person => !!p && p.isFriend);
@@ -177,7 +178,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <Animated.View style={parallax}>
         <EventCover cover={null} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
-          {eventMedia(e).length > 0 && <EventMedia key={e.id} items={eventMedia(e)} height={coverH} active={sheet === null && mediaVisible} gallery />}
+          {media.length > 0 && <EventMedia key={e.id} items={media} height={coverH} active={sheet === null && mediaVisible} controlsTop={controlsTop + 56} gallery />}
           <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
@@ -188,7 +189,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#openShade)" />
           </Svg>
-          <View style={[styles.topRow, { top: Math.max(14, insets.top + 6) }]}>
+          <View style={[styles.topRow, { top: controlsTop }]}>
             <Pressable onPress={onClose} style={styles.round} accessibilityRole="button" accessibilityLabel={closeLabel}>
               <ChevronDown size={24} color="#FFFFFF" strokeWidth={2} />
             </Pressable>
@@ -196,7 +197,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <Share2 size={20} color="#FFFFFF" strokeWidth={1.9} />
             </Pressable>
           </View>
-          <Animated.View pointerEvents="none" style={[styles.coverText, titleFade, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
+          <Animated.View pointerEvents="none" style={[styles.coverText, media.length > 1 && { paddingRight: 76 }, titleFade, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </Animated.View>
         </EventCover>
@@ -204,20 +205,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
 
         <View style={styles.body}>
           {/* Когда, где, сколько — один блок вместо россыпи плашек (27 окт.): дата и время, место с расстоянием, цена. Адрес — ниже, в блоке «Где». */}
-          <View style={styles.facts}>
-            <View style={styles.factRow}>
-              <View style={styles.factIcon}><Clock size={19} color={colors.ink} strokeWidth={1.9} /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.factMain} numberOfLines={2}>{whenTitle(e, now)}</Text>
-                {!!soon && <Text style={[styles.factSub, { color: colors.accentText }]}>{soon}</Text>}
-              </View>
-            </View>
-            <View style={styles.factLine} />
-            <View style={styles.factRow}>
-              <View style={styles.factIcon}><Ticket size={19} color={colors.ink} strokeWidth={1.9} /></View>
-              <Text style={[styles.factMain, { flex: 1 }, !priceText && { color: colors.muted3 }]} numberOfLines={1}>{priceText ? (e.isFree || e.priceMin === 0 ? 'Бесплатно' : priceText.replace(/^ОТ/, 'от')) : 'Цена не указана'}</Text>
-            </View>
-          </View>
+          <EventFacts e={e} now={now} />
           <View style={styles.chips}>
             {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
@@ -387,13 +375,7 @@ const styles = StyleSheet.create({
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  facts: { borderRadius: 22, backgroundColor: '#FBFAF6', paddingHorizontal: 12, paddingVertical: 4, boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
-  factRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8 },
-  factIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
-  factMain: { fontFamily: fonts.body700, fontSize: 16, lineHeight: 21, color: colors.ink },
-  factSub: { fontFamily: fonts.body600, fontSize: 13, marginTop: 1, color: colors.muted2 },
   factSide: { fontFamily: fonts.mono600, fontSize: 13, color: colors.muted2 },
-  factLine: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line2, marginLeft: 50 },
   soon: { backgroundColor: '#F6DCCD', borderColor: 'rgba(240,82,31,0.25)' },
   soonDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },
