@@ -1,3 +1,4 @@
+import { NONE } from '../../lib/empty';
 import { useSocialActions } from '../../live/socialActions';
 // Профиль человека: не в друзьях (Person) и друг (PersonFriend). Что видно — по правилам «Кто что видит».
 import { useQuery } from '@tanstack/react-query';
@@ -69,13 +70,13 @@ export default function PersonScreen() {
   const selfDemo = preview && id === 'me';
   const d = selfDemo ? selfDetails(myCard, myFrame) : detailsQ.data;
   // Награды, которые человек поставил у имени (FIX3 Ф8).
-  const { data: shownBadges = [] } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: shownBadges = NONE } = useQuery({ queryKey: ['person', id, 'badges'], queryFn: () => getShownBadges(id) });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: theirFriends } = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id), enabled: !(preview && id === 'me') });
   const iGo = usePlans((st) => !!(d?.lookingFor && st.going[d.lookingFor.eventId]));
   const iLook = usePlans((st) => !!(d?.lookingFor && st.company[d.lookingFor.eventId]));
-  const { data: posts = [] } = useQuery({ queryKey: ['posts', id], queryFn: () => getPosts(id === 'me' ? undefined : id) });
-  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  const { data: posts = NONE } = useQuery({ queryKey: ['posts', id], queryFn: () => getPosts(id === 'me' ? undefined : id) });
+  const { data: spots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
   const p = selfDemo ? { id: 'me', name: draft.name || 'Ты', photo: draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : people.find((x) => x.id === id) ?? (preview && d ? { id, name: draft.name || 'Ты', photo: d.photo ?? draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : undefined);

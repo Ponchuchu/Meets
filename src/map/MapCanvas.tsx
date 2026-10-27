@@ -1,4 +1,5 @@
 import { useLowPowerMode } from 'expo-battery';
+import { GESTURE_FPS_CAP, useEco, useRefreshRate } from '../state/perf';
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
 // Android: пины и своя точка в рамке 128×128 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
@@ -47,16 +48,26 @@ const MAP_IMAGES = {
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const lowPower = useLowPowerMode();
+  const eco = useEco();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
+  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], zone, onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
   const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
   // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
   const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
   const movingRef = useRef(false);
+  // Кадры: полная частота экрана только пока палец на карте или камера летит; в покое 30 — глаз не видит разницы; под жестом — частота экрана (60 / 90 / 120 Гц), а телефон не греется (27 окт.).
+  const hz = useRefreshRate((s) => s.hz);
+  const [fps, setFps] = useState(30);
+  const fpsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(fpsTimer.current), []);
+  const top = Math.min(hz, GESTURE_FPS_CAP);
+  const boost = () => { setFps((v) => (v === top ? v : top)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
+  const cameraReportedAt = useRef(0);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
+  const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
   const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -164,7 +175,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         key={attempt}
         style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
         styleJSON={styleJSON}
-        preferredFramesPerSecond={lowPower ? 30 : 60}
+        preferredFramesPerSecond={props.hidden ? 1 : lowPower || eco ? 30 : fps}
         surfaceView={false}
         rotateEnabled={!still}
         pitchEnabled={threeD && !still}
@@ -181,17 +192,20 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
           if (Array.isArray(st.properties.center)) center.current = { lat: st.properties.center[1], lon: st.properties.center[0] };
-          if (st.gestures?.isGestureActive) { moved.current = true; gestured.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
+          if (st.gestures?.isGestureActive) { boost(); moved.current = true; gestured.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
           // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
           if (!Number.isFinite(st.properties.zoom)) return;
           z.current = st.properties.zoom;
+          const at = Date.now();
+          if (at - cameraReportedAt.current < 100) return;
+          cameraReportedAt.current = at;
           const step = Math.round(st.properties.zoom * 2) / 2;
-          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); setFollowZoom(step); }
+          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); if (follow) setFollowZoom(step); }
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
-        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
+        onMapIdle={(st: { properties: { center: number[] } }) => { const step = Math.round(z.current * 2) / 2; if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); } if (follow) setFollowZoom(step); if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
           // Потерянный центр (0, 0) не запоминаем — иначе при следующем входе карта сразу откроется в океане.
           if (props.remember && loaded.current && !(Math.abs(lat) < 3 && Math.abs(lon) < 3)) lastView = { lat, lon, zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}
@@ -228,6 +242,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         </M.ShapeSource>
         {/* Линии маршрута и друзей — один постоянный источник: слои не создаются и не удаляются при смене способа
             (на Android удаление источника во время отрисовки роняло приложение — FIX3 Ф1). */}
+        <M.ShapeSource id="zone" shape={zoneShape as never}>
+          <M.FillLayer id="zone-fill" style={{ fillColor: '#F0521F', fillOpacity: 0.16 }} />
+          <M.LineLayer id="zone-line" style={{ lineColor: '#F0521F', lineWidth: 2.4, lineOpacity: 0.9, lineJoin: 'round', lineDasharray: [2, 1.4] }} />
+        </M.ShapeSource>
         <M.ShapeSource id="lines" shape={lineShape as never}>
           <M.LineLayer id="lines-solid" filter={['!=', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round' }} />
           <M.LineLayer id="lines-dash" filter={['==', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round', lineDasharray: [0.6, 1.8] }} />

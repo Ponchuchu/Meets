@@ -1,5 +1,6 @@
 // Пост (26 октября, как в Instagram): автор сверху, фото листаются вбок (двойное касание — лайк с сердцем),
 // «нравится», комментарии, подпись, прикреплённое событие карточкой, с кем был, комментарии и поле ввода внизу.
+import { NONE } from '../../lib/empty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -38,7 +39,7 @@ export function ago(iso: string): string {
 /** Кто это: я, друг из списка или профиль из базы. */
 export function usePerson(id: string | undefined): Pick<Person, 'id' | 'name' | 'photo' | 'initial' | 'tint'> | null {
   const draft = useSession((s) => s.draft);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const isMe = !!id && (id === 'me' || id === myId());
   const known = people.find((p) => p.id === id);
   const prof = useQuery({ queryKey: ['profile', id], queryFn: () => getProfile(id!), enabled: LIVE && !!id && !isMe && !known });

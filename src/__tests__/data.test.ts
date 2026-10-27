@@ -81,6 +81,7 @@ describe('форматирование', () => {
     expect(formatPrice(0, 0, true)).toBe('0 ₸');
     expect(formatPrice(3000, 3000, false)).toBe('3 000 ₸');
     expect(formatPrice(15000, null, false)).toBe('ОТ 15 000 ₸');
+    expect(formatPrice(2000, 5000, false)).toBe('2 000–5 000 ₸');
   });
   it('когда — по времени Алматы', () => {
     const now = new Date('2026-09-28T07:00:00Z'); // 12:00 в Алматы

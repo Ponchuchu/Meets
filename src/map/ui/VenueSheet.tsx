@@ -44,13 +44,6 @@ export const mallLook = (name: string): { color: string; short: string } => {
   return { color: hit?.[1] ?? colors.friend, short: hit?.[2] ?? name };
 };
 
-/** Оттенок цвета: k > 0 — светлее, k < 0 — темнее. Для граней здания. */
-function shade(hex: string, k: number) {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (v: number) => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k));
-  return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
-}
-
 /** Плавающая карточка места над нижней панелью (референс «Айналма»): карта остаётся живой, крестик — закрыть. */
 export function PlaceCard({ m, events, spots = [], onEvent, onSpot, onClose }: { m: Mall; events: EventItem[]; spots?: Attraction[]; onEvent: (e: EventItem) => void; onSpot?: (a: Attraction) => void; onClose: () => void }) {
   useBackClose(onClose);

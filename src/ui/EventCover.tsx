@@ -19,15 +19,17 @@ export function shade(hex: string, amt: number): string {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => ch(v).toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** Высота фото на открытой странице события: пропорции фото карточки ленты (~3:2) плюс полоса под статус-бар. */
+/** Tall media header, shared by the opening transition and the event page. */
 export function openCoverH(width: number, top: number): number {
-  return Math.round(width * 0.66) + Math.round(top);
+  return Math.round(Math.min(width * 1.25, 540)) + Math.round(top);
 }
 
 export function EventCover({ cover, category, color, style, iconSize = 150, children }: {
   cover?: string | null; category: Category; color?: string; style?: StyleProp<ViewStyle>; iconSize?: number; children?: ReactNode;
 }) {
   const [brokenCover, setBrokenCover] = useState<string | null>(null);
+  // Высокая афиша (портрет) целиком, на размытом фоне из неё же: раньше обрезалась по центру и терялся текст (27 окт.).
+  const [tall, setTall] = useState(false);
   const base = color ?? CAT_COLOR[category] ?? colors.sand;
   const src = cover && cover !== brokenCover ? photo(cover) : undefined;
   const fg = catFg(category);
@@ -45,7 +47,8 @@ export function EventCover({ cover, category, color, style, iconSize = 150, chil
         <Circle cx="8%" cy="92%" r="28%" fill={fg} opacity={0.08} />
       </Svg>
       {!src && <View style={styles.icon} pointerEvents="none"><Ic d={CAT_ICON[category]} size={iconSize} color={fg} w={0.9} /></View>}
-      {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={String(cover)} transition={150} onError={() => setBrokenCover(cover ?? null)} />}
+      {src && tall && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={28} cachePolicy="memory-disk" recyclingKey={`${String(cover)}-bg`} />}
+      {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit={tall ? 'contain' : 'cover'} cachePolicy="memory-disk" recyclingKey={String(cover)} transition={150} onLoad={(ev) => { const { width, height } = ev.source; if (width && height) setTall(width / height < 0.8); }} onError={() => setBrokenCover(cover ?? null)} />}
       {children}
     </View>
   );

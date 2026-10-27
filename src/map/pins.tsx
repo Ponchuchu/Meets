@@ -412,12 +412,7 @@ const styles = StyleSheet.create({
 /** Где центр лица друга в фокусе относительно точки (вверх): хвостик 8 + половина круга 33. */
 export const FOCUS_FACE = 41;
 
-export function FocusPin({ person, ring, bubble, speed, heading }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string; heading?: number }) {
-  const pop = useSharedValue(0);
-  useEffect(() => {
-    if (bubble) { pop.value = 0; pop.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.back(2)) }); }
-  }, [bubble, pop]);
-  const popStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pop.value * 1.6), transform: [{ scale: 0.2 + 0.8 * pop.value }, { rotate: '-6deg' }] }));
+export function FocusPin({ person, ring, speed, heading }: { person: Person; ring: string; speed?: string; heading?: number }) {
   return (
     <View style={styles.anchor} pointerEvents="none">
       {/* Ореол — вокруг лица (оно стоит над точкой на своём хвостике). */}
@@ -427,13 +422,6 @@ export function FocusPin({ person, ring, bubble, speed, heading }: { person: Per
       </View>
       {speed && <SpeedTrail lift={42} heading={heading} />}
       <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} badge={speed ? <StatusChip big mark={{ kind: 'speed', text: speed.toLowerCase() }} /> : null} />
-      {bubble && (
-        <Tag x={18} y={-FOCUS_FACE - 70}>
-          <Animated.View style={[{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: bubble.bg, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 7, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, popStyle]}>
-            <Text style={{ fontFamily: fonts.display800, fontSize: 14, color: bubble.fg }}>{bubble.label}</Text>
-          </Animated.View>
-        </Tag>
-      )}
     </View>
   );
 }
@@ -460,24 +448,3 @@ export function CityPin({ title, when, color, Icon, onPress }: { title: string; 
   );
 }
 
-/** Своя встреча на карте: тёмная капля с лицами тех, кого позвали (без времени — 26 окт., решение владельца); выбранная — крупнее с названием. */
-export function MeetupPin({ e, people, selected, onPress }: { e: EventItem; people: Person[]; selected: boolean; onPress: () => void }) {
-  const faces = (e.meetup?.invited ?? []).map((id) => people.find((p) => p.id === id)).filter(Boolean).slice(0, 3) as Person[];
-  const at = new Date(Date.parse(e.startsAt) + 5 * 3600e3);
-  const time = `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
-  // Ширина задана числом: пин живёт в «якоре» нулевой ширины (на Android иначе содержимое сжимается).
-  const width = 4 + 4 + (faces.length ? 24 + 16 * (faces.length - 1) : 26) + 4 + 4;
-  return (
-    <Pressable onPress={onPress} style={styles.hitWide} accessibilityRole="button" accessibilityLabel={`Встреча: ${e.title}, ${time}`}>
-      <View style={styles.anchor} pointerEvents="none">
-        <View style={[styles.meet, { width }, selected && { transform: [{ scale: 1.12 }] }]}>
-          {faces.length > 0 ? (
-            <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><Avatar p={p} size={24} style={{ borderWidth: 1.5, borderColor: '#FFFFFF' }} /></View>)}</View>
-          ) : <Ico d="M16 20v-1.5a3.5 3.5 0 00-3.5-3.5h-1A3.5 3.5 0 008 18.5V20M12 12a3 3 0 100-6 3 3 0 000 6z" size={18} color="#FFFFFF" />}
-        </View>
-        <View style={styles.meetTail} />
-        {selected && <Tag x={0} y={22} align="center"><View style={styles.cityTag}><Text style={styles.cityTitle} numberOfLines={1}>{e.title}</Text></View></Tag>}
-      </View>
-    </Pressable>
-  );
-}

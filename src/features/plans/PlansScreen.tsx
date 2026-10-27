@@ -2,6 +2,8 @@
 // «Зовут» с «Не смогу / Иду», расписание по дням на линии времени. Длинный список — порциями по 30.
 // 26 окт.: любой план (и «Дальше по плану») смахивается влево и открывает меню по удержанию; «+» — встреча или своё дело
 // («в 15:00 встретиться с Ерланом»); нижние плитки «Места города / Год в Алматы» убраны — они есть на карте.
+import { NONE } from '../../lib/empty';
+import { routeParams } from '../../lib/routeParams';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { CalendarDays, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X, Plus, Users, ListTodo } from 'lucide-react-native';
@@ -77,15 +79,15 @@ export default function PlansTab() {
   const going = usePlans((s) => s.going);
   const visits = usePlans(s => s.visits);
   const meetups = usePlans((s) => s.meetups);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: LIVE, staleTime: 30e3 });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: invites = NONE } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: LIVE, staleTime: 30e3 });
   useFocusEffect(useCallback(() => { void qc.invalidateQueries({ queryKey: ['invites'] }); }, [qc]));
 
   const all = useMemo(() => [...meetups, ...events], [meetups, events]);
   const known = new Set(all.map((e) => e.id));
   const missing = [...new Set([...Object.keys(going), ...invites.map((i) => i.event_id ?? '')])].filter((id) => id && !known.has(id));
-  const { data: extra = [] } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
+  const { data: extra = NONE } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
   const byId = (id: string) => { const e = all.find(e => e.id === id) ?? extra.find(e => e.id === id); return e && visits[id] ? { ...e, startsAt: visits[id] } : e; };
 
   const incoming = invites.filter((i) => (!pick.length || (i.event_id && byId(i.event_id) && pick.includes(dayIndex(byId(i.event_id)!.startsAt)))) && i.to_id === me && !i.answer && i.event_id && byId(i.event_id) && endOf(byId(i.event_id)!) > now.getTime());
@@ -326,21 +328,21 @@ function NextUp({ e, now, people, onOpen, onMenu }: { e: EventItem; now: Date; p
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
   return (
     <Pressable onPress={onOpen} onLongPress={onMenu} delayLongPress={350} style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Дальше по плану: ${e.title}, ${when}`}>
-      <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={90}>
-        <View style={styles.nextShade} />
-        <View style={styles.nextBadge}><View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} /><Text style={styles.nextBadgeText}>{when.toUpperCase()}</Text></View>
-      </EventCover>
+      <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={44} />
       <View style={styles.nextBody}>
-        <Text style={styles.nextCap}>ДАЛЬШЕ ПО ПЛАНУ</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} />
+          <Text style={styles.nextCap} numberOfLines={1}>{when.toUpperCase()}</Text>
+        </View>
         <Text style={styles.nextTitle} numberOfLines={2}>{e.title}</Text>
         <Text style={styles.sub} numberOfLines={1}>{hm(e.startsAt)} · {e.venueName ?? e.address.split(',')[0]}</Text>
         <View style={styles.nextRow}>
           {friends.length > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-            <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={26} style={{ marginLeft: i ? -8 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
+            <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={22} style={{ marginLeft: i ? -7 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
             <Text style={styles.sub} numberOfLines={1}>{friends.length === 1 ? `${friends[0].name} тоже идёт` : `${friends.length} друга идут`}</Text>
           </View> : <View style={{ flex: 1 }} />}
-          <Pressable onPress={() => router.push({ pathname: '/route', params: { id: e.id } })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
-            <Navigation size={15} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
+          <Pressable onPress={() => router.push({ pathname: '/route', params: routeParams(e) })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
+            <Navigation size={14} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
           </Pressable>
         </View>
       </View>
@@ -355,7 +357,7 @@ function PlanMenu({ e, actions, onClose }: { e: EventItem; muted: boolean; actio
       <Backdrop label="Закрыть меню" onPress={onClose} />
       <BottomSheet label={e.title} onClose={onClose}>
         <View style={styles.menuHead}><Cover e={e} size={48} /><View style={{ flex: 1 }}><Text style={styles.title} numberOfLines={2}>{e.title}</Text><Text style={styles.sub}>{hm(e.startsAt)} · {e.venueName ?? (e.address.split(',')[0] || 'без места')}</Text></View></View>
-        {!e.noPoint && <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: { id: e.id } }); }} style={styles.menuRow} accessibilityRole="button"><Navigation size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.menuText}>Маршрут</Text></Pressable>}
+        {!e.noPoint && <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: routeParams(e) }); }} style={styles.menuRow} accessibilityRole="button"><Navigation size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.menuText}>Маршрут</Text></Pressable>}
         {actions.map((a) => (
           <Pressable key={a.key} onPress={() => { onClose(); void a.onPress(); }} style={styles.menuRow} accessibilityRole="button">
             {a.key === 'del' ? <Trash2 size={20} color="#D8362A" strokeWidth={1.9} /> : a.key === 'invite' ? <UserPlus size={20} color={colors.ink} strokeWidth={1.9} /> : <Bell size={20} color={colors.ink} strokeWidth={1.9} />}
@@ -448,17 +450,17 @@ const styles = StyleSheet.create({
   answerText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#FBFAF6' },
-  next: { borderRadius: 26, overflow: 'hidden', backgroundColor: '#FBFAF6', boxShadow: '0 16px 32px -18px rgba(23,22,26,0.45), 0 2px 6px rgba(23,22,26,0.06)' },
-  nextCover: { height: 150, justifyContent: 'flex-end' },
+  next: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 22, overflow: 'hidden', backgroundColor: '#FBFAF6', boxShadow: '0 16px 32px -18px rgba(23,22,26,0.45), 0 2px 6px rgba(23,22,26,0.06)' },
+  nextCover: { width: 84, height: 84, borderRadius: 16 },
   nextShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(23,22,26,0.12)' },
   nextBadge: { position: 'absolute', left: 12, top: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.72)' },
   nextDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   nextBadgeText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.6, color: '#FFFFFF' },
-  nextBody: { padding: 14, gap: 4 },
+  nextBody: { flex: 1, minWidth: 0, gap: 2 },
   nextCap: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.8, color: colors.muted },
-  nextTitle: { fontFamily: fonts.display800, fontSize: 21, letterSpacing: -0.4, lineHeight: 25, color: colors.ink },
-  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.ink },
+  nextTitle: { fontFamily: fonts.display800, fontSize: 17, letterSpacing: -0.3, lineHeight: 21, color: colors.ink },
+  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.ink },
   nextBtnText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.paper },
   dayHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 8 },
   dayHeadText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted },

@@ -1,5 +1,6 @@
 // Модуль рекомендаций «Для тебя» (docs/RECOMMENDATIONS.md). Чистые функции без UI и БД:
 // тот же код потом крутится в Edge Function `deck`. Пользователь механику не видит нигде.
+import { distinctEvents } from '../event/identity';
 import { groupEventDates } from '../event/series';
 import type { Category, EventItem } from '../data/types';
 import { almaty, dayIndex } from '../lib/clock';
@@ -148,7 +149,7 @@ export interface DeckOptions {
 export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHistory, ctx: ScoreContext, opts: DeckOptions = {}): EventItem[] {
   const size = opts.size ?? 10;
   const every = opts.noveltyEvery ?? 8;
-  const pool = groupEventDates(candidates)
+  const pool = groupEventDates(distinctEvents(candidates))
     .filter((e) => !history.decided.has(e.id) && !e.sessions?.some(s => history.decided.has(s.id)) && phaseOf(e, ctx.now) !== 'hidden' && !e.meetup)
     .map((e) => ({ e, s: scoreEvent(taste, e, ctx) }))
     .sort((a, b) => b.s.total - a.s.total || Date.parse(a.e.startsAt)-Date.parse(b.e.startsAt));
@@ -163,7 +164,10 @@ export function buildDeck(taste: Taste, candidates: EventItem[], history: DeckHi
     const lastVenue = deck.at(-1)?.venueName?.toLowerCase() ?? null;
     const sameVenue = (e: EventItem) => !!lastVenue && e.venueName?.toLowerCase() === lastVenue;
     const recent = new Set(deck.slice(-3).map((e) => e.category));
-    const free = pool.filter((x) => !used.has(x.e.id));
+    const free0 = pool.filter((x) => !used.has(x.e.id));
+    const recentCovers = new Set(deck.slice(-3).map(e => e.cover).filter(Boolean));
+    const varied = free0.filter(x => !x.e.cover || !recentCovers.has(x.e.cover));
+    const free = varied.length ? varied : free0;
     let pick: { e: EventItem } | undefined;
     if (pos >= 3 && (pos + 1) % every === 0) {
       // Новое: меньше всего совпадает со вкусом.

@@ -12,7 +12,7 @@ export function formatPrice(min: number | null, max: number | null, isFree: bool
   if (isFree || min === 0) return '0 ₸';
   if (min == null) return '';
   const n = (v: number) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return max != null && max !== min ? `ОТ ${n(min)} ₸` : max == null ? `ОТ ${n(min)} ₸` : `${n(min)} ₸`;
+  return max != null && max > min ? `${n(min)}–${n(max)} ₸` : max == null ? `ОТ ${n(min)} ₸` : `${n(min)} ₸`;
 }
 
 export function formatWhen(iso: string, now = new Date()): string {

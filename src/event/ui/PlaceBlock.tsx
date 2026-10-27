@@ -11,6 +11,8 @@ import { Ic } from '../../ui/Ic';
 import { config } from '../../lib/config';
 import { colors, fonts } from '../../theme';
 import { plate } from '../../ui/glass';
+import Svg, { Path } from 'react-native-svg';
+import { BRAND_PATH } from '../../ui/brands';
 
 /** Картинка карты с оранжевой меткой. Без токена или координат — null (блок покажет только адрес). */
 export function staticMapUrl(lat: number, lon: number, w = 640, h = 260): string | null {
@@ -21,9 +23,10 @@ export function staticMapUrl(lat: number, lon: number, w = 640, h = 260): string
 
 /** Мини-карта места — наша объёмная карта (тот же стиль, дома и деревья), без жестов, с наклоном.
  *  Появляется после открытия карточки, чтобы не тормозить её анимацию. В экономии — картинка. */
-function LiveMini({ lat, lon, category }: { lat: number; lon: number; category?: Category }) {
+function LiveMini({ lat, lon, category, near }: { lat: number; lon: number; category?: Category; near: boolean }) {
   const [on, setOn] = useState(false);
-  useEffect(() => { const t = InteractionManager.runAfterInteractions(() => setOn(true)); return () => t.cancel(); }, []);
+  // Карта создаётся, только когда её почти доскроллили: живая 3D-карта под текстом тормозила прокрутку описания (27 окт.).
+  useEffect(() => { if (!near) return; const t = InteractionManager.runAfterInteractions(() => setOn(true)); return () => t.cancel(); }, [near]);
   const markers = useMemo<MapMarker[]>(() => [{ id: 'here', lat, lon, z: 10, node: (
     <View style={styles.pinWrap}>
       <View style={[styles.pin, { backgroundColor: category ? CAT_COLOR[category] : colors.accent }]}>
@@ -40,8 +43,8 @@ function LiveMini({ lat, lon, category }: { lat: number; lon: number; category?:
   );
 }
 
-export function PlaceBlock({ lat, lon, title, address, dist, exact, category, onRoute, onCopy }: {
-  lat: number; lon: number; title: string; address: string; dist?: string | null; exact: boolean; category?: Category; onRoute: () => void; onCopy: () => void;
+export function PlaceBlock({ lat, lon, title, address, dist, exact, category, near = true, onRoute, onCopy }: {
+  near?: boolean; lat: number; lon: number; title: string; address: string; dist?: string | null; exact: boolean; category?: Category; onRoute: () => void; onCopy: () => void;
 }) {
   const [broken, setBroken] = useState(false);
   // Всегда наша живая карта (27 окт.): раньше в экономии и в режиме 2D показывалась старая картинка Mapbox другого стиля.
@@ -51,7 +54,7 @@ export function PlaceBlock({ lat, lon, title, address, dist, exact, category, on
     <View style={styles.card}>
       {(live || url) && (
         <Pressable onPress={onRoute} accessibilityRole="button" accessibilityLabel={`Карта: ${title}. Маршрут`}>
-          {live ? <LiveMini lat={lat} lon={lon} category={category} /> : <Image source={{ uri: url! }} style={styles.map} resizeMethod="resize" onError={() => setBroken(true)} />}
+          {live ? <LiveMini lat={lat} lon={lon} category={category} near={near} /> : <Image source={{ uri: url! }} style={styles.map} resizeMethod="resize" onError={() => setBroken(true)} />}
           {dist && <View style={styles.dist}><Text style={styles.distText}>{dist}</Text></View>}
         </Pressable>
       )}
@@ -75,28 +78,36 @@ export function PlaceBlock({ lat, lon, title, address, dist, exact, category, on
 }
 
 /** Узнаваемые источники афиши — своим цветом и буквой. */
-const SOURCES: [RegExp, string, string, string][] = [
+const SOURCES: [RegExp, string, string, string, string?][] = [
   [/sxodim/, 'S', '#FF5A36', 'Sxodim'],
   [/ticketon/, 'T', '#1D6FE8', 'Ticketon'],
+  [/portalbilet/, 'P', '#2F7D5B', 'Portalbilet'],
   [/afisha\.yandex|yandex/, 'Я', '#FC3F1D', 'Яндекс Афиша'],
   [/kino\.kz/, 'K', '#E2A21B', 'Kino.kz'],
-  [/instagram/, 'I', '#C13584', 'Instagram'],
-  [/t\.me|telegram/, 'T', '#2AA5E0', 'Telegram'],
-  [/threads/, '@', '#17161A', 'Threads'],
+  [/instagram/, 'I', '#E4405F', 'Instagram', 'instagram'],
+  [/t\.me|telegram/, 'T', '#2AA5E0', 'Telegram', 'telegram'],
+  [/threads/, '@', '#17161A', 'Threads', 'threads'],
+  [/vk\.com/, 'V', '#0077FF', 'VK', 'vk'],
+  [/facebook|fb\.com/, 'f', '#1877F2', 'Facebook', 'facebook'],
+  [/youtube|youtu\.be/, 'Y', '#FF0000', 'YouTube', 'youtube'],
+  [/tiktok/, 'T', '#17161A', 'TikTok', 'tiktok'],
   [/kassir/, 'K', '#7E5BD6', 'Kassir'],
 ];
+/** Соцсети — это пост, а не касса: подпись «Открыть пост», а не «Билеты». */
 export const sourceLook = (site: string) => {
   const hit = SOURCES.find(([re]) => re.test(site));
-  return hit ? { letter: hit[1], color: hit[2], name: hit[3] } : { letter: (site[0] ?? '·').toUpperCase(), color: colors.ink, name: site };
+  return hit ? { letter: hit[1], color: hit[2], name: hit[3], brand: hit[4] ?? null } : { letter: (site[0] ?? '·').toUpperCase(), color: colors.ink, name: site, brand: null };
 };
 
 export function SourceLink({ site, onOpen, onCopy }: { site: string; onOpen: () => void; onCopy: () => void }) {
   const look = sourceLook(site);
   return (
-    <Pressable onPress={onOpen} onLongPress={onCopy} style={({ pressed }) => [styles.source, pressed && styles.pressed]} accessibilityRole="link" accessibilityLabel={`Билеты и подробности на ${site}`}>
-      <View style={[styles.logo, { backgroundColor: look.color }]}><Text style={styles.logoText}>{look.letter}</Text></View>
+    <Pressable onPress={onOpen} onLongPress={onCopy} style={({ pressed }) => [styles.source, pressed && styles.pressed]} accessibilityRole="link" accessibilityLabel={look.brand ? `Открыть пост в ${look.name}` : `Билеты и подробности на ${site}`}>
+      <View style={[styles.logo, { backgroundColor: look.color }]}>
+        {look.brand ? <Svg width={26} height={26} viewBox="0 0 24 24"><Path d={BRAND_PATH[look.brand]} fill="#FFFFFF" /></Svg> : <Text style={styles.logoText}>{look.letter}</Text>}
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.sourceTitle} numberOfLines={1}>{look.name === site ? 'Билеты и подробности' : `Билеты на ${look.name}`}</Text>
+        <Text style={styles.sourceTitle} numberOfLines={1}>{look.brand ? `Пост в ${look.name}` : look.name === site ? 'Подробности и билеты' : `Билеты на ${look.name}`}</Text>
         <Text style={styles.sourceSub} numberOfLines={1}>{site} · откуда событие</Text>
       </View>
       <View style={styles.open}><Text style={styles.openText}>Открыть</Text><ArrowUpRight size={15} color={colors.paper} strokeWidth={2.2} /></View>

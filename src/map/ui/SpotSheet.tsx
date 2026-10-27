@@ -5,7 +5,7 @@
 import { remote } from '../../data/photos';
 import { router } from 'expo-router';
 import { ArrowUpRight, CalendarPlus, Check, ChevronDown, Lightbulb, Navigation, Ticket, Users, X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { inSeason, KIND_COLOR, KIND_LABEL, partsOf, seasonText, type Attraction } from '../../data/attractions';
@@ -25,6 +25,16 @@ import { AttractionPin } from './AttractionPin';
 const WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 const STATE_COLOR = { open: colors.ok, break: '#C98A1B', closed: '#C83A26', unknown: colors.muted } as const;
 
+/** Блок-подсказка в одном стиле (совет, как попасть бесплатно): значок, заголовок, строки. */
+function InfoCard({ icon, title, lines }: { icon: ReactNode; title: string; lines: string[] }) {
+  return (
+    <View style={styles.info}>
+      <View style={styles.infoHead}><View style={styles.infoIcon}>{icon}</View><Text style={styles.infoTitle}>{title}</Text></View>
+      {lines.map((t) => <Text key={t} style={styles.infoText}>{t}</Text>)}
+    </View>
+  );
+}
+
 export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Attraction[]; onClose: () => void; onOpen?: (a: Attraction) => void }) {
   const now = clockNow();
   const color = KIND_COLOR[a.kind];
@@ -40,6 +50,8 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
   const [page, setPage] = useState(0);
   const photos = (a.photos ?? []).filter((u) => !broken.includes(u));
   const [saved, setSaved] = useState<string | null>(null);
+  // Барабан времени появляется только после «Пойду» (27 окт.): раньше висел на карточке постоянно.
+  const [planning, setPlanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const addMeetup = usePlans((s) => s.addMeetup);
   const addPlan = useApp((s) => s.addPlan);
@@ -109,20 +121,15 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
             {season && status.breakText && <Text style={styles.statusSub}>· {status.breakText}</Text>}
           </View>
           <View style={styles.tags}>
-            {a.free && <View style={[styles.tag, { backgroundColor: '#D7EBDD' }]}><Text style={[styles.tagText, { color: '#1F6B43' }]}>бесплатно</Text></View>}
+            {a.free && <View style={styles.tag}><Check size={13} color={colors.ink} strokeWidth={2.6} /><Text style={styles.tagText}>бесплатно</Text></View>}
             {!a.free && a.priceFrom ? <View style={styles.tag}><Text style={styles.tagText}>от {a.priceFrom.toLocaleString('ru-RU')} ₸</Text></View> : null}
             {season && a.season && <View style={styles.tag}><Text style={styles.tagText}>{seasonText(a, now)}</Text></View>}
             {!!a.address && <View style={styles.tag}><Text style={styles.tagText} numberOfLines={1}>{a.address}</Text></View>}
           </View>
 
-          {!!a.howTo && <Text style={styles.howTo}>{a.howTo}</Text>}
+          {!!a.howTo && <InfoCard icon={<Check size={15} color={colors.ink} strokeWidth={2.6} />} title={a.free ? 'Бесплатно' : 'Как попасть'} lines={[a.howTo]} />}
 
-          {!!a.tips?.length && (
-            <View style={styles.tips}>
-              <View style={styles.tipsHead}><Lightbulb size={16} color={colors.accentText} strokeWidth={2.2} /><Text style={styles.tipsTitle}>{a.tips.length > 1 ? 'Советы' : 'Совет'}</Text></View>
-              {a.tips.map((t) => <Text key={t} style={styles.tip}>{t}</Text>)}
-            </View>
-          )}
+          {!!a.tips?.length && <InfoCard icon={<Lightbulb size={15} color={colors.ink} strokeWidth={2.2} />} title={a.tips.length > 1 ? 'Советы' : 'Совет'} lines={a.tips} />}
 
           {parts.length > 0 && (
             <View style={{ gap: 8 }}>
@@ -152,27 +159,31 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
             </View>
           )}
 
-          {/* План: день и время барабаном. Время предлагается только когда место открыто. */}
-          <View style={styles.planBox}>
-            <Text style={styles.planTitle}>Когда пойдёшь?</Text>
-            {cur ? (
-              <View style={styles.wheelBox}>
-                <DayTimeWheel days={days.map((d) => ({ key: d.k, label: wheelDayLabel(today + d.k, today), times: d.slots }))} day={cur.k} time={pick ?? null}
-                  onChange={(k, t) => { setDay(k); setTime(t); setSaved(null); }} />
-              </View>
-            ) : <Text style={styles.statusSub}>Ближайшие две недели закрыто{season ? '' : ` — ${seasonText(a, now)}`}</Text>}
-            {saved ? (
-              <View style={{ gap: 8 }}>
-                <View style={styles.done}><Check size={18} color="#1F6B43" strokeWidth={2.6} /><Text style={styles.doneText}>В планах · {cur ? wheelDayLabel(today + cur.k, today).toLowerCase() : ''} {pick}. Напомню за час</Text></View>
-                {<Pressable onPress={() => { onClose(); router.push({ pathname: '/event/[id]', params: { id: saved, invite: '1' } }); }} style={[styles.btn, styles.main]} accessibilityRole="button"><Users size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Позвать друзей</Text></Pressable>}
-              </View>
-            ) : (
+          {/* План: сначала «Пойду», потом день и время барабаном. Время предлагается только когда место открыто. */}
+          {saved ? (
+            <View style={{ gap: 8 }}>
+              <View style={styles.done}><Check size={18} color={colors.ink} strokeWidth={2.6} /><Text style={styles.doneText}>В планах · {cur ? wheelDayLabel(today + cur.k, today).toLowerCase() : ''} {pick}. Напомню за час</Text></View>
+              <Pressable onPress={() => { onClose(); router.push({ pathname: '/event/[id]', params: { id: saved, invite: '1' } }); }} style={[styles.btn, styles.main]} accessibilityRole="button"><Users size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Позвать друзей</Text></Pressable>
+            </View>
+          ) : !planning ? (
+            <Pressable onPress={() => setPlanning(true)} style={({ pressed }) => [styles.btn, styles.main, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Пойду: выбрать день и время">
+              <CalendarPlus size={18} color={colors.ink} strokeWidth={2} /><Text style={styles.btnText}>Пойду</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.planBox}>
+              <Text style={styles.planTitle}>Когда пойдёшь?</Text>
+              {cur ? (
+                <View style={styles.wheelBox}>
+                  <DayTimeWheel days={days.map((d) => ({ key: d.k, label: wheelDayLabel(today + d.k, today), times: d.slots }))} day={cur.k} time={pick ?? null}
+                    onChange={(k, t) => { setDay(k); setTime(t); }} />
+                </View>
+              ) : <Text style={styles.statusSub}>Ближайшие две недели закрыто{season ? '' : ` — ${seasonText(a, now)}`}</Text>}
               <Pressable disabled={!pick || busy} onPress={() => void plan()} style={[styles.btn, styles.main, (!pick || busy) && { opacity: 0.45 }]} accessibilityRole="button">
                 <CalendarPlus size={18} color={colors.ink} strokeWidth={2} />
                 <Text style={styles.btnText}>{busy ? 'Сохраняю…' : pick && cur ? `Пойду · ${cur.label} ${pick}` : 'Выбери время'}</Text>
               </Pressable>
-            )}
-          </View>
+            </View>
+          )}
 
           <View style={styles.actions}>
             {a.buy && !a.free && <Pressable onPress={() => go(a.buy!)} style={({ pressed }) => [styles.btn, styles.dark, pressed && styles.pressed]} accessibilityRole="link"><Ticket size={18} color={colors.paper} strokeWidth={2} /><Text style={[styles.btnText, { color: colors.paper }]}>Купить билет</Text></Pressable>}
@@ -194,7 +205,11 @@ const styles = StyleSheet.create({
   dots: { position: 'absolute', right: 16, bottom: 14, flexDirection: 'row', gap: 5 },
   pdot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
   pdotOn: { width: 16, backgroundColor: '#FFFFFF' },
-  howTo: { fontFamily: fonts.body500, fontSize: 14, lineHeight: 19, color: '#1F6B43', backgroundColor: '#E3F1E7', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+  info: { padding: 14, borderRadius: 18, backgroundColor: '#EDE8DD', gap: 6 },
+  infoHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E1DACB', alignItems: 'center', justifyContent: 'center' },
+  infoTitle: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
+  infoText: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, color: colors.muted2 },
   hero: { height: 132, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   heroIcon: { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
   heroKind: { position: 'absolute', left: 16, bottom: 10, fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: '#FFFFFF' },
@@ -210,10 +225,6 @@ const styles = StyleSheet.create({
   tag: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 28, maxWidth: '100%', paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.sand },
   tagSolo: { backgroundColor: '#F7D9C9' },
   tagText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.ink, flexShrink: 1 },
-  tips: { padding: 14, borderRadius: 18, backgroundColor: '#FBEFE6', gap: 6 },
-  tipsHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tipsTitle: { fontFamily: fonts.body700, fontSize: 14, color: colors.accentText },
-  tip: { fontFamily: fonts.body400, fontSize: 14, lineHeight: 20, color: colors.ink },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: colors.muted },
   part: { width: 118, padding: 10, borderRadius: 18, backgroundColor: '#EDE8DD', gap: 4 },
   partName: { fontFamily: fonts.body700, fontSize: 13, lineHeight: 16, color: colors.ink },
@@ -224,12 +235,12 @@ const styles = StyleSheet.create({
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line2 },
   weekDays: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.ink },
   weekTime: { fontFamily: fonts.mono500, fontSize: 12.5, color: colors.ink },
-  planBox: { padding: 14, borderRadius: 22, borderWidth: 1.5, borderColor: colors.line2, gap: 10 },
+  planBox: { padding: 14, borderRadius: 22, backgroundColor: '#EDE8DD', gap: 10 },
   planTitle: { fontFamily: fonts.display700, fontSize: 18, color: colors.ink },
   partHours: { fontFamily: fonts.body500, fontSize: 11, color: colors.muted },
-  wheelBox: { borderRadius: 20, backgroundColor: '#EDE8DD', overflow: 'hidden' },
-  done: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#D7EBDD' },
-  doneText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: '#1F6B43' },
+  wheelBox: { borderRadius: 18, backgroundColor: '#F5F1E8', overflow: 'hidden' },
+  done: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#EDE8DD' },
+  doneText: { flex: 1, fontFamily: fonts.body600, fontSize: 14, color: colors.ink },
   actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   btn: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, flexDirection: 'row', gap: 6, height: 50, borderRadius: 16, backgroundColor: '#EDE8DD', alignItems: 'center', justifyContent: 'center' },
   main: { backgroundColor: colors.accent, flexBasis: 'auto' },

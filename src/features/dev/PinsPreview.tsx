@@ -3,7 +3,6 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { EventItem, FriendSpot, Person } from '../../data/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ATTRACTIONS } from '../../data/attractions';
 import { demoEvents, FRIEND_SPOTS, PEOPLE } from '../../data/demo';
 import { EventPin, FocusPin, FriendPin, TogetherPin } from '../../map/pins';
 import { PlacePin } from '../../map/ui/PlacePin';
@@ -80,7 +79,6 @@ export default function PinsPreview() {
   const e = (id: string) => ev.find((x) => x.id === id) ?? ev[0];
   const person = (id: string) => PEOPLE.find((p) => p.id === id) ?? PEOPLE[0];
   const spot = (id: string) => FRIEND_SPOTS.find((s) => s.personId === id) ?? FRIEND_SPOTS[0];
-  const a = (id: string) => ATTRACTIONS.find((x) => x.id === id) ?? ATTRACTIONS[0];
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#E6E1D3' }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 12, paddingBottom: 40 }}>
       <Text style={styles.h}>Значки карты</Text>
@@ -108,7 +106,7 @@ export default function PinsPreview() {
         <Cell title="заряжается" h={140}><View style={{ marginTop: 40 }}><FriendPin person={person('anton')} spot={spot('anton')} onPress={noop} /></View></Cell>
       </View>
       <View style={styles.grid}>
-        <Cell title="друг в фокусе" h={170}><View style={{ marginTop: 60 }}><FocusPin person={person('igor')} ring={colors.friend} bubble={null} /></View></Cell>
+        <Cell title="друг в фокусе" h={170}><View style={{ marginTop: 60 }}><FocusPin person={person('igor')} ring={colors.friend} /></View></Cell>
         <Cell title="вместе" h={170}><TogetherPin people={[person('igor'), person('anton')]} onPress={noop} /></Cell>
       </View>
 

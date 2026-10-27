@@ -4,6 +4,7 @@
 // 2) навигация — сверху крупная инструкция (стрелка, расстояние до манёвра, улица), снизу остаток пути и «Завершить»,
 //    в режиме «машина» ещё скорость. Всё, что не нужно в пути, прячется, поэтому блоки не накладываются.
 // Машина и пешком — функция route (TomTom с пробками), автобус — свой расчёт по остановкам OpenStreetMap.
+import { NONE } from '../../lib/empty';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, ChevronRight, CornerUpLeft, CornerUpRight, Flag, Footprints, Moon, Undo2, type LucideIcon } from 'lucide-react-native';
@@ -85,7 +86,7 @@ export default function RouteScreen() {
   const meetups = usePlans((s) => s.meetups);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   useBackClose(back);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const known = [...meetups, ...events].find((x) => x.id === id);
   const detail = useQuery({ queryKey: ['event', id], queryFn: () => getEventsByIds([id]), enabled: config.dataMode !== 'demo' && !known && !pLat, retry: 1 });
   // Маршрут к постоянному месту (Шымбулак, боулинг…): точка из параметров, не событие из базы.
@@ -94,7 +95,7 @@ export default function RouteScreen() {
     if (!pLat || !Number.isFinite(la) || !Number.isFinite(lo)) return undefined;
     return { id, title: pTitle ?? 'Место', lat: la, lon: lo, address: pAddr ?? '', venueName: pTitle ?? null, category: 'hike', startsAt: new Date().toISOString(), endsAt: null } as unknown as NonNullable<typeof known>;
   }, [id, pLat, pLon, pTitle, pAddr]);
-  const e = spot ?? known ?? detail.data?.[0];
+  const e = known ?? spot ?? detail.data?.[0];
 
   // «В путь»: камера за мной. Маршрут считаем один раз от точки старта, а не заново на каждом шаге.
   useEffect(() => {

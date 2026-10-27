@@ -28,6 +28,8 @@ export const PLACE_COLORS: Record<string, string> = {
 export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
+  /** Вкладка карты не на экране: карта жива, но рисует раз в секунду (не греет телефон). */
+  hidden?: boolean;
   /** Главная карта: при повторном открытии вкладки — там, где её оставили, а не на стартовой точке. */
   remember?: boolean;
   markers: MapMarker[];
@@ -51,6 +53,8 @@ export interface MapCanvasProps {
   traffic?: string | null;
   fog?: object | null;
   /** Линии маршрута (V6Route): путь [[lon, lat], …], цвет, толщина, пунктир. */
+  /** Граница выбранного парка или места: полупрозрачная заливка и контур (27 окт.). */
+  zone?: [number, number][] | null;
   lines?: { id: string; coords: [number, number][]; color: string; width?: number; dash?: boolean }[];
   /** Тап по пустой карте (не по точке) — закрыть шторку события. */
   onPress?: (point?: { lat: number; lon: number }) => void;

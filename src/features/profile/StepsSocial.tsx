@@ -1,5 +1,6 @@
 // Шаги с друзьями (FIX3, FIX5): рейтинг за день или неделю с пьедесталом и соревнования «кто больше» или «кто первым до цели».
 // Друзья видят твои шаги, пока включено «Показывать мои шаги друзьям» (profiles.steps_visible).
+import { NONE } from '../../lib/empty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Crown, X } from 'lucide-react-native';
 import { useState } from 'react';
@@ -193,7 +194,7 @@ const MODES = [
 ];
 
 function CreateChallenge({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const friends = people.filter(p => p.isFriend);
   const [picked, setPicked] = useState<string[]>([]);
   const [mode, setMode] = useState('d7');

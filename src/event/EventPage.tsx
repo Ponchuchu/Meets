@@ -1,5 +1,7 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
+import { NONE } from '../lib/empty';
+import { routeParams } from '../lib/routeParams';
 import { track } from '../analytics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { config } from '../lib/config';
@@ -7,10 +9,12 @@ import { chooseEventVisit, rescheduleMeetup, sendInvite } from '../live/api';
 import { router } from 'expo-router';
 import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { editorialText } from './editorial';
 import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
@@ -28,12 +32,13 @@ import { colors, fonts } from '../theme';
 import { glass, plate } from '../ui/glass';
 import { Avatar } from '../ui/Avatar';
 import { EventCover, openCoverH } from '../ui/EventCover';
+import { EventMedia, eventMedia } from '../ui/EventMedia';
 import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, MapPin, Share2, Ticket, Users, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, Share2, Ticket, Users, CalendarPlus, UserPlus, Check, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import { TicketBlock } from './ui/TicketBlock';
 import { ShareCardSheet } from './ui/ShareCard';
@@ -41,7 +46,7 @@ import * as WebBrowser from 'expo-web-browser';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useMyPos } from '../live/location';
 import { distM } from '../live/geo';
-import { kmText, stampOf } from '../map/ui/EventSheet';
+import { kmText } from '../map/ui/EventSheet';
 import { eventLink, shareText } from './share';
 import { plural, whenTitle } from './text';
 import { occurrencesOf } from './occurrences';
@@ -79,7 +84,14 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const [inviting,setInviting]=useState(false);
   // Обложка: при прокрутке уезжает медленнее текста, при оттягивании вниз — растёт (параллакс, FIX3).
   const scrollY = useSharedValue(0);
+  const [mediaVisible, setMediaVisible] = useState(true);
+  useAnimatedReaction(() => scrollY.get() < coverH, (visible, previous) => { if (visible !== previous) scheduleOnRN(setMediaVisible, visible); });
   const onScroll = useAnimatedScrollHandler(ev => { scrollY.set(ev.contentOffset.y); });
+  // Мини-карта места строится, когда до неё осталось меньше экрана прокрутки.
+  const [nearMap, setNearMap] = useState(false);
+  const mapY = useSharedValue(99999);
+  const viewH = useWindowDimensions().height;
+  useAnimatedReaction(() => scrollY.get() + viewH + 240 > mapY.get(), (now, was) => { if (now && !was) runOnJS(setNearMap)(true); });
   const parallax = useAnimatedStyle(() => {
     const y = scrollY.get();
     return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / coverH }] } : { transform: [{ translateY: y * 0.35 }] };
@@ -89,7 +101,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const going = usePlans((s) => !!s.going[e.id]);
   const company = usePlans((s) => s.company[e.id]);
   const { go, ungo, invite, startChat } = usePlans.getState();
@@ -98,7 +110,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const arrive = useProfile((s) => s.arrive);
   const addSignal = useFeed((s) => s.addSignal);
   const me = useMyPos();
-  const { data: sameVenue = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), enabled: false });
+  const { data: sameVenue = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), enabled: false });
   // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
@@ -163,9 +175,10 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     <View style={styles.root}>
       <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
-        <Animated.View style={[{ zIndex: -1 }, parallax]}>
-        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
+        <Animated.View style={parallax}>
+        <EventCover cover={null} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
+          {eventMedia(e).length > 0 && <EventMedia key={e.id} items={eventMedia(e)} height={coverH} active={sheet === null && mediaVisible} gallery />}
+          <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="#17161A" stopOpacity="0.25" />
@@ -183,24 +196,34 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <Share2 size={20} color="#FFFFFF" strokeWidth={1.9} />
             </Pressable>
           </View>
-          <Animated.View style={[styles.coverText, titleFade]}>
-            <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
+          <Animated.View pointerEvents="none" style={[styles.coverText, titleFade, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </Animated.View>
         </EventCover>
         </Animated.View>
 
         <View style={styles.body}>
+          {/* Когда, где, сколько — один блок вместо россыпи плашек (27 окт.): дата и время, место с расстоянием, цена. Адрес — ниже, в блоке «Где». */}
+          <View style={styles.facts}>
+            <View style={styles.factRow}>
+              <View style={styles.factIcon}><Clock size={19} color={colors.ink} strokeWidth={1.9} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.factMain} numberOfLines={2}>{whenTitle(e, now)}</Text>
+                {!!soon && <Text style={[styles.factSub, { color: colors.accentText }]}>{soon}</Text>}
+              </View>
+            </View>
+            <View style={styles.factLine} />
+            <View style={styles.factRow}>
+              <View style={styles.factIcon}><Ticket size={19} color={colors.ink} strokeWidth={1.9} /></View>
+              <Text style={[styles.factMain, { flex: 1 }, !priceText && { color: colors.muted3 }]} numberOfLines={1}>{priceText ? (e.isFree || e.priceMin === 0 ? 'Бесплатно' : priceText.replace(/^ОТ/, 'от')) : 'Цена не указана'}</Text>
+            </View>
+          </View>
           <View style={styles.chips}>
-            <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
-            {soon && <View style={[styles.chip, styles.soon]} accessibilityLabel={`Начало ${soon}`}><View style={styles.soonDot} /><Text style={[styles.chipText, { color: colors.accentText }]}>{soon}</Text></View>}
             {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
             {(e.dates?.length ?? 0) > 1 && <Pressable onPress={() => setSheet('dates')} style={styles.chip} accessibilityRole="button" accessibilityLabel="Даты события"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : `${e.dates!.length} ${e.dates!.length < 5 ? 'даты' : 'дат'}: ${e.dates!.slice(0, 3).map((d) => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short' })).join(', ')}${e.dates!.length > 3 ? '…' : ''}`}</Text></Pressable>}
             {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
             {e.lang === 'kk' && <View style={styles.chip} accessibilityLabel="Событие на казахском языке"><Text style={[styles.chipText, { color: '#1E7BB8' }]}>Қазақша</Text></View>}
-            {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
-            {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
 
           {/* «Компания» (26 окт.): кто из друзей идёт и кто ищет компанию — одним блоком, по нажатию шторка. */}
@@ -229,12 +252,12 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
           </View>}
-          {!!e.about && <AboutBlock text={e.about} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
+          {!!e.about && <AboutBlock key={e.id} text={editorialText(e)} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
-          <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
+          <View onLayout={(ev) => { mapY.set(ev.nativeEvent.layout.y); }}><PlaceBlock near={nearMap} lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
-            onRoute={() => router.push({ pathname: '/route', params: { id: e.id } })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
+            onRoute={() => router.push({ pathname: '/route', params: routeParams(e) })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} /></View>
           {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}
@@ -279,14 +302,14 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         </View>
       ) : (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
-          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
+          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel={onSkip ? "Пропустить событие" : "Закрыть событие"}>
             <X size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
           <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
-            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{going ? <Check size={20} color={colors.paper} /> : <CalendarPlus size={20} color={colors.ink} />}<Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text></View>
           </Pressable>
           <Pressable onPress={() => setSheet('invite')} style={({ pressed }) => [styles.inviteBtn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
-            <Text style={styles.inviteText}>Позвать</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><UserPlus size={18} color={colors.paper} /><Text style={styles.inviteText}>Позвать</Text></View>
           </Pressable>
         </View>
       )}
@@ -316,7 +339,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           if (sheet === 'visit' && onPlanned) setTimeout(onPlanned, 450);
         }} />
       </BottomSheet></>}
-      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
+      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && sheet !== 'dates' && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Компания' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>
@@ -364,6 +387,13 @@ const styles = StyleSheet.create({
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  facts: { borderRadius: 22, backgroundColor: '#FBFAF6', paddingHorizontal: 12, paddingVertical: 4, boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
+  factRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8 },
+  factIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
+  factMain: { fontFamily: fonts.body700, fontSize: 16, lineHeight: 21, color: colors.ink },
+  factSub: { fontFamily: fonts.body600, fontSize: 13, marginTop: 1, color: colors.muted2 },
+  factSide: { fontFamily: fonts.mono600, fontSize: 13, color: colors.muted2 },
+  factLine: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line2, marginLeft: 50 },
   soon: { backgroundColor: '#F6DCCD', borderColor: 'rgba(240,82,31,0.25)' },
   soonDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },

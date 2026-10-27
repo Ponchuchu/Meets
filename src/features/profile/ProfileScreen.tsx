@@ -2,6 +2,7 @@
 // Сверху справа: панель разработчика (только команда) · QR · настройки. Под именем — до трёх наград, выбранных в «Наградах».
 // Сетка: Друзья · Уровень / Где я был · Шаги (10 000 в день, считаются всегда). Ниже — «Награды», «Воспоминания»,
 // «Мои места» и «Ночёвки». «События и встречи» и «Хроника» убраны: прошедшие события живут в «Воспоминаниях».
+import { NONE } from '../../lib/empty';
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
@@ -65,7 +66,6 @@ export default function ProfileScreen() {
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
   const demoFrame = useProfile(s => s.mapFrame);
-  const demoShape = useProfile(s => s.mapShape);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const prof = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
@@ -75,7 +75,7 @@ export default function ProfileScreen() {
   const postsQ = useQuery({ queryKey: ['posts', 'me'], queryFn: () => getPosts() });
   const myPosts = postsQ.data ?? [];
   const sleeps = useQuery({ queryKey: ['me', 'sleepovers'], queryFn: () => getSleepovers() });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const steps = useSteps(st => (LIVE ? stepsToday(st) : 6240));
   const stepDays = useQuery({ queryKey: ['me', 'steps'], queryFn: stepHistory, enabled: LIVE, staleTime: 60e3 });
   useFocusEffect(useCallback(() => { if (LIVE) { void stats.refetch(); void prof.refetch(); void postsQ.refetch(); } }, [])); // eslint-disable-line react-hooks/exhaustive-deps
@@ -85,8 +85,8 @@ export default function ProfileScreen() {
   const p = prof.data;
   const now = clockNow();
   const going = usePlans((x) => x.going);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: spots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   // Мои планы: на что я иду, ближайшие сначала; прошедшие не показываем.
   const myPlansAll = events.filter((e) => going[e.id] && new Date(e.endsAt ?? e.startsAt).getTime() > now.getTime() - 3 * 3600e3)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -110,7 +110,6 @@ export default function ProfileScreen() {
   const km = String(Math.round(((stepDays.data ?? []).filter((d) => d.day !== todayKey).reduce((a, d) => a + d.steps, 0) + steps) * 0.00075 * 10) / 10 || (LIVE ? 0 : 42.7));
   const walk = stepAwards(stepDays.data ?? [], { day: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Almaty' }), steps });
   const allBadges = [...walk, ...(s?.badges ?? [])];
-  const got = allBadges.filter((b) => b.got);
   const shown = (extras.data?.shown ?? []).slice(0, 1);
   const friends = people.filter(x => x.isFriend);
   const onMap = friends.filter((f) => spots.some((x) => x.personId === f.id)).length;

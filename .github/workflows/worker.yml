@@ -3,6 +3,12 @@
 name: worker
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'collect — сбор постов; maintenance — цены и фото существующих карточек'
+        type: choice
+        default: collect
+        options: [collect, maintenance]
 concurrency: worker
 jobs:
   collect:
@@ -14,7 +20,13 @@ jobs:
         with:
           node-version: 22
       - name: Сбор и разбор постов
-        run: node worker/src/index.ts
+        run: |
+          if [ "${{ inputs.mode }}" = "maintenance" ]; then
+            node worker/src/repair-prices.ts
+            node worker/src/spots.ts --run --photos-only
+          else
+            node worker/src/index.ts
+          fi
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

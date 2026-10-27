@@ -25,6 +25,8 @@ export interface Decision {
 }
 
 interface FeedState {
+  hidden: Record<string, boolean>;
+  hide: (id: string) => void;
   signals: Signal[];
   decided: Record<string, 'go' | 'skip'>;
   history: Decision[];
@@ -50,6 +52,8 @@ interface FeedState {
 export const useFeed = create<FeedState>()(
   persist(
     (set, get) => ({
+      hidden: {},
+      hide: (id) => set(st => ({ hidden: { ...st.hidden, [id]: true } })),
       signals: [],
       decided: {},
       history: [],

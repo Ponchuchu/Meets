@@ -20,12 +20,18 @@ const toSpot = (r: SpotRow): Attraction => ({
   ...(r.photos?.length ? { photos: r.photos } : {}), ...(r.mall ? { mall: r.mall } : {}), ...(r.step_min ? { stepMin: r.step_min } : {}),
 });
 
+/** Never present a satellite tile as a venue photo. Missing galleries use the category illustration. */
+function withPhotos<T extends Attraction>(a: T): T {
+  const photos = [...new Set(a.photos ?? [])].filter(u => !/api\.mapbox\.com\/styles\/.*\/static\//.test(u));
+  return { ...a, photos: photos.length ? photos : undefined };
+}
+
 /** Места: из базы (там часы и цены от сборщика), без базы или без таблицы — встроенный список. */
 export async function getSpots(): Promise<Attraction[]> {
-  if (config.dataMode === 'demo') return ATTRACTIONS;
+  if (config.dataMode === 'demo') return ATTRACTIONS.map(withPhotos);
   try {
     const { data, error } = await withTimeout(supabase().from('spots').select('*').eq('enabled', true));
-    if (error || !data?.length) return ATTRACTIONS;
+    if (error || !data?.length) return ATTRACTIONS.map(withPhotos);
     // Фото, «как попасть» и известные часы — из приложения; часы сборщика главнее.
     const local = new Map(ATTRACTIONS.map((a) => [a.id, a]));
     const rows = (data as SpotRow[]).map(toSpot).map((x) => {
@@ -34,8 +40,8 @@ export async function getSpots(): Promise<Attraction[]> {
       return l ? { ...x, photos: x.photos?.length ? x.photos : l.photos, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
     });
     const missing = ATTRACTIONS.filter((a) => !rows.some((r) => r.id === a.id));
-    return [...rows, ...missing];
-  } catch { return ATTRACTIONS; }
+    return [...rows, ...missing].map(withPhotos);
+  } catch { return ATTRACTIONS.map(withPhotos); }
 }
 
 const CATEGORY: Partial<Record<AttractionKind, Category>> = {

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Redirect, router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { InteractionManager } from 'react-native';
+import { useEco } from '../../src/state/perf';
 import { trimCache } from '../../src/live/memory';
 import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
@@ -46,6 +47,8 @@ function ServerOnboarded() {
 
 function Shell() {
   const demo = config.dataMode === 'demo';
+  // Сильный телефон: вкладки не отцепляются (переключение мгновенное, карта не строится заново). Слабый или энергосбережение: отцепляются, как раньше.
+  const eco = useEco();
   useLiveChats();
   useStepTracking();
   usePushRegistration();
@@ -64,7 +67,7 @@ function Shell() {
   }, [prof.data, draft.name, draft.photo]);
   return (
     <>
-      <Tabs detachInactiveScreens tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
+      <Tabs detachInactiveScreens={eco} tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
         <Tabs.Screen name="index" options={{ title: 'Карта' }} />
         {/* Скрытые вкладки (кроме карты) замирают: не перерисовываются от сообщений и точек друзей, пока открыта другая.
             Карту не замораживаем — она сама отключает отрисовку вне фокуса (MapScreen: focused). */}

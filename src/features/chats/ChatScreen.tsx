@@ -1,3 +1,4 @@
+import { NONE } from '../../lib/empty';
 import { preparePhoto } from '../../chat/media';
 import { useSocialActions } from '../../live/socialActions';
 import { useOutbox } from '../../live/outbox';
@@ -79,7 +80,7 @@ export default function ChatScreen() {
   useFocusEffect(useCallback(() => { setFocused(true); usePlayback.getState().focus(true); return () => { setFocused(false); stopOnBlur.current(); usePlayback.getState().focus(false); }; }, []));
   const [atBottom, setAtBottom] = useState(true);
   const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
-  const { data: chats = [] } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
+  const { data: chats = NONE } = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
   const localGroups = useChat(s => s.groups);
   const allChats = [...chats,...localGroups];
   const meta0 = allChats.find((c) => c.id === id);
@@ -100,8 +101,8 @@ export default function ChatScreen() {
   useEffect(() => { if (!focused) return; setOpenChat(id); return () => setOpenChat(null); }, [id, focused]);
   const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
   const base = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const { data: details } = useQuery({ queryKey: ['person', personId], queryFn: () => data.getPersonDetails(personId!), enabled: !!personId, refetchInterval: focused ? 60e3 : false });
   // Только точка собеседника: обновления точек других друзей (каждые несколько секунд) не перерисовывают чат.
   const { data: spot } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), select: (all: FriendSpot[]) => all.find((x) => x.personId === personId) ?? null, enabled: !!personId });
@@ -168,7 +169,7 @@ export default function ChatScreen() {
     chat.sent.forEach(m => { if (m.chatId === id && ids.has(m.id)) chat.unsend(m.id); });
   }, [base, id]); // eslint-disable-line react-hooks/exhaustive-deps
   const listData = useMemo(() => Platform.OS === 'web' ? messages : [...messages].reverse(), [messages]);
-  const { data: invites = [] } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
+  const { data: invites = NONE } = useQuery({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo' });
   const byId = (pid: string) => people.find((p) => p.id === pid);
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
 

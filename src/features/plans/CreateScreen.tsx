@@ -2,6 +2,7 @@
 // адрес подтягивается сам (свой справочник адресов, затем OpenStreetMap) или ищется строкой сверху.
 // Снизу шторка: название, пара слов, когда (дни и время одним касанием), кого позвать или «все на карте».
 // Выбор «темы» убран: встреча — это просто встреча. На карте она — свой значок с временем и лицами друзей.
+import { NONE } from '../../lib/empty';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Check, ChevronLeft, Clock, Globe, Lock, MapPin, Search, X } from 'lucide-react-native';
@@ -56,7 +57,7 @@ export default function CreateScreen() {
   const submitting = useRef(false);
   const requestId = useRef(uid('meet'));
   const [busy, setBusy] = useState(false);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const addMeetup = usePlans((s) => s.addMeetup);
   const addPlan = useApp((s) => s.addPlan);
   const select = useMapState((s) => s.select);

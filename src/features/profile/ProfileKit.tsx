@@ -35,9 +35,12 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
   const pull = useSharedValue(0);
   const openViewer = () => { if (photos.length) setViewer(true); else onPhoto?.(); };
   // Тянуть вниз имеет смысл только когда экран в самом верху — иначе это обычная прокрутка назад.
+  // В воркер попадает только число-«общее значение»: объект scroll с жестом внутри не сериализуется и ронял приложение (APK 32).
+  const scrollY = scroll?.y;
+  const atTop = () => { 'worklet'; return !scrollY || scrollY.get() <= 2; };
   const pan = Gesture.Pan().activeOffsetY(14).failOffsetY(-10).failOffsetX([-22, 22])
-    .onUpdate((ev) => { if (!scroll || scroll.y.get() <= 2) pull.set(Math.max(0, ev.translationY)); })
-    .onEnd((ev) => { if ((!scroll || scroll.y.get() <= 2) && (ev.translationY > 60 || ev.velocityY > 700)) runOnJS(openViewer)(); pull.set(withTiming(0, { duration: 220 })); });
+    .onUpdate((ev) => { if (atTop()) pull.set(Math.max(0, ev.translationY)); })
+    .onEnd((ev) => { if (atTop() && (ev.translationY > 60 || ev.velocityY > 700)) runOnJS(openViewer)(); pull.set(withTiming(0, { duration: 220 })); });
   const swipe = scroll ? pan.simultaneousWithExternalGesture(scroll.native) : pan;
   const pullSt = useAnimatedStyle(() => ({ transform: [{ scale: 1 + Math.min(pull.get(), 140) / 900 }] }));
   const insets = useSafeAreaInsets();
