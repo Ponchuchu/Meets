@@ -55,6 +55,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
   const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
   const movingRef = useRef(false);
+  // Кадры: 60 только пока палец на карте или камера летит; в покое 30 — глаз не видит разницы, а телефон не греется (27 окт.).
+  const [fps, setFps] = useState(30);
+  const fpsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const boost = () => { setFps((v) => (v === 60 ? v : 60)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
@@ -165,7 +169,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         key={attempt}
         style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
         styleJSON={styleJSON}
-        preferredFramesPerSecond={lowPower ? 30 : 60}
+        preferredFramesPerSecond={props.hidden ? 1 : lowPower ? 30 : fps}
         surfaceView={false}
         rotateEnabled={!still}
         pitchEnabled={threeD && !still}
@@ -182,7 +186,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         attributionPosition={{ bottom: bottomInset + 2, left: 92 }}
         onCameraChanged={(st: { properties: { zoom: number; center: number[]; heading?: number }; gestures?: { isGestureActive: boolean } }) => {
           if (Array.isArray(st.properties.center)) center.current = { lat: st.properties.center[1], lon: st.properties.center[0] };
-          if (st.gestures?.isGestureActive) { moved.current = true; gestured.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
+          if (st.gestures?.isGestureActive) { boost(); moved.current = true; gestured.current = true; if (!movingRef.current) { movingRef.current = true; onMoving?.(true); } }
           // Масштаб экрану — только шагами по 0,5: при перелёте к точке камера сообщает его десятки раз в секунду,
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
           if (!Number.isFinite(st.properties.zoom)) return;

@@ -28,6 +28,8 @@ export const PLACE_COLORS: Record<string, string> = {
 export interface MapCanvasProps {
   theme: MapTheme;
   camera: Camera;
+  /** Вкладка карты не на экране: карта жива, но рисует раз в секунду (не греет телефон). */
+  hidden?: boolean;
   /** Главная карта: при повторном открытии вкладки — там, где её оставили, а не на стартовой точке. */
   remember?: boolean;
   markers: MapMarker[];

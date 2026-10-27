@@ -100,6 +100,12 @@ function pinKind(e: EventItem, today: number, going: boolean): PinKind {
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [focused, setFocused] = useState(true);
+  // Ушёл с вкладки: карта ещё 2 минуты живёт (возврат мгновенный) и рисует раз в секунду, потом освобождает память и GPU.
+  const [mapAlive, setMapAlive] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setMapAlive(focused), focused ? 0 : 120_000);
+    return () => clearTimeout(t);
+  }, [focused]);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => { useIntro.getState().map(focused); return () => useIntro.getState().map(false); }, [focused]);
   const tabPad = useTabInset();
@@ -363,7 +369,11 @@ export default function MapScreen() {
     useMapState.getState().flyTo(null);
   }, [flyTarget, mapMode]);
 
-  const { markers, symbols, taps } = useMemo(() => {
+  // Пока вкладка не на экране, пины не пересобираются: друзья и точки обновляются в фоне, а карту это не нагружает (27 окт.).
+  const builtRef = useRef<{ markers: MapMarker[]; symbols: MapSymbol[]; taps: Map<string, () => void> } | null>(null);
+  const built = useMemo(() => {
+    // eslint-disable-next-line react-hooks/refs -- кэш последней сборки читается только пока вкладка скрыта
+    if (!focused && builtRef.current) return builtRef.current;
     const groups = groupByPoint(visible);
     const list: MapMarker[] = [];
     // Объёмные значки (FIX5) — слой самой карты; маркером остаётся только выбранное событие и встречи.
@@ -472,7 +482,10 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return { markers: list, symbols: syms as MapSymbol[], taps };
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focused, visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/refs -- запоминаем сборку для скрытой вкладки
+  builtRef.current = built;
+  const { markers, symbols, taps } = built;
   // Тап по значку слоя карты: обработчики меняются вместе со значками, сама функция — одна.
   const tapsRef = useRef(taps);
   useEffect(() => { tapsRef.current = taps; }, [taps]);
@@ -540,7 +553,7 @@ export default function MapScreen() {
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       {/* Карта живёт за другими вкладками: заново строить её при каждом возврате — 3–4 с пустого экрана (27 окт.). */}
-      {startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines} zone={sheet === 'spot' && spotPlace ? ZONES[spotPlace.id] ?? null : null}
+      {startCam && (focused || mapAlive) && <MapCanvas hidden={!focused} key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines} zone={sheet === 'spot' && spotPlace ? ZONES[spotPlace.id] ?? null : null}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
       {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}
