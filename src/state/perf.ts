@@ -42,7 +42,7 @@ if (Platform.OS !== 'web') {
 export const GESTURE_FPS_CAP = (Device.totalMemory ?? 6e9) >= 10e9 ? 120 : 60;
 export const useRefreshRate = create<{ hz: number }>(() => ({ hz: 60 }));
 const HZ_STEPS = [60, 90, 120] as const;
-if (Platform.OS !== 'web') {
+if (Platform.OS !== 'web' && !process.env.JEST_WORKER_ID) {
   setTimeout(() => {
     const stamps: number[] = [];
     const tick = (t: number) => {
