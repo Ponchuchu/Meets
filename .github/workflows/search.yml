@@ -113,6 +113,14 @@ jobs:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
           KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
           KIMI_MIN_GAP_MS: '3000'
+      # Карточки без точки: площадка названа в посте («Театр Лермонтова») — находим на карте и привязываем сами.
+      - name: Привязка площадок без адреса
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: node worker/src/repair-venues.ts
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       # Постоянные места: часы с перерывами и цены (с сайтов мест). Сбой не роняет запуск.
       - name: Постоянные места — часы и цены
         if: ${{ !cancelled() }}

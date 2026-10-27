@@ -14,8 +14,17 @@ export interface VenueRow {
   lon: number | null;
 }
 
+/** «ТеатрЛермонтава» → «Театр Лермонтова»: склеенные слова режем по заглавным, частые опечатки правим (27 окт., просьба владельца). */
+export function cleanVenueName(raw: string): string {
+  return raw.replace(/[\u200b«»"“”]/g, ' ').replace(/([а-яёa-z])([А-ЯЁA-Z])/g, '$1 $2').replace(/\s+/g, ' ').trim()
+    .replace(/лермонтав/gi, (m) => (m[0] === 'Л' ? 'Лермонтов' : 'лермонтов')).replace(/респ[уа]блик/gi, 'республик').replace(/казахтан/gi, 'казахстан');
+}
+
+/** Название без адреса, которое нельзя искать на карте: онлайн, «в центре», «уточняется». */
+export const NOT_A_PLACE = /^(онлайн|online|zoom|в центре|в парке|на улице|уточня\w*|по запросу|в лс|в директ|будет объявлен\w*|скоро|tba|тбд)$/i;
+
 export function matchVenue(name: string | null, address: string | null, venues: VenueRow[]): VenueRow | null {
-  const probes = [name, address].filter((x): x is string => !!x).map(normalize);
+  const probes = [name && cleanVenueName(name), address].filter((x): x is string => !!x).map(normalize);
   if (!probes.length) return null;
   let best: { v: VenueRow; s: number } | null = null;
   for (const v of venues) {
@@ -70,9 +79,17 @@ async function nominatim(params: Record<string, string>, house?: string): Promis
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?${qs}`, { headers: { 'User-Agent': 'ryadom-worker/0.2 (https://github.com/Ponchuchu/ryadom)' }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
-    const [hit] = (await res.json()) as { lat: string; lon: string; address?: { house_number?: string } }[];
+    const [hit] = (await res.json()) as { lat: string; lon: string; type?: string; display_name?: string; address?: { house_number?: string; road?: string } }[];
     if (house && houseKey(hit?.address?.house_number ?? '') !== houseKey(house)) return null;
-    const p = hit ? { lat: Number(hit.lat), lon: Number(hit.lon) } : null;
+    // Поиск по названию: остановка или «улица с таким именем» — не то место. Название в ответе должно перекликаться с запросом.
+    if (hit && params.q) {
+      if (/^(bus_stop|bus_station|platform|street|residential|footway)$/.test(hit.type ?? '')) return null;
+      const stems = cleanVenueName(params.q.replace(/ Алматы$/, '')).toLowerCase().split(/[^а-яёa-z0-9]+/).filter((w) => w.length >= 4).map((w) => w.slice(0, 5));
+      const head = (hit.display_name ?? '').split(',').slice(0, 2).join(' ').toLowerCase();
+      if (stems.length && !stems.some((w) => head.includes(w))) return null;
+    }
+    const road = hit?.address?.road, num = hit?.address?.house_number;
+    const p = hit ? { lat: Number(hit.lat), lon: Number(hit.lon), ...(road && num ? { address: `${road}, ${num}` } : {}) } : null;
     return p && inCity(p) ? p : null; // дальше 18 км от центра — пригород или промах геокодера
   } catch { return null; }
 }
@@ -123,7 +140,7 @@ export async function geocode(raw: string): Promise<Point | null> {
   let p: Point | null = street && house ? await registry(street, house) : null;
   if (!p && street && house) p = await nominatim({ street: `${house} ${street}`, city: 'Алматы' }, house);
   // Если указан дом, не подменяем его точкой улицы или приблизительным совпадением площадки.
-  if (!p && venue && !house) p = await nominatim({ q: `${venue} Алматы` });
+  if (!p && venue && !house && !NOT_A_PLACE.test(venue.trim())) p = await nominatim({ q: `${cleanVenueName(venue)} Алматы` });
   if (!p) p = await mapbox([venue, street && `${street} ${house ?? ''}`.trim()].filter(Boolean).join(', ') || query, house ?? undefined);
   cache.set(key, p);
   return p;

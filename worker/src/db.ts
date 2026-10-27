@@ -98,7 +98,7 @@ export function createDb(url: string, key: string): Db {
       }
       const [e] = await post<{ id: string }[]>('events', [{
         title: d.title, category: d.category, tags: d.tags, starts_at: d.starts_at, ends_at: d.ends_at, is_long: d.is_long,
-        venue_id: venueId, address: d.address, address_note: d.address_note, price_min: d.price_min, price_max: d.price_max,
+        venue_id: venueId, venue_hint: venueId ? null : d.venue_name?.slice(0, 120) ?? null, address: d.address, address_note: d.address_note, price_min: d.price_min, price_max: d.price_max,
         is_free: d.is_free, about: d.about, organizer: d.organizer, cover_url: d.cover_url, media: d.media ?? [], sessions: d.sessions ?? [], source_url: d.source_url,
         ai_confidence: d.ai_confidence, flags: d.flags, status: d.status, source_id: sourceId,
         published_at: d.status === 'published' ? new Date().toISOString() : null,
