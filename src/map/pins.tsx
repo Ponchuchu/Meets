@@ -460,24 +460,3 @@ export function CityPin({ title, when, color, Icon, onPress }: { title: string; 
   );
 }
 
-/** Своя встреча на карте: тёмная капля с лицами тех, кого позвали (без времени — 26 окт., решение владельца); выбранная — крупнее с названием. */
-export function MeetupPin({ e, people, selected, onPress }: { e: EventItem; people: Person[]; selected: boolean; onPress: () => void }) {
-  const faces = (e.meetup?.invited ?? []).map((id) => people.find((p) => p.id === id)).filter(Boolean).slice(0, 3) as Person[];
-  const at = new Date(Date.parse(e.startsAt) + 5 * 3600e3);
-  const time = `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
-  // Ширина задана числом: пин живёт в «якоре» нулевой ширины (на Android иначе содержимое сжимается).
-  const width = 4 + 4 + (faces.length ? 24 + 16 * (faces.length - 1) : 26) + 4 + 4;
-  return (
-    <Pressable onPress={onPress} style={styles.hitWide} accessibilityRole="button" accessibilityLabel={`Встреча: ${e.title}, ${time}`}>
-      <View style={styles.anchor} pointerEvents="none">
-        <View style={[styles.meet, { width }, selected && { transform: [{ scale: 1.12 }] }]}>
-          {faces.length > 0 ? (
-            <View style={{ flexDirection: 'row' }}>{faces.map((p, i) => <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}><Avatar p={p} size={24} style={{ borderWidth: 1.5, borderColor: '#FFFFFF' }} /></View>)}</View>
-          ) : <Ico d="M16 20v-1.5a3.5 3.5 0 00-3.5-3.5h-1A3.5 3.5 0 008 18.5V20M12 12a3 3 0 100-6 3 3 0 000 6z" size={18} color="#FFFFFF" />}
-        </View>
-        <View style={styles.meetTail} />
-        {selected && <Tag x={0} y={22} align="center"><View style={styles.cityTag}><Text style={styles.cityTitle} numberOfLines={1}>{e.title}</Text></View></Tag>}
-      </View>
-    </Pressable>
-  );
-}
