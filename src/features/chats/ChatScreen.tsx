@@ -29,7 +29,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { FlatList, type ListRenderItemInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { canWrite, eventChatOpen, startsIn, WRITE_REASONS } from '../../chat/rules';
+import { canWrite, eventChatOpen, maySend, startsIn, WRITE_REASONS } from '../../chat/rules';
 import { Bubble } from '../../chat/ui/Bubble';
 import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
@@ -60,11 +60,12 @@ import { Toast, type ToastData } from '../../ui/Toast';
 
 // Иконки в стиле lucide, 1.9: скрепка, микрофон-капсула, «кружок» (объектив в круге), самолётик.
 const ATTACH_IC = 'M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9';
-const CIRCLE_IC = 'M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM12 8.2a3.8 3.8 0 100 7.6 3.8 3.8 0 000-7.6zM17.2 6.8h.01';
+const CIRCLE_IC = 'M4 6.5h9.5a2.5 2.5 0 012.5 2.5v6a2.5 2.5 0 01-2.5 2.5H4A2.5 2.5 0 011.5 15V9A2.5 2.5 0 014 6.5zM16 10.5l4.3-2.6a.7.7 0 011.2.6v7a.7.7 0 01-1.2.6L16 13.5';
 const MIC_IC = 'M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5.5 11a6.5 6.5 0 0013 0M12 17.5V21M9 21h6';
 const SEND_IC = 'M21.5 2.5L10 14M21.5 2.5l-7 19-4.5-7.5L2.5 9.5z';
 /** Время для длительности записи — вне рендера. */
 const nowMs = () => Date.now();
+const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 // Демо-аккаунт Данила создан давно — правило «первые 24 часа не пишут первыми» на него не действует.
 const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
@@ -202,8 +203,16 @@ export default function ChatScreen() {
       ...(local ? { local_uri: msg.media } : {}), duration_s: msg.durationS ?? null, event_id: msg.eventId ?? null, ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
     } });
   };
+  const sendLog = useRef<number[]>([]);
+  const allowSend = (sticker = false) => {
+    const r = maySend(sendLog.current, nowMs(), sticker);
+    sendLog.current = r.log;
+    if (!r.ok) show({ text: 'Не так быстро — подожди пару секунд' });
+    return r.ok;
+  };
   const push = (m: Partial<Message> & Pick<Message, 'kind'> & { durationS?: number }) => {
     if (!check.ok) return;
+    if (!(m.kind === 'text' ? true : allowSend(m.kind === 'sticker'))) return;
     if (isRemoteId(id) && !myId()) { show({ text: 'Войди снова, чтобы отправить сообщение' }); return; }
     if (personId && messages.length === 0 && !friend) plans.startChat(personId, String(dayIndex(now)));
     const msg: Message = { id: isRemoteId(id) ? randomUUID() : uid(`${id}-me`), chatId: id, ownerId: myId() ?? undefined, authorId: 'me', text: '', time: timeNow(), createdAt: new Date().toISOString(), ...(replyTo ? { replyTo: replyTo.id } : {}), ...m, ...(isRemoteId(id) ? { delivery: 'sending' as const } : {}) };
@@ -213,6 +222,7 @@ export default function ChatScreen() {
     if (isRemoteId(id)) void sendPending(msg);
   };
   const sendText = () => {
+    if (!editing && !allowSend()) return;
     const t = input.current?.take().trim();
     if (editing) { const m = editing; setEditing(null); if (t && t !== m.text) saveEdit(m, t); return; }
     if (t) push({ kind: 'text', text: t });
@@ -237,25 +247,8 @@ export default function ChatScreen() {
   const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, sampleRate: 22050, numberOfChannels: 1, bitRate: 32000, isMeteringEnabled: true }); // речь: 32 кбит/с — вдвое меньше файл, разницы на слух нет
   const circleRef = useRef<CircleRecorderHandle>(null);
   const [cancelling, setCancelling] = useState(false);
-  const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
   const [locked, setLocked] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  // Живая волна голоса: последние ~32 значения громкости (дБ → 0…1).
-  const [levels, setLevels] = useState<number[]>([]);
-  const recState = useAudioRecorderState(recorder, 100);
-  const meter = recording === 'voice' && recState.isRecording ? recState.metering : undefined;
-  useEffect(() => {
-    if (meter == null) return;
-    const v = Math.max(0.06, Math.min(1, (meter + 55) / 50));
-    const t = setTimeout(() => setLevels((l) => [...l.slice(-31), v]), 0);
-    return () => clearTimeout(t);
-  }, [meter, recState.durationMillis]);
-  useEffect(() => {
-    if (!recording) return;
-    const timer = setInterval(() => setElapsed(rec.current.started ? Math.floor((nowMs()-rec.current.started)/1000) : 0),200);
-    return () => clearInterval(timer);
-  },[recording]);
   useEffect(() => () => { rec.current.active=false; circleRef.current?.stop(false); void recorder.stop().catch(()=>undefined); void setAudioModeAsync({allowsRecording:false}); },[recorder]);
   const switchRecMode = async () => {
     if (recMode === 'voice' && Platform.OS !== 'web') {
@@ -273,7 +266,7 @@ export default function ChatScreen() {
     if(rec.current.active || preparing.current || stopping.current) return;
     usePlayback.getState().play(null);
     rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
-    setLocked(false);setElapsed(0);setCancelling(false);setLevels([]);
+    setLocked(false);setCancelling(false);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     if (recMode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
@@ -537,16 +530,7 @@ export default function ChatScreen() {
             <Ic d={ATTACH_IC} size={20} color={tray ? colors.paper : colors.ink} w={1.9} />
           </Pressable>
           {recording ? (
-            <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
-              <View style={[styles.recDot, !recState.isRecording && recording === 'voice' && { opacity: 0.35 }]} />
-              <Text style={styles.recTime}>{dur(elapsed)}</Text>
-              {cancelling ? <Text style={[styles.recText, { flex: 1 }]}>Отпусти — отменить</Text> : (
-                <View style={styles.wave}>
-                  {(recording === 'voice' ? levels : []).map((v, i) => <View key={i} style={[styles.waveBar, { height: 4 + v * 22 }]} />)}
-                  {recording === 'circle' || !levels.length ? <Text style={styles.recHint} numberOfLines={1}>{locked ? 'Запись закреплена' : '← отмена · ↑ закрепить'}</Text> : null}
-                </View>
-              )}
-            </View>
+            <RecBar recorder={recorder} mode={recording} cancelling={cancelling} locked={locked} startedRef={rec} />
           ) : (
             <ComposerInput ref={input} onHasText={setHasText} onSubmit={sendText} />
           )}
@@ -721,6 +705,36 @@ type RowActions = {
   reply: (m: Message) => void; menu: (m: Message) => void; reveal: (id: string) => void; vote: (id: string, k: number) => void;
   avatar: (personId: string) => void; openEvent: (eventId: string) => void; invite: (m: Message, a: 'yes' | 'no') => void; retry: (m: Message) => void;
 };
+
+/** Полоса записи: таймер и волна живут здесь, чтобы 5–10 обновлений в секунду не перерисовывали весь чат. */
+const RecBar = memo(function RecBar({ recorder, mode, cancelling, locked, startedRef }: { recorder: ReturnType<typeof useAudioRecorder>; mode: 'voice' | 'circle'; cancelling: boolean; locked: boolean; startedRef: { current: { started: number } } }) {
+  const [elapsed, setElapsed] = useState(0);
+  const [levels, setLevels] = useState<number[]>([]);
+  const st = useAudioRecorderState(recorder, mode === 'voice' ? 100 : 1_000_000);
+  const meter = mode === 'voice' && st.isRecording ? st.metering : undefined;
+  useEffect(() => {
+    if (meter == null) return;
+    const v = Math.max(0.06, Math.min(1, (meter + 55) / 50));
+    const t = setTimeout(() => setLevels((l) => [...l.slice(-31), v]), 0);
+    return () => clearTimeout(t);
+  }, [meter, st.durationMillis]);
+  useEffect(() => {
+    const t = setInterval(() => { const s = startedRef.current.started; setElapsed(s ? Math.floor((nowMs() - s) / 1000) : 0); }, 250);
+    return () => clearInterval(t);
+  }, [startedRef]);
+  return (
+    <View style={[styles.input, styles.recBar]} accessibilityLiveRegion="polite">
+      <View style={[styles.recDot, !st.isRecording && mode === 'voice' && { opacity: 0.35 }]} />
+      <Text style={styles.recTime}>{dur(elapsed)}</Text>
+      {cancelling ? <Text style={[styles.recText, { flex: 1 }]}>Отпусти — отменить</Text> : (
+        <View style={styles.wave}>
+          {(mode === 'voice' ? levels : []).map((v, i) => <View key={i} style={[styles.waveBar, { height: 4 + v * 22 }]} />)}
+          {mode === 'circle' || !levels.length ? <Text style={styles.recHint} numberOfLines={1}>{locked ? 'Запись закреплена' : '← отмена · ↑ закрепить'}</Text> : null}
+        </View>
+      )}
+    </View>
+  );
+});
 
 const MessageRow = memo(function MessageRow({ m, quoted, quotedName, author, canReply, wide, friendChat, showAuthor, answer, revealed, vote, actions, tick }: {
   m: Message; quoted?: Message; quotedName?: string; author?: Person; canReply: boolean; wide: boolean; friendChat: boolean; showAuthor: boolean; tick?: TickKind;
