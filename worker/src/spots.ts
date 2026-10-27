@@ -181,6 +181,7 @@ async function main() {
   if (!url || !key) { console.log('Нет SUPABASE_URL / SUPABASE_SECRET_KEY — места не обновляю'); return; }
   const h = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
   await copyPhotos(url, h).catch((e) => console.log(`Фото мест: ${(e as Error).message}`));
+  if (process.argv.includes('--photos-only')) return;
   const res = await fetch(`${url}/rest/v1/spots?select=id,name,lat,lon,info_url,gis_id,checked_at,source&enabled=eq.true&order=checked_at.asc.nullsfirst&limit=40`, { headers: h });
   if (!res.ok) { console.log(`Таблицы мест ещё нет или нет доступа (${res.status}) — пропускаю`); return; }
   const spots = (await res.json()) as SpotRow[];
