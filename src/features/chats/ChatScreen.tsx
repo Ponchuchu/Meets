@@ -36,7 +36,8 @@ import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
 import { setOpenChat } from '../../live/reminders';
 import { useNet } from '../../live/net';
-import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
+import { markChatRead, getMessages } from '../../data/remote';
+import { DirectChatOpening } from '../../chat/ui/DirectChatOpening';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
@@ -71,6 +72,14 @@ const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStar
 const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
 export default function ChatScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  if (config.dataMode !== 'demo' && id.startsWith('dm-') && isRemoteId(id.slice(3))) {
+    return <DirectChatOpening key={id} personId={id.slice(3)} />;
+  }
+  return <ResolvedChatScreen />;
+}
+
+function ResolvedChatScreen() {
   const insets = useSafeAreaInsets();
   const { height: winH } = useWindowDimensions();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
@@ -89,14 +98,6 @@ export default function ChatScreen() {
   const isEvent = id.startsWith('ev-') || meta0?.kind === 'event';
   const personId = isEvent ? null : meta0?.personId ?? (id.startsWith('dm-') ? id.slice(3) : null);
   const qc = useQueryClient();
-  // Альфа: «dm-<uuid друга>» → настоящий личный чат в базе (сервер находит или создаёт), сообщения уходят туда.
-  useEffect(() => {
-    if (config.dataMode === 'demo' || !id.startsWith('dm-') || !isRemoteId(id.slice(3))) return;
-    openDirectChat(id.slice(3)).then((cid) => {
-      void qc.invalidateQueries({ queryKey: ['chats'] });
-      router.replace({ pathname: '/chat/[id]', params: { id: cid } });
-    }).catch(() => undefined);
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useLiveChat(id, focused);
   useEffect(() => { if (!focused) return; setOpenChat(id); return () => setOpenChat(null); }, [id, focused]);
   const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });

@@ -79,15 +79,15 @@ export default function PersonScreen() {
   const { data: spots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const social = useSocialActions(text => setToast({ text }));
   const focusFriend = useMapState((s) => s.focusFriend);
-  const p = selfDemo ? { id: 'me', name: draft.name || 'Ты', photo: draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : people.find((x) => x.id === id) ?? (preview && d ? { id, name: draft.name || 'Ты', photo: d.photo ?? draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : undefined);
+  const p = selfDemo ? { id: 'me', name: draft.name || 'Ты', photo: draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : people.find((x) => x.id === id) ?? (preview && d ? { id, name: draft.name || 'Ты', photo: d.photo ?? draft.photo, initial: (draft.name?.[0] ?? 'Я').toUpperCase(), tint: '#DDE8D9', isFriend: true } as typeof people[number] : d?.person);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3500); };
   // Пока профиль грузится или человек не найден — понятное состояние и кнопка «Назад», а не пустой экран.
   if (!p || !d) return (
     <View style={[styles.root, { justifyContent: 'center' }]}>
       <Pressable onPress={back} style={[styles.back, { top: Math.max(50, insets.top + 6) }]} accessibilityRole="button" accessibilityLabel="Назад"><Ic d={IC.back} size={20} color={colors.ink} w={2} /></Pressable>
-      <StateView kind={peopleQ.isPending || detailsQ.isPending ? 'loading' : 'empty'} title={peopleQ.isPending || detailsQ.isPending ? 'Открываю профиль…' : 'Профиль недоступен'}
-        text={peopleQ.isPending || detailsQ.isPending ? undefined : 'Человек мог скрыть профиль или удалить аккаунт.'} action={peopleQ.isPending || detailsQ.isPending ? undefined : 'Назад'} onAction={back} />
+      <StateView kind={peopleQ.isPending || detailsQ.isPending ? 'loading' : detailsQ.isError ? 'error' : 'empty'} title={peopleQ.isPending || detailsQ.isPending ? 'Открываю профиль…' : detailsQ.isError ? 'Не получилось открыть профиль' : 'Профиль недоступен'}
+        text={peopleQ.isPending || detailsQ.isPending ? undefined : detailsQ.isError ? 'Проверь связь и попробуй ещё раз.' : 'Человек мог скрыть профиль или удалить аккаунт.'} action={peopleQ.isPending || detailsQ.isPending ? undefined : detailsQ.isError ? 'Повторить' : 'Назад'} onAction={detailsQ.isError ? () => { void detailsQ.refetch(); void peopleQ.refetch(); } : back} />
     </View>
   );
 
