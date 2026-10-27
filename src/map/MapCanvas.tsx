@@ -1,5 +1,5 @@
 import { useLowPowerMode } from 'expo-battery';
-import { useEco, useRefreshRate } from '../state/perf';
+import { GESTURE_FPS_CAP, useEco, useRefreshRate } from '../state/perf';
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
 // Android: пины и своя точка в рамке 128×128 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
@@ -61,7 +61,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const hz = useRefreshRate((s) => s.hz);
   const [fps, setFps] = useState(30);
   const fpsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const boost = () => { setFps((v) => (v === hz ? v : hz)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
+  const top = Math.min(hz, GESTURE_FPS_CAP);
+  const boost = () => { setFps((v) => (v === top ? v : top)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);

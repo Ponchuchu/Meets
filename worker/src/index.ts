@@ -17,7 +17,6 @@ import { createDb } from './db.ts';
 import { processPosts, storeOutcomes, summary, type Outcome } from './pipeline.ts';
 import { fillImages, parseGeminiOutput, toPost, type Found } from './search.ts';
 import { fetchChannel, parseChannel } from './telegram.ts';
-import type { Db } from './db.ts';
 import type { Extraction, RawPost, Source } from './types.ts';
 import { CINEMA_SITES, type CinemaSite } from './cinema.ts';
 import { geocode, type VenueRow } from './venues.ts';

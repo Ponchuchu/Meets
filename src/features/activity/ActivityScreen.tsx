@@ -1,6 +1,7 @@
 // «Уведомления» (FIX5, как «Активность» в Instagram): заявки в друзья, новые друзья, приглашения и ответы,
 // стикеры, напоминания, подборки и входы в аккаунт — одним списком по группам «Новые / Сегодня / Вчера…».
 // Заявку можно принять, на приглашение ответить, а чужой вход — закрыть «Выйти на других устройствах» прямо в строке.
+import { NONE } from '../../lib/empty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { Ban, Bell, CalendarHeart, ChevronLeft, MapPin, ShieldAlert, ShieldCheck, Sparkles, Sticker, UserCheck, UserPlus, type LucideIcon } from 'lucide-react-native';
@@ -32,7 +33,7 @@ export default function ActivityScreen() {
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['activity'], queryFn: getActivity, staleTime: 30e3 });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   // Что было новым при открытии — остаётся в «Новых», пока экран открыт; отметка «прочитано» — при уходе.
   const [seenAt] = useState(() => useActivitySeen.getState().seenAt);
   const [now] = useState(() => Date.now());

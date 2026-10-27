@@ -2,6 +2,7 @@
 // «Зовут» с «Не смогу / Иду», расписание по дням на линии времени. Длинный список — порциями по 30.
 // 26 окт.: любой план (и «Дальше по плану») смахивается влево и открывает меню по удержанию; «+» — встреча или своё дело
 // («в 15:00 встретиться с Ерланом»); нижние плитки «Места города / Год в Алматы» убраны — они есть на карте.
+import { NONE } from '../../lib/empty';
 import { routeParams } from '../../lib/routeParams';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
@@ -78,15 +79,15 @@ export default function PlansTab() {
   const going = usePlans((s) => s.going);
   const visits = usePlans(s => s.visits);
   const meetups = usePlans((s) => s.meetups);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: LIVE, staleTime: 30e3 });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: invites = NONE } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: LIVE, staleTime: 30e3 });
   useFocusEffect(useCallback(() => { void qc.invalidateQueries({ queryKey: ['invites'] }); }, [qc]));
 
   const all = useMemo(() => [...meetups, ...events], [meetups, events]);
   const known = new Set(all.map((e) => e.id));
   const missing = [...new Set([...Object.keys(going), ...invites.map((i) => i.event_id ?? '')])].filter((id) => id && !known.has(id));
-  const { data: extra = [] } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
+  const { data: extra = NONE } = useQuery({ queryKey: ['eventsById', missing.sort().join(',')], queryFn: () => getEventsByIds(missing), enabled: LIVE && missing.length > 0 });
   const byId = (id: string) => { const e = all.find(e => e.id === id) ?? extra.find(e => e.id === id); return e && visits[id] ? { ...e, startsAt: visits[id] } : e; };
 
   const incoming = invites.filter((i) => (!pick.length || (i.event_id && byId(i.event_id) && pick.includes(dayIndex(byId(i.event_id)!.startsAt)))) && i.to_id === me && !i.answer && i.event_id && byId(i.event_id) && endOf(byId(i.event_id)!) > now.getTime());

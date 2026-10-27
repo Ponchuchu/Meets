@@ -1,6 +1,7 @@
 // Друзья человека (26 октября, второй вариант): шапка с его фото и числами, вкладки «Все» и «Общие», поиск, если людей много.
 // В «Все» сначала общие, потом остальные. Справа у строки — действие: свой друг — «Написать», чужой — «Добавить» → «Заявка».
 // Другу видны все его друзья, незнакомому — только общие (PRODUCT.md «Кто что видит»).
+import { NONE } from '../../lib/empty';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, MessageCircle, Search, UserPlus } from 'lucide-react-native';
@@ -24,7 +25,7 @@ export default function PersonFriends() {
   const [tab, setTab] = useState<'all' | 'common'>(tab0 === 'common' ? 'common' : 'all');
   const [query, setQuery] = useState('');
   const social = useSocialActions(() => undefined);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const q = useQuery({ queryKey: ['person', id, 'friends'], queryFn: () => data.getPersonFriends(id) });
   const who = people.find((x) => x.id === id);
   const friend = !!who && isFriendNow(who, social);

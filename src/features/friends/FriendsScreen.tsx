@@ -1,3 +1,4 @@
+import { NONE } from '../../lib/empty';
 import { QueryNotice } from '../../ui/QueryNotice';
 import { useSocialActions } from '../../live/socialActions';
 // «Друзья»: заявки (если есть) → «Рекомендации» (листаемые карточки) → «Друзья · N» → планы друзей.
@@ -51,10 +52,10 @@ export default function FriendsScreen() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const peopleQuery = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: people = [] } = peopleQuery;
-  const { data: requests = [] } = useQuery({ queryKey: ['friendRequests'], queryFn: () => data.getFriendRequests() });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: requests = NONE } = useQuery({ queryKey: ['friendRequests'], queryFn: () => data.getFriendRequests() });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const social = useSocialActions(text => setToast({ text }));
-  const { data: spots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), staleTime: 30e3 });
+  const { data: spots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots(), staleTime: 30e3 });
   const spotOf = (id: string) => spots.find((x) => x.personId === id);
   const showOnMap = (id: string) => { useMapState.getState().focusFriend(id); router.navigate('/'); };
   const write = (id: string) => router.push({ pathname: '/chat/[id]', params: { id: `dm-${id}` } });

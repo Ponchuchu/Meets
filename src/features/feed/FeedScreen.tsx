@@ -1,5 +1,6 @@
 // «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
 // «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
+import { NONE } from '../../lib/empty';
 import { useQuery } from '@tanstack/react-query';
 import { useNet } from '../../live/net';
 import { StateView } from '../../ui/StateView';
@@ -46,7 +47,7 @@ export default function ForYouScreen() {
   const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const events = useMemo(() => eventsQ.data ?? [], [eventsQ.data]);
   const online = useNet((s) => s.online);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
   const { signals, decided, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
   const goingIds = usePlans(s => s.going);

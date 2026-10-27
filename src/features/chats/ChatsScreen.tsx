@@ -1,6 +1,7 @@
 // «Чаты»: один список от новых к старым, закреплённые сверху. Без папок (21 окт.): все чаты и серая строка «Архив» сверху.
 // Связь — как в Telegram: вместо плашки об ошибке заголовок «Соединение…» / «Обновление…».
 // Заявки в чат — не чаты: отдельная строка «Запросы» сверху, как в Instagram, открывает свой список.
+import { NONE } from '../../lib/empty';
 import { useShallow } from 'zustand/react/shallow';
 import { Tick, tickOf } from '../../chat/ui/Tick';
 import { useQuery } from '@tanstack/react-query';
@@ -46,10 +47,10 @@ export default function ChatsScreen() {
   const chatsQuery = useQuery({ queryKey: ['chats'], queryFn: () => data.getChats() });
   const { data: chats = [] } = chatsQuery;
   const online = useNet((s) => s.online);
-  const { data: requests = [] } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: invites = [] } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo', staleTime: 30e3 });
+  const { data: requests = NONE } = useQuery({ queryKey: ['chatRequests'], queryFn: () => data.getChatRequests() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: invites = NONE } = useQuery<Invite[]>({ queryKey: ['invites'], queryFn: getInvites, enabled: config.dataMode !== 'demo', staleTime: 30e3 });
   // Только нужные части хранилищ — список не перерисовывается от голосов в опросах, раскрытых фото и т. п.
   const chat = useChat(useShallow((s) => ({ addGroup: s.addGroup, answerRequest: s.answerRequest, archive: s.archive, archived: s.archived, blocked: s.blocked,
     groups: s.groups, hidden: s.hidden, hide: s.hide, pinned: s.pinned, read: s.read, requests: s.requests, sent: s.sent, togglePin: s.togglePin })));

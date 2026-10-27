@@ -40,8 +40,6 @@ export function PlansStrip({ title, items, onAll, total, empty }: { title: strin
   );
 }
 
-const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-const shortDate = (iso: string) => { const d = new Date(iso); return `${d.getDate()} ${MON[d.getMonth()]}`; };
 
 /** Пустое место в профиле: картинка, пара слов и кнопка — вместо пустоты. */
 export function EmptyRow({ icon, text, action, onAction }: { icon: ReactNode; text: string; action?: string; onAction?: () => void }) {

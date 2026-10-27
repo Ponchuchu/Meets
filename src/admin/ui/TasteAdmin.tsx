@@ -1,5 +1,6 @@
 // Рекомендации — design/png/TasteAdmin.png: старт, вкус сейчас, последние сигналы, следующие карточки с разбором.
 // Команда ищет человека по нику; без входа как сотрудник — вкус этого устройства (или пример, если сигналов мало).
+import { NONE } from '../../lib/empty';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -55,7 +56,7 @@ export function TasteAdmin({ live }: { live: boolean }) {
   const [, setBump] = useState(0);
   const [note, setNote] = useState<string | null>(null);
   const { data: events = eventsSnapshot() } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const userQ = useQuery({ queryKey: ['admin', 'taste', lookup], queryFn: () => loadUserTaste(lookup), enabled: live && !!lookup });
   const remote = live && lookup ? userQ.data : null;
 

@@ -1,5 +1,6 @@
 // Новый пост (26 октября): фото (до 10, первое — обложка), подпись, событие (где был — сверху) и отмеченные друзья.
 // Открывается из профиля («+»), из сетки и с прошедшего события (?event=id — событие уже выбрано).
+import { NONE } from '../../lib/empty';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -32,8 +33,8 @@ export default function NewPost() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const going = usePlans((s) => s.going);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const past = useQuery({ queryKey: ['me', 'past'], queryFn: getPastEvents });
   const friends = people.filter((p) => p.isFriend);
   // События на выбор: где был (недавние сначала) и куда иду сегодня.

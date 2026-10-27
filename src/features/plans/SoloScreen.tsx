@@ -1,6 +1,7 @@
 // «Места города» (21 октября, после отзыва владельца): раньше — «Сходить одному», слишком громко. Теперь спокойно:
 // постоянные места по настроению (погулять, посмотреть, подвигаться), что открыто сейчас, бесплатное, и в конце —
 // тихая подборка событий, куда приходят без своей компании. Карточка места та же, что на карте.
+import { NONE } from '../../lib/empty';
 import { remote } from '../../data/photos';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -32,7 +33,7 @@ export default function SoloScreen() {
   const now = clockNow();
   const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
   const all = spotsQ.data ?? ATTRACTIONS;
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const [open, setOpen] = useState<Attraction | null>(null);
   const [broken, setBroken] = useState<string[]>([]);
   const solo = topSpots(all).filter((a) => inSeason(a, now));

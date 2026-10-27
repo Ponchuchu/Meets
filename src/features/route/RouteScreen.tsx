@@ -4,6 +4,7 @@
 // 2) навигация — сверху крупная инструкция (стрелка, расстояние до манёвра, улица), снизу остаток пути и «Завершить»,
 //    в режиме «машина» ещё скорость. Всё, что не нужно в пути, прячется, поэтому блоки не накладываются.
 // Машина и пешком — функция route (TomTom с пробками), автобус — свой расчёт по остановкам OpenStreetMap.
+import { NONE } from '../../lib/empty';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, ChevronRight, CornerUpLeft, CornerUpRight, Flag, Footprints, Moon, Undo2, type LucideIcon } from 'lucide-react-native';
@@ -85,7 +86,7 @@ export default function RouteScreen() {
   const meetups = usePlans((s) => s.meetups);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   useBackClose(back);
-  const { data: events = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: events = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const known = [...meetups, ...events].find((x) => x.id === id);
   const detail = useQuery({ queryKey: ['event', id], queryFn: () => getEventsByIds([id]), enabled: config.dataMode !== 'demo' && !known && !pLat, retry: 1 });
   // Маршрут к постоянному месту (Шымбулак, боулинг…): точка из параметров, не событие из базы.

@@ -412,12 +412,7 @@ const styles = StyleSheet.create({
 /** Где центр лица друга в фокусе относительно точки (вверх): хвостик 8 + половина круга 33. */
 export const FOCUS_FACE = 41;
 
-export function FocusPin({ person, ring, bubble, speed, heading }: { person: Person; ring: string; bubble: { label: string; bg: string; fg: string } | null; speed?: string; heading?: number }) {
-  const pop = useSharedValue(0);
-  useEffect(() => {
-    if (bubble) { pop.value = 0; pop.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.back(2)) }); }
-  }, [bubble, pop]);
-  const popStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, pop.value * 1.6), transform: [{ scale: 0.2 + 0.8 * pop.value }, { rotate: '-6deg' }] }));
+export function FocusPin({ person, ring, speed, heading }: { person: Person; ring: string; speed?: string; heading?: number }) {
   return (
     <View style={styles.anchor} pointerEvents="none">
       {/* Ореол — вокруг лица (оно стоит над точкой на своём хвостике). */}
@@ -427,13 +422,6 @@ export function FocusPin({ person, ring, bubble, speed, heading }: { person: Per
       </View>
       {speed && <SpeedTrail lift={42} heading={heading} />}
       <FriendBubble person={person} size={58} ring={ring === colors.friend ? undefined : ring} badge={speed ? <StatusChip big mark={{ kind: 'speed', text: speed.toLowerCase() }} /> : null} />
-      {bubble && (
-        <Tag x={18} y={-FOCUS_FACE - 70}>
-          <Animated.View style={[{ height: 36, paddingHorizontal: 12, borderRadius: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: bubble.bg, justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.25, shadowRadius: 7, shadowOffset: { width: 0, height: 6 }, elevation: 6 }, popStyle]}>
-            <Text style={{ fontFamily: fonts.display800, fontSize: 14, color: bubble.fg }}>{bubble.label}</Text>
-          </Animated.View>
-        </Tag>
-      )}
     </View>
   );
 }

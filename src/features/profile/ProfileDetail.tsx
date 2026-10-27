@@ -2,9 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Platform,Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { data, type EventItem } from '../../data';
 import { APP_URL, config } from '../../lib/config';
-import { getEventsByIds, getMeStats, getMyAttendance, getProfile, saveProfile } from '../../live/api';
+import { getMeStats, getProfile, saveProfile } from '../../live/api';
 import { useSession } from '../../state/session';
 import { useProfile } from '../../state/profile';
 import { colors, fonts } from '../../theme';
@@ -29,10 +28,6 @@ export default function ProfileDetail() {
   const draft = useSession((s) => s.draft);
   const profile = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: live });
   const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: getMeStats, enabled: live });
-  const local = useProfile((s) => s.arrivals);
-  const attendance = useQuery({ queryKey: ['me', 'attendance'], queryFn: getMyAttendance, enabled: live && page === 'chronicle' });
-  const ids = live ? (attendance.data ?? []).filter((a) => a.status === 'arrived').map((a) => a.event_id) : local.map((a) => a.eventId);
-  const events = useQuery<EventItem[]>({ queryKey: ['chronicle', ids.join(',')], queryFn: () => live ? getEventsByIds(ids) : data.getEvents().then((all) => all.filter((e) => ids.includes(e.id))), enabled: page === 'chronicle' });
   const link = profile.data?.handle ? `${APP_URL}/u/${profile.data.handle}` : profile.data?.id ? `${APP_URL}/person/${profile.data.id}` : null;
   if (page === 'edit') return <EditProfile />;
   if (page === 'qr') return <SettingsPage title="Твой QR-код" sub="Друг отсканирует код камерой и откроет твой профиль.">

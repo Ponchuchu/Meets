@@ -1,4 +1,5 @@
 // Карта — вкладка по умолчанию (design/png/Main.png, MapCalendar.png, MapFilters.png).
+import { NONE } from '../../lib/empty';
 import { useEco } from '../../state/perf';
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
@@ -126,7 +127,6 @@ export default function MapScreen() {
   const inviteSending = useRef(false);
   const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const [bubble, setBubble] = useState<{ id: string; label: string; bg: string; fg: string } | null>(null);
   // Стикер, который сейчас «долетел» до друга: перчатки, сердце, мем… (FIX5).
   const [blast, setBlast] = useState<{ key: number; st: (typeof STICKERS)[number] } | null>(null);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
@@ -253,18 +253,18 @@ export default function MapScreen() {
     return () => { clearTimeout(t0); clearInterval(t); };
   }, [focused]);
 
-  const { data: loaded = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const { data: loaded = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const meetups = usePlans((s) => s.meetups);
   const goingMap = usePlans((s) => s.going);
   const events = useMemo(() => [...meetups, ...loaded], [meetups, loaded]);
   const going = useMemo(() => new Set(Object.keys(goingMap)), [goingMap]);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const { data: myProfile } = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
-  const { data: rawSpots = [] } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
+  const { data: rawSpots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const spots = useSmoothSpots(rawSpots);
   useLiveFriends(useMemo(() => people.filter((x) => x.isFriend).map((x) => x.id), [people]));
   const { data: me } = useQuery({ queryKey: ['mySpot'], queryFn: () => data.getMySpot() });
-  const { data: details = [] } = useQuery({
+  const { data: details = NONE } = useQuery({
     queryKey: ['spotDetails', spots.map((x) => x.personId).join(',')],
     queryFn: () => Promise.all(spots.map((x) => data.getPersonDetails(x.personId))),
     enabled: spots.length > 0,
@@ -275,10 +275,10 @@ export default function MapScreen() {
   const focusSpot = spots.find((x) => x.personId === focusId);
   const focusPerson = people.find((x) => x.id === focusId);
   // Хвост друга: последние 4 точки за 10 минут (только у выбранного).
-  const { data: trail = [] } = useQuery({ queryKey: ['trail', focusId], queryFn: () => getTrail(focusId!), enabled: LIVE && !!focusId, refetchInterval: 20000 });
+  const { data: trail = NONE } = useQuery({ queryKey: ['trail', focusId], queryFn: () => getTrail(focusId!), enabled: LIVE && !!focusId, refetchInterval: 20000 });
   const friendLines = useMemo(() => focusSpot && filters.friends && focusPerson?.mapTrail === 'comet' && trail.length > 1 ? [{ id: 'friend-trail', coords: trail.map(t => [t.lon,t.lat] as [number,number]), color: MAP_FRAMES.find(f => f.id === focusPerson.mapFrame)?.color ?? colors.friend, width: 3 }] : [], [focusSpot, focusPerson, filters.friends, trail]);
   // «Где я был»: открытые клетки.
-  const { data: cells = [] } = useQuery({
+  const { data: cells = NONE } = useQuery({
     queryKey: ['me', 'cells'], enabled: LIVE && lens === 'explore',
     queryFn: async () => ((await supabase().from('explore_cells').select('h3').eq('user_id', myId() ?? '')).data ?? []).map((r: { h3: string }) => r.h3),
   });
@@ -467,7 +467,7 @@ export default function MapScreen() {
         // Из профиля «На карте» она всё равно откроется — там видно «был 22 окт.».
         if ((s.minutesAgo ?? 0) > STALE_MIN && focusId !== p.id) continue;
         if (focusId === p.id) {
-          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} bubble={bubble && bubble.id === p.id ? bubble : null} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
+          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
           if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
         } else {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
@@ -482,7 +482,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return { markers: list, symbols: syms as MapSymbol[], taps };
-  }, [focused, visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focused, visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/refs -- запоминаем сборку для скрытой вкладки
   builtRef.current = built;
   const { markers, symbols, taps } = built;

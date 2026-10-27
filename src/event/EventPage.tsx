@@ -1,5 +1,6 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
+import { NONE } from '../lib/empty';
 import { routeParams } from '../lib/routeParams';
 import { track } from '../analytics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -95,7 +96,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   // «Назад» на Android: сначала закрывает шторку (её слушатель новее), потом событие.
   useBackClose(onClose, sheet === null);
   const [toast, setToast] = useState<ToastData | null>(null);
-  const { data: people = [] } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const going = usePlans((s) => !!s.going[e.id]);
   const company = usePlans((s) => s.company[e.id]);
   const { go, ungo, invite, startChat } = usePlans.getState();
@@ -104,7 +105,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const arrive = useProfile((s) => s.arrive);
   const addSignal = useFeed((s) => s.addSignal);
   const me = useMyPos();
-  const { data: sameVenue = [] } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), enabled: false });
+  const { data: sameVenue = NONE } = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), enabled: false });
   // «Я на месте»: доступно тем, кто идёт, с 30 минут до начала и до конца события.
   const startMs = new Date(e.startsAt).getTime();
   const endMs = e.endsAt ? new Date(e.endsAt).getTime() : startMs + 2 * 3600e3;
