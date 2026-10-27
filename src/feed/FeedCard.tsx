@@ -32,6 +32,10 @@ export function feedSocial(e: EventItem, people: Person[]): { text: string; face
   return { text: '', faces: [] };
 }
 
+export function feedCoverH(e: EventItem, height: number): number {
+  return Math.round(e.spotId ? height * 0.5 : Math.min(height * (e.media?.some(m => m.type === 'video') ? 0.62 : 0.54), height - 170));
+}
+
 export function FeedCard(props: { e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number; active?: boolean }) {
   return props.e.spotId ? <SpotFeedCard {...props} /> : <EventFeedCard {...props} />;
 }
@@ -39,7 +43,7 @@ export function FeedCard(props: { e: EventItem; people: Person[]; now: Date; dx?
 function EventFeedCard({ e, people, now: _now, dx, stamp, height, active = false }: {
   e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number; active?: boolean;
 }) {
-  const coverH = Math.round(height * (e.media?.some(m => m.type === 'video') ? 0.62 : 0.54));
+  const coverH = feedCoverH(e, height);
   const social = feedSocial(e, people);
   const f = eventFacts(e);
   const roomy = height >= 470 && e.about.trim().length > 0;

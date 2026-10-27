@@ -19,7 +19,7 @@ export function shade(hex: string, amt: number): string {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => ch(v).toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** Высота фото на открытой странице события: пропорции фото карточки ленты (~3:2) плюс полоса под статус-бар. */
+/** Tall media header, shared by the opening transition and the event page. */
 export function openCoverH(width: number, top: number): number {
   return Math.round(Math.min(width * 1.25, 540)) + Math.round(top);
 }

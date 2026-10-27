@@ -1,3 +1,4 @@
+import { ThumbsUp, ThumbsDown, EyeOff } from 'lucide-react-native';
 // «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
 // «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
 import { NONE } from '../../lib/empty';
@@ -14,7 +15,7 @@ import { tabCenter, tabInset } from '../../components/TabBar';
 import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import { LazyEventPage } from '../../event/LazyEventPage';
-import { FeedCard } from '../../feed/FeedCard';
+import { FeedCard, feedCoverH } from '../../feed/FeedCard';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
 import { QuickButtons } from '../../feed/SwipeHints';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
@@ -298,16 +299,16 @@ export default function ForYouScreen() {
       {spotOpen && <SpotSheet key={spotOpen.id} a={spotOpen} all={allSpots} onClose={() => setSpotOpen(null)} onOpen={setSpotOpen} />}
       {feedback && <><Backdrop label="Закрыть настройки рекомендаций" onPress={() => setFeedback(null)} /><BottomSheet label="Настроить рекомендации" onClose={() => setFeedback(null)}>
         <Text style={styles.emptyTitle}>Что показывать тебе?</Text>
-        <Pressable accessibilityRole="button" onPress={() => { addSignal(makeSignal(feedback, 'save', clockNow())); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Больше похожего</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { onDecide(feedback, 'skip'); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Меньше похожего</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { hide(feedback.id); if (feedback.spotId) setSpotDone(s => new Set([...s, feedback.id])); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Не показывать это событие</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { addSignal(makeSignal(feedback, 'save', clockNow())); setFeedback(null); }} style={styles.feedbackRow}><ThumbsUp size={20} color={colors.ink} /><Text style={styles.feedbackText}>Больше похожего</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { onDecide(feedback, 'skip'); setFeedback(null); }} style={styles.feedbackRow}><ThumbsDown size={20} color={colors.ink} /><Text style={styles.feedbackText}>Меньше похожего</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { hide(feedback.id); if (feedback.spotId) setSpotDone(s => new Set([...s, feedback.id])); setFeedback(null); }} style={styles.feedbackRow}><EyeOff size={20} color={colors.ink} /><Text style={styles.feedbackText}>Не показывать это событие</Text></Pressable>
       </BottomSheet></>}
       {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', top: 0, width: W, height: fullH }, clipInner]}>
-            <LazyEventPage progress={p} coverFrom={Math.round(cardH * (open.media?.some(m => m.type === 'video') ? 0.62 : 0.54))} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+            <LazyEventPage progress={p} coverFrom={feedCoverH(open, cardH)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} onPlanned={() => plannedFromOpen(open)} />
           </Animated.View>
           <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: cardW, height: cardH, transformOrigin: 'left top' }, cardFade]}>
@@ -320,6 +321,8 @@ export default function ForYouScreen() {
 }
 
 const styles = StyleSheet.create({
+  feedbackRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.card },
+  feedbackText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
   head: { position: 'absolute', left: 16, right: 16, gap: 2 },
   h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
