@@ -94,7 +94,7 @@ export default function RouteScreen() {
     if (!pLat || !Number.isFinite(la) || !Number.isFinite(lo)) return undefined;
     return { id, title: pTitle ?? 'Место', lat: la, lon: lo, address: pAddr ?? '', venueName: pTitle ?? null, category: 'hike', startsAt: new Date().toISOString(), endsAt: null } as unknown as NonNullable<typeof known>;
   }, [id, pLat, pLon, pTitle, pAddr]);
-  const e = spot ?? known ?? detail.data?.[0];
+  const e = known ?? spot ?? detail.data?.[0];
 
   // «В путь»: камера за мной. Маршрут считаем один раз от точки старта, а не заново на каждом шаге.
   useEffect(() => {

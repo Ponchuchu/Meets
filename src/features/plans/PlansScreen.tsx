@@ -2,6 +2,7 @@
 // «Зовут» с «Не смогу / Иду», расписание по дням на линии времени. Длинный список — порциями по 30.
 // 26 окт.: любой план (и «Дальше по плану») смахивается влево и открывает меню по удержанию; «+» — встреча или своё дело
 // («в 15:00 встретиться с Ерланом»); нижние плитки «Места города / Год в Алматы» убраны — они есть на карте.
+import { routeParams } from '../../lib/routeParams';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { CalendarDays, Bell, BellOff, UserPlus, Trash2, Check, Hand, Navigation, X, Plus, Users, ListTodo } from 'lucide-react-native';
@@ -339,7 +340,7 @@ function NextUp({ e, now, people, onOpen, onMenu }: { e: EventItem; now: Date; p
             <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={26} style={{ marginLeft: i ? -8 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
             <Text style={styles.sub} numberOfLines={1}>{friends.length === 1 ? `${friends[0].name} тоже идёт` : `${friends.length} друга идут`}</Text>
           </View> : <View style={{ flex: 1 }} />}
-          <Pressable onPress={() => router.push({ pathname: '/route', params: { id: e.id } })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
+          <Pressable onPress={() => router.push({ pathname: '/route', params: routeParams(e) })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
             <Navigation size={15} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
           </Pressable>
         </View>
@@ -355,7 +356,7 @@ function PlanMenu({ e, actions, onClose }: { e: EventItem; muted: boolean; actio
       <Backdrop label="Закрыть меню" onPress={onClose} />
       <BottomSheet label={e.title} onClose={onClose}>
         <View style={styles.menuHead}><Cover e={e} size={48} /><View style={{ flex: 1 }}><Text style={styles.title} numberOfLines={2}>{e.title}</Text><Text style={styles.sub}>{hm(e.startsAt)} · {e.venueName ?? (e.address.split(',')[0] || 'без места')}</Text></View></View>
-        {!e.noPoint && <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: { id: e.id } }); }} style={styles.menuRow} accessibilityRole="button"><Navigation size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.menuText}>Маршрут</Text></Pressable>}
+        {!e.noPoint && <Pressable onPress={() => { onClose(); router.push({ pathname: '/route', params: routeParams(e) }); }} style={styles.menuRow} accessibilityRole="button"><Navigation size={20} color={colors.ink} strokeWidth={1.9} /><Text style={styles.menuText}>Маршрут</Text></Pressable>}
         {actions.map((a) => (
           <Pressable key={a.key} onPress={() => { onClose(); void a.onPress(); }} style={styles.menuRow} accessibilityRole="button">
             {a.key === 'del' ? <Trash2 size={20} color="#D8362A" strokeWidth={1.9} /> : a.key === 'invite' ? <UserPlus size={20} color={colors.ink} strokeWidth={1.9} /> : <Bell size={20} color={colors.ink} strokeWidth={1.9} />}

@@ -1,5 +1,6 @@
 // Единый шаблон события (design/screens/EventPage). Порядок полей строго по PRODUCT.md, раздел 4:
 // Обложка → Название → Когда + погода → Адрес + «Маршрут» → Цена → Описание → Организатор → Кто идёт → Ищут компанию → Чат.
+import { routeParams } from '../lib/routeParams';
 import { track } from '../analytics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { config } from '../lib/config';
@@ -41,7 +42,7 @@ import * as WebBrowser from 'expo-web-browser';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useMyPos } from '../live/location';
 import { distM } from '../live/geo';
-import { kmText, stampOf } from '../map/ui/EventSheet';
+import { kmText } from '../map/ui/EventSheet';
 import { eventLink, shareText } from './share';
 import { plural, whenTitle } from './text';
 import { occurrencesOf } from './occurrences';
@@ -184,7 +185,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             </Pressable>
           </View>
           <Animated.View style={[styles.coverText, titleFade]}>
-            <View style={styles.stamp}><Text style={styles.stampText}>{stampOf(e, now)}</Text></View>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </Animated.View>
         </EventCover>
@@ -234,7 +234,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
           <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
-            onRoute={() => router.push({ pathname: '/route', params: { id: e.id } })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
+            onRoute={() => router.push({ pathname: '/route', params: routeParams(e) })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
           {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}

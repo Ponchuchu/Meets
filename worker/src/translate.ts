@@ -123,6 +123,18 @@ export async function run(url: string, key: string, log: (t: string, level?: str
     const lang = r.lang === 'kk' ? 'kk' : detectLang(r.title, r.about ?? '');
     if (lang !== 'kk') { await patch(r.id, { lang }); continue; }
     kk++;
+    // Название казахское, а описание русское (афиша портала на двух языках: «Валерий Меладзенің … концерті») —
+    // это русская карточка: переводим только название и метку «Қазақша» не ставим.
+    const kzLetters = ((r.about ?? '').match(/[әғқңөұүһі]/gi) ?? []).length;
+    const aboutRu = (r.about ?? '').length > 60 && kzLetters / Math.max(1, ((r.about ?? '').match(/[а-яё]/gi) ?? []).length) < 0.03;
+    if (aboutRu) {
+      const t = await translateKk({ title: r.title, about: '' });
+      if (!t) { await patch(r.id, { lang: 'ru' }); continue; }
+      await patch(r.id, { lang: 'ru', title: t.t.title, orig_title: r.orig_title ?? r.title });
+      translated++;
+      console.log(`  ${t.by}: «${r.title.slice(0, 40)}» → «${t.t.title.slice(0, 40)}»`);
+      continue;
+    }
     const src = { title: r.title, about: r.about ?? '' };
     const res = await translateKk(src);
     if (!res) { await patch(r.id, { lang: 'kk' }); continue; }

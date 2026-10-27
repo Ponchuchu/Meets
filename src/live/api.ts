@@ -1,3 +1,4 @@
+import { cleanAbout, cleanTitle, looksKazakh } from '../lib/cleanText';
 import { useChat } from '../state/chat';
 // Настоящая база для альфы v6 (ALPHA §0): только Supabase, без демо-подстановок. Ошибки уходят на экран.
 import { readPoint } from './point';
@@ -207,19 +208,23 @@ interface LiveRow {
 }
 
 export function mapLive(r: LiveRow): EventItem {
+  const title = cleanTitle(r.title);
+  const about = cleanAbout(r.about ?? '', r.title);
+  // Метка «Қазақша» — только если на казахском само описание (название с афиши бывает казахским у русского концерта).
+  const kk = r.lang === 'kk' && (looksKazakh(r.about ?? '') || !!r.orig_about);
   const now = Date.now() - 3 * 3600e3;
   const dates = (r.sessions ?? []).filter((s) => Date.parse(s) > now);
   return {
     ...(dates.length > 1 ? { dates } : {}),
     ...(r.media?.length ? { media: r.media } : {}),
-    ...(r.lang === 'kk' || r.lang === 'en' ? { lang: r.lang } : {}),
+    ...(kk || r.lang === 'en' ? { lang: kk ? 'kk' as const : 'en' as const } : {}),
     // Оригинал показываем, только если карточка действительно переведена (описание в orig_about; «—» — описания не было).
     ...(r.lang === 'kk' && r.orig_about ? { origTitle: r.orig_title ?? undefined, origAbout: r.orig_about === '—' ? '' : r.orig_about } : {}),
-    id: r.id, createdBy: r.created_by, title: r.title, category: r.category as Category, tags: r.tags ?? [],
+    id: r.id, createdBy: r.created_by, title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
     venueId: r.venue_id ?? undefined, venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,
     lat: r.lat ?? 43.2389, lon: r.lon ?? 76.8897, needsPin: r.needs_pin || r.lat == null, noPoint: r.lat == null || r.lon == null,
-    priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free, about: r.about ?? '', organizer: r.organizer,
+    priceMin: r.price_min, priceMax: r.price_max, isFree: r.is_free, about, organizer: r.organizer,
     sourceUrl: r.source_url, cover: r.cover_url, visibility: r.visibility, status: r.status, origin: 'real',
     friendsGoing: [], lookingCount: 0, goingCount: 0,
   };
