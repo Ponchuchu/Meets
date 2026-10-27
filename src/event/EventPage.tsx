@@ -9,10 +9,12 @@ import { chooseEventVisit, rescheduleMeetup, sendInvite } from '../live/api';
 import { router } from 'expo-router';
 import { myId } from '../live/auth';
 import { ScheduleSheet } from './ScheduleSheet';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { editorialText } from './editorial';
 import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
@@ -30,12 +32,13 @@ import { colors, fonts } from '../theme';
 import { glass, plate } from '../ui/glass';
 import { Avatar } from '../ui/Avatar';
 import { EventCover, openCoverH } from '../ui/EventCover';
+import { EventMedia, eventMedia } from '../ui/EventMedia';
 import { IC, Ic } from '../ui/Ic';
 import { Backdrop, BottomSheet } from '../ui/sheet';
 import { Toast, type ToastData } from '../ui/Toast';
 import { InviteSheet } from './sheets';
 import { CardPeople } from './v6/CardPeople';
-import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, MapPin, Share2, Ticket, Users, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Hand, ImagePlus, Share2, Ticket, Users, CalendarPlus, UserPlus, Check, X } from 'lucide-react-native';
 import { PlaceBlock, SourceLink } from './ui/PlaceBlock';
 import { TicketBlock } from './ui/TicketBlock';
 import { ShareCardSheet } from './ui/ShareCard';
@@ -81,6 +84,8 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const [inviting,setInviting]=useState(false);
   // Обложка: при прокрутке уезжает медленнее текста, при оттягивании вниз — растёт (параллакс, FIX3).
   const scrollY = useSharedValue(0);
+  const [mediaVisible, setMediaVisible] = useState(true);
+  useAnimatedReaction(() => scrollY.get() < coverH, (visible, previous) => { if (visible !== previous) scheduleOnRN(setMediaVisible, visible); });
   const onScroll = useAnimatedScrollHandler(ev => { scrollY.set(ev.contentOffset.y); });
   // Мини-карта места строится, когда до неё осталось меньше экрана прокрутки.
   const [nearMap, setNearMap] = useState(false);
@@ -170,9 +175,10 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     <View style={styles.root}>
       <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} style={{ flex: 1, minHeight: 0 }} nestedScrollEnabled contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
         {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
-        <Animated.View style={[{ zIndex: -1 }, parallax]}>
-        <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
+        <Animated.View style={parallax}>
+        <EventCover cover={null} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
+          {eventMedia(e).length > 0 && <EventMedia key={e.id} items={eventMedia(e)} height={coverH} active={sheet === null && mediaVisible} gallery />}
+          <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="#17161A" stopOpacity="0.25" />
@@ -190,7 +196,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
               <Share2 size={20} color="#FFFFFF" strokeWidth={1.9} />
             </Pressable>
           </View>
-          <Animated.View style={[styles.coverText, titleFade]}>
+          <Animated.View pointerEvents="none" style={[styles.coverText, titleFade, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
             <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
           </Animated.View>
         </EventCover>
@@ -205,12 +211,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
                 <Text style={styles.factMain} numberOfLines={2}>{whenTitle(e, now)}</Text>
                 {!!soon && <Text style={[styles.factSub, { color: colors.accentText }]}>{soon}</Text>}
               </View>
-            </View>
-            <View style={styles.factLine} />
-            <View style={styles.factRow}>
-              <View style={styles.factIcon}><MapPin size={19} color={colors.ink} strokeWidth={1.9} /></View>
-              <Text style={[styles.factMain, { flex: 1 }]} numberOfLines={2}>{e.venueName || e.address.split(',').slice(0, 2).join(',') || 'Место уточняется'}</Text>
-              {!!dist && <Text style={styles.factSide}>{dist}</Text>}
             </View>
             <View style={styles.factLine} />
             <View style={styles.factRow}>
@@ -252,7 +252,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
           </View>}
-          {!!e.about && <AboutBlock text={e.about} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
+          {!!e.about && <AboutBlock key={e.id} text={editorialText(e)} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
           <View onLayout={(ev) => { mapY.set(ev.nativeEvent.layout.y); }}><PlaceBlock near={nearMap} lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
@@ -302,14 +302,14 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         </View>
       ) : (
         <View style={[styles.bar, { paddingBottom: 18 + insets.bottom }]}>
-          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel="Мимо">
+          <Pressable onPress={e.id === initialEvent.id ? onSkip ?? onClose : onClose} style={styles.skip} accessibilityRole="button" accessibilityLabel={onSkip ? "Пропустить событие" : "Закрыть событие"}>
             <X size={22} color={colors.ink} strokeWidth={2.2} />
           </Pressable>
           <Pressable onPress={toggleGo} style={({ pressed }) => [styles.goBtn, going && { backgroundColor: colors.ink }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button" accessibilityState={{ selected: going }}>
-            <Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{going ? <Check size={20} color={colors.paper} /> : <CalendarPlus size={20} color={colors.ink} />}<Text style={[styles.goText, going && { color: colors.paper }]}>{going ? 'В планах' : 'Пойду'}</Text></View>
           </Pressable>
           <Pressable onPress={() => setSheet('invite')} style={({ pressed }) => [styles.inviteBtn, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
-            <Text style={styles.inviteText}>Позвать</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><UserPlus size={18} color={colors.paper} /><Text style={styles.inviteText}>Позвать</Text></View>
           </Pressable>
         </View>
       )}
@@ -339,7 +339,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           if (sheet === 'visit' && onPlanned) setTimeout(onPlanned, 450);
         }} />
       </BottomSheet></>}
-      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && (
+      {sheet && sheet !== 'visit' && sheet !== 'reschedule' && sheet !== 'dates' && (
         <>
           <Backdrop onPress={() => setSheet(null)} opacity={sheet === 'company' ? 0.5 : 0.45} label="Закрыть" />
           <BottomSheet onClose={() => setSheet(null)} label={sheet === 'invite' ? 'Позвать друга' : sheet === 'share' ? 'Поделиться' : sheet === 'going' ? 'Компания' : 'Маршрут'} style={{ gap: sheet === 'company' ? 18 : 14, paddingBottom: 30 + insets.bottom }}>

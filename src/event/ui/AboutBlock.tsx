@@ -4,7 +4,7 @@ import { ChevronDown, Languages } from 'lucide-react-native';
 import { useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
 import { colors, fonts } from '../../theme';
-import { plate } from '../../ui/glass';
+
 
 if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
 
@@ -39,7 +39,7 @@ export function AboutBlock({ text, lang, original }: { text: string; lang?: stri
       {shown.map((p, i) => <Text key={i} style={[styles.p, i === 0 && styles.lead]} numberOfLines={!open && i === 0 ? 4 : undefined}>{p}</Text>)}
       {long && (
         <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity')); setOpen(v => !v); }} style={styles.more} accessibilityRole="button" accessibilityState={{ expanded: open }}>
-          <Text style={styles.moreText}>{open ? 'Свернуть' : 'Читать полностью'}</Text>
+          <Text style={styles.moreText}>{open ? 'Кратко' : 'О событии подробнее'}</Text>
           <ChevronDown size={16} color={colors.ink} strokeWidth={2.2} style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} />
         </Pressable>
       )}
@@ -50,11 +50,11 @@ export function AboutBlock({ text, lang, original }: { text: string; lang?: stri
 const styles = StyleSheet.create({
   lang: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: colors.sand },
   langText: { fontFamily: fonts.body500, fontSize: 12, color: colors.muted2 },
-  origBtn: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
+  origBtn: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   origText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.accentText },
   origTitle: { fontFamily: fonts.display700, fontSize: 17, color: colors.ink },
   p: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 23, color: colors.muted2 },
   lead: { fontFamily: fonts.body500, fontSize: 16.5, lineHeight: 24, color: colors.ink },
-  more: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 14, borderRadius: 22, ...plate },
+  more: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 0 },
   moreText: { fontFamily: fonts.body700, fontSize: 14, color: colors.ink },
 });

@@ -38,8 +38,8 @@ if (Platform.OS !== 'web') {
 }
 
 /** Частота экрана, Гц: 60 / 90 / 120. Измеряется по кадрам один раз за запуск (на сильных телефонах карта рисуется под неё). */
-/** Потолок кадров карты под пальцем: флагман (10 ГБ и больше) — частота экрана, бюджетник и середнячок — 60: слабый GPU на 90 Гц просаживается и греется (27 окт.). */
-export const GESTURE_FPS_CAP = (Device.totalMemory ?? 6e9) >= 10e9 ? 120 : 60;
+/** Refresh ceiling follows the display; RAM capacity does not identify GPU performance. Eco mode still caps the map at 30. */
+export const GESTURE_FPS_CAP = 120;
 export const useRefreshRate = create<{ hz: number }>(() => ({ hz: 60 }));
 const HZ_STEPS = [60, 90, 120] as const;
 if (Platform.OS !== 'web' && !process.env.JEST_WORKER_ID) {

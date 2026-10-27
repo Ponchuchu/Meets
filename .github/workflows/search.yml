@@ -101,6 +101,8 @@ jobs:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SOCIAL_VIDEOS: '20'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
       # Перевод казахских карточек на русский (27 окт.): Gemini → Kimi → бесплатный переводчик. Оригинал остаётся по кнопке «Показать оригинал».
       - name: Перевод казахских карточек
         if: ${{ !cancelled() }}
@@ -118,6 +120,14 @@ jobs:
         if: ${{ !cancelled() }}
         continue-on-error: true
         run: node worker/src/repair-venues.ts
+        env:
+          SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Повторная проверка цен старых карточек
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 8
+        run: node worker/src/repair-prices.ts
         env:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

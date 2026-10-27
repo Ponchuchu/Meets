@@ -17,6 +17,8 @@ import { LazyEventPage } from '../../event/LazyEventPage';
 import { FeedCard } from '../../feed/FeedCard';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
 import { QuickButtons } from '../../feed/SwipeHints';
+import { Backdrop, BottomSheet } from '../../ui/sheet';
+import { distinctEvents } from '../../event/identity';
 import { UndoBar } from '../../feed/UndoBar';
 import { WhenSheet, needsWhen } from '../../feed/WhenSheet';
 import { now as clockNow } from '../../lib/clock';
@@ -49,7 +51,7 @@ export default function ForYouScreen() {
   const online = useNet((s) => s.online);
   const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, decided, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
+  const { signals, hidden, hide, decided, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
   const goingIds = usePlans(s => s.going);
   const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
   const { go, ungo } = usePlans.getState();
@@ -61,6 +63,7 @@ export default function ForYouScreen() {
   const undoSeq = useRef(0);
   const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
+  const [feedback, setFeedback] = useState<EventItem | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [when, setWhen] = useState<EventItem | null>(null);
@@ -92,8 +95,8 @@ export default function ForYouScreen() {
   const [frozen, setFrozen] = useState<string[]>([]);
   const deck = useMemo(() => {
     const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
-    const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds)]);
-    const fresh = withSpots(buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id)));
+    const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds), ...Object.keys(hidden ?? {})]);
+    const fresh = withSpots(buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id) && !hidden?.[c.id]));
     const pool = new Map<string, EventItem>([...events.map((x) => [x.id, x] as const), ...fresh.map((x) => [x.id, x] as const)]);
     const alive = (id: string) => (id === planning || !dec.has(id)) && !spotDone.has(id) && pool.has(id) && (pool.get(id)!.spotId ? true : fresh.some((x) => x.id === id) || Date.parse(pool.get(id)!.endsAt ?? pool.get(id)!.startsAt) > now.getTime());
     const head = frozen.filter(alive).slice(0, STACK + 2).map((id) => pool.get(id)!);
@@ -107,8 +110,8 @@ export default function ForYouScreen() {
       const preview = events.find(x => x.id === previewId);
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
-    return d;
-  }, [taste, events, decided, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
+    return distinctEvents(d);
+  }, [taste, events, decided, hidden, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
   const headKey = deck.slice(0, STACK + 2).map((x) => x.id).join('|');
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setFrozen((f) => (f.join('|') === headKey ? f : headKey.split('|').filter(Boolean))); }, [headKey]);
@@ -121,7 +124,7 @@ export default function ForYouScreen() {
   const HINTS_H = 84; // кнопки с подписями под карточкой
   const GAP = 38; // под карточкой видна стопка (28) и зазор
   const cardW = Math.min(350, W - 40);
-  const cardH = Math.max(330, Math.min(470, screenH - baseTop - GAP - HINTS_H - 10));
+  const cardH = Math.max(330, Math.min(540, screenH - baseTop - GAP - HINTS_H - 10));
   const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 10);
   const cardTop = baseTop + Math.round(free * 0.5);
   const hintsTop = cardTop + cardH + GAP;
@@ -241,16 +244,16 @@ export default function ForYouScreen() {
 
       <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {/* Обработчики читают opened (ref) только при жесте, не при отрисовке. */}
-        {/* eslint-disable react-hooks/refs */}
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard
             key={`${e.id}:${rounds[e.id] ?? 0}`}
             ref={k === 0 ? topRef : undefined}
             e={e} people={people} now={now}
-            k={k} top={k === 0} width={cardW} height={cardH} target={target}
+            k={k} top={k === 0} active={!open && !when && !spotOpen && !feedback} width={cardW} height={cardH} target={target}
             enterFrom={enter?.id === e.id ? enter.from : null}
             onDecide={(kind) => onDecide(e, kind)}
             onLand={() => useTabBadges.getState().landPlans()}
+            onLongPress={() => setFeedback(e)}
             onTap={() => { if (e.spotId) { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); } else openCard(e); }}
             expand={p} onReveal={() => openCard(e, true)}
             onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, OPEN())); else closeCard(); }}
@@ -258,7 +261,6 @@ export default function ForYouScreen() {
             drag={k === 0 ? drag : undefined}
           />
         )).reverse()}
-        {/* eslint-enable react-hooks/refs */}
       </View>
 
       {top && !open && !when && (
@@ -294,12 +296,18 @@ export default function ForYouScreen() {
       {when && <WhenSheet key={when.id} e={when} events={events} now={now} onClose={() => setWhen(null)}
         onPlanned={() => { const id = when.id; setWhen(null); setPlanning(id); setTimeout(() => topRef.current?.fly('go'), 260); }} />}
       {spotOpen && <SpotSheet key={spotOpen.id} a={spotOpen} all={allSpots} onClose={() => setSpotOpen(null)} onOpen={setSpotOpen} />}
+      {feedback && <><Backdrop label="Закрыть настройки рекомендаций" onPress={() => setFeedback(null)} /><BottomSheet label="Настроить рекомендации" onClose={() => setFeedback(null)}>
+        <Text style={styles.emptyTitle}>Что показывать тебе?</Text>
+        <Pressable accessibilityRole="button" onPress={() => { addSignal(makeSignal(feedback, 'save', clockNow())); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Больше похожего</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { onDecide(feedback, 'skip'); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Меньше похожего</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { hide(feedback.id); if (feedback.spotId) setSpotDone(s => new Set([...s, feedback.id])); setFeedback(null); }} style={{ minHeight: 52, justifyContent: 'center' }}><Text style={styles.emptyGhostText}>Не показывать это событие</Text></Pressable>
+      </BottomSheet></>}
       {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', top: 0, width: W, height: fullH }, clipInner]}>
-            <LazyEventPage progress={p} coverFrom={Math.round(cardH * 0.5)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+            <LazyEventPage progress={p} coverFrom={Math.round(cardH * (open.media?.some(m => m.type === 'video') ? 0.62 : 0.54))} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} onPlanned={() => plannedFromOpen(open)} />
           </Animated.View>
           <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: cardW, height: cardH, transformOrigin: 'left top' }, cardFade]}>

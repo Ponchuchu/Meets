@@ -136,35 +136,40 @@ export async function fromSite(s: Pick<SpotRow, 'info_url'>): Promise<{ hours: H
  * поэтому телефон получает фото только от нас. Источники: photo_src (Викисклад) и страница места в Instagram (ig).
  */
 export async function copyPhotos(url: string, h: Record<string, string>, fetchFn: typeof fetch = fetch): Promise<number> {
-  const res = await fetchFn(`${url}/rest/v1/spots?select=id,photo_src,photos,ig&enabled=eq.true`, { headers: h });
+  const res = await fetchFn(`${url}/rest/v1/spots?select=id,photo_src,photos,ig,photos_checked_at&enabled=eq.true`, { headers: h });
   if (!res.ok) return 0;
-  const rows = (await res.json()) as { id: string; photo_src: string[] | null; photos: string[] | null; ig: string | null }[];
+  const rows = (await res.json()) as { id: string; photo_src: string[] | null; photos: string[] | null; ig: string | null; photos_checked_at: string | null }[];
   let done = 0;
   for (const r of rows) {
-    if ((r.photos ?? []).length || (!(r.photo_src ?? []).length && !r.ig)) continue;
-    const src = [...(r.photo_src ?? [])];
+    if (!(r.photo_src ?? []).length && !r.ig) continue;
+    if (r.photos_checked_at && Date.now() - Date.parse(r.photos_checked_at) < 7 * 86400e3) continue;
+    const src: string[] = [];
     if (r.ig) {
       // Последние фото со страницы места в Instagram (функция social; ключи — в Supabase).
       const ig = await fetchFn(`${url}/functions/v1/social`, { method: 'POST', headers: h, body: JSON.stringify({ action: 'probe', handle: r.ig }) }).then((x) => x.json()).catch(() => null) as { posts?: { media: { type: string; url: string; poster?: string | null }[] }[] } | null;
       for (const p of ig?.posts ?? []) { const m = p.media.find((x) => x.type === 'image') ?? p.media[0]; const u = m?.type === 'image' ? m.url : m?.poster; if (u) src.push(u); }
     }
+    src.push(...(r.photo_src ?? []));
     const out: string[] = [];
-    for (const [i, u] of src.slice(0, 8).entries()) {
+    for (const u of [...new Set(src)].slice(0, 8)) {
       for (let attempt = 0; attempt < 3; attempt++) {
         const img = await fetchFn(u, { headers: { 'User-Agent': 'ryadom-worker/0.2 (https://github.com/Ponchuchu/ryadom)' }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
         if (img?.status === 429) { await new Promise((w) => setTimeout(w, 3000 * (attempt + 1))); continue; }
         if (!img?.ok) break;
         const type = (img.headers.get('content-type') ?? 'image/jpeg').split(';')[0];
         if (!type.startsWith('image/')) break;
-        const path = `spots/${r.id}/${i}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
-        const up = await fetchFn(`${url}/storage/v1/object/event-media/${path}`, { method: 'POST', headers: { ...h, 'Content-Type': type, 'x-upsert': 'true' }, body: await img.arrayBuffer() });
-        if (up.ok) out.push(`${url}/storage/v1/object/public/event-media/${path}`);
+        const bytes = await img.arrayBuffer();
+        if (bytes.byteLength > 8 * 1024 * 1024) break;
+        const hash = (await import('node:crypto')).createHash('sha256').update(new Uint8Array(bytes)).digest('hex').slice(0, 16);
+        const path = `spots/${r.id}/${hash}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
+        const up = await fetchFn(`${url}/storage/v1/object/event-media/${path}`, { method: 'POST', headers: { ...h, 'Content-Type': type, 'x-upsert': 'true' }, body: bytes });
+        if (up.ok && !out.some(p => p.includes(hash))) out.push(`${url}/storage/v1/object/public/event-media/${path}`);
         break;
       }
       await new Promise((w) => setTimeout(w, 700));
     }
     if (!out.length) continue;
-    await fetchFn(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify({ photos: out }) });
+    await fetchFn(`${url}/rest/v1/spots?id=eq.${encodeURIComponent(r.id)}`, { method: 'PATCH', headers: h, body: JSON.stringify({ photos: out, photos_checked_at: new Date().toISOString() }) });
     console.log(`  Места · ${r.id} · фото ${out.length}`);
     done++;
   }

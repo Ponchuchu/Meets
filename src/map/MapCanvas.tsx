@@ -61,8 +61,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const hz = useRefreshRate((s) => s.hz);
   const [fps, setFps] = useState(30);
   const fpsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(fpsTimer.current), []);
   const top = Math.min(hz, GESTURE_FPS_CAP);
   const boost = () => { setFps((v) => (v === top ? v : top)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
+  const cameraReportedAt = useRef(0);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
@@ -195,12 +197,15 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           // а каждое сообщение заново строит все пины (раньше из-за этого карта «зависала» после нажатия на событие).
           if (!Number.isFinite(st.properties.zoom)) return;
           z.current = st.properties.zoom;
+          const at = Date.now();
+          if (at - cameraReportedAt.current < 100) return;
+          cameraReportedAt.current = at;
           const step = Math.round(st.properties.zoom * 2) / 2;
-          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); setFollowZoom(step); }
+          if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); if (follow) setFollowZoom(step); }
           if (st.properties.heading != null) onBearing?.(st.properties.heading);
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
-        onMapIdle={(st: { properties: { center: number[] } }) => { if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
+        onMapIdle={(st: { properties: { center: number[] } }) => { const step = Math.round(z.current * 2) / 2; if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); } if (follow) setFollowZoom(step); if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
           // Потерянный центр (0, 0) не запоминаем — иначе при следующем входе карта сразу откроется в океане.
           if (props.remember && loaded.current && !(Math.abs(lat) < 3 && Math.abs(lon) < 3)) lastView = { lat, lon, zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
         onDidFinishLoadingStyle={toStart}

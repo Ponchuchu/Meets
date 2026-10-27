@@ -22,12 +22,13 @@ export interface SwipeHandle {
 
 export const SwipeCard = forwardRef<SwipeHandle, {
   e: EventItem; people: Person[]; now: Date;
-  k: number; top: boolean; width: number; height: number;
+  k: number; top: boolean; active?: boolean; width: number; height: number;
   /** Куда лететь «Пойду»: смещение от центра карточки до иконки «Планы». */
   target: { x: number; y: number };
   enterFrom: 'go' | 'skip' | null;
   onDecide: (kind: 'go' | 'skip') => void;
   onTap: () => void;
+  onLongPress?: () => void;
   expand: SharedValue<number>;
   onReveal: () => void;
   onRevealEnd: (commit: boolean) => void;
@@ -36,7 +37,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   onLand?: () => void;
   /** Куда отдавать смещение верхней карточки — для подсказок жестов и подсветки краёв. */
   drag?: { x: SharedValue<number>; y: SharedValue<number> };
-}>(function SwipeCard({ e, people, now, k, top, width, height, target, enterFrom, onDecide, onTap, onLand, expand, onReveal, onRevealEnd, onUndo, drag }, ref) {
+}>(function SwipeCard({ e, people, now, k, top, active = true, width, height, target, enterFrom, onDecide, onTap, onLongPress, onLand, expand, onReveal, onRevealEnd, onUndo, drag }, ref) {
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
   const rot = useSharedValue(0);
@@ -99,7 +100,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     if (kind === 'skip') {
       dx.set(withTiming(-560, { duration: 320, easing: Easing.in(Easing.quad) }));
       dy.set(withTiming(60, { duration: 320, easing: Easing.in(Easing.quad) }));
-      rot.set(withTiming(-22, { duration: 320 }, () => scheduleOnRN(onDecide, 'skip')));
+      rot.set(withTiming(-22, { duration: 320 }, done => { if (done) scheduleOnRN(onDecide, 'skip'); }));
       return;
     }
     sx.set(dx.get()); sy.set(dy.get()); sr.set(rot.get());
@@ -115,7 +116,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
 
   const pan = Gesture.Pan()
     .enabled(top)
-    .minDistance(0)
+    .minDistance(8)
     .onBegin(() => {
       scheduleOnRN(touch);
       // Касание посреди подсказывающего движения — карточка сразу возвращается на место.
@@ -182,9 +183,9 @@ export const SwipeCard = forwardRef<SwipeHandle, {
 
   return (
     <Animated.View style={[styles.abs, { width, height, zIndex: 10 - k, transformOrigin: '50% 100%' }, stack]} pointerEvents={top ? 'auto' : 'none'}>
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={Gesture.Race(Gesture.LongPress().enabled(top && !!onLongPress).minDuration(450).onStart(() => { if (onLongPress) scheduleOnRN(onLongPress); }), pan, Gesture.Tap().enabled(top).onEnd((_e, ok) => { if (ok && !busy.get()) scheduleOnRN(onTap); }))}>
         <Animated.View style={[styles.fill, styles.shadow, !top && styles.shadowLow, card, { overflow: 'hidden' }, top && LAYER]}>
-          <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} />
+          <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} active={top && active} />
         </Animated.View>
       </GestureDetector>
     </Animated.View>

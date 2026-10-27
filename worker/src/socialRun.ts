@@ -4,11 +4,15 @@
 //   node worker/src/index.ts --social        — все включённые страницы Instagram и Threads
 import type { Db } from './db.ts';
 import { processPosts, storeOutcomes, summary, type Outcome } from './pipeline.ts';
+import { linkedFacts } from './linkedFacts.ts';
+import { understand } from './ai.ts';
+import { polishAbouts } from './polish.ts';
+import type { Found } from './search.ts';
 import { parseSocial } from './social.ts';
 import type { Extraction, KnownEvent, MediaItem, Point, RawPost, Source } from './types.ts';
 import type { VenueRow } from './venues.ts';
 
-interface Pulled { kind: string; handle: string; ok: boolean; error?: string; profile?: { name: string | null; followers: number | null; avatar: string | null; posts: number | null }; posts?: { id: string; url: string; text: string; at: string; media: MediaItem[] }[] }
+interface Pulled { kind: string; handle: string; ok: boolean; error?: string; profile?: { website?: string | null; biography?: string | null; name: string | null; followers: number | null; avatar: string | null; posts: number | null }; posts?: { id: string; url: string; text: string; at: string; media: MediaItem[] }[] }
 
 /** Первый сбор новой страницы — посты за 45 дней (две страницы ленты), дальше — только новое с прошлого раза. */
 const FIRST_DAYS = 45;
@@ -72,6 +76,8 @@ export async function runSocial(db: Db, sources: Source[], venues: VenueRow[], k
   const outcomes: Outcome[] = [];
   let drafts = 0;
   const budget = { videos: VIDEOS_PER_RUN };
+  const linkCache = new Map<string, Promise<string | null>>();
+  let visionBudget = Number(process.env.SOCIAL_VISION ?? 8);
   if (!list.length) return { drafts, stats, outcomes };
   await log(`Instagram и Threads: страниц ${list.length}`);
   for (let i = 0; i < list.length; i += 12) {
@@ -102,6 +108,21 @@ export async function runSocial(db: Db, sources: Source[], venues: VenueRow[], k
       const saved = await db.savePosts(posts);
       const { subs, parsed, junk } = await splitPosts(db, saved, source, venues);
       stat.junk = junk;
+      // Extract practical facts before rewriting the editorial description.
+      for (const p of subs) {
+        const x = parsed.get(p.externalId)!;
+        await linkedFacts(x, [p.text, r.profile?.website, r.profile?.biography].filter(Boolean).join('\n'), fetch, linkCache);
+        if (visionBudget > 0 && process.env.ANTHROPIC_API_KEY && x.price_min == null && !x.is_free && p.images.length && !p.externalId.includes('#')) {
+          visionBudget--;
+          const vision = await understand(p, process.env.ANTHROPIC_API_KEY, undefined);
+          if (vision.by === 'ai' && vision.price_min != null && vision.price_min > 0 && vision.price_min < 1_000_000) {
+            x.price_min = vision.price_min; x.price_max = vision.price_max; x.is_free = false; x.price_unsure = true;
+          }
+        }
+      }
+      const editorial = subs.map(p => { const x = parsed.get(p.externalId)!; return { title: x.title, about: x.about, starts_at: x.starts_at ?? undefined, venue_name: x.venue_name ?? undefined, price_min: x.price_min, is_free: x.is_free } as Found; });
+      await polishAbouts(editorial);
+      subs.forEach((p, i) => { parsed.get(p.externalId)!.about = editorial[i].about ?? parsed.get(p.externalId)!.about; });
       const results = await processPosts(subs, source, { understand: async (p) => ({ ...parsed.get(p.externalId)!, by: 'heuristics' as const }), geocode, venues, known, now: new Date() });
       // Фото и видео — только у новых карточек.
       for (const o of results) {

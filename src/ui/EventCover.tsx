@@ -21,7 +21,7 @@ export function shade(hex: string, amt: number): string {
 
 /** Высота фото на открытой странице события: пропорции фото карточки ленты (~3:2) плюс полоса под статус-бар. */
 export function openCoverH(width: number, top: number): number {
-  return Math.round(width * 0.66) + Math.round(top);
+  return Math.round(Math.min(width * 1.25, 540)) + Math.round(top);
 }
 
 export function EventCover({ cover, category, color, style, iconSize = 150, children }: {

@@ -12,7 +12,7 @@ const FIELDS = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestam
 
 interface Media { type: 'image' | 'video'; url: string; poster?: string | null }
 interface Post { id: string; url: string; text: string; at: string; media: Media[] }
-interface Profile { name: string | null; followers: number | null; avatar: string | null; posts: number | null }
+interface Profile { website?: string | null; biography?: string | null; name: string | null; followers: number | null; avatar: string | null; posts: number | null }
 type Result = { kind: string; handle: string; ok: boolean; profile?: Profile; posts?: Post[]; error?: string };
 
 /** Секретный ключ проекта (sb_secret_… или старый service_role) — так зовёт сборщик из GitHub Actions. */
@@ -58,19 +58,19 @@ async function instagram(handle: string, since: string | null, pages: number, li
   const stop = since ? Date.parse(since) : 0;
   for (let page = 0; page < pages; page++) {
     const media = `media${after ? `.after(${after})` : ''}.limit(${limit}){${FIELDS}}`;
-    const fields = `business_discovery.username(${handle}){username,name,followers_count,media_count,profile_picture_url,${media}}`;
+    const fields = `business_discovery.username(${handle}){username,name,followers_count,media_count,profile_picture_url,website,biography,${media}}`;
     let res: Response;
     try {
       res = await fetch(`${GRAPH}/${me}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(25_000) });
     } catch (e) {
       return { kind: 'instagram', handle, ok: posts.length > 0, profile, posts, error: `Instagram не ответил: ${(e as Error).message}` };
     }
-    const body = await res.json().catch(() => ({})) as { error?: Parameters<typeof reason>[0]; business_discovery?: { name?: string; followers_count?: number; media_count?: number; profile_picture_url?: string; media?: { data?: IgMedia[]; paging?: { cursors?: { after?: string } } } } };
+    const body = await res.json().catch(() => ({})) as { error?: Parameters<typeof reason>[0]; business_discovery?: { website?: string; biography?: string; name?: string; followers_count?: number; media_count?: number; profile_picture_url?: string; media?: { data?: IgMedia[]; paging?: { cursors?: { after?: string } } } } };
     const bd = body.business_discovery;
     // Слишком большой ответ (длинные карусели) — просим меньше постов за раз.
     if (!bd && /reduce the amount of data/i.test(body.error?.message ?? '') && limit > 8) return instagram(handle, since, pages, Math.floor(limit / 3));
     if (!res.ok || !bd) return { kind: 'instagram', handle, ok: posts.length > 0, profile, posts, error: reason(body.error, res.status) };
-    profile ??= { name: bd.name ?? null, followers: bd.followers_count ?? null, avatar: bd.profile_picture_url ?? null, posts: bd.media_count ?? null };
+    profile ??= { website: bd.website ?? null, biography: bd.biography ?? null, name: bd.name ?? null, followers: bd.followers_count ?? null, avatar: bd.profile_picture_url ?? null, posts: bd.media_count ?? null };
     const list = (bd.media?.data ?? []).map(igPost);
     posts.push(...list.filter((p) => !stop || Date.parse(p.at) > stop));
     after = bd.media?.paging?.cursors?.after ?? null;

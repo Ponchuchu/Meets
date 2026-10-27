@@ -20,16 +20,10 @@ const toSpot = (r: SpotRow): Attraction => ({
   ...(r.photos?.length ? { photos: r.photos } : {}), ...(r.mall ? { mall: r.mall } : {}), ...(r.step_min ? { stepMin: r.step_min } : {}),
 });
 
-/** Фото места: только наши копии (Викисклад телефонам напрямую не отдаёт); нет копии — снимок места со спутника Mapbox (27 окт.). */
-function satellite(a: Pick<Attraction, 'lat' | 'lon'>): string | null {
-  if (!config.mapboxToken) return null;
-  return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${a.lon.toFixed(5)},${a.lat.toFixed(5)},16.4,0/800x520@2x?logo=false&attribution=false&access_token=${config.mapboxToken}`;
-}
+/** Never present a satellite tile as a venue photo. Missing galleries use the category illustration. */
 function withPhotos<T extends Attraction>(a: T): T {
-  const own = (a.photos ?? []).filter((u) => u.includes('/storage/v1/'));
-  if (own.length) return { ...a, photos: own };
-  const sat = satellite(a);
-  return { ...a, photos: sat ? [sat] : undefined };
+  const photos = [...new Set(a.photos ?? [])].filter(u => !/api\.mapbox\.com\/styles\/.*\/static\//.test(u));
+  return { ...a, photos: photos.length ? photos : undefined };
 }
 
 /** Места: из базы (там часы и цены от сборщика), без базы или без таблицы — встроенный список. */

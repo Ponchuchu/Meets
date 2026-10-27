@@ -180,7 +180,7 @@ function placeIn(block: string, venues: VenueRow[]): { venue: VenueRow | null; n
 
 export function priceIn(text: string): { min: number | null; max: number | null; free: boolean } {
   const t = text.toLowerCase().replace(/ /g, ' ');
-  if (/бесплатн|вход свободный|свободный вход|тегін|free entry|free admission|вход free|кіру тегін|\bfree\b|донат/.test(t) && !/(\d[\d\s]{2,7})\s*(₸|тг|тенге|kzt)/.test(t)) return { min: null, max: null, free: true };
+  if (/бесплатн|вход свободный|свободный вход|тегін|free entry|free admission|вход free|кіру тегін|\bfree\b/.test(t) && !/(\d[\d\s]{2,7})\s*(₸|тг|тенге|kzt)/.test(t)) return { min: null, max: null, free: true };
   const num = (x: string) => Number(x.replace(/\s/g, ''));
   const nums = [...t.matchAll(/(?:от\s*)?(\d{1,3}(?:[\s.]\d{3})+|\d{3,6})\s*(₸|тг\.?|тенге|kzt|tg)(?![a-zа-я])/g)].map((m) => num(m[1].replace(/\./g, ''))).filter((n) => n >= 300 && n < 1_000_000);
   if (/бесплатн|тегін|(?<![a-z])free(?![a-z])/.test(t) && !nums.length) return { min: null, max: null, free: true };
@@ -358,7 +358,7 @@ export function parseSocial(text: string, postedAt: string, source: SocialSource
       price_min: price.min,
       price_max: price.max,
       is_free: price.free,
-      price_unsure: false,
+      price_unsure: !price.free && price.min == null,
       about: aboutOf(schedule ? `${b.text}\n\n${lines.slice(0, Math.max(dateLines[0], 1)).join('\n')}` : ru),
       organizer: source.title ?? null,
       confidence: Math.min(confidence, 0.96),
