@@ -3,7 +3,7 @@ import { cleanVenueName, matchVenue, NOT_A_PLACE, type VenueRow } from '../src/v
 import type { Extraction, RawPost, Source } from '../src/types.ts';
 
 const source = { id: 's', trusted: false, auto_publish: false } as unknown as Source;
-const post = { sourceId: 's', externalId: '1', url: 'u', text: '', images: [] } as RawPost;
+const post = { sourceId: 's', externalId: '1', url: 'u', text: '', images: [], postedAt: null } as unknown as RawPost;
 const x = (venue_name: string | null, address: string | null): Extraction => ({
   class: 'event', title: 'Транзитный пассажир', category: 'theatre', tags: [], starts_at: '2026-11-05T14:00:00Z', ends_at: null, is_long: false,
   venue_name, address, price_min: null, price_max: null, is_free: false, about: '', organizer: null, confidence: 0.9,
