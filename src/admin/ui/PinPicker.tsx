@@ -81,8 +81,8 @@ export function PinPicker({ title, address, point, onClose, onPin }: {
               ))}
             </View>
           )}
-          {state === 'none' && <Text style={[styles.note, glass]}>Не нашёл такой адрес. Передвинь карту к входу</Text>}
-          {state === 'error' && <Text style={[styles.note, glass]}>Нет связи с поиском. Передвинь карту вручную</Text>}
+          {state === 'none' && <View style={[styles.noteSurface, glass]}><Text style={styles.note}>Не нашёл такой адрес. Передвинь карту к входу</Text></View>}
+          {state === 'error' && <View style={[styles.noteSurface, glass]}><Text style={styles.note}>Нет связи с поиском. Передвинь карту вручную</Text></View>}
         </View>
 
         <View style={[styles.sheet, glass, { bottom: Math.max(12, insets.bottom + 8) }]}>
@@ -111,7 +111,8 @@ const styles = StyleSheet.create({
   hits: { borderRadius: 20, paddingVertical: 4 },
   hit: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46, paddingHorizontal: 14 },
   hitText: { flex: 1, fontFamily: fonts.body500, fontSize: 15, color: colors.ink },
-  note: { borderRadius: 16, padding: 12, fontFamily: fonts.body500, fontSize: 14, color: colors.accentText, overflow: 'hidden' },
+  noteSurface: { borderRadius: 16, overflow: 'hidden' },
+  note: { padding: 12, fontFamily: fonts.body500, fontSize: 14, color: colors.accentText },
   sheet: { position: 'absolute', left: 10, right: 10, borderRadius: 26, padding: 16, gap: 6 },
   cap: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.6, color: colors.muted2, textTransform: 'uppercase' },
   addr: { fontFamily: fonts.display700, fontSize: 19, lineHeight: 24, color: colors.ink },

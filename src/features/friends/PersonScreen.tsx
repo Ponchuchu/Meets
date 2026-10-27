@@ -107,7 +107,7 @@ export default function PersonScreen() {
   const genitive = p.name.endsWith('ь') ? `${p.name.slice(0, -1)}я` : p.name.endsWith('а') ? `${p.name.slice(0, -1)}ы` : `${p.name}а`;
 
   const frame = frameById(d.frame);
-  const seen = d.online ? 'в сети' : d.lastSeen ?? (friend ? 'в друзьях' : 'не в друзьях');
+  const seen = d.online ? 'в сети' : d.lastSeen ?? (friend ? 'в друзьях' : null);
   // Где друг — без названия места (26 окт.): только кнопка геолокации на фото, по нажатию карта находит его.
   const canLocate = friend && !preview && !!spot && canSee('friend', 'location', d.privacy);
   const medals = canSee(rel, 'achievements', d.privacy) ? [...shownBadges, ...badges.map((b) => b!.id).filter((x) => !shownBadges.includes(x))].slice(0, 4) : [];
@@ -132,7 +132,7 @@ export default function PersonScreen() {
             {!preview && <GlassBtn onPress={() => setSheet('menu')} label="Ещё: поделиться, скопировать ссылку"><MoreHorizontal size={22} color="#FFFFFF" strokeWidth={2.2} /></GlassBtn>}
           </>}
           meta={<>
-            <HeroChip dot={d.online ? '#3DDC84' : undefined}>{seen}</HeroChip>
+            {!!seen && <HeroChip dot={d.online ? '#3DDC84' : undefined}>{seen}</HeroChip>}
             {friend && !!birthdayText(d.birthday) && <HeroChip icon={<Cake size={14} color="#FFFFFF" strokeWidth={2.1} />}>{birthdayText(d.birthday)!}</HeroChip>}
             {!friend && <HeroChip>не в друзьях</HeroChip>}
           </>}
