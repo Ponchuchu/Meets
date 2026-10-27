@@ -1,4 +1,5 @@
 import { useLowPowerMode } from 'expo-battery';
+import { useEco, useRefreshRate } from '../state/perf';
 // iOS / Android: @rnmapbox/maps (нужен dev build). В Expo Go и без токена — подложка «бумага».
 // Android: пины и своя точка в рамке 128×128 (нулевые виды MarkerView пропускает),
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
@@ -47,6 +48,7 @@ const MAP_IMAGES = {
 
 export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function MapCanvas(props, ref) {
   const lowPower = useLowPowerMode();
+  const eco = useEco();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
   const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], zone, onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
@@ -55,10 +57,11 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
   const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
   const movingRef = useRef(false);
-  // Кадры: 60 только пока палец на карте или камера летит; в покое 30 — глаз не видит разницы, а телефон не греется (27 окт.).
+  // Кадры: полная частота экрана только пока палец на карте или камера летит; в покое 30 — глаз не видит разницы; под жестом — частота экрана (60 / 90 / 120 Гц), а телефон не греется (27 окт.).
+  const hz = useRefreshRate((s) => s.hz);
   const [fps, setFps] = useState(30);
   const fpsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const boost = () => { setFps((v) => (v === 60 ? v : 60)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
+  const boost = () => { setFps((v) => (v === hz ? v : hz)); clearTimeout(fpsTimer.current); fpsTimer.current = setTimeout(() => setFps(30), 1500); };
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
@@ -169,7 +172,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         key={attempt}
         style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
         styleJSON={styleJSON}
-        preferredFramesPerSecond={props.hidden ? 1 : lowPower ? 30 : fps}
+        preferredFramesPerSecond={props.hidden ? 1 : lowPower || eco ? 30 : fps}
         surfaceView={false}
         rotateEnabled={!still}
         pitchEnabled={threeD && !still}

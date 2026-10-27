@@ -36,3 +36,22 @@ if (Platform.OS !== 'web') {
   void Battery.isLowPowerModeEnabledAsync().then((on) => usePerf.setState({ powerSave: on })).catch(() => undefined);
   Battery.addLowPowerModeListener(({ lowPowerMode }) => usePerf.setState({ powerSave: lowPowerMode }));
 }
+
+/** Частота экрана, Гц: 60 / 90 / 120. Измеряется по кадрам один раз за запуск (на сильных телефонах карта рисуется под неё). */
+export const useRefreshRate = create<{ hz: number }>(() => ({ hz: 60 }));
+const HZ_STEPS = [60, 90, 120] as const;
+if (Platform.OS !== 'web') {
+  setTimeout(() => {
+    const stamps: number[] = [];
+    const tick = (t: number) => {
+      stamps.push(t);
+      if (stamps.length < 40) { requestAnimationFrame(tick); return; }
+      // Берём лучшие кадры (без пропусков): медиана нижней половины интервалов.
+      const gaps = stamps.slice(1).map((v, i) => v - stamps[i]).sort((a, b) => a - b).slice(0, 20);
+      const ms = gaps[Math.floor(gaps.length / 2)];
+      const hz = ms > 0 ? 1000 / ms : 60;
+      useRefreshRate.setState({ hz: HZ_STEPS.reduce((best, h) => (Math.abs(h - hz) < Math.abs(best - hz) ? h : best), 60 as number) });
+    };
+    requestAnimationFrame(tick);
+  }, 4000);
+}
