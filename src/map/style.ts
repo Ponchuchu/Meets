@@ -25,7 +25,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
   const month = new Date(Date.now() + 5 * 3600e3).getUTCMonth();
   const autumn = month >= 8 && month <= 10;
   const treeImage = autumn
-    ? ['match', ['%', ['to-number', ['coalesce', ['id'], 0]], 3], 0, 'tree-gold', 1, 'tree-amber', 'tree']
+    ? ['match', ['%', ['to-number', ['coalesce', ['id'], 0]], 5], 0, 'tree-gold', 1, 'tree-amber', 'tree']
     : 'tree';
   // Mapbox v11: значок, который закрыт домом, не рисуется — деревья больше не «стоят» на крышах и не просвечивают сквозь стены.
   const occlusion = v11 ? { 'icon-occlusion-opacity': 0 } : {};
@@ -122,7 +122,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
         // Деревья не участвуют в «борьбе за место» с подписями (allow-overlap + ignore-placement): иначе при повороте
         // и наклоне карты одно дерево пряталось, другое появлялось (26 окт.).
         { id: 'trees-park', type: 'symbol', source: 'trees', 'source-layer': 'landuse', minzoom: TREES_MIN_ZOOM,
-          filter: ['match', ['get', 'class'], ['park', 'grass', 'cemetery'], true, false],
+          filter: ['match', ['get', 'class'], ['park', 'cemetery'], true, false], // газоны дворов (grass) дают сотни лишних деревьев — карта тормозила (27 окт.)
           layout: { 'symbol-placement': 'point', 'icon-image': treeImage, 'icon-anchor': 'bottom', 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport',
             'icon-size': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0.11, 17, 0.2, 19, 0.34], 'icon-padding': 0, 'icon-allow-overlap': true, 'icon-ignore-placement': true } ,
           paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], TREES_MIN_ZOOM, 0, TREES_MIN_ZOOM + 0.5, 1], ...occlusion } },

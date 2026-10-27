@@ -19,3 +19,15 @@ describe('очистка текста карточек', () => {
     expect(looksKazakh('Валерий Меладзе впервые за долгое время — в Алматы')).toBe(false);
   });
 });
+
+describe('площадка и название', () => {
+  it('обрывок адреса не название, код убирается из адреса, префикс площадки из названия', () => {
+    const { cleanPlaceName, cleanAddress, stripVenuePrefix, cleanAbout } = jest.requireActual('../lib/cleanText') as typeof import('../lib/cleanText');
+    expect(cleanPlaceName('36, Алматы')).toBeNull();
+    expect(cleanPlaceName('Театр Лермонтова')).toBe('Театр Лермонтова');
+    expect(cleanAddress('23b769, 36, Алматы')).toBe('36, Алматы');
+    expect(stripVenuePrefix('Театр 2act: Мне не смешно', 'Театр 2act')).toBe('Мне не смешно');
+    expect(stripVenuePrefix('Мастер-класс: гончарное дело', 'Театр 2act')).toBe('Мастер-класс: гончарное дело');
+    expect(cleanAbout('25 ноября - 20:00\n«Мне не смешно»\nкомедия о цензуре', 'Мне не смешно')).toBe('комедия о цензуре');
+  });
+});

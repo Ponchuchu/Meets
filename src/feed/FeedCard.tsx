@@ -10,7 +10,6 @@ import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyl
 import type { EventItem, Person } from '../data/types';
 import { eventFacts } from '../event/facts';
 import { CAT_LABEL } from '../map/icons';
-import { stampOf } from '../map/ui/EventSheet';
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { EventCover } from '../ui/EventCover';
@@ -34,7 +33,7 @@ export function FeedCard(props: { e: EventItem; people: Person[]; now: Date; dx?
   return props.e.spotId ? <SpotFeedCard {...props} /> : <EventFeedCard {...props} />;
 }
 
-function EventFeedCard({ e, people, now, dx, stamp, height }: {
+function EventFeedCard({ e, people, dx, stamp, height }: {
   e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number;
 }) {
   const coverH = Math.round(height * 0.5);
@@ -52,7 +51,6 @@ function EventFeedCard({ e, people, now, dx, stamp, height }: {
         </Svg>
         <View style={styles.cat}><Text style={styles.catText}>{CAT_LABEL[e.category]}</Text></View>
         {e.lang === 'kk' && <View style={styles.kk} accessibilityLabel="Событие на казахском языке"><Text style={styles.kkText}>ҚАЗАҚША</Text></View>}
-        <View style={styles.when}><Text style={styles.whenText}>{stampOf(e, now)}</Text></View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ПОЙДУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
       </EventCover>

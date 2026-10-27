@@ -12,6 +12,8 @@ const FACT_LINE = new RegExp([
   `^\\d{1,2}[:.]\\d{2}(\\s*[-–—]\\s*\\d{1,2}[:.]\\d{2})?$`,
   `^\\d{1,2}\\s+(${MONTHS})(\\s*[(/,].*)?$`,
   `^(сегодня|завтра|понедельник|вторник|среда|четверг|пятница|суббота|воскресенье)[,\\s].*(\\d{1,2}[:.]\\d{2}|${MONTHS})`,
+  `^\\d{1,2}\\s+(${MONTHS})\\s*[-–—,·:]?\\s*\\d{1,2}[:.]\\d{2}`,
+  `^(пн|вт|ср|чт|пт|сб|вс)[,.]?\\s+\\d{1,2}`,
   `^(бесплатно|вход свободный|вход бесплатный|тегін|free)\\.?$`,
 ].join('|'), 'i');
 const ONLY_TAGS = /^(#[\p{L}\p{N}_]+[\s,]*)+$/u;
@@ -23,7 +25,8 @@ export function cleanAbout(about: string, title = ''): string {
   const kept: string[] = [];
   for (const l of lines) {
     const bare = l.replace(/[«»"']/g, '').trim();
-    if (bare && (bare.toLowerCase() === t || FACT_LINE.test(bare) || ONLY_TAGS.test(bare))) continue;
+    const low = bare.toLowerCase();
+    if (bare && (low === t || (low.length >= 6 && t.includes(low)) || FACT_LINE.test(bare) || ONLY_TAGS.test(bare))) continue;
     // Строка из нескольких языков через « / »: оставляем русскую часть.
     const parts = bare.split(/\s+\/\s+/);
     const ru = parts.length > 1 ? parts.find((p) => /[а-яё]/i.test(p) && !/[әғқңөұүһі]/i.test(p)) : null;
@@ -44,4 +47,22 @@ export function looksKazakh(text: string): boolean {
   const kk = (text.match(/[әғқңөұүһі]/gi) ?? []).length;
   const cyr = (text.match(/[а-яёәғқңөұүһі]/gi) ?? []).length;
   return kk >= 3 && kk / Math.max(1, cyr) > 0.06;
+}
+
+/** Название площадки: геокодер иногда отдаёт обрывок адреса («36, Алматы») — это не название. */
+export function cleanPlaceName(name: string | null | undefined): string | null {
+  const t = (name ?? '').trim();
+  if (!t || /^\d{1,4}[,\s]/.test(t) || /^[\d\s,.-]+$/.test(t)) return null;
+  return t;
+}
+/** Адрес без служебных кодов вроде «23b769»; пустые хвосты убираются. */
+export function cleanAddress(addr: string | null | undefined): string {
+  return (addr ?? '').replace(/(^|,\s*)\d{1,3}[a-z]\d{2,5}(?=,|$)/gi, '$1').replace(/^[,\s]+|[,\s]+$/g, '').replace(/,\s*,/g, ',');
+}
+/** «Театр 2act: Мне не смешно» → «Мне не смешно»: площадка уже есть в карточке. */
+export function stripVenuePrefix(title: string, venue: string | null | undefined): string {
+  const m = /^([^:]{3,40}):\s*(.{3,})$/.exec(title);
+  if (!m || !venue) return title;
+  const a = m[1].toLowerCase().replace(/[^а-яёa-z0-9]/g, ''), b = venue.toLowerCase().replace(/[^а-яёa-z0-9]/g, '');
+  return a && b && (b.includes(a) || a.includes(b)) ? m[2] : title;
 }

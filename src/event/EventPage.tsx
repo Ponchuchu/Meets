@@ -196,16 +196,33 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         </Animated.View>
 
         <View style={styles.body}>
+          {/* Когда, где, сколько — один блок вместо россыпи плашек (27 окт.): дата и время, место с расстоянием, цена. Адрес — ниже, в блоке «Где». */}
+          <View style={styles.facts}>
+            <View style={styles.factRow}>
+              <View style={styles.factIcon}><Clock size={19} color={colors.ink} strokeWidth={1.9} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.factMain} numberOfLines={2}>{whenTitle(e, now)}</Text>
+                {!!soon && <Text style={[styles.factSub, { color: colors.accentText }]}>{soon}</Text>}
+              </View>
+            </View>
+            <View style={styles.factLine} />
+            <View style={styles.factRow}>
+              <View style={styles.factIcon}><MapPin size={19} color={colors.ink} strokeWidth={1.9} /></View>
+              <Text style={[styles.factMain, { flex: 1 }]} numberOfLines={2}>{e.venueName || e.address.split(',').slice(0, 2).join(',') || 'Место уточняется'}</Text>
+              {!!dist && <Text style={styles.factSide}>{dist}</Text>}
+            </View>
+            <View style={styles.factLine} />
+            <View style={styles.factRow}>
+              <View style={styles.factIcon}><Ticket size={19} color={colors.ink} strokeWidth={1.9} /></View>
+              <Text style={[styles.factMain, { flex: 1 }, !priceText && { color: colors.muted3 }]} numberOfLines={1}>{priceText ? (e.isFree || e.priceMin === 0 ? 'Бесплатно' : priceText.replace(/^ОТ/, 'от')) : 'Цена не указана'}</Text>
+            </View>
+          </View>
           <View style={styles.chips}>
-            <View style={styles.chip}><Clock size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{whenTitle(e, now)}</Text></View>
-            {soon && <View style={[styles.chip, styles.soon]} accessibilityLabel={`Начало ${soon}`}><View style={styles.soonDot} /><Text style={[styles.chipText, { color: colors.accentText }]}>{soon}</Text></View>}
             {multiDay && !e.sessions && <Pressable onPress={() => setSheet('visit')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'Выбрать день и время'}</Text></Pressable>}
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
             {(e.dates?.length ?? 0) > 1 && <Pressable onPress={() => setSheet('dates')} style={styles.chip} accessibilityRole="button" accessibilityLabel="Даты события"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : `${e.dates!.length} ${e.dates!.length < 5 ? 'даты' : 'дат'}: ${e.dates!.slice(0, 3).map((d) => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short' })).join(', ')}${e.dates!.length > 3 ? '…' : ''}`}</Text></Pressable>}
             {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
             {e.lang === 'kk' && <View style={styles.chip} accessibilityLabel="Событие на казахском языке"><Text style={[styles.chipText, { color: '#1E7BB8' }]}>Қазақша</Text></View>}
-            {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
-            {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
 
           {/* «Компания» (26 окт.): кто из друзей идёт и кто ищет компанию — одним блоком, по нажатию шторка. */}
@@ -369,6 +386,13 @@ const styles = StyleSheet.create({
   stamp: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.55)' },
   stampText: { fontFamily: fonts.mono600, fontSize: 11.5, letterSpacing: 0.9, color: '#EEE9DE' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  facts: { borderRadius: 22, backgroundColor: '#FBFAF6', paddingHorizontal: 12, paddingVertical: 4, boxShadow: '0 10px 22px -18px rgba(23,22,26,0.6)' },
+  factRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8 },
+  factIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
+  factMain: { fontFamily: fonts.body700, fontSize: 16, lineHeight: 21, color: colors.ink },
+  factSub: { fontFamily: fonts.body600, fontSize: 13, marginTop: 1, color: colors.muted2 },
+  factSide: { fontFamily: fonts.mono600, fontSize: 13, color: colors.muted2 },
+  factLine: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line2, marginLeft: 50 },
   soon: { backgroundColor: '#F6DCCD', borderColor: 'rgba(240,82,31,0.25)' },
   soonDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 36, paddingHorizontal: 12, borderRadius: 12, ...plate },

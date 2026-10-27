@@ -8,8 +8,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MapPin, MessageCircle } from 'lucide-react-native';
 import { agoShort } from '../../map/ago';
-import { StatusChip } from '../../map/pins';
-import { friendMark } from '../../map/social';
 import { useMapState } from '../../state/map';
 import { ART } from '../../ui/art';
 import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, ZoomIn } from 'react-native-reanimated';
@@ -34,13 +32,12 @@ import { Toast, type ToastData } from '../../ui/Toast';
 
 type Sheet = null | 'add' | 'bump' | { rename: Person };
 
-/** Где друг сейчас — одной строкой: «в пути · 14 км/ч», «Бостандыкский · сейчас», «был 2 ч назад», «не делится местом». */
-function whereText(sp?: FriendSpot): string {
+/** Статус друга одной строкой, как в ВК: «в сети», «в пути», «был 2 ч назад». */
+function statusText(sp: FriendSpot | undefined, online: boolean): string {
   if (!sp) return 'не делится местом';
   if (sp.state === 'moving') return `в пути${sp.speedKmh ? ` · ${sp.speedKmh} км/ч` : ''}`;
-  const ago = sp.minutesAgo ?? 0;
-  if (ago >= 10) return `был ${agoShort(ago)} назад · ${sp.place}`;
-  return sp.doing ? `${sp.place} · ${sp.doing}` : `${sp.place} · сейчас`;
+  if (online) return sp.place ? `в сети · ${sp.place}` : 'в сети';
+  return `был ${agoShort(sp.minutesAgo ?? 0)} назад`;
 }
 
 /** Откуда рекомендация: общие друзья или номер из контактов телефона. */
@@ -66,6 +63,10 @@ export default function FriendsScreen() {
 
   const friends = [...new Map(people.filter((p) => isFriendNow(p, social)).map((p) => [p.id, p])).values()];
   const byId = (id: string) => people.find((p) => p.id === id);
+  // «В сети» — делится местом и обновлялся меньше 10 минут назад (или едет).
+  const isOnline = (id: string) => { const sp = spotOf(id); return !!sp && (sp.state === 'moving' || (sp.minutesAgo ?? 99) < 10); };
+  const onlineFriends = friends.filter((p) => isOnline(p.id));
+  const offlineFriends = friends.filter((p) => !isOnline(p.id)).sort((a, b) => (spotOf(a.id)?.minutesAgo ?? 1e9) - (spotOf(b.id)?.minutesAgo ?? 1e9));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3000); };
   const pending = requests.filter((r) => !social.answered[r.personId]);
   const suggestions = people.filter((p) => !isFriendNow(p, social) && !social.hidden[p.id] && !pending.some((r) => r.personId === p.id));
@@ -94,26 +95,6 @@ export default function FriendsScreen() {
             <Text style={styles.addText}>Добавить</Text>
           </Pressable>
         </View>
-
-        {/* «Сейчас на карте» (26 окт.): как истории — кольцо цвета рамки, в пути — синее с полосками; тап — на карту к другу. */}
-        {friends.some((p) => spotOf(p.id)) && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 14, paddingHorizontal: 16, paddingVertical: 4 }}>
-            {friends.filter((p) => spotOf(p.id)).sort((a, b) => (spotOf(a.id)!.minutesAgo ?? 0) - (spotOf(b.id)!.minutesAgo ?? 0)).map((p) => {
-              const sp = spotOf(p.id)!;
-              const mark = friendMark(sp, agoShort);
-              const fresh = (sp.minutesAgo ?? 0) < 10;
-              return (
-                <Pressable key={p.id} onPress={() => showOnMap(p.id)} style={styles.story} accessibilityRole="button" accessibilityLabel={`${displayName(p, social.nicknames)} на карте`}>
-                  <View style={[styles.storyRing, { borderColor: sp.state === 'moving' ? colors.friend : fresh ? '#2FA35A' : colors.line2 }]}>
-                    <Avatar p={p} size={58} />
-                  </View>
-                  {mark && <View style={{ marginTop: -12 }}><StatusChip mark={mark} /></View>}
-                  <Text style={styles.storyName} numberOfLines={1}>{displayName(p, social.nicknames)}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
 
         <QueryNotice pending={peopleQuery.isPending} error={peopleQuery.isError} onRetry={() => { void peopleQuery.refetch(); }} />
         {pending.length > 0 && (
@@ -183,27 +164,37 @@ export default function FriendsScreen() {
                 </View>
               </View>
             )}
-            <View style={{ gap: 2 }}>
-              {friends.map((p) => (
-                <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={({ pressed }) => [styles.friendRow, pressed && { opacity: 0.7 }]} accessibilityRole="link" accessibilityLabel={displayName(p, social.nicknames)}
-                  accessibilityActions={[{ name: 'longpress', label: 'Переименовать' }]} onAccessibilityAction={() => setSheet({ rename: p })}>
-                  <Avatar p={p} size={50} ring={spotOf(p.id)?.state === 'moving' ? colors.friend : (spotOf(p.id)?.minutesAgo ?? 99) < 10 ? '#2FA35A' : colors.line2} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={styles.name} numberOfLines={1}>{displayName(p, social.nicknames)}{social.nicknames[p.id] ? <Text style={styles.sub}>  {p.name}</Text> : null}</Text>
-                    <Text style={styles.sub} numberOfLines={1}>{whereText(spotOf(p.id))}</Text>
-                  </View>
-                  {/* Быстрые действия: написать и показать на карте; переименовать — долгим нажатием на строку. */}
-                  <Pressable onPress={() => write(p.id)} hitSlop={4} style={styles.act} accessibilityRole="button" accessibilityLabel={`Написать: ${p.name}`}>
-                    <MessageCircle size={19} color={colors.ink} strokeWidth={1.9} />
-                  </Pressable>
-                  {spotOf(p.id) && (
-                    <Pressable onPress={() => showOnMap(p.id)} hitSlop={4} style={[styles.act, { backgroundColor: colors.friend }]} accessibilityRole="button" accessibilityLabel={`Показать на карте: ${p.name}`}>
-                      <MapPin size={19} color="#FFFFFF" strokeWidth={2} />
+            {/* Как в ВК: сначала кто в сети (зелёная точка), ниже — остальные с «был(а) … назад». */}
+            {[{ key: 'on', title: 'В сети', list: onlineFriends }, { key: 'off', title: 'Не в сети', list: offlineFriends }].filter((g) => g.list.length > 0).map((g) => (
+              <View key={g.key} style={{ gap: 2 }}>
+                {onlineFriends.length > 0 && offlineFriends.length > 0 && <Text style={styles.groupCap}>{g.title.toUpperCase()} · {g.list.length}</Text>}
+                {g.list.map((p) => {
+                  const sp = spotOf(p.id);
+                  const on = isOnline(p.id);
+                  return (
+                    <Pressable key={p.id} onPress={() => openPerson(p.id)} onLongPress={() => setSheet({ rename: p })} style={({ pressed }) => [styles.friendRow, pressed && { opacity: 0.7 }]} accessibilityRole="link" accessibilityLabel={`${displayName(p, social.nicknames)}, ${on ? 'в сети' : 'не в сети'}`}
+                      accessibilityActions={[{ name: 'longpress', label: 'Переименовать' }]} onAccessibilityAction={() => setSheet({ rename: p })}>
+                      <View>
+                        <Avatar p={p} size={52} />
+                        {on && <View style={styles.onlineDot} />}
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={styles.name} numberOfLines={1}>{displayName(p, social.nicknames)}{social.nicknames[p.id] ? <Text style={styles.sub}>  {p.name}</Text> : null}</Text>
+                        <Text style={[styles.sub, on && { color: '#1F8A4C', fontFamily: fonts.body600 }]} numberOfLines={1}>{statusText(sp, on)}</Text>
+                      </View>
+                      <Pressable onPress={() => write(p.id)} hitSlop={4} style={styles.act} accessibilityRole="button" accessibilityLabel={`Написать: ${p.name}`}>
+                        <MessageCircle size={19} color={colors.ink} strokeWidth={1.9} />
+                      </Pressable>
+                      {sp && (
+                        <Pressable onPress={() => showOnMap(p.id)} hitSlop={4} style={[styles.act, { backgroundColor: on ? colors.friend : colors.sand }]} accessibilityRole="button" accessibilityLabel={`Показать на карте: ${p.name}`}>
+                          <MapPin size={19} color={on ? '#FFFFFF' : colors.ink} strokeWidth={2} />
+                        </Pressable>
+                      )}
                     </Pressable>
-                  )}
-                </Pressable>
-              ))}
-            </View>
+                  );
+                })}
+              </View>
+            ))}
 
             {friendPlans.length > 0 && (
               <>
@@ -372,6 +363,8 @@ const styles = StyleSheet.create({
   darkText: { fontFamily: fonts.body600, fontSize: 13.5, color: colors.paper },
   x: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.line2, alignItems: 'center', justifyContent: 'center' },
   friendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: -10, borderRadius: 18 },
+  groupCap: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: colors.muted, marginTop: 6, marginBottom: 2 },
+  onlineDot: { position: 'absolute', right: -1, bottom: -1, width: 15, height: 15, borderRadius: 8, backgroundColor: '#2FA35A', borderWidth: 2.5, borderColor: colors.paper },
   act: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.sand, alignItems: 'center', justifyContent: 'center' },
   story: { width: 72, alignItems: 'center', gap: 4 },
   storyRing: { width: 68, height: 68, borderRadius: 34, borderWidth: 3, padding: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper },
