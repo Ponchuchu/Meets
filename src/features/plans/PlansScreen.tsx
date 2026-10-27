@@ -327,21 +327,21 @@ function NextUp({ e, now, people, onOpen, onMenu }: { e: EventItem; now: Date; p
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
   return (
     <Pressable onPress={onOpen} onLongPress={onMenu} delayLongPress={350} style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.99 }] }]} accessibilityRole="button" accessibilityLabel={`Дальше по плану: ${e.title}, ${when}`}>
-      <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={90}>
-        <View style={styles.nextShade} />
-        <View style={styles.nextBadge}><View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} /><Text style={styles.nextBadgeText}>{when.toUpperCase()}</Text></View>
-      </EventCover>
+      <EventCover cover={e.cover} category={e.category} color={e.coverColor} style={styles.nextCover} iconSize={44} />
       <View style={styles.nextBody}>
-        <Text style={styles.nextCap}>ДАЛЬШЕ ПО ПЛАНУ</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={[styles.nextDot, left <= 0 && { backgroundColor: colors.ok }]} />
+          <Text style={styles.nextCap} numberOfLines={1}>{when.toUpperCase()}</Text>
+        </View>
         <Text style={styles.nextTitle} numberOfLines={2}>{e.title}</Text>
         <Text style={styles.sub} numberOfLines={1}>{hm(e.startsAt)} · {e.venueName ?? e.address.split(',')[0]}</Text>
         <View style={styles.nextRow}>
           {friends.length > 0 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-            <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={26} style={{ marginLeft: i ? -8 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
+            <View style={{ flexDirection: 'row' }}>{friends.slice(0, 3).map((p, i) => <Avatar key={p.id} p={p} size={22} style={{ marginLeft: i ? -7 : 0, borderWidth: 2, borderColor: '#FBFAF6' }} />)}</View>
             <Text style={styles.sub} numberOfLines={1}>{friends.length === 1 ? `${friends[0].name} тоже идёт` : `${friends.length} друга идут`}</Text>
           </View> : <View style={{ flex: 1 }} />}
           <Pressable onPress={() => router.push({ pathname: '/route', params: routeParams(e) })} style={styles.nextBtn} accessibilityRole="button" accessibilityLabel="Маршрут">
-            <Navigation size={15} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
+            <Navigation size={14} color={colors.paper} strokeWidth={2.2} /><Text style={styles.nextBtnText}>Маршрут</Text>
           </Pressable>
         </View>
       </View>
@@ -449,17 +449,17 @@ const styles = StyleSheet.create({
   answerText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink },
   rowMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   fromFace: { position: 'absolute', right: -6, bottom: -6, borderWidth: 2, borderColor: '#FBFAF6' },
-  next: { borderRadius: 26, overflow: 'hidden', backgroundColor: '#FBFAF6', boxShadow: '0 16px 32px -18px rgba(23,22,26,0.45), 0 2px 6px rgba(23,22,26,0.06)' },
-  nextCover: { height: 150, justifyContent: 'flex-end' },
+  next: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 22, overflow: 'hidden', backgroundColor: '#FBFAF6', boxShadow: '0 16px 32px -18px rgba(23,22,26,0.45), 0 2px 6px rgba(23,22,26,0.06)' },
+  nextCover: { width: 84, height: 84, borderRadius: 16 },
   nextShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(23,22,26,0.12)' },
   nextBadge: { position: 'absolute', left: 12, top: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(23,22,26,0.72)' },
   nextDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
   nextBadgeText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.6, color: '#FFFFFF' },
-  nextBody: { padding: 14, gap: 4 },
+  nextBody: { flex: 1, minWidth: 0, gap: 2 },
   nextCap: { fontFamily: fonts.mono600, fontSize: 10, letterSpacing: 0.8, color: colors.muted },
-  nextTitle: { fontFamily: fonts.display800, fontSize: 21, letterSpacing: -0.4, lineHeight: 25, color: colors.ink },
-  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.ink },
+  nextTitle: { fontFamily: fonts.display800, fontSize: 17, letterSpacing: -0.3, lineHeight: 21, color: colors.ink },
+  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: colors.ink },
   nextBtnText: { fontFamily: fonts.body700, fontSize: 13.5, color: colors.paper },
   dayHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 8 },
   dayHeadText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.9, color: colors.muted },

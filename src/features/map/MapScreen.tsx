@@ -60,6 +60,7 @@ import { PlacePin } from '../../map/ui/PlacePin';
 import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
 import { getSpots } from '../../data/spots';
 import { SpotSheet } from '../../map/ui/SpotSheet';
+import { ZONES } from '../../data/zones';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
 import { distM, exploredPct, fogShape, trafficTiles, ALMATY_CELLS } from '../../live/geo';
 import { startBackground, useMyFix, usePreciseGps } from '../../live/location';
@@ -370,20 +371,18 @@ export default function MapScreen() {
     const taps = new Map<string, () => void>();
     for (const group of groups) {
       // В группе главной показываем выбранное событие, иначе самое «горячее», иначе ближайшее.
-      const e = group.find((x) => x.id === selected?.id)
-        ?? group.find((x) => x.id === selectedId)
-        ?? group.find((x) => pinKind(x, today, going.has(x.id)) === 'hot')
+      const e = group.find((x) => pinKind(x, today, going.has(x.id)) === 'hot')
         ?? group[0];
       const k0 = pinKind(e, today, going.has(e.id));
       const kind = k0 === 'popular' && !popularBigger ? 'plain' : k0;
-      const isSel = e.id === selected?.id;
-      const z = isSel ? 34 : kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20;
-      if (isSel || e.meetup) {
+      const z = kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20;
+      // Выбор события карту не перерисовывает и подписи не рисует (27 окт.): карта остаётся картой, детали — в шторке.
+      if (e.meetup) {
         list.push({
           id: `e-${e.id}`, lat: e.lat, lon: e.lon, z,
           node: (
             <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-            {<EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={e.title} selected
+            {<EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={e.title} selected={false}
               showCompany={false} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
               />}
             </View>
@@ -473,7 +472,7 @@ export default function MapScreen() {
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
     return { markers: list, symbols: syms as MapSymbol[], taps };
-  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, selectedId, selected?.id, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, bubble, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
   // Тап по значку слоя карты: обработчики меняются вместе со значками, сама функция — одна.
   const tapsRef = useRef(taps);
   useEffect(() => { tapsRef.current = taps; }, [taps]);
@@ -540,7 +539,7 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      {focused && startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad + (selected ? 330 : 0)} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines}
+      {focused && startCam && <MapCanvas key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines} zone={sheet === 'spot' && spotPlace ? ZONES[spotPlace.id] ?? null : null}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
       {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}

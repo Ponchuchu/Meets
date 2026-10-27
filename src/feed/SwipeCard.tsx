@@ -13,7 +13,7 @@ import { HINT_IDLE_MS, hintDue, useFeed } from '../state/feed';
 
 export const THRESHOLD = 90;
 const UP = 60;
-const TAP = 6;
+const TAP = 14; // палец на телефоне «дрожит» на 6–10 dp: прежние 6 часто не засчитывали нажатие (27 окт.)
 const FLY_MS = 800;
 
 export interface SwipeHandle {

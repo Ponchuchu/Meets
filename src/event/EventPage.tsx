@@ -11,7 +11,7 @@ import { ScheduleSheet } from './ScheduleSheet';
 import { useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
@@ -81,6 +81,11 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   // Обложка: при прокрутке уезжает медленнее текста, при оттягивании вниз — растёт (параллакс, FIX3).
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler(ev => { scrollY.set(ev.contentOffset.y); });
+  // Мини-карта места строится, когда до неё осталось меньше экрана прокрутки.
+  const [nearMap, setNearMap] = useState(false);
+  const mapY = useSharedValue(99999);
+  const viewH = useWindowDimensions().height;
+  useAnimatedReaction(() => scrollY.get() + viewH + 240 > mapY.get(), (now, was) => { if (now && !was) runOnJS(setNearMap)(true); });
   const parallax = useAnimatedStyle(() => {
     const y = scrollY.get();
     return y < 0 ? { transform: [{ translateY: y / 2 }, { scale: 1 + -y / coverH }] } : { transform: [{ translateY: y * 0.35 }] };
@@ -232,9 +237,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           {!!e.about && <AboutBlock text={e.about} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
-          <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
+          <View onLayout={(ev) => { mapY.set(ev.nativeEvent.layout.y); }}><PlaceBlock near={nearMap} lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
-            onRoute={() => router.push({ pathname: '/route', params: routeParams(e) })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
+            onRoute={() => router.push({ pathname: '/route', params: routeParams(e) })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} /></View>
           {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}

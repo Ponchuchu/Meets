@@ -49,7 +49,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lowPower = useLowPowerMode();
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
-  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
+  const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], zone, onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
   const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
   // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
@@ -57,6 +57,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const movingRef = useRef(false);
   const placeShape = useMemo(() => placesGeo(places), [places]);
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
+  const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
   const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
@@ -228,6 +229,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         </M.ShapeSource>
         {/* Линии маршрута и друзей — один постоянный источник: слои не создаются и не удаляются при смене способа
             (на Android удаление источника во время отрисовки роняло приложение — FIX3 Ф1). */}
+        <M.ShapeSource id="zone" shape={zoneShape as never}>
+          <M.FillLayer id="zone-fill" style={{ fillColor: '#F0521F', fillOpacity: 0.16 }} />
+          <M.LineLayer id="zone-line" style={{ lineColor: '#F0521F', lineWidth: 2.4, lineOpacity: 0.9, lineJoin: 'round', lineDasharray: [2, 1.4] }} />
+        </M.ShapeSource>
         <M.ShapeSource id="lines" shape={lineShape as never}>
           <M.LineLayer id="lines-solid" filter={['!=', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round' }} />
           <M.LineLayer id="lines-dash" filter={['==', ['get', 'dash'], true]} style={{ lineColor: ['get', 'color'], lineWidth: ['get', 'width'], lineCap: 'round', lineJoin: 'round', lineDasharray: [0.6, 1.8] }} />

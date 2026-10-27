@@ -64,7 +64,7 @@ function Shell() {
   }, [prof.data, draft.name, draft.photo]);
   return (
     <>
-      <Tabs detachInactiveScreens tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
+      <Tabs detachInactiveScreens={false} tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper }, freezeOnBlur: false, animation: 'none' }}>
         <Tabs.Screen name="index" options={{ title: 'Карта' }} />
         {/* Скрытые вкладки (кроме карты) замирают: не перерисовываются от сообщений и точек друзей, пока открыта другая.
             Карту не замораживаем — она сама отключает отрисовку вне фокуса (MapScreen: focused). */}
