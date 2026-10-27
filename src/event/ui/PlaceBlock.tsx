@@ -7,8 +7,6 @@ import type { Category } from '../../data/types';
 import { MapCanvas } from '../../map/MapCanvas';
 import { CAT_COLOR, CAT_ICON, catFg } from '../../map/icons';
 import type { MapMarker } from '../../map/types';
-import { useMapView } from '../../state/mapView';
-import { useEco } from '../../state/perf';
 import { Ic } from '../../ui/Ic';
 import { config } from '../../lib/config';
 import { colors, fonts } from '../../theme';
@@ -46,9 +44,8 @@ export function PlaceBlock({ lat, lon, title, address, dist, exact, category, on
   lat: number; lon: number; title: string; address: string; dist?: string | null; exact: boolean; category?: Category; onRoute: () => void; onCopy: () => void;
 }) {
   const [broken, setBroken] = useState(false);
-  const eco = useEco();
-  const view3d = useMapView((v) => v.view) === '3d';
-  const live = exact && !eco && view3d && !!config.mapboxToken;
+  // Всегда наша живая карта (27 окт.): раньше в экономии и в режиме 2D показывалась старая картинка Mapbox другого стиля.
+  const live = exact && !!config.mapboxToken;
   const url = exact && !broken && !live ? staticMapUrl(lat, lon) : null;
   return (
     <View style={styles.card}>

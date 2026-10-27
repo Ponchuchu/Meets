@@ -1,4 +1,4 @@
-// Стикер — как наклейка в Telegram: картинка с белой вырубкой (нарисована в Figma) и мягкой тенью под ней.
+// Стикер — как наклейка в Telegram: картинка с белой вырубкой (нарисована в Figma) без тени (убрана 27 окт. по просьбе владельца: тень только на карте).
 // Текстовый мем («67», «МОГНУ») — крупные буквы с тёмным контуром и толстой белой каймой, чуть повёрнут.
 import { Image, View } from 'react-native';
 import Svg, { Text as SvgText } from 'react-native-svg';
@@ -9,7 +9,6 @@ export function StickerView({ st, size = 'md' }: { st: Sticker; size?: 'md' | 'l
   const n = typeof size === 'number' ? size : size === 'lg' ? 150 : 82;
   return (
     <View style={{ width: n, height: n, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: `${st.rot}deg` }] }} accessibilityLabel={st.label}>
-      <View pointerEvents="none" style={{ position: 'absolute', bottom: n * 0.04, width: n * 0.6, height: n * 0.1, borderRadius: n, backgroundColor: 'rgba(23,22,26,0.14)' }} />
       {st.img ? <Image source={st.img} style={{ width: n * 0.96, height: n * 0.96 }} resizeMode="contain" /> : <MemeText text={st.text ?? st.label} tint={st.tint ?? '#FFD23F'} n={n} />}
     </View>
   );

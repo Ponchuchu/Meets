@@ -14,6 +14,10 @@ export interface EventItem {
   sessions?: { id: string; startsAt: string; endsAt: string | null }[];
   /** Несколько дат одной карточки (спектакль 31 окт. и 1 нояб.): ISO по возрастанию. «Пойду» спрашивает, какую. */
   dates?: string[];
+  /** Язык события и оригинал, если карточка переведена с казахского (27 окт.): title/about — по-русски, оригинал по кнопке. */
+  lang?: 'ru' | 'kk' | 'en';
+  origTitle?: string;
+  origAbout?: string;
   /** Фото и видео из поста источника (Instagram): копии в хранилище. */
   media?: { type: 'image' | 'video'; url: string; poster?: string | null }[];
   createdBy?: string;

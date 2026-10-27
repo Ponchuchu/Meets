@@ -90,3 +90,13 @@ export function recencyKey(time: string): number {
 export function sortChats<T extends { id: string; time: string }>(list: T[], pinned: Record<string, true>): T[] {
   return [...list].sort((a, b) => Number(!!pinned[b.id]) - Number(!!pinned[a.id]) || recencyKey(b.time) - recencyKey(a.time));
 }
+
+/** Не больше 10 сообщений за 5 секунд и 2 стикеров в секунду: не даём завалить чат и очередь отправки (27 окт.). */
+export const SEND_WINDOW_MS = 5000;
+export const SEND_MAX = 10;
+export function maySend(log: number[], now: number, sticker = false): { ok: boolean; log: number[] } {
+  const recent = log.filter((t) => now - t < SEND_WINDOW_MS);
+  if (recent.length >= SEND_MAX) return { ok: false, log: recent };
+  if (sticker && recent.filter((t) => now - t < 1000).length >= 2) return { ok: false, log: recent };
+  return { ok: true, log: [...recent, now] };
+}

@@ -203,6 +203,7 @@ interface LiveRow {
   cover_url: string | null; source_url: string | null; visibility: 'public' | 'friends';
   status?: EventItem['status'];
   sessions?: string[] | null; media?: EventItem['media'] | null;
+  lang?: string | null; orig_title?: string | null; orig_about?: string | null;
 }
 
 export function mapLive(r: LiveRow): EventItem {
@@ -211,6 +212,9 @@ export function mapLive(r: LiveRow): EventItem {
   return {
     ...(dates.length > 1 ? { dates } : {}),
     ...(r.media?.length ? { media: r.media } : {}),
+    ...(r.lang === 'kk' || r.lang === 'en' ? { lang: r.lang } : {}),
+    // Оригинал показываем, только если карточка действительно переведена (описание в orig_about; «—» — описания не было).
+    ...(r.lang === 'kk' && r.orig_about ? { origTitle: r.orig_title ?? undefined, origAbout: r.orig_about === '—' ? '' : r.orig_about } : {}),
     id: r.id, createdBy: r.created_by, title: r.title, category: r.category as Category, tags: r.tags ?? [],
     startsAt: r.starts_at, endsAt: r.ends_at, isLong: r.is_long || isLongEvent(r.starts_at, r.ends_at),
     venueId: r.venue_id ?? undefined, venueName: r.venue_name, address: r.address ?? '', addressNote: r.address_note ?? undefined,

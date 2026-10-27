@@ -1,6 +1,6 @@
 // Черновик карточки из разобранного поста: площадка, точка, флаги, публиковать ли сразу.
 import { canonAddress } from './ruAddress.ts';
-import { isVague, matchVenue, type VenueRow } from './venues.ts';
+import { isVague, matchVenue, NOT_A_PLACE, type VenueRow } from './venues.ts';
 import type { Draft, Extraction, Flag, Point, RawPost, Source } from './types.ts';
 
 export const AUTO_PUBLISH_FROM = 0.95;
@@ -23,11 +23,13 @@ export async function buildDraft(
   let point: Point | null = venue?.lat != null && venue.lon != null ? { lat: venue.lat, lon: venue.lon } : null;
   if (!point && x.lat != null && x.lon != null && Math.hypot((x.lat - 43.2389) * 111, (x.lon - 76.8897) * 81) < 18) point = { lat: x.lat, lon: x.lon };
   if (!point && !isVague(x.address)) point = await geocode([x.venue_name, x.address].filter(Boolean).join(', '));
+  // Есть название площадки, а адреса нет («Театр Лермонтова», «Дворец Республики», «гостиница Казахстан») — ищем место по названию.
+  if (!point && x.venue_name && !NOT_A_PLACE.test(x.venue_name.trim())) point = await geocode(x.venue_name);
   if (!point) flags.push('needs_pin');
   if (x.price_unsure) flags.push('check_price');
   const confidence = Math.round(x.confidence * 100) / 100;
   // Адрес в одном виде: «улица Жандосова, 1/1», этаж и офис — в заметку.
-  const addr = canonAddress(x.address);
+  const addr = canonAddress(!isVague(x.address) ? x.address : (!venue ? point?.address : null) ?? x.address);
   return {
     title: x.title,
     category: x.category,

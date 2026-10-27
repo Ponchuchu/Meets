@@ -34,6 +34,11 @@ export function intervalMin(at: Date): number | null {
   return 12;
 }
 
+/** Ходят ли автобусы сейчас и с какого часа начнут (6:00–23:00 по Алматы). */
+export function busService(at: Date): { running: boolean; startsAt: string } {
+  return { running: intervalMin(at) != null, startsAt: '06:00' };
+}
+
 /** Средняя скорость автобуса, км/ч: в час пик медленнее. */
 export function busSpeedKmh(at: Date): number {
   const h = almatyHour(at);

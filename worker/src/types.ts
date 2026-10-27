@@ -76,6 +76,8 @@ export type Flag = 'needs_pin' | 'check_price' | 'cancel_reported';
 export interface Point {
   lat: number;
   lon: number;
+  /** Адрес, который нашёл геокодер по названию площадки («проспект Абая, 43»). */
+  address?: string;
 }
 
 /** Готовый черновик для таблицы events. */
