@@ -51,6 +51,7 @@ function EventFeedCard({ e, people, now, dx, stamp, height }: {
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#cardGloss)" />
         </Svg>
         <View style={styles.cat}><Text style={styles.catText}>{CAT_LABEL[e.category]}</Text></View>
+        {e.lang === 'kk' && <View style={styles.kk} accessibilityLabel="Событие на казахском языке"><Text style={styles.kkText}>ҚАЗАҚША</Text></View>}
         <View style={styles.when}><Text style={styles.whenText}>{stampOf(e, now)}</Text></View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ПОЙДУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
@@ -136,6 +137,8 @@ const styles = StyleSheet.create({
   gloss: { position: 'absolute', left: 0, right: 0, top: 0, height: '45%' },
   cat: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)' },
   catText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.9, color: colors.ink },
+  kk: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: '#1E7BB8' },
+  kkText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: '#FFFFFF' },
   when: { position: 'absolute', left: 14, bottom: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(23,22,26,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
   whenText: { fontFamily: fonts.mono600, fontSize: 11, letterSpacing: 0.8, color: '#EEE9DE' },
   spotCorner: { position: 'absolute', left: 4, bottom: -4 },

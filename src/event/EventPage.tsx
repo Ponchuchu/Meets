@@ -199,6 +199,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             {e.sessions && <View style={{ gap: 8, width: '100%' }}><Text style={styles.chipText}>Выбери дату</Text>{e.sessions.map(s => <Pressable key={s.id} onPress={() => router.push({ pathname: '/event/[id]', params: { id: s.id } })} accessibilityRole="button" style={styles.chip}><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{whenTitle({ ...e, ...s, isLong: false }, now)}</Text><ChevronRight size={16} color={colors.ink} /></Pressable>)}</View>}
             {(e.dates?.length ?? 0) > 1 && <Pressable onPress={() => setSheet('dates')} style={styles.chip} accessibilityRole="button" accessibilityLabel="Даты события"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>{visitAt ? `Ты идёшь ${new Date(visitAt).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : `${e.dates!.length} ${e.dates!.length < 5 ? 'даты' : 'дат'}: ${e.dates!.slice(0, 3).map((d) => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty', day: 'numeric', month: 'short' })).join(', ')}${e.dates!.length > 3 ? '…' : ''}`}</Text></Pressable>}
             {mine && !past && <Pressable onPress={() => setSheet('reschedule')} style={styles.chip} accessibilityRole="button"><Clock size={16} color={colors.accent} /><Text style={styles.chipText}>Перенести встречу</Text></Pressable>}
+            {e.lang === 'kk' && <View style={styles.chip} accessibilityLabel="Событие на казахском языке"><Text style={[styles.chipText, { color: '#1E7BB8' }]}>Қазақша</Text></View>}
             {!!priceText && <View style={styles.chip}><Ticket size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{priceText}</Text></View>}
             {dist && <View style={styles.chip}><MapPin size={16} color={colors.ink} strokeWidth={1.9} /><Text style={styles.chipText}>{dist}</Text></View>}
           </View>
@@ -229,7 +230,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             <Text style={styles.itemSub}>В планы попадёт выбранное время</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{sessions.map(x => <Pressable key={x.id} onPress={() => setSelectedSession({ initialId: initialEvent.id, event: x })} style={{ minHeight: 44, padding: 10, borderRadius: 13, backgroundColor: x.id === e.id ? colors.ink : colors.card }} accessibilityState={{ selected: x.id === e.id }}><Text style={{ fontFamily: fonts.body600, fontSize: 12, color: x.id === e.id ? colors.paper : colors.ink }}>{sessionTime(x)}{e.category === 'movie' ? ` · ${x.venueName ?? x.address}` : ''}</Text></Pressable>)}</View>
           </View>}
-          {!!e.about && <AboutBlock text={e.about} lang={langOf(e.tags)} />}
+          {!!e.about && <AboutBlock text={e.about} lang={e.lang === 'kk' ? 'на казахском' : langOf(e.tags)} original={e.origAbout != null ? { title: e.origTitle, about: e.origAbout } : undefined} />}
 
           {/* Где и откуда: мини-карта с маршрутом и аккуратная ссылка на источник (21 октября, просьба владельца). */}
           <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
