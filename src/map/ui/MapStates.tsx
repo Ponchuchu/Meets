@@ -63,12 +63,14 @@ export function TrafficChip({ hasKey, score, toName, toMin, rough }: { hasKey: b
       </View>
     );
   }
+  const h = (new Date().getUTCHours() + 5) % 24;
+  const night = h >= 23 || h < 6;
   return (
     <View style={styles.chip}>
       <View style={styles.legend}>
         {['#2F8F5B', '#E2A21B', '#C83A26'].map((c) => <View key={c} style={[styles.legendDot, { backgroundColor: c }]} />)}
       </View>
-      <Text style={styles.chipText}>{hasKey ? 'Пробки сейчас · зелёный — свободно' : 'Пробки появятся в сборке для телефона'}</Text>
+      <Text style={styles.chipText}>{!hasKey ? 'Пробки появятся в сборке для телефона' : night ? 'Ночью дороги свободны · пробки с 06:00' : 'Нет свежих данных о пробках · зелёный — свободно'}</Text>
     </View>
   );
 }

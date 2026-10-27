@@ -155,7 +155,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
     : toStart <= 0 && now.getTime() < endMs ? 'уже идёт' : null;
   const sessions = occurrencesOf(e, sameVenue, now);
   const sessionTime = (x: EventItem) => { const at = almaty(x.startsAt); return `${at.getUTCDate()}.${String(at.getUTCMonth() + 1).padStart(2, '0')} · ${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`; };
-  const moreHere = e.venueName ? sameVenue.filter((x) => x.id !== e.id && x.venueName === e.venueName).length : 0;
   const friendsGoing = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter((p): p is Person => !!p && p.isFriend);
   const goingText = friendsGoing.length === 1 ? `${friendsGoing[0].name} идёт` : friendsGoing.length === 2 ? `${friendsGoing[0].name} и ${friendsGoing[1].name} идут`
     : friendsGoing.length > 2 ? `${friendsGoing[0].name}, ${friendsGoing[1].name} и ещё ${friendsGoing.length - 2} идут` : e.goingCount >= 3 ? `Идут ${e.goingCount}` : 'Пока никто из друзей';
@@ -236,12 +235,6 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
           <PlaceBlock lat={e.lat} lon={e.lon} exact={!e.needsPin} dist={dist} category={e.category}
             title={e.venueName || e.address.split(',').slice(0, 2).join(',')} address={e.venueName ? e.address : e.address.split(',').slice(2).join(',').trim()}
             onRoute={() => router.push({ pathname: '/route', params: { id: e.id } })} onCopy={() => { void Clipboard.setStringAsync(e.address); show({ text: 'Адрес скопирован' }, 2000); }} />
-          {moreHere > 0 && (
-            <View style={[styles.list, styles.item]}>
-              <View style={[styles.itemIcon, { backgroundColor: '#D5CFC1' }]}><Text style={styles.itemLetter}>{e.venueName![0]}</Text></View>
-              <View style={{ flex: 1 }}><Text style={styles.itemTitle} numberOfLines={1}>Ещё {moreHere} {plural(moreHere, 'событие', 'события', 'событий')} в {e.venueName}</Text><Text style={styles.itemSub}>скоро — на карте</Text></View>
-            </View>
-          )}
           {going && !past && <TicketBlock eventId={e.id} />}
           {site && <SourceLink site={site}
             onOpen={() => { if (e.sourceUrl) WebBrowser.openBrowserAsync(e.sourceUrl).catch(() => Linking.openURL(e.sourceUrl!).catch(() => undefined)); }}

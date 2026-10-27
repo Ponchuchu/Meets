@@ -6,7 +6,8 @@
 // Машина и пешком — функция route (TomTom с пробками), автобус — свой расчёт по остановкам OpenStreetMap.
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, ChevronRight, CornerUpLeft, CornerUpRight, Flag, Footprints, Undo2, type LucideIcon } from 'lucide-react-native';
+import { ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, ChevronLeft, ChevronRight, CornerUpLeft, CornerUpRight, Flag, Footprints, Moon, Undo2, type LucideIcon } from 'lucide-react-native';
+import { busService } from '../../transit/bus';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { InteractionManager, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
@@ -164,12 +165,13 @@ export default function RouteScreen() {
   ];
   const cam = me ? { lat: (me.lat + e.lat) / 2 - 0.004, lon: (me.lon + e.lon) / 2, zoom: Math.max(9, Math.min(15, Math.log2(360 / (Math.max(Math.abs(e.lon - me.lon), Math.abs(e.lat - me.lat) * 1.8, 0.005) * 2.6)))) } : { lat: e.lat, lon: e.lon, zoom: 14 };
 
+  const svc = busService(new Date());
   const busMin = opt ? opt.total : null;
   const best = bestMode(trip.walkMin, trip.carMin, busMin);
   const tiles: { m: Mode; Icon: LucideIcon; min: number | null; km: string | null; label: string }[] = [
     { m: 'walk', Icon: Footprints, min: trip.walkMin, km: trip.route?.walk ? km1(trip.route.walk.km) : null, label: 'Пешком' },
     { m: 'car', Icon: Car, min: trip.carMin, km: trip.route?.car ? km1(trip.route.car.km) : null, label: 'Машина' },
-    ...(opt ? [{ m: 'bus' as const, Icon: Bus, min: busMin, km: null, label: opt.transfers ? `${opt.transfers} ${opt.transfers === 1 ? 'пересадка' : 'пересадки'}` : 'без пересадок' }] : []),
+    { m: 'bus' as const, Icon: Bus, min: busMin, km: null, label: opt ? (opt.transfers ? `${opt.transfers} ${opt.transfers === 1 ? 'пересадка' : 'пересадки'}` : 'без пересадок') : svc.running ? 'нет рейсов' : `с ${svc.startsAt}` },
   ];
   const canNavigate = mapMode === 'mapbox' && !!me && !e.needsPin && !e.noPoint && (mode === 'bus' ? !!opt : (leg?.line?.length ?? 0) >= 2);
   const to = e.venueName ?? e.address.split(',')[0];
@@ -306,6 +308,11 @@ export default function RouteScreen() {
                 </View>
                 {firstRide && <Text style={styles.stepSub} numberOfLines={2}>Сесть на «{firstRide.from?.name}», выйти на «{opt.legs.filter(l => l.kind === 'ride').at(-1)?.to?.name}» · ждать ~{firstRide.wait} мин</Text>}
               </View>
+            ) : mode === 'bus' ? (
+              <View style={styles.night}>
+                <Moon size={18} color={colors.ink} strokeWidth={2} />
+                <Text style={styles.nightText}>{svc.running ? 'Рядом нет подходящего автобуса. Попробуй машину или пешком.' : `Сейчас автобусы не ходят — начнут ездить в ${svc.startsAt}. Маршрут появится утром.`}</Text>
+              </View>
             ) : (
             <View style={{ gap: 10 }}>
               {steps.map((s, i) => (
@@ -354,6 +361,8 @@ const styles = StyleSheet.create({
   speedU: { fontFamily: fonts.mono600, fontSize: 9, color: colors.muted2 },
   // Плавающая шторка маршрута над краем экрана (как нижняя панель).
   sheet: { position: 'absolute', left: 10, right: 10, borderRadius: 28, padding: 16, gap: 12 },
+  night: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: '#EDE8DD' },
+  nightText: { flex: 1, fontFamily: fonts.body500, fontSize: 13.5, lineHeight: 18, color: colors.ink },
   tiles: { flexDirection: 'row', gap: 8 },
   tile: { flex: 1, minHeight: 78, borderRadius: 18, backgroundColor: '#EDE8DD', borderWidth: 1, borderColor: 'rgba(23,22,26,0.08)', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4 },
   tileOn: { backgroundColor: colors.ink, borderColor: colors.ink },

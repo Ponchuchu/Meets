@@ -1,5 +1,4 @@
 // Выбор даты (календарь), времени (барабан, как будильник iPhone) и места (точка на карте, как в доставке).
-import { CalendarDays } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { almaty, dayIndex, dayStart } from '../../lib/clock';
@@ -94,7 +93,6 @@ function Wheel({ items, value, onChange, label, width }: { items: string[]; valu
   );
 }
 
-const WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const MON_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 /** «Суббота, 25 октября» / «Сегодня, 25 октября». */
