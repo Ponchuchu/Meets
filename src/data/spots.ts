@@ -22,7 +22,11 @@ const toSpot = (r: SpotRow): Attraction => ({
 
 /** Never present a satellite tile as a venue photo. Missing galleries use the category illustration. */
 function withPhotos<T extends Attraction>(a: T): T {
-  const photos = [...new Set(a.photos ?? [])].filter(u => !/api\.mapbox\.com\/styles\/.*\/static\//.test(u));
+  const photos = [...new Set(a.photos ?? [])].filter(u => {
+    let decoded = u;
+    try { decoded = decodeURIComponent(u); } catch { /* Keep malformed URLs out of decoding logic. */ }
+    return !/api\.mapbox\.com\/styles\/.*\/static\//.test(u) && !(a.id === 'terrenkur' && /The[_ ]Esentay|Almaty[_ ]Towers|29050959892/i.test(decoded));
+  });
   return { ...a, photos: photos.length ? photos : undefined };
 }
 

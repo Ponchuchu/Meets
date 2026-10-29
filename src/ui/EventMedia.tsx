@@ -15,13 +15,13 @@ export function eventMedia(e: Pick<EventItem, 'media' | 'cover'>): Media[] {
   return items.filter(m => !!m.url && !seen.has(m.url) && !!seen.add(m.url));
 }
 
-function MediaImage({ item }: { item: Media }) {
+function MediaImage({ item, fit, onAspect }: { item: Media; fit: 'cover' | 'contain'; onAspect?: (aspect: number) => void }) {
   const [broken, setBroken] = useState(false);
   return broken ? <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={styles.counterText}>Фото недоступно</Text></View>
-    : <Image source={photo(item.type === 'video' ? item.poster : item.url)} style={styles.fill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={item.url} onError={() => setBroken(true)} />;
+    : <Image source={photo(item.type === 'video' ? item.poster : item.url)} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" recyclingKey={item.url} onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} onError={() => setBroken(true)} />;
 }
 
-function Clip({ item, active, controls, controlsTop }: { item: Media; active: boolean; controls: boolean; controlsTop: number }) {
+function Clip({ item, active, controls, controlsTop, fit, onAspect }: { item: Media; active: boolean; controls: boolean; controlsTop: number; fit: 'cover' | 'contain'; onAspect?: (aspect: number) => void }) {
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
   const player = useVideoPlayer({ uri: item.url, useCaching: true }, p => { p.loop = true; p.muted = true; });
@@ -50,8 +50,8 @@ function Clip({ item, active, controls, controlsTop }: { item: Media; active: bo
     return () => sub.remove();
   }, [player]);
   return <View style={styles.fill}>
-    {item.poster && <Image source={{ uri: item.poster }} style={styles.fill} contentFit="contain" cachePolicy="memory-disk" />}
-    {!failed && <VideoView player={player} style={styles.fill} contentFit="contain" nativeControls={false} surfaceType="textureView" />}
+    {item.poster && <Image source={{ uri: item.poster }} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} />}
+    {!failed && <VideoView player={player} style={styles.fill} contentFit={fit} nativeControls={false} surfaceType="textureView" />}
     {failed && <Text style={styles.error}>Видео не загрузилось</Text>}
     {controls && !failed && <Pressable onPress={() => setMuted(v => !v)} style={[styles.sound, { top: controlsTop }]} accessibilityRole="button" accessibilityLabel={muted ? 'Включить звук' : 'Выключить звук'}>
       {muted ? <VolumeX size={20} color="white" /> : <Volume2 size={20} color="white" />}
@@ -60,8 +60,8 @@ function Clip({ item, active, controls, controlsTop }: { item: Media; active: bo
 }
 
 /** Only the visible item owns a decoder. Pause on navigation, background and opening a sheet. */
-export function EventMedia({ items, active = true, gallery = false, height, controlsTop = 72, children }: {
-  items: Media[]; active?: boolean; gallery?: boolean; height: number; controlsTop?: number; children?: React.ReactNode;
+export function EventMedia({ items, active = true, gallery = false, height, controlsTop = 72, children, fit = 'contain', selected, onAspect }: {
+  items: Media[]; active?: boolean; gallery?: boolean; height: number; controlsTop?: number; children?: React.ReactNode; fit?: 'cover' | 'contain'; selected?: number; onAspect?: (aspect: number) => void;
 }) {
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
@@ -70,7 +70,7 @@ export function EventMedia({ items, active = true, gallery = false, height, cont
   const galleryRef = useRef<FlatList<Media>>(null);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
   useEffect(() => { const s = AppState.addEventListener('change', state => setForeground(state === 'active')); return () => s.remove(); }, []);
-  const list = useMemo(() => gallery ? items : [items.find(m => m.type === 'video') ?? items[0]].filter((m): m is Media => !!m), [gallery, items]);
+  const list = useMemo(() => gallery ? items : [selected == null ? items.find(m => m.type === 'video') ?? items[0] : items[selected] ?? items[0]].filter((m): m is Media => !!m), [gallery, items, selected]);
   const playing = active && focused && foreground;
   const visiblePage = Math.min(page, Math.max(0, list.length - 1));
   useEffect(() => {
@@ -81,16 +81,16 @@ export function EventMedia({ items, active = true, gallery = false, height, cont
     galleryRef.current?.scrollToOffset({ offset: visiblePage * width, animated: false });
   }, [page, visiblePage, width]);
   const media = (item: Media, index: number) => item.type === 'video' && playing && index === visiblePage
-    ? <Clip key={item.url} item={item} active controls={gallery} controlsTop={controlsTop} />
-    : <MediaImage key={item.url} item={item} />;
+    ? <Clip key={item.url} item={item} active controls={gallery} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
+    : <MediaImage key={item.url} item={item} fit={fit} onAspect={onAspect} />;
   return <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height, overflow: 'hidden', backgroundColor: colors.ink }}>
     {list.length === 1 ? media(list[0], 0) : width > 0 && list.length > 1 && <FlatList ref={galleryRef} data={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
       keyExtractor={m => m.url} initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3}
       getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
       onMomentumScrollEnd={e => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
       renderItem={({ item, index }) => <View style={{ width, height }}>{media(item, index)}</View>} />}
-    {gallery && list.length > 1 && <View pointerEvents="none" style={styles.counter}><Text style={styles.counterText}>{visiblePage + 1} / {list.length}</Text></View>}
     {children}
+    {gallery && list.length > 1 && <View pointerEvents="none" style={styles.counter}><Text style={styles.counterText}>{visiblePage + 1} / {list.length}</Text></View>}
   </View>;
 }
 const styles = StyleSheet.create({

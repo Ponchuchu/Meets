@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
@@ -60,6 +60,8 @@ import { CAT_COLOR } from '../../map/icons';
 import { PlacePin } from '../../map/ui/PlacePin';
 import { ATTRACTIONS, topSpots, type Attraction } from '../../data/attractions';
 import { getSpots } from '../../data/spots';
+import { remote } from '../../data/photos';
+import { openStatus } from '../../data/hours';
 import { SpotSheet } from '../../map/ui/SpotSheet';
 import { ZONES } from '../../data/zones';
 import { cityYear, CITY_YEAR, leftText } from '../../data/cityYear';
@@ -297,6 +299,7 @@ export default function MapScreen() {
   // Точки зданий убраны (FIX3 Ф3): нажимаются только торговые центры — у них почти всегда есть события.
   const [mall, setMall] = useState<Mall | null>(null);
   const [spotPlace, setSpotPlace] = useState<Attraction | null>(null);
+  const [spotExpanded, setSpotExpanded] = useState(false);
   const fog = useMemo(() => (lens === 'explore' ? fogShape(cells) : null), [lens, cells]);
   const traffic = lens === 'traffic' ? trafficTiles(config.tomtomKey) : null;
 
@@ -437,7 +440,7 @@ export default function MapScreen() {
       // Издалека места — такие же точки, как события; вблизи — значки. В экономии — только крупные.
       if (eco && !mid) continue;
       const id = `a-${a.id}`;
-      taps.set(id, () => { setSpotPlace(a); setSheet('spot'); });
+      taps.set(id, () => { setSpotExpanded(false); setSpotPlace(a); setSheet('spot'); });
       syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId, dot: dots ? spotDot(a.kind) : undefined });
     }
     for (const m of malls) {
@@ -641,11 +644,25 @@ export default function MapScreen() {
         </>
       )}
 
-      {sheet === 'spot' && spotPlace && <SpotSheet key={spotPlace.id} a={spotPlace} all={places} onClose={() => setSheet(null)} onOpen={setSpotPlace} />}
+      {sheet === 'spot' && spotPlace && (spotExpanded
+        ? <SpotSheet key={spotPlace.id} a={spotPlace} all={places} onClose={() => setSheet(null)} onOpen={setSpotPlace} />
+        : <View style={[styles.card, { bottom: tabPad }]}>
+            <View style={{ backgroundColor: colors.card, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`${spotPlace.name}: подробнее`} onPress={() => setSpotExpanded(true)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                {spotPlace.photos?.[0] ? <Image source={remote(spotPlace.photos[0])} resizeMode="cover" resizeMethod="resize" style={{ width: 72, height: 72, borderRadius: 14 }} /> : null}
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text numberOfLines={1} style={{ fontFamily: fonts.display700, fontSize: 19, color: colors.ink }}>{spotPlace.name}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: fonts.body500, fontSize: 13, color: colors.muted }}>{openStatus(spotPlace.hours, clockNow()).text} · {spotPlace.free ? 'бесплатно' : spotPlace.priceFrom != null ? `от ${spotPlace.priceFrom.toLocaleString('ru-RU')} ₸` : 'цена уточняется'}</Text>
+                  <Text style={{ fontFamily: fonts.body700, color: colors.accentText }}>Подробнее →</Text>
+                </View>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Закрыть карточку места" hitSlop={10} onPress={() => setSheet(null)}><Text style={{ fontSize: 24, color: colors.ink }}>×</Text></Pressable>
+            </View>
+          </View>)}
 
       {sheet === 'venue' && mall && (
-        <View style={[styles.card, { bottom: tabPad }]}>
-          <PlaceCard key={mall.id} m={mall} events={upcoming} spots={places} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} onSpot={(a) => { setSpotPlace(a); setSheet('spot'); }} />
+          <View style={[styles.card, { bottom: tabPad }]}>
+            <PlaceCard key={mall.id} m={mall} events={upcoming} spots={places} onClose={() => setSheet(null)} onEvent={(e) => { setSheet(null); openEvent(e); }} onSpot={(a) => { setSpotExpanded(false); setSpotPlace(a); setSheet('spot'); }} />
         </View>
       )}
 

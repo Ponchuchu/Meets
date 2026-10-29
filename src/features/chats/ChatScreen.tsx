@@ -10,7 +10,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { getRecordingPermissionsAsync, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { mergeChatMessages } from '../../chat/messages';
-import { Camera } from 'expo-camera';
 import { usePlayback } from '../../chat/playback';
 import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -123,6 +122,7 @@ function ResolvedChatScreen() {
   const [editing, setEditing] = useState<Message | null>(null);
   const [menu, setMenu] = useState<Message | null>(null);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
+  const recModeRef = useRef<'voice' | 'circle'>('voice');
   // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
   const [composerH, setComposerH] = useState(72);
   const [kb, setKb] = useState(false);
@@ -252,11 +252,12 @@ function ResolvedChatScreen() {
   const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
   const [locked, setLocked] = useState(false);
   useEffect(() => () => { rec.current.active=false; circleRef.current?.stop(false); void recorder.stop().catch(()=>undefined); void setAudioModeAsync({allowsRecording:false}); },[recorder]);
-  const switchRecMode = async () => {
-    if (recMode === 'voice' && Platform.OS !== 'web') {
-      try { await Camera.requestCameraPermissionsAsync(); await Camera.requestMicrophonePermissionsAsync(); } catch { show({ text: 'Разреши камеру и микрофон' }); }
-    }
-    setRecMode(m => m === 'voice' ? 'circle' : 'voice');
+  // A mode change is immediate. Camera permissions belong to the recording attempt,
+  // not to the tap that only changes the icon.
+  const switchRecMode = () => {
+    const next = recModeRef.current === 'voice' ? 'circle' : 'voice';
+    recModeRef.current = next;
+    setRecMode(next);
   };
   useEffect(() => { usePlayback.getState().record(!!recording); return () => usePlayback.getState().record(false); }, [recording]);
   const preparing = useRef(false);
@@ -267,10 +268,11 @@ function ResolvedChatScreen() {
   const startRec = async () => {
     if(rec.current.active || preparing.current || stopping.current) return;
     usePlayback.getState().play(null);
-    rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
+    const mode = recModeRef.current;
+    rec.current = {active:true,ready:false,mode,started:mode === 'circle' ? 0 : nowMs(),locked:false};
     setLocked(false);setCancelling(false);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-    if (recMode === 'circle') {
+    if (mode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
       usePlayback.getState().record(true); setRecording('circle'); return;
     }
@@ -299,7 +301,12 @@ function ResolvedChatScreen() {
     const mode=rec.current.mode;
     const sec=Math.floor((nowMs()-rec.current.started)/1000);
     rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
-    if(mode==='circle') {stopping.current = true;if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
+    if(mode==='circle') {
+      if (send && !rec.current.ready) show({text:'Камера ещё запускается. Удерживай кнопку чуть дольше'});
+      if (circleRef.current) { stopping.current = true; circleRef.current.stop(send); }
+      else { stopping.current = false; setRecording(null); usePlayback.getState().record(false); }
+      return;
+    }
     setRecording(null);
     if(!rec.current.ready){ if (send && sec < 1) show({text:'Удерживай кнопку, чтобы записать'}); return; }
     stopping.current = true;
@@ -308,7 +315,7 @@ function ResolvedChatScreen() {
       if(send && recorder.uri && sec>=1) push({kind:'voice',media:recorder.uri,duration:dur(sec),durationS:sec});
     } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});} finally { stopping.current = false; usePlayback.getState().record(false); }
   };
-  useEffect(() => { stopOnBlur.current = () => { void stopRec(false); }; });
+  useEffect(() => { stopOnBlur.current = () => { if (hold.current) { clearTimeout(hold.current); hold.current = null; } void stopRec(false); }; });
   // Эти обработчики читает Gesture Handler при касании; при рендере они не выполняются.
   /* eslint-disable react-hooks/refs */
   const recHandlers = useRef({ startRec, stopRec, switchRecMode });
@@ -316,12 +323,15 @@ function ResolvedChatScreen() {
   // Одно касание: держишь 0,18 с — запись (вибрация и полоса сразу), отпустил раньше — смена «голос ↔ кружок».
   // Раньше запись ждала долгое нажатие без движения: палец чуть сдвинулся — и ничего не происходило.
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
   const recGesture = useMemo(() => Gesture.Pan().minDistance(0).shouldCancelWhenOutside(false).runOnJS(true)
     .onBegin(() => { hold.current = setTimeout(() => { hold.current = null; void recHandlers.current.startRec(); }, 180); })
     .onUpdate(e=>{ if (hold.current) return; setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80); if(e.translationY < -70 && !rec.current.locked && rec.current.active){rec.current.locked=true;setLocked(true);void Haptics.selectionAsync().catch(() => undefined);} })
-    .onFinalize((e)=>{
-      if (hold.current) { clearTimeout(hold.current); hold.current = null; void recHandlers.current.switchRecMode(); return; }
-      if (!rec.current.locked) void recHandlers.current.stopRec(e.translationX >= -80);
+    .onFinalize((e, success)=>{
+      if (hold.current) { clearTimeout(hold.current); hold.current = null; if (success) recHandlers.current.switchRecMode(); return; }
+      // A gesture cancelled by the system or a competing handler must not send.
+      // Once locked, unmounting this detector is expected and the visible buttons own the recording.
+      if (!rec.current.locked) void recHandlers.current.stopRec(success && e.translationX >= -80);
     }), []);
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {

@@ -110,7 +110,7 @@ export const ATTRACTIONS: Attraction[] = [
     tips: ['Лучший свет за час до заката: горы розовые', 'Летом по вечерам работают поющие фонтаны'] },
   { id: 'botanic', name: 'Главный ботанический сад', kind: 'garden', lat: 43.22689, lon: 76.92887, address: 'ул. Тимирязева, 36д', about: 'Тихие аллеи, оранжерея и пруды посреди города', solo: true,
     tips: ['Идеально, чтобы побыть одному: людей мало, телефон можно убрать'] },
-  { id: 'terrenkur', photos: [commons('View of Kok Tobe from Terrenkur.jpg'), commons('The Esentay with the Almaty Towers (AP4M2507 1PS) (29050959892).jpg')], hours: ALWAYS, howTo: 'Бесплатно и круглосуточно — это парковая тропа вдоль реки.', name: 'Терренкур', kind: 'park', lat: 43.22375, lon: 76.96713, address: 'за пр. Достык', about: 'Прогулочная тропа вдоль реки к горам', free: true, solo: true,
+  { id: 'terrenkur', photos: [commons('View of Kok Tobe from Terrenkur.jpg')], hours: ALWAYS, howTo: 'Бесплатно и круглосуточно — это парковая тропа вдоль реки.', name: 'Терренкур', kind: 'park', lat: 43.22375, lon: 76.96713, address: 'за пр. Достык', about: 'Прогулочная тропа вдоль реки к горам', free: true, solo: true,
     tips: ['Можно идти час в сторону гор и вернуться — маршрут сам ведёт'] },
   { id: 'arbat', hours: ALWAYS, name: 'Арбат', kind: 'photo', lat: 43.2614, lon: 76.9450, address: 'ул. Жибек Жолы', about: 'Пешеходная улица: музыканты, художники, вечерний свет', free: true, solo: true },
   { id: 'republic-sq', hours: ALWAYS, name: 'Площадь Республики', kind: 'photo', lat: 43.2381, lon: 76.9454, about: 'Монумент Независимости и горы за ним', free: true },

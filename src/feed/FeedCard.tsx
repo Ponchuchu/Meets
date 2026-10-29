@@ -1,16 +1,15 @@
 // Карточка ленты (переделана 11 октября): светлая, сверху фото события (или яркий постер раздела), ниже — название и всегда
 // три факта: когда, где, сколько. Причин «почему это тебе» нет. Штампы «ПОЙДУ» / «МИМО» проявляются от сдвига.
 import { remote } from '../data/photos';
-import { Clock, MapPin, Ticket } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Ticket } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import type { EventItem, Person } from '../data/types';
 import { editorialText } from '../event/editorial';
 import { eventFacts } from '../event/facts';
-import { CAT_LABEL } from '../map/icons';
 
 import { colors, fonts } from '../theme';
 import { Avatar } from '../ui/Avatar';
@@ -44,20 +43,29 @@ function EventFeedCard({ e, people, now: _now, dx, stamp, height, active = false
   e: EventItem; people: Person[]; now: Date; dx?: SharedValue<number>; stamp?: SharedValue<number>; height: number; active?: boolean;
 }) {
   const coverH = feedCoverH(e, height);
+  const media = eventMedia(e);
+  const [page, setPage] = useState(0);
+  const [aspect, setAspect] = useState<number | null>(null);
+  const portrait = aspect != null && aspect < 0.9;
+  const mediaHeight = aspect == null ? coverH : portrait ? Math.min(height - 145, height * 0.72) : Math.min(height * 0.48, Math.max(145, 320 / aspect));
   const social = feedSocial(e, people);
   const f = eventFacts(e);
-  const roomy = height >= 470 && e.about.trim().length > 0;
+  const roomy = !portrait && height >= 470 && e.about.trim().length > 0;
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
   return (
     <View style={[styles.card, { height }]} accessibilityLabel={`${e.title}. ${f.when}. ${f.place}. ${f.price}. Нажми, чтобы открыть подробности`}>
-      <EventCover cover={null} category={e.category} color={e.coverColor} style={{ height: coverH }} iconSize={Math.round(coverH * 0.62)}>
+      <EventCover cover={null} category={e.category} color={e.coverColor} style={{ height: mediaHeight }} iconSize={Math.round(mediaHeight * 0.62)}>
         <Svg style={styles.gloss} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
           <Defs><LinearGradient id="cardGloss" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.22} /><Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} /></LinearGradient></Defs>
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#cardGloss)" />
         </Svg>
-        {eventMedia(e).length > 0 && <View pointerEvents="none" style={StyleSheet.absoluteFill}><EventMedia items={eventMedia(e)} height={coverH} active={active} /></View>}
-        <View style={styles.cat}><Text style={styles.catText}>{CAT_LABEL[e.category]}</Text></View>
+        {media.length > 0 && <View style={StyleSheet.absoluteFill}><EventMedia items={media} height={mediaHeight} active={active} fit="cover" selected={Math.min(page, media.length - 1)} onAspect={setAspect} /></View>}
+        {active && media.length > 1 && <>
+          <Pressable accessibilityRole="button" accessibilityLabel="Предыдущее фото" onPress={() => { setAspect(null); setPage(p => (p - 1 + media.length) % media.length); }} style={[styles.mediaArrow, { left: 8 }]}><ChevronLeft color="white" size={20} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Следующее фото" onPress={() => { setAspect(null); setPage(p => (p + 1) % media.length); }} style={[styles.mediaArrow, { right: 8 }]}><ChevronRight color="white" size={20} /></Pressable>
+          <View pointerEvents="none" style={styles.mediaCount}><Text style={styles.mediaCountText}>{page + 1} / {media.length}</Text></View>
+        </>}
         {e.lang === 'kk' && <View style={styles.kk} accessibilityLabel="Событие на казахском языке"><Text style={styles.kkText}>ҚАЗАҚША</Text></View>}
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ПОЙДУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
@@ -108,7 +116,6 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
             <View pointerEvents="none" style={styles.spotCorner}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
           </>
         ) : <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
-        <View style={styles.cat}><Text style={styles.catText}>{KIND_LABEL[a.kind].toUpperCase()}</Text></View>
         {a.free && <View style={[styles.when, photo && { left: undefined, right: 14 }]}><Text style={styles.whenText}>БЕСПЛАТНО</Text></View>}
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ХОЧУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>
@@ -159,4 +166,7 @@ const styles = StyleSheet.create({
   about: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted },
   socialRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 'auto' },
   social: { flex: 1, fontFamily: fonts.body500, fontSize: 13.5, color: colors.muted },
+  mediaArrow: { position: 'absolute', top: '45%', width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(23,22,26,0.55)' },
+  mediaCount: { position: 'absolute', right: 12, bottom: 10, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: 'rgba(23,22,26,0.55)' },
+  mediaCountText: { color: 'white', fontFamily: fonts.body600, fontSize: 12 },
 });

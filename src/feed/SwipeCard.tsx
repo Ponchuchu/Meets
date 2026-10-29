@@ -182,7 +182,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   });
 
   return (
-    <Animated.View style={[styles.abs, { width, height, zIndex: 10 - k, transformOrigin: '50% 100%' }, stack]} pointerEvents={top ? 'auto' : 'none'}>
+    <Animated.View style={[styles.abs, { width, height, zIndex: 10 - k, elevation: Platform.OS === 'android' ? 10 - k : 0, transformOrigin: '50% 100%' }, stack]} pointerEvents={top ? 'auto' : 'none'}>
       <GestureDetector gesture={Gesture.Race(Gesture.LongPress().enabled(top && !!onLongPress).minDuration(450).onEnd((_event, success) => { if (success && onLongPress) scheduleOnRN(onLongPress); }), pan, Gesture.Tap().enabled(top).onEnd((_e, ok) => { if (ok && !busy.get()) scheduleOnRN(onTap); }))}>
         <Animated.View style={[styles.fill, styles.shadow, !top && styles.shadowLow, card, { overflow: 'hidden' }, top && LAYER]}>
           <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} active={top && active} />
