@@ -13,6 +13,9 @@ on:
         options: [github, expo]
   push:
     tags: ['apk-review-*']
+    # Изменение этого workflow в рабочей ветке позволяет запустить сборку без ручного dispatch.
+    branches: ['codex/apk35-media-performance']
+    paths: ['.github/workflows/android.yml']
 permissions:
   contents: write
 
