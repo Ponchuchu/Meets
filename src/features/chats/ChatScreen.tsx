@@ -315,7 +315,6 @@ function ResolvedChatScreen() {
       if(send && recorder.uri && sec>=1) push({kind:'voice',media:recorder.uri,duration:dur(sec),durationS:sec});
     } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});} finally { stopping.current = false; usePlayback.getState().record(false); }
   };
-  useEffect(() => { stopOnBlur.current = () => { if (hold.current) { clearTimeout(hold.current); hold.current = null; } void stopRec(false); }; });
   // Эти обработчики читает Gesture Handler при касании; при рендере они не выполняются.
   /* eslint-disable react-hooks/refs */
   const recHandlers = useRef({ startRec, stopRec, switchRecMode });
@@ -333,6 +332,7 @@ function ResolvedChatScreen() {
       if (!rec.current.locked) void recHandlers.current.stopRec(success && e.translationX >= -80);
     }), []);
   useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
+  useEffect(() => { stopOnBlur.current = () => { if (hold.current) { clearTimeout(hold.current); hold.current = null; } void stopRec(false); }; });
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
