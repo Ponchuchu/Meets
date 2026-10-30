@@ -168,6 +168,8 @@ export interface ChatRequest {
 }
 
 export interface FriendRequest {
+  /** The sender travels with the request, independently of the cached people directory. */
+  person?: Person;
   id: string;
   personId: string;
   note: string;
@@ -229,6 +231,8 @@ export interface MyProfile {
 /** Подробный профиль человека (Person / PersonFriend). */
 export interface PersonDetails {
   id: string;
+  /** Public header for a profile opened outside the current friends/chat directory. */
+  person?: Person;
   about: string;
   interests: { label: string; common: boolean }[];
   badges: string[]; // id значков

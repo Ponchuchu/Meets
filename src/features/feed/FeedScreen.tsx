@@ -20,6 +20,7 @@ import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
 import { QuickButtons } from '../../feed/SwipeHints';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { distinctEvents } from '../../event/identity';
+import { eventFacts } from '../../event/facts';
 import { UndoBar } from '../../feed/UndoBar';
 import { WhenSheet, needsWhen } from '../../feed/WhenSheet';
 import { now as clockNow } from '../../lib/clock';
@@ -49,6 +50,8 @@ export default function ForYouScreen() {
   useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
   const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
   const events = useMemo(() => eventsQ.data ?? [], [eventsQ.data]);
+  // Recommendations only contain events with a known price, including free ones.
+  const pricedEvents = useMemo(() => events.filter(e => !eventFacts(e).priceMissing), [events]);
   const online = useNet((s) => s.online);
   const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
   const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
@@ -62,7 +65,7 @@ export default function ForYouScreen() {
 
   // Плашка «Мимо · Вернуть»: тонкая, над нижней панелью, 5 секунд.
   const undoSeq = useRef(0);
-  const [undoBar, setUndoBar] = useState<{ key: number; text: string } | null>(null);
+  const [undoBar, setUndoBar] = useState<{ key: number; text: string; eventId: string } | null>(null);
   const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
   const [feedback, setFeedback] = useState<EventItem | null>(null);
   const [open, setOpen] = useState<EventItem | null>(null);
@@ -86,7 +89,7 @@ export default function ForYouScreen() {
   // Места выбираются один раз за открытие ленты (иначе колода «прыгала» бы от каждого свайпа).
   const [spotCards] = useState(() => {
     const st = useFeed.getState();
-    return pickSpots(allSpots, tasteFrom(answers, st.signals, clockNow()), { seen: st.spotSeen ?? {}, skipped: st.spotSkipped ?? {} }, clockNow(), { solo: answers.withWho === 'alone' }).map((a) => spotCard(a, clockNow()));
+    return pickSpots(allSpots.filter(a => a.free || a.priceFrom != null), tasteFrom(answers, st.signals, clockNow()), { seen: st.spotSeen ?? {}, skipped: st.spotSkipped ?? {} }, clockNow(), { solo: answers.withWho === 'alone' }).map((a) => spotCard(a, clockNow()));
   });
   const [spotDone, setSpotDone] = useState<Set<string>>(() => new Set());
   const [spotOpen, setSpotOpen] = useState<Attraction | null>(null);
@@ -97,22 +100,22 @@ export default function ForYouScreen() {
   const deck = useMemo(() => {
     const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
     const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds), ...Object.keys(hidden ?? {})]);
-    const fresh = withSpots(buildDeck(taste, events, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id) && !hidden?.[c.id]));
-    const pool = new Map<string, EventItem>([...events.map((x) => [x.id, x] as const), ...fresh.map((x) => [x.id, x] as const)]);
+    const fresh = withSpots(buildDeck(taste, pricedEvents, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id) && !hidden?.[c.id]));
+    const pool = new Map<string, EventItem>([...pricedEvents.map((x) => [x.id, x] as const), ...fresh.map((x) => [x.id, x] as const)]);
     const alive = (id: string) => (id === planning || !dec.has(id)) && !spotDone.has(id) && pool.has(id) && (pool.get(id)!.spotId ? true : fresh.some((x) => x.id === id) || Date.parse(pool.get(id)!.endsAt ?? pool.get(id)!.startsAt) > now.getTime());
     const head = frozen.filter(alive).slice(0, STACK + 2).map((id) => pool.get(id)!);
     let d = [...head, ...fresh.filter((x) => !head.some((h) => h.id === x.id))];
     // «Вернуть»: возвращённая карточка снова первая.
     if (enter && !decided[enter.id]) {
-      const back = d.find((x) => x.id === enter.id) ?? events.find((x) => x.id === enter.id);
+      const back = d.find((x) => x.id === enter.id) ?? pricedEvents.find((x) => x.id === enter.id);
       if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
     }
     if (previewId && !decided[previewId]) {
-      const preview = events.find(x => x.id === previewId);
+      const preview = pricedEvents.find(x => x.id === previewId);
       if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
     }
     return distinctEvents(d);
-  }, [taste, events, decided, hidden, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [taste, pricedEvents, decided, hidden, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
   const headKey = deck.slice(0, STACK + 2).map((x) => x.id).join('|');
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setFrozen((f) => (f.join('|') === headKey ? f : headKey.split('|').filter(Boolean))); }, [headKey]);
@@ -141,6 +144,7 @@ export default function ForYouScreen() {
   const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
     setPreviewId(null);
+    setUndoBar(null);
     // Место: «Хочу» — сразу карточка с планом на день и время, «Мимо» — не показывать месяц. Вкус учится и на местах.
     if (e.spotId) {
       setSpotDone((d) => new Set(d).add(e.id));
@@ -159,19 +163,19 @@ export default function ForYouScreen() {
     const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
     decide({ eventId: e.id, kind, signalId: sig.id }, sig);
     track(kind, e.id);
-    setEnter(null);
+    setEnter(current => current?.id === e.id ? null : current);
     if (kind === 'go') {
       // День или сеанс уже записан шторкой — в планы добавлено там.
       if (!planned) { go(e.id); addPlan(); }
       pulsePlan();
     } else if (undosLeft > 0) {
-      setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}` });
+      setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}`, eventId: e.id });
     }
   };
 
   // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.
-  function doUndo() {
-    const last = undo();
+  function doUndo(expectedEventId?: string) {
+    const last = undo(expectedEventId);
     setUndoBar(null);
     if (!last) return;
     bump(last.eventId);
@@ -258,7 +262,7 @@ export default function ForYouScreen() {
             onTap={() => { if (e.spotId) { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); } else openCard(e); }}
             expand={p} onReveal={() => openCard(e, true)}
             onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, OPEN())); else closeCard(); }}
-            onUndo={doUndo}
+            onUndo={() => doUndo()}
             drag={k === 0 ? drag : undefined}
           />
         )).reverse()}
@@ -303,7 +307,7 @@ export default function ForYouScreen() {
         <Pressable accessibilityRole="button" onPress={() => { onDecide(feedback, 'skip'); setFeedback(null); }} style={styles.feedbackRow}><ThumbsDown size={20} color={colors.ink} /><Text style={styles.feedbackText}>Меньше похожего</Text></Pressable>
         <Pressable accessibilityRole="button" onPress={() => { hide(feedback.id); if (feedback.spotId) setSpotDone(s => new Set([...s, feedback.id])); setFeedback(null); }} style={styles.feedbackRow}><EyeOff size={20} color={colors.ink} /><Text style={styles.feedbackText}>Не показывать это событие</Text></Pressable>
       </BottomSheet></>}
-      {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={doUndo} onGone={() => setUndoBar(null)} />}
+      {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={() => doUndo(undoBar.eventId)} onGone={() => setUndoBar(null)} />}
 
       {open && (
         <Animated.View style={[styles.clip, clip]}>

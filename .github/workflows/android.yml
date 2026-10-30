@@ -13,6 +13,9 @@ on:
         options: [github, expo]
   push:
     tags: ['apk-review-*']
+    # Запуск сборки после исправления проверки разрешения геолокации.
+    branches: ['codex/apk35-media-performance']
+    paths: ['.github/workflows/android.yml']
 permissions:
   contents: write
 

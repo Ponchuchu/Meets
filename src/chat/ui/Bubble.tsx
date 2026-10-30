@@ -41,8 +41,14 @@ function VoiceFile({ m, mine }: { m: Message; mine: boolean }) {
   const part = total ? Math.min(1, st.currentTime / total) : 0;
   const fg = mine ? colors.paper : colors.ink;
   const toggle = () => {
+    if (st.didJustFinish || (!st.playing && part >= 0.99)) {
+      if (!active) usePlayback.getState().play(playbackId);
+      void player.seekTo(0).then(() => {
+        if (usePlayback.getState().active === playbackId) player.play();
+      }).catch(() => undefined);
+      return;
+    }
     if (active) { usePlayback.getState().play(null); return; }
-    if (st.didJustFinish || part >= 0.99) void player.seekTo(0);
     usePlayback.getState().play(playbackId);
   };
   return (

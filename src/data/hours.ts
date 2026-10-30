@@ -59,6 +59,8 @@ export function weekLines(h: Hours | null | undefined): { days: string; time: st
 
 /** Время, на которое можно запланировать поход в этот день: каждые 30 минут, пока открыто (и хотя бы час до закрытия). */
 export function slotsFor(h: Hours | null | undefined, dayIso: number, fromMinute = 0, step = 30): string[] {
+  // Bad data must not make the loop below run forever (for example, step=-1).
+  step = Number.isFinite(step) && step >= 1 ? Math.max(1, Math.floor(step)) : 30;
   const spans = h && Object.keys(h).length ? spansOf(h, dayIso) : [[9 * 60, 21 * 60] as [number, number]];
   const out: string[] = [];
   // Время с шагом места (колесо обозрения — 15 мин, парк — час); последнее — не позже чем за час до закрытия.

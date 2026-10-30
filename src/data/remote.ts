@@ -152,7 +152,12 @@ export async function getFriendRequests(): Promise<FriendRequest[]> {
   const me = await requireUser();
   const { data, error } = await withTimeout(supabase().from('friend_requests').select('from_id,note').eq('to_id', me).eq('status', 'pending'));
   if (error) throw error;
-  return (data as { from_id: string; note: string | null }[]).map((r) => ({ id: `fr-${r.from_id}`, personId: r.from_id, note: r.note ?? '' }));
+  const rows = data as { from_id: string; note: string | null }[];
+  const senders = await profiles(rows.map(r => r.from_id));
+  return rows.map((r) => {
+    const sender = senders.find(p => p.id === r.from_id);
+    return { id: `fr-${r.from_id}`, personId: r.from_id, note: r.note ?? '', ...(sender ? { person: mapProfile(sender, new Set<string>()) } : {}) };
+  });
 }
 
 export async function getFriendSpots(): Promise<FriendSpot[]> {
@@ -257,6 +262,7 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   const seen = card?.seen_at ? seenText(card.seen_at) : null;
   return {
     id: r.id,
+      person: mapProfile(r, friends),
     about: r.about ?? '',
     // Интересы в профиле (миграция 46) — что человек сам показал; «общие» — совпадают с моими.
     interests: ((r as { tags?: string[] }).tags ?? []).map((label) => ({ label, common: myTags.includes(label) })),
