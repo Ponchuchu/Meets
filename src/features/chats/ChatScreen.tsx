@@ -323,7 +323,6 @@ function ResolvedChatScreen() {
   // Одно касание: держишь 0,18 с — запись (вибрация и полоса сразу), отпустил раньше — смена «голос ↔ кружок».
   // Раньше запись ждала долгое нажатие без движения: палец чуть сдвинулся — и ничего не происходило.
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
   const recGesture = useMemo(() => Gesture.Pan().minDistance(0).shouldCancelWhenOutside(false).runOnJS(true)
     .onBegin(() => { hold.current = setTimeout(() => { hold.current = null; void recHandlers.current.startRec(); }, 180); })
     .onUpdate(e=>{ if (hold.current) return; setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80); if(e.translationY < -70 && !rec.current.locked && rec.current.active){rec.current.locked=true;setLocked(true);void Haptics.selectionAsync().catch(() => undefined);} })
@@ -333,6 +332,7 @@ function ResolvedChatScreen() {
       // Once locked, unmounting this detector is expected and the visible buttons own the recording.
       if (!rec.current.locked) void recHandlers.current.stopRec(success && e.translationX >= -80);
     }), []);
+  useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;
