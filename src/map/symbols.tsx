@@ -7,6 +7,7 @@ import type { AttractionKind } from '../data/attractions';
 import { fonts } from '../theme';
 import { SPRITE_PT, SPRITES, type SpriteName } from './sprites';
 import type { MapMarker } from './types';
+import { symbolCount } from './symbolsGeo';
 
 export interface MapSymbol {
   id: string;
@@ -24,6 +25,8 @@ export interface MapSymbol {
   sort: number;
   /** Издалека — только цветная точка этого цвета. */
   dot?: string;
+  /** Число событий в группе; места и ТРЦ не добавляются к этому счётчику. */
+  count?: number;
   faded?: boolean;
 }
 
@@ -123,17 +126,22 @@ export function symbolMarkers(symbols: MapSymbol[], onSymbol?: (id: string) => v
 }
 
 export function SymbolPin({ s, onPress }: { s: MapSymbol; onPress: () => void }) {
-  if (s.dot) return <Pressable onPress={onPress} hitSlop={14} style={[styles.dot, { backgroundColor: s.dot, opacity: s.faded ? 0.35 : 1 }]} accessibilityRole="button" />;
+  const count = symbolCount(s.count);
+  if (s.dot) return <Pressable onPress={onPress} hitSlop={14} style={[styles.dot, count > 1 && { width: count >= 1000 ? 38 : count >= 100 ? 32 : 26, height: count >= 1000 ? 38 : count >= 100 ? 32 : 26, borderRadius: 20 }, { backgroundColor: count > 1 ? '#17161A' : s.dot, opacity: s.faded ? 0.35 : 1 }]} accessibilityRole="button" accessibilityLabel={count > 1 ? `Событий в этом месте: ${count}. Открыть список` : s.text || 'Событие на карте'}>
+    {count > 1 && <Text style={styles.count} allowFontScaling={false}>{count}</Text>}
+  </Pressable>;
   const h = s.size * RATIO;
+  const text = s.text ?? (count > 1 ? String(count) : '');
   return (
-    <Pressable onPress={onPress} style={{ width: 150, height: h * 2, alignItems: 'center', opacity: s.faded ? 0.35 : 1 }} accessibilityRole="button" accessibilityLabel={s.text}>
+    <Pressable onPress={onPress} style={{ width: 150, height: h * 2, alignItems: 'center', opacity: s.faded ? 0.35 : 1 }} accessibilityRole="button" accessibilityLabel={count > 1 ? `Событий в этом месте: ${count}. Открыть список` : s.text}>
       <Image source={SPRITES[s.icon]} style={{ width: s.size, height: h }} />
-      {!!s.text && <Text style={[styles.text, s.textColor ? { color: s.textColor, textShadowColor: s.halo ?? '#FFFFFF' } : null]} numberOfLines={2}>{s.text}</Text>}
+      {!!text && <Text style={[styles.text, s.textColor ? { color: s.textColor, textShadowColor: s.halo ?? '#FFFFFF' } : null]} numberOfLines={2}>{text}</Text>}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  dot: { width: 13, height: 13, borderRadius: 7, borderWidth: 2.2, borderColor: '#FFFFFF', boxShadow: '0 1.5px 3px rgba(23,22,26,0.3)' },
+  dot: { width: 13, height: 13, borderRadius: 7, borderWidth: 2.2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1.5px 3px rgba(23,22,26,0.3)' },
+  count: { fontFamily: fonts.body700, fontSize: 11, lineHeight: 14, includeFontPadding: false, color: '#FFFFFF', textAlign: 'center', textShadowColor: 'rgba(23,22,26,0.8)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } },
   text: { fontFamily: fonts.mono500, fontSize: 10, color: '#4A4640', marginTop: 1, textAlign: 'center', lineHeight: 12, textShadowColor: '#FFFFFF', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

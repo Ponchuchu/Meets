@@ -127,7 +127,7 @@ export default function ForYouScreen() {
   const screenH = fullH - tabInset(insets.bottom) + 10;
   const HINTS_H = 84; // кнопки с подписями под карточкой
   const GAP = 38; // под карточкой видна стопка (28) и зазор
-  const cardW = Math.min(350, W - 40);
+  const cardW = Math.min(420, W - 24);
   const cardH = Math.max(330, Math.min(540, screenH - baseTop - GAP - HINTS_H - 10));
   const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 10);
   const cardTop = baseTop + Math.round(free * 0.5);

@@ -46,12 +46,26 @@ export function showPinLabel(detail: Detail, important: boolean): boolean {
 /** Масштаб, к которому приближаемся по тапу на точку: не отдаляем, если уже ближе. */
 export const focusZoom = (zoom: number) => Math.max(zoom, 15);
 
-/** Группы событий в одной точке (одна площадка: ТРЦ, кинотеатр) — ~15 м. */
-export function groupByPoint<T extends Pick<EventItem, 'lat' | 'lon' | 'startsAt'>>(events: T[]): T[][] {
+/**
+ * Вблизи — одна площадка (~15 м), издалека — ячейка 44 экранных px в Меркаторе.
+ * Группируем до ограничения числа значков: каждое валидное событие остаётся ровно в одной группе.
+ * Полушаг масштаба совпадает с отчётами native-карты, чтобы состав групп не дрожал на каждом кадре.
+ */
+export function groupByPoint<T extends Pick<EventItem, 'lat' | 'lon' | 'startsAt'>>(events: T[], zoom?: number): T[][] {
   const groups = new Map<string, T[]>();
+  const far = zoom != null && Number.isFinite(zoom) && asDots(zoom);
+  const world = far ? 512 * 2 ** Math.max(0, Math.floor(zoom * 2) / 2) : 0;
   for (const e of events) {
-    const key = `${e.lat.toFixed(4)}:${e.lon.toFixed(4)}`;
-    groups.set(key, [...(groups.get(key) ?? []), e]);
+    if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon) || Math.abs(e.lat) > 90 || Math.abs(e.lon) > 180) continue;
+    // +180 и −180 — один меридиан; у полюсов ограничиваем проекцию, а не отбрасываем событие.
+    const lon = e.lon === 180 ? -180 : e.lon;
+    const lat = Math.max(-85.05112878, Math.min(85.05112878, e.lat));
+    const sin = Math.sin(lat * Math.PI / 180);
+    const x = (lon + 180) / 360 * world;
+    const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * world;
+    const key = far ? `${Math.floor(x / 44)}:${Math.floor(y / 44)}` : `${e.lat.toFixed(4)}:${lon.toFixed(4)}`;
+    const group = groups.get(key);
+    if (group) group.push(e); else groups.set(key, [e]);
   }
   return [...groups.values()].map((g) => [...g].sort((a, b) => Date.parse(a.startsAt)-Date.parse(b.startsAt)));
 }

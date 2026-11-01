@@ -51,6 +51,8 @@ describe('разбор без ИИ', () => {
     expect(parsePrice('Вход бесплатно')).toMatchObject({ free: true });
     expect(parsePrice('Билеты 2 500 – 4 000 ₸')).toEqual({ min: 2500, max: 4000, free: false, unsure: false });
     expect(parsePrice('Билеты от 3 000 ₸').unsure).toBe(true);
+    expect(parsePrice('Разыграют шопинг на 200 000 ₸')).toMatchObject({ min: null, max: null, free: false });
+    expect(parsePrice('Главный приз — 200 000 ₸. Билеты от 3 000 ₸')).toMatchObject({ min: 3000, max: null });
   });
   it('черновик из поста', () => {
     const x = extract('Лекция «Как искать экзопланеты»\nДля всех.\n📍 Национальная библиотека, Абая 14\n1 октября в 19:00\nВход бесплатно', '2026-09-28T07:00:00Z');
@@ -143,6 +145,11 @@ describe('Поиск через Gemini', () => {
     expect(r.links).toHaveLength(1);
     expect(r.usage).toEqual({ prompt: 120, output: 350, searches: 2, sources: 1 });
     expect(readResponse({}).text).toBe('');
+  });
+
+  it('не принимает заглушки вместо названия события', () => {
+    const entries = ['Пусто', 'Смотрите программу в карусели', 'Концерт V$XV PRINCE'].map((title) => ({ title, starts_at: '2026-11-21T20:00:00+05:00', url: 'https://example.org/event' }));
+    expect(parseGeminiOutput(JSON.stringify(entries)).map((f) => f.title)).toEqual(['Концерт V$XV PRINCE']);
   });
 
   it('проверка страницы: чужая ссылка — прочь; дата из разметки и картинка — со страницы', () => {

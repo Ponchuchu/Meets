@@ -264,8 +264,14 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
           {/* Точки издалека (26 октября): мягкая тень под точкой, белый ободок, точка растёт с приближением —
               от бусинки на весь город до 7 px у границы, где её сменяет значок. Одинаково у событий, ТРЦ и мест. */}
-          <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 4.5, 12.5, 9] as never, circleColor: '#17161A', circleOpacity: ['*', 0.22, ['get', 'op']] as never, circleBlur: 0.7, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
-          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 3, 12.5, 6.5] as never, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12.5, 2.2] as never, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
+          <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 8, 2, 15, 100, 18, 1000, 21] as never, circleColor: '#17161A', circleOpacity: ['*', 0.22, ['get', 'op']] as never, circleBlur: 0.7, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
+          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 6, 2, 13, 100, 16, 1000, 19] as never, circleColor: ['case', ['>', ['get', 'count'], 1], '#17161A', ['get', 'dot']] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: 2, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
+          {/* Число — данные той же группы, что открывается по тапу; не отдельные React-маркеры. */}
+          <M.SymbolLayer id="syms-count" filter={['all', ['!=', ['get', 'dot'], ''], ['>', ['get', 'count'], 1]] as never} style={{
+            textField: ['get', 'countText'] as never, textSize: 11, textColor: '#FFFFFF', textAnchor: 'center',
+            textAllowOverlap: true, textIgnorePlacement: true, textPitchAlignment: 'viewport', textRotationAlignment: 'viewport',
+            textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,
+          }} />
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
             iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
             iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',

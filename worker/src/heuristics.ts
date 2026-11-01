@@ -74,7 +74,12 @@ export function parseWhen(text: string, ref: Date): { starts: string | null; end
 }
 
 export function parsePrice(text: string): { min: number | null; max: number | null; free: boolean; unsure: boolean } {
-  const t = text.toLowerCase();
+  // Суммы розыгрышей и призов не имеют отношения к стоимости входа.
+  // Используем только предложения, где явно упомянуты билеты или вход.
+  const t = text.toLowerCase().split(/[\n.!?;]/).filter((part) =>
+    /билет|вход|цена|стоимость посещения|ticket|admission/.test(part)
+    && !/приз|розыгрыш|разыгра|выигра|подарочн|сертификат/.test(part),
+  ).join('\n');
   if (/бесплатно|вход свободный|free\b|вход — 0/.test(t)) return { min: null, max: null, free: true, unsure: false };
   const num = (x: string) => Number(x.replace(/\s/g, ''));
   const range = /(\d[\d\s]{0,7}?)\s*[–—-]\s*(\d[\d\s]{0,7}?)\s*(₸|тг|тенге|kzt)/.exec(t);

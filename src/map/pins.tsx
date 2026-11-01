@@ -5,7 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
 import { friendMark, type FriendMark } from './social';
-import { BatteryLow, Clock3, Zap } from 'lucide-react-native';
+import { Battery, BatteryLow, Clock3, Zap } from 'lucide-react-native';
 import { Avatar } from '../ui/Avatar';
 import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
@@ -209,7 +209,7 @@ export function FriendBubble({ person, size = 46, ring, faded, badge }: { person
 /** Плашка на кольце аватарки: в пути — скорость; мало заряда — красная батарейка; заряжается — молния; давно — часы. */
 export function StatusChip({ mark, big }: { mark: NonNullable<FriendMark>; big?: boolean }) {
   // В пути — только скорость, без значка транспорта (26 окт.: «лишняя информация»).
-  const Icon = mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : mark.kind === 'ago' ? Clock3 : null;
+  const Icon = mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : mark.kind === 'battery' ? Battery : mark.kind === 'ago' ? Clock3 : null;
   const fg = mark.kind === 'ago' ? colors.muted2 : '#FFFFFF';
   return (
     <View style={[styles.chip, MARK_BG[mark.kind], big && styles.chipBig]}>
@@ -259,6 +259,7 @@ const MARK_BG = {
   speed: { backgroundColor: colors.friend },
   low: { backgroundColor: '#E5383B' },
   charging: { backgroundColor: '#2FA35A' },
+  battery: { backgroundColor: '#4F6A64' },
   ago: { backgroundColor: '#FFFFFF' },
 } as const;
 

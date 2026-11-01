@@ -13,7 +13,6 @@ import { useApp, useBackClose, useCoverTabBar } from '../../state/app';
 import { useShallow } from 'zustand/react/shallow';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data, eventsSnapshot, type EventItem } from '../../data';
-import {openDirectChat,sendMessage} from '../../data/remote';
 import { useLiveFriends } from '../../data/realtime';
 import { DEMO_FORECAST } from '../../data/weather';
 import { almaty, dayIndex, now as clockNow } from '../../lib/clock';
@@ -30,8 +29,8 @@ import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
 import { asDots, detailOf, focusZoom, groupByPoint, MALL_DOT, pinBudget, pinScale, pxToLat, spotDot } from '../../map/zoom';
 import { accusative } from '../../lib/names';
-import { timeNow, useChat } from '../../state/chat';
-import { uid } from '../../lib/uid';
+import { createMapBurstQueue } from '../../stickers/mapBurst';
+import { sendMapSticker, useMapStickerReceiver } from '../../stickers/mapRealtime';
 import { Dismissible } from '../../ui/Dismissible';
 import { ideasForTwo } from '../../people/inviteFor';
 import { canSee } from '../../people/visibility';
@@ -74,7 +73,7 @@ import { MapControls } from '../../map/ui/MapControls';
 import { setMapTelemetry } from '../../map/telemetry';
 import { useIntro } from '../auth/Splash';
 import { useNet } from '../../live/net';
-import { myId } from '../../live/auth';
+import { myId, useAuth } from '../../live/auth';
 import { supabase } from '../../data/client';
 import { LensSheet } from '../../map/ui/LensSheet';
 import { AccuracyAsk, BackgroundAsk, ExploreBadge, NetPill, NoGeoCard, TrafficChip } from '../../map/ui/MapStates';
@@ -130,7 +129,8 @@ export default function MapScreen() {
   const [mapInviting, setMapInviting] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   // Стикер, который сейчас «долетел» до друга: перчатки, сердце, мем… (FIX5).
-  const [blast, setBlast] = useState<{ key: number; st: (typeof STICKERS)[number] } | null>(null);
+  const [blast, setBlast] = useState<{ key: number; st: (typeof STICKERS)[number]; count: number; from: string } | null>(null);
+  const meId = useAuth(s => s.session?.user.id);
   const [zoom, setZoom] = useState(ALMATY_CAMERA.zoom);
   // 2D/3D — в «Линзах» (FIX3): кнопка на карте убрана.
   const view = useMapView((s) => s.view);
@@ -261,6 +261,23 @@ export default function MapScreen() {
   const events = useMemo(() => [...meetups, ...loaded], [meetups, loaded]);
   const going = useMemo(() => new Set(Object.keys(goingMap)), [goingMap]);
   const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
+  const incomingSticker = (from: string, id: string, count: number) => {
+    const st = STICKERS.find(s => s.id === id);
+    if (!st) return;
+    setBlast(prev => prev && prev.st.id === id && prev.from === from ? { ...prev, count: Math.min(100, prev.count + count) } : { key: Date.now(), st, count, from });
+  };
+  useMapStickerReceiver(meId, people.filter(p => p.isFriend).map(p => p.id), LIVE && focused, incomingSticker);
+  const stickerQueue = useMemo(() => createMapBurstQueue((to, sticker, count) => {
+    const st = STICKERS.find(s => s.id === sticker);
+    if (!st) return;
+    useSocial.getState().sticker(to);
+    setBlast(prev => prev && prev.st.id === sticker && prev.from === 'me' ? { ...prev, count: Math.min(100, prev.count + count) } : { key: Date.now(), st, count, from: 'me' });
+    if (!LIVE) return;
+    const sender = myId();
+    if (!sender) return;
+    void sendMapSticker(sender, to, sticker, count).catch(() => setToast({ text: 'Не удалось отправить стикер. Проверь связь' }));
+  }), []);
+  useEffect(() => () => stickerQueue.flush(), [stickerQueue]);
   const { data: myProfile } = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
   const { data: rawSpots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
   const spots = useSmoothSpots(rawSpots);
@@ -377,7 +394,7 @@ export default function MapScreen() {
   const built = useMemo(() => {
     // eslint-disable-next-line react-hooks/refs -- кэш последней сборки читается только пока вкладка скрыта
     if (!focused && builtRef.current) return builtRef.current;
-    const groups = groupByPoint(visible);
+    const groups = groupByPoint(visible, zoom);
     const list: MapMarker[] = [];
     // Объёмные значки (FIX5) — слой самой карты; маркером остаётся только выбранное событие и встречи.
     const syms: (MapSymbol & { z: number })[] = [];
@@ -410,7 +427,7 @@ export default function MapScreen() {
       // eslint-disable-next-line react-hooks/refs -- вызывается только по тапу, не при отрисовке
       taps.set(id, () => openPin(e, group));
       syms.push({
-        id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId,
+        id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId, count: group.length,
         size: Math.round((kind === 'hot' ? 54 : kind === 'popular' ? 50 : kind === 'labeled' ? 46 : 42) * scale),
         dot: compact ? CAT_COLOR[e.category] : undefined,
       });
@@ -419,7 +436,7 @@ export default function MapScreen() {
     // Точки мелкие — их можно больше, чем объёмных значков.
     const budget0 = pinBudget(zoom) * (dots ? 3 : 1);
     const budget = eco ? Math.max(6, Math.round(budget0 / 2)) : budget0;
-    if (syms.length > budget) {
+    if (!dots && syms.length > budget) {
       const keep = [...syms].sort((a, b) => b.z - a.z).slice(0, budget);
       syms.splice(0, syms.length, ...keep);
     }
@@ -537,18 +554,13 @@ export default function MapScreen() {
     mapRef.current?.flyTo(e.lat - pxToLat(190, z, e.lat), e.lon, z);
   };
 
-  // Стикер другу: облачко долетает до его точки, висит ~3 с и падает в личный чат. Без лимита — у друга придёт пуш.
-  const sendSticker = (i: number) => {
-    if (!focusPerson || blast) return;
+  // Стикеры карты не записываются в чат. Несколько нажатий собираются в короткие пакеты.
+  const sendSticker = (i: number, delta = 1) => {
+    if (!focusPerson || !focusPerson.isFriend) return;
     const st = STICKERS[i];
+    if (!st) return;
     const to = focusPerson.id;
-    // Сразу показываем действие (FIX5): раньше анимация ждала ответа сервера — на медленной сети это секунды тишины.
-    // Отправка идёт фоном; не дошло — скажем об этом.
-    social.sticker(to);
-    setBlast({ key: Date.now(), st });
-    if (LIVE) void openDirectChat(to).then((chatId) => sendMessage(chatId, st.label, 'sticker')).then(() => void queryClient.invalidateQueries({ queryKey: ['chats'] }))
-      .catch(() => showToast({ text: 'Не удалось отправить стикер. Проверь связь' }));
-    else useChat.getState().send({ id: uid(`dm-${to}-st`), chatId: `dm-${to}`, authorId: 'me', kind: 'sticker', text: st.label, time: timeNow() });
+    stickerQueue.add(to, st.id, delta);
   };
 
   const topY = Math.max(50, insets.top + 6);
@@ -603,14 +615,14 @@ export default function MapScreen() {
           <Dismissible key={focusPerson.id} closeButton={false} label={focusPerson.name} onDismiss={() => focusFriend(null)}>
             <FriendCard p={focusPerson} spot={focusSpot} ring={focusSpot.state === 'paused' ? '#8C8577' : colors.friend}
               onProfile={() => router.push({ pathname: '/person/[id]', params: { id: focusPerson.id } })}
-              onSticker={(i) => sendSticker(i)}
+              onSticker={sendSticker}
               onWrite={() => router.push({ pathname: '/chat/[id]', params: { id: `dm-${focusPerson.id}` } })}
               onInvite={() => setInviteOpen(true)} />
           </Dismissible>
         </View>
       )}
 
-      {blast && <StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110 - FOCUS_FACE} onDone={() => setBlast(null)} />}
+      {blast && <><StickerBlast key={blast.key} st={blast.st} x={W / 2} y={(H || winH) / 2 - 110 - FOCUS_FACE} onDone={() => setBlast(null)} />{blast.count > 1 && <Text pointerEvents="none" style={{ position: 'absolute', top: (H || winH) / 2 - 150 - FOCUS_FACE, alignSelf: 'center', fontSize: 24, color: '#FFFFFF', fontWeight: '800', textShadowColor: '#17161A', textShadowRadius: 5 }}>×{blast.count}</Text>}</>}
 
       {selected && sheet === null && !focusId && (
         <View style={[styles.card, { bottom: tabPad }]} onLayout={(ev) => { const l = ev.nativeEvent.layout; setCardRect({ x: l.x, y: l.y, w: l.width, h: l.height }); }}>

@@ -1,5 +1,6 @@
 // Черновик карточки из разобранного поста: площадка, точка, флаги, публиковать ли сразу.
 import { canonAddress } from './ruAddress.ts';
+import { usableTitle } from './title.ts';
 import { isVague, matchVenue, NOT_A_PLACE, type VenueRow } from './venues.ts';
 import type { Draft, Extraction, Flag, Point, RawPost, Source } from './types.ts';
 
@@ -17,7 +18,7 @@ export async function buildDraft(
   venues: VenueRow[],
   geocode: (q: string) => Promise<Point | null>,
 ): Promise<Draft | null> {
-  if (x.class !== 'event' || !x.starts_at || !x.title) return null;
+  if (x.class !== 'event' || !x.starts_at || !x.title || !usableTitle(x.title)) return null;
   const flags: Flag[] = [];
   const venue = matchVenue(x.venue_name, x.address, venues);
   let point: Point | null = venue?.lat != null && venue.lon != null ? { lat: venue.lat, lon: venue.lon } : null;
