@@ -1,0 +1,22 @@
+name: Prepare sticker migration
+on:
+  push:
+    branches: ['codex/map-reactions-work']
+    paths: ['.github/workflows/prepare-map-reactions.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: |
+          supabase migration new map_sticker_broadcast
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/migrations/*_map_sticker_broadcast.sql
+          git commit -m 'Prepare map sticker migration'
+          git push
