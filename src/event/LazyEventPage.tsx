@@ -15,6 +15,7 @@ import { eventMedia } from '../ui/EventMedia';
 import { colors, fonts } from '../theme';
 import { EventCover, openCoverH } from '../ui/EventCover';
 import { EventPage } from './EventPage';
+import { displayEventTitle } from './title';
 import { EventFacts } from './ui/EventFacts';
 
 
@@ -48,7 +49,7 @@ function Hero({ e, now, progress, coverFrom }: { e: EventItem; now: Date; progre
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroShade)" />
         </Svg>
         <Animated.View style={[styles.text, media.length > 1 && { paddingRight: 76 }, text]}>
-          <Text style={styles.h1}>{e.title}</Text>
+          <Text style={styles.h1}>{displayEventTitle(e.title)}</Text>
         </Animated.View>
       </EventCover>
       </Animated.View>

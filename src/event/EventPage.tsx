@@ -12,9 +12,10 @@ import { ScheduleSheet } from './ScheduleSheet';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useCallback, useMemo, useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Linking, Modal, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { editorialText } from './editorial';
+import { displayEventTitle } from './title';
 import { AboutBlock, langOf } from './ui/AboutBlock';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { data } from '../data';
@@ -86,6 +87,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const multiDay = !!e.endsAt && dayIndex(e.endsAt) > dayIndex(e.startsAt) && e.isLong;
   const mine = LIVE ? e.createdBy === myId() : !!e.meetup;
   const [sheet, setSheet] = useState<Sheet>(initialSheet);
+  const [fullMedia, setFullMedia] = useState<number | null>(null);
   const sendingInvite=useRef(false);
   const [inviting,setInviting]=useState(false);
   // Обложка: при прокрутке уезжает медленнее текста, при оттягивании вниз — растёт (параллакс, FIX3).
@@ -178,7 +180,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <Animated.View style={parallax}>
         <EventCover cover={null} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
-          {media.length > 0 && <EventMedia key={e.id} items={media} height={coverH} active={sheet === null && mediaVisible} controlsTop={controlsTop + 56} gallery />}
+          {media.length > 0 && <EventMedia key={e.id} items={media} height={coverH} active={sheet === null && fullMedia === null && mediaVisible} controlsTop={controlsTop + 56} onOpenMedia={setFullMedia} gallery />}
           <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
@@ -198,7 +200,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
             </Pressable>
           </View>
           <Animated.View pointerEvents="none" style={[styles.coverText, media.length > 1 && { paddingRight: 76 }, titleFade, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
-            <Text style={styles.h1} accessibilityRole="header">{e.title}</Text>
+            <Text style={styles.h1} accessibilityRole="header">{displayEventTitle(e.title)}</Text>
           </Animated.View>
         </EventCover>
         </Animated.View>
@@ -302,6 +304,12 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         </View>
       )}
 
+      <Modal visible={fullMedia !== null} animationType="fade" onRequestClose={() => setFullMedia(null)} statusBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: colors.ink, justifyContent: 'center' }}>
+          {fullMedia !== null && <EventMedia key={`${e.id}:${fullMedia}`} items={media} height={viewH} initialPage={fullMedia} gallery fit="contain" />}
+          <Pressable accessibilityRole="button" accessibilityLabel="Закрыть просмотр медиа" onPress={() => setFullMedia(null)} style={[styles.round, { position: 'absolute', left: 18, top: insets.top + 10 }]}><X size={24} color="#FFFFFF" /></Pressable>
+        </View>
+      </Modal>
       {sheet === 'dates' && <WhenSheet e={e} events={[]} now={now} onClose={() => setSheet(null)} onPlanned={() => { setSheet(null); if (onPlanned) onPlanned(); else show({ text: 'Добавил в «Планы» на выбранную дату. Напомню за час' }); }} />}
       {(sheet === 'visit' || sheet === 'reschedule') && <><Backdrop label="Закрыть выбор времени" onPress={() => setSheet(null)} /><BottomSheet label={sheet === 'visit' ? 'Когда пойти' : 'Перенести встречу'} onClose={() => setSheet(null)} scroll>
         <ScheduleSheet e={e} now={now} reschedule={sheet === 'reschedule'} initial={visitAt} onSave={async at => {

@@ -109,7 +109,7 @@ export function StickerHoldButton({ st, index, onSticker, disabled = false, onHo
     accessibilityState={{ disabled }} accessibilityValue={count ? { min: 0, max: STICKER_HOLD_LIMIT, now: count } : undefined}>
     <Animated.View style={[styles.tile, holding && styles.holding, motion]}>
       <StickerView st={st} size={58} />
-      {count > 0 && <View pointerEvents="none" style={[styles.counter, count === STICKER_HOLD_LIMIT && styles.limit]}><Text style={styles.counterText} allowFontScaling={false}>×{count}</Text></View>}
+      {count > 1 && <View pointerEvents="none" style={[styles.counter, count === STICKER_HOLD_LIMIT && styles.limit]}><Text style={styles.counterText} allowFontScaling={false}>×{count}</Text></View>}
       {holding && <View pointerEvents="none" style={styles.track}><Animated.View style={[styles.progress, bar]} /></View>}
     </Animated.View>
   </Pressable>;

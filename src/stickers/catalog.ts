@@ -8,7 +8,7 @@ export type StickerAnim =
   | 'heartbeat' | 'punch' | 'wobble' | 'confetti' | 'flicker' | 'clap' | 'laugh' | 'rattle' | 'look' | 'pop'
   | 'launch' | 'steam' | 'sway' | 'shine' | 'float' | 'hug' | 'slam' | 'sixseven';
 export type StickerSound =
-  | 'heart' | 'punch' | 'squeak' | 'confetti' | 'sizzle' | 'clap' | 'laugh' | 'rattle' | 'pop' | 'whoosh' | 'boing' | 'chime' | 'snore' | 'slam' | 'blink';
+  | 'heart' | 'punch' | 'squeak' | 'confetti' | 'sizzle' | 'clap' | 'laugh' | 'rattle' | 'pop' | 'whoosh' | 'boing' | 'chime' | 'snore' | 'slam' | 'mognu' | 'sixseven' | 'letsgo';
 
 export interface Sticker {
   id: string;
@@ -55,10 +55,9 @@ export const STICKERS: Sticker[] = [
   art('cool', 'Красавчик', 'mood', 'shine', 'chime', require('../../assets/stickers/art/cool.png'), 3),
   art('ghost', 'Бу!', 'mood', 'float', 'boing', require('../../assets/stickers/art/ghost.png'), 3),
   art('bear', 'Обнимаю', 'mood', 'hug', 'heart', require('../../assets/stickers/art/bear.png'), 3),
-  meme('m67', '67', '#FFD23F', 'sixseven', 'boing', 1, -6),
-  meme('mognu', 'МОГНУ', '#7FD1FF', 'slam', 'slam', 1, 4),
-  meme('blink', 'МОРГНУ', '#D6C5FF', 'look', 'blink', 1, 3),
-  meme('go', 'ГО?', '#FF8A5C', 'slam', 'slam', 1, -5),
+  meme('m67', '67', '#FFD23F', 'sixseven', 'sixseven', 1, -6),
+  meme('mognu', 'МОГНУ', '#7FD1FF', 'slam', 'mognu', 1, 4),
+  meme('go', 'ГО?', '#FF8A5C', 'slam', 'letsgo', 1, -5),
   meme('lol-text', 'ЛОЛ', '#B79BFF', 'laugh', 'laugh', 1, 5),
   meme('imba', 'ИМБА', '#5DD39E', 'slam', 'slam', 3, -3),
   meme('baza', 'БАЗА', '#FF6FA0', 'slam', 'slam', 3, 4),

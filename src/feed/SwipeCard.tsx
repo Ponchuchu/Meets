@@ -77,18 +77,11 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [top, touched, enterFrom]);
 
-  // «Вернуть»: карточка появляется с той стороны, куда ушла.
+  // Возвращённая карточка сразу на верхнем слое: плавное проявление без пролёта за соседней карточкой.
   useEffect(() => {
-    if (enterFrom === 'skip') {
-      dx.set(-560); dy.set(60); rot.set(-22);
-      dx.set(withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }));
-      dy.set(withTiming(0, { duration: 320 }));
-      rot.set(withTiming(0, { duration: 320 }));
-    } else if (enterFrom === 'go') {
-      sx.set(0); sy.set(0); sr.set(0); t.set(1); op.set(0);
-      t.set(withTiming(0, { duration: 420, easing: Easing.out(Easing.cubic) }));
-      op.set(withTiming(1, { duration: 200 }));
-    }
+    if (!enterFrom) return;
+    op.set(0);
+    op.set(withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

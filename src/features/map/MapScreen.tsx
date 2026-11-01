@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { LazyEventPage } from '../../event/LazyEventPage';
@@ -22,12 +22,14 @@ import { phaseOf, whenLabel } from '../../map/lifecycle';
 import { MAP_FRAMES } from '../../map/MapAvatar';
 import { closeGroups } from '../../map/proximity';
 import { MapCanvas } from '../../map/MapCanvas';
-import { CityPin, EventPin, FOCUS_FACE, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
+import { FOCUS_FACE, FocusPin, FriendPin, MePin, TogetherPin, type PinKind } from '../../map/pins';
 import { FriendCard, InviteFriendSheet, STICKERS } from '../../map/ui/FriendCard';
 import { StickerBlast } from '../../stickers/StickerBlast';
 import { StackSheet } from '../../map/ui/StackSheet';
 import { fxFor, WeatherFx } from '../../map/ui/WeatherFx';
-import { asDots, detailOf, focusZoom, groupByPoint, MALL_DOT, pinBudget, pinScale, pxToLat, spotDot } from '../../map/zoom';
+import { asDots, detailOf, focusZoom, groupByPoint, MALL_DOT, pinScale, pxToLat, spotDot } from '../../map/zoom';
+import { clusterMapSymbols, sameMapSymbols } from '../../map/clusters';
+import { SPRITES } from '../../map/sprites';
 import { accusative } from '../../lib/names';
 import { createMapBurstQueue } from '../../stickers/mapBurst';
 import { sendMapSticker, useMapStickerReceiver } from '../../stickers/mapRealtime';
@@ -84,7 +86,7 @@ import { improveAccuracy, mayAutoAsk, noDialog, precision, shouldExplain, useGeo
 /** Демо (тесты и web-скриншоты): один настоящий ТРЦ в центре, чтобы видеть карточку места. */
 const DEMO_MALLS: Mall[] = [{ id: 'demo-tsum', name: 'ЦУМ', address: 'пр. Абылай хана, 62', hours: '10:00–22:00', cover: null, lat: 43.2622, lon: 76.9447 }];
 
-type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue' | 'spot';
+type Sheet = null | 'lens' | 'filters' | 'search' | 'stack' | 'venue' | 'spot' | 'cluster';
 const LIVE = config.dataMode !== 'demo';
 /** Друг не обновлял точку больше суток — на карте его не рисуем. */
 const STALE_MIN = 24 * 60;
@@ -121,6 +123,7 @@ export default function MapScreen() {
   useCoverTabBar(!!open);
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [symbolGroup, setSymbolGroup] = useState<MapSymbol[]>([]);
   const [clock, setClock] = useState(clockNow);
   const { filters, setFilters, resetFilters, selectedId, select, focusId, focusFriend, inviteOpen, setInviteOpen } = useMapState(useShallow((s) => ({
     filters: s.filters, setFilters: s.setFilters, resetFilters: s.resetFilters, selectedId: s.selectedId, select: s.select, focusId: s.focusId,
@@ -394,7 +397,8 @@ export default function MapScreen() {
   const built = useMemo(() => {
     // eslint-disable-next-line react-hooks/refs -- кэш последней сборки читается только пока вкладка скрыта
     if (!focused && builtRef.current) return builtRef.current;
-    const groups = groupByPoint(visible, zoom);
+    // Одна площадка — один раскрывающийся значок; сессии не раздувают визуальные счётчики.
+    const groups = groupByPoint(visible);
     const list: MapMarker[] = [];
     // Объёмные значки (FIX5) — слой самой карты; маркером остаётся только выбранное событие и встречи.
     const syms: (MapSymbol & { z: number })[] = [];
@@ -407,19 +411,6 @@ export default function MapScreen() {
       const kind = k0 === 'popular' && !popularBigger ? 'plain' : k0;
       const z = kind === 'hot' ? 30 : kind === 'plain' ? 10 : 20;
       // Выбор события карту не перерисовывает и подписи не рисует (27 окт.): карта остаётся картой, детали — в шторке.
-      if (e.meetup) {
-        list.push({
-          id: `e-${e.id}`, lat: e.lat, lon: e.lon, z,
-          node: (
-            <View style={{ opacity: focusId ? 0.35 : 1 }} pointerEvents={focusId ? 'none' : 'auto'}>
-            {<EventPin e={e} kind={kind} phase={phaseOf(e, clock, going.has(e.id))} label={e.title} selected={false}
-              showCompany={false} dark={dark} scale={scale} count={group.length} onPress={() => openPin(e, group)}
-              />}
-            </View>
-          ),
-        });
-        continue;
-      }
       // Точками — все сразу и только издалека (весь город на экране), без разницы, обычное событие или нет.
       const compact = dots;
       // Только значок (26 октября, решение владельца): без времени, даты и цифр — всё видно по нажатию.
@@ -427,27 +418,23 @@ export default function MapScreen() {
       // eslint-disable-next-line react-hooks/refs -- вызывается только по тапу, не при отрисовке
       taps.set(id, () => openPin(e, group));
       syms.push({
-        id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId, count: group.length,
+        id, lat: e.lat, lon: e.lon, z, sort: z, icon: eventSprite(e), faded: !!focusId, count: 1, eventCount: group.length, label: e.title,
         size: Math.round((kind === 'hot' ? 54 : kind === 'popular' ? 50 : kind === 'labeled' ? 46 : 42) * scale),
         dot: compact ? CAT_COLOR[e.category] : undefined,
       });
     }
-    // Вдали — только самые важные точки, с каждым шагом приближения — больше (выбранная остаётся всегда).
-    // Точки мелкие — их можно больше, чем объёмных значков.
-    const budget0 = pinBudget(zoom) * (dots ? 3 : 1);
-    const budget = eco ? Math.max(6, Math.round(budget0 / 2)) : budget0;
-    if (!dots && syms.length > budget) {
-      const keep = [...syms].sort((a, b) => b.z - a.z).slice(0, budget);
-      syms.splice(0, syms.length, ...keep);
-    }
+    // Плотность ограничивают кластеры, а не отбрасывание событий по бюджету.
     // «Год в Алматы»: большое событие с известным местом — на карте, когда оно идёт или до него меньше двух недель.
     for (const c of cityYear(clock)) {
       if (!c.e.point || (c.status !== 'now' && c.status !== 'soon')) continue;
-      list.push({ id: `city-${c.e.id}`, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, node: <CityPin title={c.e.title} when={leftText(c)} color={c.e.color} Icon={c.e.Icon} onPress={() => router.push('/city-year')} /> });
+      const id = `city-${c.e.id}`;
+      taps.set(id, () => router.push('/city-year'));
+      syms.push({ id, lat: c.e.point.lat, lon: c.e.point.lon, z: 25, sort: 25, size: Math.round(48 * scale),
+        icon: c.e.id === 'ski-season' ? 'pl-ski' : c.e.id === 'marathon' ? 'ev-run' : 'ev-holiday', label: c.e.title, text: leftText(c), faded: !!focusId, dot: dots ? c.e.color : undefined });
     }
     // Я дома или на работе — булавку места прячем: она налезала на мою точку и аватарку (26 октября).
     const here = fix ?? myPos;
-    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon) && !(here && distM(here, pl) < 150)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} icon={pl.icon} label={zoom >= 14.5} /> });
+    for (const pl of myPlaces) if (Number.isFinite(pl.lat) && Number.isFinite(pl.lon) && !(here && distM(here, pl) < 150)) list.push({ id: `p-${pl.id}`, lat: pl.lat, lon: pl.lon, z: 6, node: <PlacePin kind={pl.kind} title={pl.title} icon={pl.icon} label={zoom >= 15} compact={dots} /> });
     // Постоянные места: горы и катки видно издалека, остальное — с района, бесплатные фотозоны — вблизи.
     // Каждый значок — отдельный слой поверх карты, а их перерисовка при движении дорогая на слабых телефонах:
     // издалека — только горы и канатки, с района — ещё парки и музеи, всё остальное — вблизи; в экономии — вдвое меньше.
@@ -458,12 +445,12 @@ export default function MapScreen() {
       if (eco && !mid) continue;
       const id = `a-${a.id}`;
       taps.set(id, () => { setSpotExpanded(false); setSpotPlace(a); setSheet('spot'); });
-      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), size: Math.round((big ? 50 : 44) * scale), faded: !!focusId, dot: dots ? spotDot(a.kind) : undefined });
+      syms.push({ id, lat: a.lat, lon: a.lon, z: 9, sort: 9, icon: spotSprite(a), label: a.name, size: Math.round((big ? 50 : 44) * scale), faded: !!focusId, dot: dots ? spotDot(a.kind) : undefined });
     }
     for (const m of malls) {
       const id = `v-${m.id}`;
       taps.set(id, () => { setMall(m); setSheet('venue'); });
-      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), size: Math.round(58 * scale), faded: !!focusId, dot: dots ? MALL_DOT : undefined });
+      syms.push({ id, lat: m.lat, lon: m.lon, z: 8, sort: 8, icon: mallSprite(m.name), label: m.name, size: Math.round(58 * scale), faded: !!focusId, dot: dots ? MALL_DOT : undefined });
     }
     if (filters.friends) {
       const grouped = new Set<string>();
@@ -490,7 +477,7 @@ export default function MapScreen() {
           list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 60, node: <FocusPin person={p} ring={s.state === 'paused' ? '#8C8577' : colors.friend} speed={s.state === 'moving' && (LIVE || (d && canSee('friend', 'speedStatus', d.privacy))) ? `${s.speedKmh} КМ/Ч` : undefined} heading={s.heading} /> });
           if (p.mapTrail !== 'none' && p.mapTrail !== 'comet') trail.slice(1).forEach((t, i) => list.push({ id: `t-${i}`, lat: t.lat, lon: t.lon, z: 5, node: <View style={{ width: 8 - i * 2, height: 8 - i * 2, borderRadius: 4, backgroundColor: colors.friend, opacity: 0.55 - i * 0.15 }} /> }));
         } else {
-          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
+          list.push({ id: `f-${p.id}`, lat: s.lat, lon: s.lon, z: 40, node: <FriendPin person={p} spot={s} compact={dots} dim={!!focusId} onPress={() => { focusFriend(p.id); setSheet(null); }} /> });
         }
       }
     }
@@ -501,15 +488,30 @@ export default function MapScreen() {
       if (at && Platform.OS === 'web') list.push({ id: 'me', lat: at.lat, lon: at.lon, z: 35, node: <MeDot heading={heading} bearing={bearing} dim={!!focusId} /> });
 
     } else if (me) list.push({ id: 'me', lat: me.lat, lon: me.lon, z: 35, node: <View style={{ opacity: focusId ? 0.35 : 1 }}><MePin /></View> });
-    return { markers: list, symbols: syms as MapSymbol[], taps };
+    // Плавное движение друзей обновляет React-маркеры, но не статическую геометрию/кластеризацию.
+    // eslint-disable-next-line react-hooks/refs
+    const previous = builtRef.current?.symbols;
+    // eslint-disable-next-line react-hooks/refs
+    return { markers: list, symbols: previous && sameMapSymbols(previous, syms) ? previous : syms as MapSymbol[], taps };
   }, [focused, visible, spots, people, me, filters.friends, filters.company, clock, today, dark, going, popularBigger, focusId, details, social.removed, detail, dots, scale, openPin, trail, fix, myPos, zoom, malls, myPlaces, places, myProfile, draft.name, draft.photo]); // eslint-disable-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/refs -- запоминаем сборку для скрытой вкладки
   builtRef.current = built;
   const { markers, symbols, taps } = built;
+  const clustered = useMemo(() => clusterMapSymbols(symbols, zoom), [symbols, zoom]);
   // Тап по значку слоя карты: обработчики меняются вместе со значками, сама функция — одна.
   const tapsRef = useRef(taps);
+  const clusterRef = useRef(clustered.members);
   useEffect(() => { tapsRef.current = taps; }, [taps]);
-  const onSymbol = useCallback((id: string) => tapsRef.current.get(id)?.(), []);
+  useEffect(() => { clusterRef.current = clustered.members; }, [clustered.members]);
+  const onSymbol = useCallback((id: string) => {
+    const group = clusterRef.current.get(id);
+    if (!group) { tapsRef.current.get(id)?.(); return; }
+    // Совпадающие точки при любом зуме доступны списком; разнесённые — раскрываются приближением.
+    const coincident = group.every(s => distM(group[0], s) < 30);
+    if (coincident || zoom >= 16) { setSymbolGroup(group); setSheet('cluster'); return; }
+    setSheet(null);
+    mapRef.current?.fitBounds?.(group.map(s => [s.lon, s.lat]), { top: 140, bottom: tabPad + 90, left: 70, right: 70 });
+  }, [zoom, tabPad]);
 
   const count = visible.length;
   const dateText = rangeLabel(filters.from, filters.to, clock);
@@ -568,7 +570,7 @@ export default function MapScreen() {
   return (
     <View style={[styles.root, { backgroundColor: dark ? '#1C1D21' : '#DDD8CB' }]} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       {/* Карта живёт за другими вкладками: заново строить её при каждом возврате — 3–4 с пустого экрана (27 окт.). */}
-      {startCam && (focused || mapAlive) && <MapCanvas hidden={!focused} key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={symbols} onSymbol={onSymbol} bottomInset={tabPad} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines} zone={sheet === 'spot' && spotPlace ? ZONES[spotPlace.id] ?? null : null}
+      {startCam && (focused || mapAlive) && <MapCanvas hidden={!focused} key={mapAttempt} remember threeD={threeD} ref={mapRef} theme={theme} camera={startCam} markers={markers} symbols={clustered.symbols} onSymbol={onSymbol} bottomInset={tabPad} topInset={topY + 104} onMode={mode => { setMapMode(mode); useIntro.getState().ready(); }} showUser={!!(fix ?? myPos)} me={fix ?? myPos} meHeading={heading} onZoom={setZoom} traffic={traffic} fog={fog} lines={friendLines} zone={sheet === 'spot' && spotPlace ? ZONES[spotPlace.id] ?? null : null}
         onPress={() => { if (selectedId) select(null); }} onBearing={(d) => bearing.set(d)} follow={follow} onFollowEnd={() => setFollow(false)} />}
       {/* Дождь и снег — только когда карта на экране и без экономии: частицы крутятся на UI-потоке. */}
       {focused && !eco && <WeatherFx fx={fxFor(weather, almaty(clock).getUTCMonth())} />}
@@ -637,6 +639,23 @@ export default function MapScreen() {
             }} />
         </View>
       )}
+
+      {sheet === 'cluster' && symbolGroup.length > 0 && <>
+        <Backdrop onPress={() => setSheet(null)} label="Закрыть места и события" />
+        <BottomSheet onClose={() => setSheet(null)} label="Места и события рядом">
+          <Text style={styles.clusterTitle}>Места и события рядом</Text>
+          <ScrollView style={{ maxHeight: Math.min(420, winH * 0.5) }} contentContainerStyle={{ gap: 8 }}>
+            {symbolGroup.map(s => <Pressable key={s.id} accessibilityRole="button" accessibilityLabel={s.label || 'Открыть место'}
+              onPress={() => { setSheet(null); tapsRef.current.get(s.id)?.(); }} style={styles.clusterRow}>
+              <Image source={SPRITES[s.icon]} resizeMode="contain" style={{ width: 42, height: 46 }} />
+              <View style={{ flex: 1, gap: 3 }}><Text numberOfLines={2} style={styles.clusterName}>{s.label || 'Место на карте'}</Text>
+                {s.eventCount != null && s.eventCount > 1 && <Text style={styles.clusterMeta}>Событий в этом месте: {s.eventCount}</Text>}
+              </View>
+              <Text style={styles.clusterArrow}>›</Text>
+            </Pressable>)}
+          </ScrollView>
+        </BottomSheet>
+      </>}
 
       {sheet === 'stack' && stack.length > 0 && (
         <>
@@ -756,6 +775,11 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+  clusterTitle: { fontFamily: fonts.display700, fontSize: 21, color: colors.ink, marginBottom: 12 },
+  clusterRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: colors.cardAlt },
+  clusterName: { fontFamily: fonts.body600, fontSize: 14, lineHeight: 19, color: colors.ink },
+  clusterMeta: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted },
+  clusterArrow: { fontSize: 26, color: colors.muted },
   root: { flex: 1, overflow: 'hidden' },
   top: { position: 'absolute', left: 16, right: 16 },
   calendar: { position: 'absolute', left: 12, right: 12 },

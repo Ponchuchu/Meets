@@ -10,6 +10,7 @@ import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import type { EventItem, Person } from '../data/types';
 import { editorialText } from '../event/editorial';
+import { displayEventTitle } from '../event/title';
 import { eventFacts } from '../event/facts';
 
 import { colors, fonts } from '../theme';
@@ -19,7 +20,6 @@ import { EventMedia, eventMedia } from '../ui/EventMedia';
 import { ATTRACTIONS, inSeason, KIND_COLOR, KIND_LABEL, seasonText } from '../data/attractions';
 import { openStatus } from '../data/hours';
 import { AttractionPin } from '../map/ui/AttractionPin';
-import { CAT_LABEL } from '../map/icons';
 
 export function feedSocial(e: EventItem, people: Person[]): { text: string; faces: { p: Person; ring?: string }[] } {
   const friends = e.friendsGoing.map((id) => people.find((p) => p.id === id)).filter(Boolean) as Person[];
@@ -46,7 +46,7 @@ function EventFeedCard({ e, people, now: _now, dx, stamp, height, active = false
 }) {
   const coverH = feedCoverH(e, height);
   const media = useMemo(() => eventMedia(e), [e]);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => Math.max(0, media.findIndex(m => m.type === 'video')));
   const [mediaHeight, setMediaHeight] = useState(coverH);
   const { fontScale } = useWindowDimensions();
   const compact = height / fontScale < 440;
@@ -63,7 +63,6 @@ function EventFeedCard({ e, people, now: _now, dx, stamp, height, active = false
       <EventCover cover={null} category={e.category} color={e.coverColor} style={StyleSheet.absoluteFill} iconSize={Math.round(mediaHeight * 0.62)}>
         {item?.type === 'image' ? <FeedPhoto key={item.url} uri={item.url} /> : item && <View style={StyleSheet.absoluteFill}><EventMedia items={media} height={mediaHeight} active={active} fit="cover" selected={selected} /></View>}
         <MediaShade />
-        <View pointerEvents="none" style={styles.cat}><Text style={styles.catText} numberOfLines={1}>{CAT_LABEL[e.category]}</Text></View>
         {active && media.length > 1 && <>
           <Pressable accessibilityRole="button" accessibilityLabel="Предыдущее фото" onPress={() => setPage((selected - 1 + media.length) % media.length)} style={[styles.mediaArrow, { left: 8 }]}><ChevronLeft color="white" size={20} /></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Следующее фото" onPress={() => setPage((selected + 1) % media.length)} style={[styles.mediaArrow, { right: 8 }]}><ChevronRight color="white" size={20} /></Pressable>
@@ -75,7 +74,7 @@ function EventFeedCard({ e, people, now: _now, dx, stamp, height, active = false
       </EventCover>
       </View>
       <View style={[styles.body, compact && styles.bodyCompact]}>
-        <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 2 : 3} maxFontSizeMultiplier={1.3}>{e.title.trim() || 'Событие'}</Text>
+        <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 2 : 3} maxFontSizeMultiplier={1.3}>{displayEventTitle(e.title) || 'Событие'}</Text>
         <View style={styles.facts}>
           <Fact Icon={Clock} text={f.when} bad={f.whenMissing} />
           <Fact Icon={MapPin} text={f.place} bad={f.placeMissing} />
@@ -122,7 +121,6 @@ function SpotFeedCard({ e, now, dx, stamp, height }: { e: EventItem; now: Date; 
           </>
         ) : <View pointerEvents="none" style={{ transform: [{ scale: 2.4 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>}
         <MediaShade />
-        <View pointerEvents="none" style={styles.cat}><Text style={styles.catText} numberOfLines={1}>{KIND_LABEL[a.kind].toUpperCase()}</Text></View>
         {a.free && <View style={[styles.when, photo && { left: undefined, right: 14 }]}><Text style={styles.whenText}>БЕСПЛАТНО</Text></View>}
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampGo, goStamp]}><Text style={[styles.stampText, { color: colors.accent }]}>ХОЧУ</Text></Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, styles.stampSkip, skipStamp]}><Text style={styles.stampText}>МИМО</Text></Animated.View>

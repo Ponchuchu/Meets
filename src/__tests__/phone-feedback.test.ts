@@ -30,10 +30,11 @@ describe('навигация вдоль пути',()=>{
   expect(closestInstruction({lat:0,lon:0},[])).toBeNull();
  });
 });
-it('25 уникальных стикеров открываются по уровням без отправки заблокированных',()=>{
- expect(STICKERS).toHaveLength(25);expect(new Set(STICKERS.map(s=>s.id)).size).toBe(25);expect(new Set(STICKERS.map(s=>s.label)).size).toBe(25);
- expect(STICKERS.filter(s=>stickerUnlocked(s,1))).toHaveLength(17);expect(STICKERS.every(s=>stickerUnlocked(s,3))).toBe(true);
- expect(STICKERS.find(s=>s.id==='blink')).toMatchObject({label:'МОРГНУ',sound:'blink'});
+it('24 уникальных стикеров открываются по уровням без отправки заблокированных',()=>{
+ expect(STICKERS).toHaveLength(24);expect(new Set(STICKERS.map(s=>s.id)).size).toBe(24);expect(new Set(STICKERS.map(s=>s.label)).size).toBe(24);
+ expect(STICKERS.filter(s=>stickerUnlocked(s,1))).toHaveLength(16);expect(STICKERS.every(s=>stickerUnlocked(s,3))).toBe(true);
+ expect(STICKERS.find(s=>s.id==='mognu')).toMatchObject({label:'МОГНУ',sound:'mognu'});
+ expect(STICKERS.some(s=>s.id==='blink')).toBe(false);
 });
 
 it('QR открывает профиль только по ссылкам приложения',()=>{

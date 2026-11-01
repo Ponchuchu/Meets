@@ -60,12 +60,12 @@ function Clip({ item, active, controls, controlsTop, fit, onAspect }: { item: Me
 }
 
 /** Only the visible item owns a decoder. Pause on navigation, background and opening a sheet. */
-export function EventMedia({ items, active = true, gallery = false, height, controlsTop = 72, children, fit = 'contain', selected, onAspect }: {
-  items: Media[]; active?: boolean; gallery?: boolean; height: number; controlsTop?: number; children?: React.ReactNode; fit?: 'cover' | 'contain'; selected?: number; onAspect?: (aspect: number) => void;
+export function EventMedia({ items, active = true, gallery = false, height, controlsTop = 72, children, fit = 'contain', selected, onAspect, initialPage = 0, onOpenMedia }: {
+  items: Media[]; active?: boolean; gallery?: boolean; height: number; controlsTop?: number; children?: React.ReactNode; fit?: 'cover' | 'contain'; selected?: number; onAspect?: (aspect: number) => void; initialPage?: number; onOpenMedia?: (index: number) => void;
 }) {
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => Math.max(0, Math.min(initialPage, items.length - 1)));
   const [width, setWidth] = useState(0);
   const galleryRef = useRef<FlatList<Media>>(null);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
@@ -80,12 +80,15 @@ export function EventMedia({ items, active = true, gallery = false, height, cont
     setPage(visiblePage);
     galleryRef.current?.scrollToOffset({ offset: visiblePage * width, animated: false });
   }, [page, visiblePage, width]);
-  const media = (item: Media, index: number) => item.type === 'video' && playing && index === visiblePage
-    ? <Clip key={item.url} item={item} active controls={gallery} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
-    : <MediaImage key={item.url} item={item} fit={fit} onAspect={onAspect} />;
+  const media = (item: Media, index: number) => {
+    const content = item.type === 'video' && playing && index === visiblePage
+      ? <Clip item={item} active controls={gallery && !onOpenMedia} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
+      : <MediaImage item={item} fit={fit} onAspect={onAspect} />;
+    return onOpenMedia ? <Pressable accessibilityRole="button" accessibilityLabel="Открыть фото или видео на весь экран" onPress={() => onOpenMedia(index)} style={styles.fill}>{content}</Pressable> : content;
+  };
   return <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height, overflow: 'hidden', backgroundColor: colors.ink }}>
     {list.length === 1 ? media(list[0], 0) : width > 0 && list.length > 1 && <FlatList ref={galleryRef} data={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-      keyExtractor={m => m.url} initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3}
+      keyExtractor={m => m.url} initialScrollIndex={visiblePage} nestedScrollEnabled directionalLockEnabled initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3}
       getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
       onMomentumScrollEnd={e => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
       renderItem={({ item, index }) => <View style={{ width, height }}>{media(item, index)}</View>} />}

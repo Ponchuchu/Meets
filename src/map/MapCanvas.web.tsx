@@ -97,11 +97,16 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
       if (!config.mapAttribution) (host.current.querySelector('.mapboxgl-ctrl-logo') as HTMLElement | null)?.style.setProperty('display', 'none');
       // Масштаб — наружу, не чаще кадра: пины меняют размер и подписи.
       let raf = 0;
+      let reportedZoom = Math.round(camera.zoom * 2) / 2;
       m.on('moveend', () => { const c = m.getCenter(); props.onMoving?.(false); onCenter?.(c.lat, c.lng); });
       m.on('dragstart', () => props.onMoving?.(true));
       m.on('zoom', () => {
         if (raf) return;
-        raf = requestAnimationFrame(() => { raf = 0; onZoom?.(m.getZoom()); });
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          const next = Math.round(m.getZoom() * 2) / 2;
+          if (next !== reportedZoom) { reportedZoom = next; onZoom?.(next); }
+        });
       });
       host.current.querySelectorAll<HTMLElement>('.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right').forEach((el) => { el.style.bottom = `${bottomInset}px`; });
       m.on('click', (ev) => { if (!(ev.originalEvent.target as HTMLElement | null)?.closest('.mapboxgl-marker')) onPressRef.current?.({ lat: ev.lngLat.lat, lon: ev.lngLat.lng }); });
@@ -132,7 +137,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         // Отказ необязательного DEM не должен выключать доступную базовую карту.
         if (!receivedTile && e.sourceId === 'streets' && (status === 401 || status === 403)) setFailed(true);
       });
-      cleanup = () => { clearTimeout(t); m.remove(); map.current = null; els.clear(); };
+      cleanup = () => { clearTimeout(t); cancelAnimationFrame(raf); m.remove(); map.current = null; els.clear(); };
     }).catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; cleanup?.(); };
     // Камера и тема применяются отдельно, пересоздавать карту не нужно.

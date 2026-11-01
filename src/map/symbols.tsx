@@ -1,13 +1,14 @@
 // Объёмные значки карты — набор владельца (99 штук, assets/map/icons-v2): микрофон у стендапа, Медеу, Терренкур, свой ТРЦ у каждого центра.
 // На телефоне их рисует сам движок карты (слой SymbolLayer в MapCanvas) — значки пришиты к карте и не отстают при вращении.
 // В web и на подложке «бумага» те же картинки ставятся обычными маркерами (symbolMarkers).
-import { Image, Pressable, StyleSheet, Text } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text } from 'react-native';
 import type { Category, EventItem } from '../data/types';
 import type { AttractionKind } from '../data/attractions';
 import { fonts } from '../theme';
 import { SPRITE_PT, SPRITES, type SpriteName } from './sprites';
 import type { MapMarker } from './types';
 import { symbolCount } from './symbolsGeo';
+import { CLUSTER_PALETTE } from './clusters';
 
 export interface MapSymbol {
   id: string;
@@ -25,8 +26,12 @@ export interface MapSymbol {
   sort: number;
   /** Издалека — только цветная точка этого цвета. */
   dot?: string;
-  /** Число событий в группе; места и ТРЦ не добавляются к этому счётчику. */
+  /** Число раскрывающихся значков: одно место/ТРЦ/группа событий — один значок. */
   count?: number;
+  /** Подпись для доступности и выбора совпадающих значков. */
+  label?: string;
+  /** Число событий за значком, отдельно от визуального счётчика. */
+  eventCount?: number;
   faded?: boolean;
 }
 
@@ -92,13 +97,17 @@ const WORD_ICON: [RegExp, SpriteName][] = [
   [/маркет|market|ярмарк|барахолк|бутик|pop-?up|шопинг/i, 'pl-boutique'],
 ];
 
+const EVENT_SPRITE_CACHE = new WeakMap<object, { category: Category; title: string; venueName: string | null; icon: SpriteName }>();
 export function eventSprite(e: Pick<EventItem, 'category' | 'title' | 'venueName'>): SpriteName {
+  const cached = EVENT_SPRITE_CACHE.get(e);
+  if (cached && cached.category === e.category && cached.title === e.title && cached.venueName === e.venueName) return cached.icon;
   // Сначала по названию события («Стендап» в баре — микрофон, «Велопрогулка» в парке — велосипед),
   // потом известное место (Медеу, Шымбулак), потом категория.
   const byTitle = WORD_ICON.find(([re]) => re.test(e.title))?.[1];
-  if (byTitle) return byTitle;
   const byVenue = WORD_ICON.find(([re]) => re.test(e.venueName ?? ''))?.[1];
-  return (byVenue?.startsWith('pl-') ? byVenue : undefined) ?? CATEGORY_ICON[e.category] ?? byVenue ?? 'ev-business';
+  const icon = byTitle ?? (byVenue?.startsWith('pl-') ? byVenue : undefined) ?? CATEGORY_ICON[e.category] ?? byVenue ?? 'ev-business';
+  EVENT_SPRITE_CACHE.set(e, { category: e.category, title: e.title, venueName: e.venueName, icon });
+  return icon;
 }
 
 /** Значок постоянного места по виду. */
@@ -127,21 +136,23 @@ export function symbolMarkers(symbols: MapSymbol[], onSymbol?: (id: string) => v
 
 export function SymbolPin({ s, onPress }: { s: MapSymbol; onPress: () => void }) {
   const count = symbolCount(s.count);
-  if (s.dot) return <Pressable onPress={onPress} hitSlop={14} style={[styles.dot, count > 1 && { width: count >= 1000 ? 38 : count >= 100 ? 32 : 26, height: count >= 1000 ? 38 : count >= 100 ? 32 : 26, borderRadius: 20 }, { backgroundColor: count > 1 ? '#17161A' : s.dot, opacity: s.faded ? 0.35 : 1 }]} accessibilityRole="button" accessibilityLabel={count > 1 ? `Событий в этом месте: ${count}. Открыть список` : s.text || 'Событие на карте'}>
+  if (s.dot) return <Pressable onPress={onPress} hitSlop={14} style={[styles.dot, count > 1 && { width: count >= 1000 ? 40 : count >= 100 ? 34 : 30, height: count >= 1000 ? 40 : count >= 100 ? 34 : 30, borderRadius: 21, borderColor: CLUSTER_PALETTE.stroke, borderWidth: 1.8 }, { backgroundColor: count > 1 ? CLUSTER_PALETTE.fill : s.dot, opacity: s.faded ? 0.35 : 1 }, TRANSITION]} accessibilityRole="button" accessibilityLabel={count > 1 ? `Места и события рядом: ${count}. Приблизить или открыть список` : s.label || s.text || 'Место на карте'}>
     {count > 1 && <Text style={styles.count} allowFontScaling={false}>{count}</Text>}
   </Pressable>;
   const h = s.size * RATIO;
   const text = s.text ?? (count > 1 ? String(count) : '');
   return (
-    <Pressable onPress={onPress} style={{ width: 150, height: h * 2, alignItems: 'center', opacity: s.faded ? 0.35 : 1 }} accessibilityRole="button" accessibilityLabel={count > 1 ? `Событий в этом месте: ${count}. Открыть список` : s.text}>
+    <Pressable onPress={onPress} style={[{ width: 150, height: h * 2, alignItems: 'center', opacity: s.faded ? 0.35 : 1 }, TRANSITION]} accessibilityRole="button" accessibilityLabel={s.label || s.text}>
       <Image source={SPRITES[s.icon]} style={{ width: s.size, height: h }} />
       {!!text && <Text style={[styles.text, s.textColor ? { color: s.textColor, textShadowColor: s.halo ?? '#FFFFFF' } : null]} numberOfLines={2}>{text}</Text>}
     </Pressable>
   );
 }
 
+const TRANSITION = Platform.OS === 'web' ? ({ transitionDuration: '180ms', transitionProperty: 'opacity, width, height, background-color' } as object) : null;
+
 const styles = StyleSheet.create({
   dot: { width: 13, height: 13, borderRadius: 7, borderWidth: 2.2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1.5px 3px rgba(23,22,26,0.3)' },
-  count: { fontFamily: fonts.body700, fontSize: 11, lineHeight: 14, includeFontPadding: false, color: '#FFFFFF', textAlign: 'center', textShadowColor: 'rgba(23,22,26,0.8)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } },
+  count: { fontFamily: fonts.body700, fontSize: 12, lineHeight: 15, includeFontPadding: false, color: CLUSTER_PALETTE.text, textAlign: 'center' },
   text: { fontFamily: fonts.mono500, fontSize: 10, color: '#4A4640', marginTop: 1, textAlign: 'center', lineHeight: 12, textShadowColor: '#FFFFFF', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
 });

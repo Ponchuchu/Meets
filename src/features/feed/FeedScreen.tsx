@@ -247,7 +247,7 @@ export default function ForYouScreen() {
         <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
       </View>
 
-      <View style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
+      <View pointerEvents={open ? 'none' : 'auto'} style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
         {/* Обработчики читают opened (ref) только при жесте, не при отрисовке. */}
         {deck.slice(0, STACK).map((e, k) => (
           <SwipeCard

@@ -7,7 +7,7 @@ const files: Record<StickerSound, number> = {
   confetti: require('../../assets/stickers/sfx/confetti.mp3'), sizzle: require('../../assets/stickers/sfx/sizzle.mp3'), clap: require('../../assets/stickers/sfx/clap.mp3'),
   laugh: require('../../assets/stickers/sfx/laugh.mp3'), rattle: require('../../assets/stickers/sfx/rattle.mp3'), pop: require('../../assets/stickers/sfx/pop.mp3'),
   whoosh: require('../../assets/stickers/sfx/whoosh.mp3'), boing: require('../../assets/stickers/sfx/boing.mp3'), chime: require('../../assets/stickers/sfx/chime.mp3'),
-  snore: require('../../assets/stickers/sfx/snore.mp3'), slam: require('../../assets/stickers/sfx/slam.mp3'), blink: require('../../assets/stickers/sfx/blink.wav'),
+  snore: require('../../assets/stickers/sfx/snore.mp3'), slam: require('../../assets/stickers/sfx/slam.mp3'), mognu: require('../../assets/stickers/sfx/mognu.wav'), sixseven: require('../../assets/stickers/sfx/sixseven.wav'), letsgo: require('../../assets/stickers/sfx/letsgo.wav'),
 };
  
 const players = new Map<StickerSound, AudioPlayer>();

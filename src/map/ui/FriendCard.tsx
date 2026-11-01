@@ -66,7 +66,7 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
       </Pressable>
       {quick.length > 0 && (
         <View style={styles.stickerArea}>
-        <View style={styles.stickerHeading}><Text style={styles.stickerTitle}>Стикеры на карте</Text><Text style={styles.stickerHint}>Удерживай · до 100</Text></View>
+        <View style={styles.stickerHeading}><Text style={styles.stickerTitle}>Стикеры на карте</Text></View>
         <ScrollView horizontal scrollEnabled={holding == null} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
           {quick.map(({ st, i }) => (
             <StickerHoldButton key={`${p.id}:${st.id}`} st={st} index={i} onSticker={onSticker} disabled={holding != null && holding !== i}

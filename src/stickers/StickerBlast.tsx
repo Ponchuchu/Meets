@@ -5,7 +5,7 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { fonts } from '../theme';
 import type { Sticker, StickerAnim } from './catalog';
@@ -190,15 +190,18 @@ function Dust() {
 function Punch({ st }: { st: Sticker }) {
   const l = useSharedValue(-220); const r = useSharedValue(220); const boom = useSharedValue(0); const shake = useSharedValue(0);
   useEffect(() => {
-    const jab = (sv: SharedValue<number>, from: number, delay: number) => sv.set(withDelay(delay, withSequence(withTiming(from * 0.12, { duration: 200, easing: Easing.in(Easing.cubic) }), withTiming(from * 0.55, { duration: 230, easing: Easing.out(Easing.quad) }))));
-    jab(l, -220, 60); jab(r, 220, 440);
-    l.set(withDelay(820, withSequence(withTiming(-26, { duration: 200, easing: Easing.in(Easing.cubic) }), withTiming(-300, { duration: 380, easing: Easing.in(Easing.quad) }))));
-    r.set(withDelay(900, withTiming(320, { duration: 400 })));
+    const jab = (from: number, delay: number) => withDelay(delay, withSequence(
+      withTiming(from * 0.12, { duration: 200, easing: Easing.in(Easing.cubic) }),
+      withTiming(from * 0.55, { duration: 230, easing: Easing.out(Easing.quad) }),
+      withTiming(from * 0.12, { duration: 180, easing: Easing.in(Easing.cubic) }),
+      withTiming(from * 1.4, { duration: 320, easing: Easing.out(Easing.quad) }),
+    ));
+    l.set(jab(-220, 60)); r.set(jab(220, 440));
     shake.set(withDelay(260, withRepeat(withSequence(withTiming(7, { duration: 45 }), withTiming(-7, { duration: 45 }), withTiming(0, { duration: 45 })), 3, false)));
     boom.set(withSequence(withDelay(250, withTiming(1, { duration: 90 })), withTiming(0.6, { duration: 200 }), withTiming(1, { duration: 90 }), withTiming(0.6, { duration: 200 }), withTiming(1.25, { duration: 90 }), withDelay(260, withTiming(0, { duration: 200 }))));
   }, [l, r, boom, shake]);
-  const ls = useAnimatedStyle(() => ({ transform: [{ translateX: l.get() - 40 }, { translateY: -60 }, { rotate: '-8deg' }, { scaleX: -1 }] }));
-  const rs = useAnimatedStyle(() => ({ transform: [{ translateX: r.get() + 40 }, { translateY: -60 }, { rotate: '8deg' }] }));
+  const ls = useAnimatedStyle(() => ({ transform: [{ translateX: l.get() - 40 }, { translateY: -60 }, { rotate: '-8deg' }] }));
+  const rs = useAnimatedStyle(() => ({ transform: [{ translateX: r.get() + 40 }, { translateY: -60 }, { rotate: '8deg' }, { scaleX: -1 }] }));
   const bs = useAnimatedStyle(() => ({ opacity: Math.min(1, boom.get() * 1.4), transform: [{ translateX: shake.get() }, { translateY: -70 }, { scale: 0.4 + boom.get() * 0.8 }] }));
   return <>
     <Animated.View style={[styles.center, bs]}>

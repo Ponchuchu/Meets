@@ -1,6 +1,6 @@
 // Черновик карточки из разобранного поста: площадка, точка, флаги, публиковать ли сразу.
 import { canonAddress } from './ruAddress.ts';
-import { usableTitle } from './title.ts';
+import { cleanEventTitle, usableTitle } from './title.ts';
 import { isVague, matchVenue, NOT_A_PLACE, type VenueRow } from './venues.ts';
 import type { Draft, Extraction, Flag, Point, RawPost, Source } from './types.ts';
 
@@ -19,6 +19,8 @@ export async function buildDraft(
   geocode: (q: string) => Promise<Point | null>,
 ): Promise<Draft | null> {
   if (x.class !== 'event' || !x.starts_at || !x.title || !usableTitle(x.title)) return null;
+  const title = cleanEventTitle(x.title);
+  if (!usableTitle(title)) return null;
   const flags: Flag[] = [];
   const venue = matchVenue(x.venue_name, x.address, venues);
   let point: Point | null = venue?.lat != null && venue.lon != null ? { lat: venue.lat, lon: venue.lon } : null;
@@ -32,17 +34,17 @@ export async function buildDraft(
   // Адрес в одном виде: «улица Жандосова, 1/1», этаж и офис — в заметку.
   const addr = canonAddress(!isVague(x.address) ? x.address : (!venue ? point?.address : null) ?? x.address);
   return {
-    title: x.title,
+    title,
     category: x.category,
     tags: x.tags,
     starts_at: new Date(x.starts_at).toISOString(),
     ends_at: x.ends_at ? new Date(x.ends_at).toISOString() : null,
     is_long: x.is_long,
-    venue_id: venue?.id ?? null,
+    venue_id: venue?.lat != null && venue.lon != null ? venue.id : null,
     venue_name: venue?.name ?? x.venue_name,
     address: addr.address,
     address_note: x.address_note ?? addr.note,
-    point: venue ? null : point,
+    point: venue?.lat != null && venue.lon != null ? null : point,
     price_min: x.price_min,
     price_max: x.price_max,
     is_free: x.is_free,

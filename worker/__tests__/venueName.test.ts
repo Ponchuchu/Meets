@@ -33,6 +33,13 @@ describe('площадка без адреса прикрепляется к м�
     expect(asked).toEqual([]);
     expect(d?.flags).toContain('needs_pin');
   });
+  it('площадка без точки сохраняет найденные координаты', async () => {
+    const venue: VenueRow[] = [{ id: 'v1', name: 'Театр Лермонтова', aliases: [], address: 'проспект Абая, 43', lat: null, lon: null }];
+    const d = await buildDraft(x('Театр Лермонтова', 'проспект Абая, 43'), post, source, venue, async () => ({ lat: 43.243, lon: 76.944 }));
+    expect(d?.venue_id).toBeNull();
+    expect(d?.point).toMatchObject({ lat: 43.243, lon: 76.944 });
+    expect(d?.flags).not.toContain('needs_pin');
+  });
   it('не нашли нигде — остаётся для модератора', async () => {
     const d = await buildDraft(x('Неведомый зал', null), post, source, [], async () => null);
     expect(d?.flags).toContain('needs_pin');
