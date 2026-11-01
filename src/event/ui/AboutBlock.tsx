@@ -16,7 +16,7 @@ export function splitAbout(text: string): { paragraphs: string[]; note: string |
   return { paragraphs: parts.filter((_, i) => i !== noteIdx), note };
 }
 
-/** Язык события — тихой строкой над описанием, если не русский (описание уже по-русски). */
+/** Язык проведения события не обязательно совпадает с языком описания. */
 const LANGS = ['на казахском и русском', 'на казахском', 'на английском'];
 export const langOf = (tags: string[] = []) => LANGS.find((l) => tags.includes(l)) ?? null;
 
@@ -29,7 +29,7 @@ export function AboutBlock({ text, lang, original }: { text: string; lang?: stri
   const shown = open ? paragraphs : paragraphs.slice(0, 1);
   return (
     <View style={{ gap: 10 }}>
-      {!!lang && <View style={styles.lang}><Languages size={13} color={colors.muted2} strokeWidth={2} /><Text style={styles.langText}>{original ? 'Переведено с казахского' : `Событие ${lang} · описание по-русски`}</Text></View>}
+      {!!lang && <View style={styles.lang}><Languages size={13} color={colors.muted2} strokeWidth={2} /><Text style={styles.langText}>{original ? 'Переведено с казахского' : `Событие ${lang}`}</Text></View>}
       {!!original && (
         <Pressable onPress={() => setOrig((v) => !v)} style={styles.origBtn} accessibilityRole="button" accessibilityState={{ selected: orig }}>
           <Text style={styles.origText}>{orig ? 'Показать перевод' : 'Показать оригинал'}</Text>
