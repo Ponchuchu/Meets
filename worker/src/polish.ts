@@ -2,6 +2,7 @@
 // события в живое описание — без выдумок, только из того, что есть в тексте. Пачками по 8, чтобы экономить запросы.
 // Нет ключа или ИИ недоступен — остаётся аккуратно обрезанный исходный текст (по границе предложения).
 import { KIMI_DEFAULT_MODEL, kimiPost } from './kimi.ts';
+import { parsePrice } from './heuristics.ts';
 import type { Found } from './search.ts';
 
 const SYSTEM = `Ты редактор городской афиши Алматы в приложении Meets. Перепиши описание события так, чтобы захотелось пойти.
@@ -22,7 +23,7 @@ const SYSTEM = `Ты редактор городской афиши Алматы
   null — не понять. "price": самая низкая цена в тенге числом, если она есть в тексте, иначе null.
 - Адрес: "address" — улица и дом места, где пройдёт событие, в едином виде: «улица Жандосова, 1/1», «проспект Достык, 109», «микрорайон Самал-2, 111».
   По-русски (казахские названия улиц — русским названием: «Абай даңғылы» → «проспект Абая»), тип улицы полным словом впереди, без города, этажа и офиса.
-  Если адреса нет в тексте, но место известное в Алматы (ТРЦ, театр, концертный зал, клуб) и ты точно знаешь его адрес — напиши его. Не уверен — null.
+  Адрес можно вернуть только если он указан в исходном тексте; иначе null.
 Ответ — JSON {"items":[{"i":0,"about":"…","lang":"ru","performers":["…"],"free":null,"price":null,"address":null}]} для всех событий по порядку.`;
 
 /** Разделы, где важно, кто выступает: без имён карточка пустая. */
@@ -34,19 +35,21 @@ interface PolishItem { i: number; about?: string; lang?: string; performers?: un
  * Что ИИ понял из текста, — в карточку, но осторожно: цена и «бесплатно» со страницы афиши важнее догадки;
  * адрес ИИ берём, только если своего нет или он размытый («в центре»), и только в виде «улица …, дом».
  */
-export function applyFacts(f: Found, it: Pick<PolishItem, 'performers' | 'free' | 'price' | 'address'>): void {
+export function applyFacts(f: Found, it: Pick<PolishItem, 'performers' | 'free' | 'price' | 'address'>, evidence = f.about ?? ''): void {
   if (Array.isArray(it.performers)) {
     const names = it.performers.filter((x): x is string => typeof x === 'string' && x.trim().length > 1 && x.length < 80).map((x) => x.trim());
     if (names.length) f.performers = [...new Set(names)].slice(0, 12);
   }
   const price = typeof it.price === 'number' && Number.isInteger(it.price) && it.price > 0 && it.price < 1_000_000 ? it.price : null;
+  const knownPrice = parsePrice(evidence);
   if (f.price_min == null && !f.is_free) {
-    if (it.free === true) f.is_free = true;
-    else if (price != null) f.price_min = price;
+    if (it.free === true && knownPrice.free) f.is_free = true;
+    else if (price != null && knownPrice.min === price) f.price_min = price;
   }
   const addr = typeof it.address === 'string' ? it.address.trim() : '';
   const vague = !f.address || !/\d/.test(f.address) || /в центре|в парке|уточн/i.test(f.address);
-  if (vague && /^(улица|проспект|микрорайон|переулок|бульвар|площадь|шоссе|набережная|проезд|аллея|тракт)\s.+,\s*\d/i.test(addr) && addr.length < 90) f.address = addr;
+  const fold = (v: string) => v.toLowerCase().replace(/[^а-яёa-z0-9]+/giu, '');
+  if (vague && /^(улица|проспект|микрорайон|переулок|бульвар|площадь|шоссе|набережная|проезд|аллея|тракт)\s.+,\s*\d/i.test(addr) && addr.length < 90 && fold(evidence).includes(fold(addr))) f.address = addr;
 }
 
 /** Без ИИ: казахские буквы в названии или тексте — событие, скорее всего, на казахском. */
@@ -69,8 +72,10 @@ export function tidy(text: string, max = 700): string {
   return end > max * 0.5 ? cut.slice(0, end + 1) : `${cut.slice(0, cut.lastIndexOf(' '))}…`;
 }
 
+const sourceEvidence = new WeakMap<Found, string>();
+
 export async function polishAbouts(found: Found[], key = process.env.KIMI_API_KEY): Promise<{ polished: number }> {
-  for (const f of found) { f.about = tidy(f.about ?? '', 1500); f.lang ??= guessLang(`${f.title} ${f.about}`); }
+  for (const f of found) { if (!sourceEvidence.has(f)) sourceEvidence.set(f, f.about ?? ''); f.about = tidy(f.about ?? '', 1500); f.lang ??= guessLang(`${f.title} ${f.about}`); }
   if (!key || process.env.POLISH === 'off') { for (const f of found) f.about = tidy(f.about ?? ''); return { polished: 0 }; }
   let polished = 0;
   for (let s = 0; s < found.length; s += 8) {
@@ -86,10 +91,11 @@ export async function polishAbouts(found: Found[], key = process.env.KIMI_API_KE
       for (const it of json.items ?? []) {
         const f = batch[it.i];
         if (!f) continue;
+        const evidence = sourceEvidence.get(f) ?? '';
         const text = (it.about ?? '').trim();
         if (it.lang && /^(ru|kk|en|mix)$/.test(it.lang)) f.lang = it.lang;
         if (text.length >= 40 && text.length <= 1200) { f.about = text; polished++; }
-        applyFacts(f, it);
+        applyFacts(f, it, evidence);
       }
     } catch (err) {
       console.error(`  Описания: Kimi не ответил (${(err as Error).message.slice(0, 120)}) — оставляю исходный текст`);

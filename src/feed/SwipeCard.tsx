@@ -1,7 +1,7 @@
 // Карточка в стопке v6 (V6.md §4.1): вправо — «Пойду», влево — «Мимо», вверх (60 px) или тап — раскрыть.
 // «Пойду» — одна дуга (квадратичная кривая Безье) от точки отпускания к иконке «Планы»: ease-in, масштаб до 0,06,
 // поворот до −18°, углы скругляются до круга. Считается в worklet по параметру t — без остановок.
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
@@ -9,6 +9,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import type { EventItem, Person } from '../data/types';
 import { colors } from '../theme';
 import { FeedCard } from './FeedCard';
+import type { FeedCardMeasurement } from './cardLayout';
 import { HINT_IDLE_MS, hintDue, useFeed } from '../state/feed';
 
 export const THRESHOLD = 90;
@@ -23,6 +24,8 @@ export interface SwipeHandle {
 export const SwipeCard = forwardRef<SwipeHandle, {
   e: EventItem; people: Person[]; now: Date;
   k: number; top: boolean; active?: boolean; width: number; height: number;
+  maxHeight?: number;
+  onMeasured?: (id: string, measurement: FeedCardMeasurement) => void;
   /** Куда лететь «Пойду»: смещение от центра карточки до иконки «Планы». */
   target: { x: number; y: number };
   enterFrom: 'go' | 'skip' | null;
@@ -37,7 +40,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   onLand?: () => void;
   /** Куда отдавать смещение верхней карточки — для подсказок жестов и подсветки краёв. */
   drag?: { x: SharedValue<number>; y: SharedValue<number> };
-}>(function SwipeCard({ e, people, now, k, top, active = true, width, height, target, enterFrom, onDecide, onTap, onLongPress, onLand, expand, onReveal, onRevealEnd, onUndo, drag }, ref) {
+}>(function SwipeCard({ e, people, now, k, top, active = true, width, height, maxHeight = height, onMeasured, target, enterFrom, onDecide, onTap, onLongPress, onLand, expand, onReveal, onRevealEnd, onUndo, drag }, ref) {
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
   const rot = useSharedValue(0);
@@ -49,6 +52,21 @@ export const SwipeCard = forwardRef<SwipeHandle, {
   const busy = useSharedValue(false);
   const stamp = useSharedValue(0);
   const revealing = useSharedValue(false);
+  const touching = useSharedValue(false);
+  const pendingMeasurement = useRef<FeedCardMeasurement | null>(null);
+  const measurementTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(measurementTimer.current), []);
+  const measured = useCallback((measurement: FeedCardMeasurement) => {
+    pendingMeasurement.current = measurement;
+    // Image decoding never changes the gesture's frame or flight target under the finger.
+    if (touching.get() || busy.get() || revealing.get() || expand.get() > 0.001) return;
+    pendingMeasurement.current = null;
+    onMeasured?.(e.id, measurement);
+  }, [touching, busy, revealing, expand, onMeasured, e.id]);
+  const flushMeasurement = () => {
+    clearTimeout(measurementTimer.current);
+    measurementTimer.current = setTimeout(() => { const value = pendingMeasurement.current; if (value) measured(value); }, 280);
+  };
 
   // Смещение верхней карточки — наружу (подсказки под карточкой и свечение по краям).
   useAnimatedReaction(() => dx.get(), (v) => { if (top && drag) drag.x.set(v); });
@@ -111,6 +129,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     .enabled(top)
     .minDistance(8)
     .onBegin(() => {
+      touching.set(true);
       scheduleOnRN(touch);
       // Касание посреди подсказывающего движения — карточка сразу возвращается на место.
       if (!busy.get() && (dx.get() !== 0 || dy.get() !== 0)) {
@@ -149,7 +168,11 @@ export const SwipeCard = forwardRef<SwipeHandle, {
         dy.set(withSpring(0, { damping: 26, stiffness: 220, overshootClamping: true }));
         rot.set(withSpring(0, { damping: 26, stiffness: 220, overshootClamping: true }));
       }
-    }).onFinalize((_e,success)=>{if(!success&&revealing.get()){revealing.set(false);scheduleOnRN(onRevealEnd,false);}});
+    }).onFinalize((_e,success)=>{
+      if(!success&&revealing.get()){revealing.set(false);scheduleOnRN(onRevealEnd,false);}
+      touching.set(false);
+      scheduleOnRN(flushMeasurement);
+    });
 
   // Под верхней: сдвиг 14 px и масштаб 0,95 на каждую; поднимаются плавно.
   const stack = useAnimatedStyle(() => ({
@@ -178,7 +201,7 @@ export const SwipeCard = forwardRef<SwipeHandle, {
     <Animated.View style={[styles.abs, { width, height, zIndex: 10 - k, elevation: Platform.OS === 'android' ? 10 - k : 0, transformOrigin: '50% 100%' }, stack]} pointerEvents={top ? 'auto' : 'none'}>
       <GestureDetector gesture={Gesture.Race(Gesture.LongPress().enabled(top && !!onLongPress).minDuration(450).onEnd((_event, success) => { if (success && onLongPress) scheduleOnRN(onLongPress); }), pan, Gesture.Tap().enabled(top).onEnd((_e, ok) => { if (ok && !busy.get()) scheduleOnRN(onTap); }))}>
         <Animated.View style={[styles.fill, styles.shadow, !top && styles.shadowLow, card, { overflow: 'hidden' }, top && LAYER]}>
-          <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} active={top && active} />
+          <FeedCard e={e} people={people} now={now} dx={top ? dx : undefined} stamp={top ? stamp : undefined} height={height} width={width} maxHeight={maxHeight} onMeasured={measured} active={top && active} />
         </Animated.View>
       </GestureDetector>
     </Animated.View>

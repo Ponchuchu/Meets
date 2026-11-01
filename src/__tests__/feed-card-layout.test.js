@@ -1,5 +1,5 @@
 /* global jest, it, expect */
-import React from 'react';
+import React, { useState } from 'react';
 import { act, create } from 'react-test-renderer';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
@@ -33,18 +33,25 @@ const render = async (e = event, height = 540, active = true) => {
   return tree;
 };
 
-it('широкая афиша остаётся целиком, а свободную высоту занимает медиа вместо пустого тела', async () => {
-  const tree = await render();
+it('широкая афиша задаёт реальную высоту карточки, без пустого низа и без наложения заголовка на постер', async () => {
+  function Host() {
+    const [height, setHeight] = useState(540);
+    return <FeedCard e={event} people={[]} now={new Date('2026-10-31')} width={360} height={height} maxHeight={540} onMeasured={m => setHeight(m.height)} />;
+  }
+  let tree;
+  await act(async () => { tree = create(<Host />); });
   const image = tree.root.findAllByType(Image).find(n => n.props.contentFit === 'contain');
   expect(image.props.source).toEqual({ uri: event.cover });
-  expect(tree.root.findAllByType(Image).some(n => n.props.blurRadius > 0)).toBe(true);
+  const body = tree.root.findAllByType(View).find(n => n.props.onLayout);
+  await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 200 } } }));
+  await act(async () => image.props.onLoad({ source: { width: 1800, height: 900 } }));
+  const card = tree.root.findAllByType(View).find(n => n.props.accessibilityLabel?.startsWith(event.title));
+  expect(StyleSheet.flatten(card.props.style).height).toBe(380);
+  expect(tree.root.findAllByType(Image).some(n => n.props.blurRadius > 0)).toBe(false);
   const title = tree.root.findAllByType(Text).find(n => n.props.children === event.title.trim());
   expect(title.props.numberOfLines).toBe(3);
-  const body = tree.root.findAllByType(View).map(n => StyleSheet.flatten(n.props.style)).find(s => s?.flexShrink === 0);
-  expect(body.flex).toBeUndefined();
-  expect(body.flexShrink).toBe(0);
-  const media = tree.root.findAllByType(View).find(n => n.props.onLayout);
-  expect(StyleSheet.flatten(media.props.style).flex).toBe(1);
+  expect(StyleSheet.flatten(body.props.style).flex).toBeUndefined();
+  expect(StyleSheet.flatten(body.props.style).flexShrink).toBe(0);
   expect(tree.root.findAllByType(Text).some(n => String(n.props.children).includes('Абая, 10'))).toBe(true);
   await act(async () => tree.unmount());
 });
@@ -71,10 +78,21 @@ it('ошибка первого фото не скрывает следующе�
 
 it('видео получает реальную оставшуюся высоту медиа и только один проигрыватель', async () => {
   const tree = await render({ ...event, media: [{ type: 'video', url: 'https://example.test/clip.mp4' }] });
-  const frame = tree.root.findAllByType(View).find(n => n.props.onLayout);
-  await act(async () => frame.props.onLayout({ nativeEvent: { layout: { height: 285 } } }));
+  const body = tree.root.findAllByType(View).find(n => n.props.onLayout);
+  await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 200 } } }));
   expect(tree.root.findAllByType(EventMedia)).toHaveLength(1);
-  expect(tree.root.findByType(EventMedia).props.height).toBe(285);
+  expect(tree.root.findByType(EventMedia).props.height).toBe(340);
   expect(tree.root.findAllByType(Image)).toHaveLength(0);
+  await act(async () => tree.unmount());
+});
+
+it('горизонтальное фото постоянного места тоже сокращает всю карточку', async () => {
+  const e = { ...event, spotId: 'park', spot: { id: 'park', name: 'Парк', kind: 'park', free: true, about: 'Тихая прогулка', photos: [event.cover] } };
+  const measured = jest.fn();
+  let tree;
+  await act(async () => { tree = create(<FeedCard e={e} people={[]} now={new Date('2026-10-31')} width={360} height={540} maxHeight={540} onMeasured={measured} />); });
+  await act(async () => tree.root.findAllByType(View).find(n => n.props.onLayout).props.onLayout({ nativeEvent: { layout: { height: 170 } } }));
+  await act(async () => tree.root.findAllByType(Image).find(n => n.props.onLoad).props.onLoad({ source: { width: 1600, height: 800 } }));
+  expect(measured.mock.calls.at(-1)[0]).toMatchObject({ height: 350, mediaHeight: 180 });
   await act(async () => tree.unmount());
 });

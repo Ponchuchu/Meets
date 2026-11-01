@@ -3,7 +3,7 @@
 // Сетка: Друзья · Уровень / Где я был · Шаги (10 000 в день, считаются всегда). Ниже — «Награды», «Воспоминания»,
 // «Мои места» и «Ночёвки». «События и встречи» и «Хроника» убраны: прошедшие события живут в «Воспоминаниях».
 import { NONE } from '../../lib/empty';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { ActivityBell } from '../activity/ActivityBell';
@@ -36,6 +36,7 @@ import { colors, fonts, radii } from '../../theme';
 import { BadgeMedal } from '../../ui/BadgeMedal';
 import { frameById } from '../../profile/frames';
 import { useProfile } from '../../state/profile';
+import { replaceMainPhoto } from '../../profile/photoCache';
 import { plate } from '../../ui/glass';
 
 const plural = (n: number, a: string, b: string, c: string) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
@@ -63,6 +64,7 @@ export const Aura = memo(function Aura({ color, height }: { color: string; heigh
 
 export default function ProfileScreen() {
   const hero = useHeroScroll();
+  const qc = useQueryClient();
   const pad = useTabInset();
   const draft = useSession((s) => s.draft);
   const demoFrame = useProfile(s => s.mapFrame);
@@ -127,7 +129,13 @@ export default function ProfileScreen() {
       setUploading(true);
       const url = LIVE ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
       useSession.getState().update({ photo: url });
-      if (LIVE) await prof.refetch();
+      if (LIVE) {
+        await Promise.all([qc.cancelQueries({ queryKey: ['me', 'photos'] }), qc.cancelQueries({ queryKey: ['me', 'profile'] })]);
+        qc.setQueryData<{ photos: string[]; birth: string | null }>(['me', 'photos'], old => ({ photos: replaceMainPhoto(old?.photos, url), birth: old?.birth ?? null }));
+        qc.setQueryData(['me', 'profile'], (old: typeof prof.data) => old ? { ...old, photo_url: url } : old);
+        void qc.invalidateQueries({ queryKey: ['me', 'photos'] });
+        void prof.refetch();
+      }
     } catch (e) { setPhotoError(`Не удалось сохранить фото: ${e instanceof Error ? e.message : 'проверь связь'}`); }
     finally { setUploading(false); }
   };

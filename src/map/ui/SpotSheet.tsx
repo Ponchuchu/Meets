@@ -113,6 +113,10 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
         <View style={styles.body}>
           <Text style={styles.title} accessibilityRole="header">{a.name}</Text>
           <Text style={styles.about}>{a.about}</Text>
+          {a.photoCredit && photos.length > 0 && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <Text style={{ color: colors.muted, fontSize: 11 }} onPress={() => go(a.photoCredit!.url)}>Фото: {a.photoCredit.name} · уменьшено</Text>
+            <Text style={{ color: colors.muted, fontSize: 11 }} onPress={() => go(a.photoCredit!.licenseUrl)}>Лицензия</Text>
+          </View>}
 
           <View style={styles.status}>
             <View style={[styles.dot, { backgroundColor: season ? STATE_COLOR[status.state] : STATE_COLOR.closed }]} />

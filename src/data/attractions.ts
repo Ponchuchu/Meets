@@ -43,6 +43,7 @@ export interface Attraction {
   checkedAt?: string | null;
   /** Фото для шапки карточки (листаются). */
   photos?: string[];
+  photoCredit?: { name: string; url: string; licenseUrl: string };
   /** Как попасть бесплатно и прочее, что важно знать до выхода. */
   howTo?: string;
   /** В каком ТРЦ (аквапарк — в Aport Mall West): карточка центра показывает место с фото. */
@@ -102,13 +103,13 @@ export const ATTRACTIONS: Attraction[] = [
   { id: 'koktobe-coaster', parent: 'koktobe', name: 'Fast Coaster', kind: 'fun', lat: 43.23400, lon: 76.97620, about: 'Горка-бобслей по склону горы', stepMin: 15 },
   { id: 'koktobe-zoo', parent: 'koktobe', name: 'Контактный зоопарк', kind: 'zoo', lat: 43.23370, lon: 76.97600, about: 'Козы, кролики и птицы — можно покормить' },
   // ——— Сходить одному: город ———
-  { id: 'panfilov-park', photos: [commons('Алматы, парк 28 панфиловцев сверху (2).jpg'), commons('Zenkov Cathedral Winter.jpg')], hours: ALWAYS, name: 'Парк 28 панфиловцев', kind: 'park', lat: 43.25883, lon: 76.95413, address: 'ул. Гоголя, 40', about: 'Старый парк в центре: Вознесенский собор, аллеи, кофе с собой', free: true, solo: true,
+  { id: 'panfilov-park', photos: [commons('Zenkov Cathedral Winter.jpg')], hours: ALWAYS, name: 'Парк 28 панфиловцев', kind: 'park', lat: 43.25883, lon: 76.95413, address: 'ул. Гоголя, 40', about: 'Старый парк в центре: Вознесенский собор, аллеи, кофе с собой', free: true, solo: true,
     tips: ['Утром в выходные тихо и красиво', 'Рядом Зелёный базар — можно зайти за фруктами'] },
   { id: 'gorky-park', name: 'Центральный парк', kind: 'park', lat: 43.26128, lon: 76.96327, address: 'ул. Гоголя, 1', about: 'Большой парк с озером, лодками и аттракционами', free: true, solo: true,
     tips: ['Лодку можно взять и одному', 'Вечером на набережной уличные музыканты'] },
   { id: 'president-park', hours: ALWAYS, name: 'Парк Первого Президента', kind: 'park', lat: 43.19366, lon: 76.88679, about: 'Фонтаны и вид на горы — лучшая прогулка на закате', free: true, solo: true,
     tips: ['Лучший свет за час до заката: горы розовые', 'Летом по вечерам работают поющие фонтаны'] },
-  { id: 'botanic', name: 'Главный ботанический сад', kind: 'garden', lat: 43.22689, lon: 76.92887, address: 'ул. Тимирязева, 36д', about: 'Тихие аллеи, оранжерея и пруды посреди города', solo: true,
+  { id: 'botanic', photos: [commons('Almaty Botanical Garden - path 2022-06-15.jpg')], photoCredit: { name: 'Key2xanadu · CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Almaty_Botanical_Garden_-_path_2022-06-15.jpg', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/' }, name: 'Главный ботанический сад', kind: 'garden', lat: 43.22689, lon: 76.92887, address: 'ул. Тимирязева, 36д', about: 'Тихие аллеи, оранжерея и пруды посреди города', solo: true,
     tips: ['Идеально, чтобы побыть одному: людей мало, телефон можно убрать'] },
   { id: 'terrenkur', photos: [commons('View of Kok Tobe from Terrenkur.jpg')], hours: ALWAYS, howTo: 'Бесплатно и круглосуточно — это парковая тропа вдоль реки.', name: 'Терренкур', kind: 'park', lat: 43.22375, lon: 76.96713, address: 'за пр. Достык', about: 'Прогулочная тропа вдоль реки к горам', free: true, solo: true,
     tips: ['Можно идти час в сторону гор и вернуться — маршрут сам ведёт'] },

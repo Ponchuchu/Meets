@@ -5,12 +5,11 @@ import { GESTURE_FPS_CAP, useEco, useRefreshRate } from '../state/perf';
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
-import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
@@ -19,6 +18,7 @@ import { NO_SYMBOLS, symbolsGeo } from './symbolsGeo';
 import { SPRITE_W, symbolMarkers } from './symbols';
 import { linesGeo, okPoint } from './linesGeo';
 import { CLUSTER_PALETTE } from './clusters';
+import { cameraNeedsRecovery, rememberHealthyCamera } from './cameraHealth';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
@@ -53,7 +53,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
   const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], zone, onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
-  const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
+  const [camera] = useState(() => (props.remember && lastView ? rememberHealthyCamera(null, lastView, startProp, true) ?? startProp : startProp));
   // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
   const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
@@ -80,7 +80,6 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lastStep = useRef(Math.round(camera.zoom * 2) / 2);
   const [attempt, setAttempt] = useState(0);
   // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
-  const [ready, setReady] = useState(false);
   const [followZoom, setFollowZoom] = useState(camera.zoom);
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
@@ -107,12 +106,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const gestured = useRef(false);
   const aim = (lat: number, lon: number, zoom?: number) => { want.current = { lat, lon, zoom: zoom ?? want.current.zoom }; };
   const checkCenter = (lat: number, lon: number) => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    const lost = Math.abs(lat) < 3 && Math.abs(lon) < 3;
-    const astray = !gestured.current && Math.hypot(lat - want.current.lat, lon - want.current.lon) > 0.5;
-    if (!lost && !astray) return;
     const w = want.current;
-    if (!okPoint([w.lon, w.lat])) return;
+    if (!cameraNeedsRecovery({ lat, lon }, w, gestured.current)) return;
     console.warn('[map] камера потеряла центр — возвращаю', lat, lon);
     cam.current?.setCamera({ centerCoordinate: [w.lon, w.lat], ...(w.zoom != null && Number.isFinite(w.zoom) ? { zoomLevel: w.zoom } : {}), pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, animationDuration: 0 });
   };
@@ -171,10 +166,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const M = Mapbox;
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: '#DDD8CB' }]} onLayout={(ev) => { box.current = { w: ev.nativeEvent.layout.width, h: ev.nativeEvent.layout.height }; }}>
-      {!ready && <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: colors.muted2 }}>Загружаю карту…</Text></View>}
       <M.MapView
         key={attempt}
-        style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
+        // Show real native/cached frames immediately; readiness still comes only from the map's load event.
+        style={StyleSheet.absoluteFill}
         styleJSON={styleJSON}
         preferredFramesPerSecond={props.hidden ? 1 : lowPower || eco ? 30 : fps}
         surfaceView={false}
@@ -207,11 +202,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
         onMapIdle={(st: { properties: { center: number[] } }) => { const step = Math.round(z.current * 2) / 2; if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); } if (follow) setFollowZoom(step); if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
-          // Потерянный центр (0, 0) не запоминаем — иначе при следующем входе карта сразу откроется в океане.
-          if (props.remember && loaded.current && !(Math.abs(lat) < 3 && Math.abs(lon) < 3)) lastView = { lat, lon, zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
+          // Validate before remembering: a dropped latitude must not become the next mount's expected center.
+          if (props.remember && loaded.current) lastView = rememberHealthyCamera(lastView, { lat, lon, zoom: z.current }, want.current, gestured.current);
+          checkCenter(lat, lon); }}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => {
-          loaded.current = true; toStart(); setReady(true); onMode?.('mapbox');
+          loaded.current = true; toStart(); onMode?.('mapbox');
           const p = pendingFly.current;
           if (p) { pendingFly.current = null; moved.current = true; if (p.zoom != null) z.current = p.zoom; cam.current?.setCamera({ centerCoordinate: [p.lon, p.lat], zoomLevel: p.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 }); }
           // Android может «съесть» и эту установку камеры — проверяем ещё несколько раз, пока карта устаканивается.

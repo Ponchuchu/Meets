@@ -25,7 +25,7 @@ function withPhotos<T extends Attraction>(a: T): T {
   const photos = [...new Set(a.photos ?? [])].filter(u => {
     let decoded = u;
     try { decoded = decodeURIComponent(u); } catch { /* Keep malformed URLs out of decoding logic. */ }
-    return !/api\.mapbox\.com\/styles\/.*\/static\//.test(u) && !(a.id === 'terrenkur' && /The[_ ]Esentay|Almaty[_ ]Towers|29050959892/i.test(decoded));
+    return !(a.id === 'panfilov-park' && /34b5d0f9fc2e856a|парк[ _]28[ _]панфиловцев[ _]сверху/i.test(decoded)) && !/api\.mapbox\.com\/styles\/.*\/static\//.test(u) && !(a.id === 'terrenkur' && /The[_ ]Esentay|Almaty[_ ]Towers|29050959892/i.test(decoded));
   });
   return { ...a, photos: photos.length ? photos : undefined };
 }
@@ -41,7 +41,7 @@ export async function getSpots(): Promise<Attraction[]> {
     const rows = (data as SpotRow[]).map(toSpot).map((x) => {
       const l = local.get(x.id);
       // Фото — наши копии из базы (Викисклад напрямую телефонам не отдаёт), иначе встроенный список.
-      return l ? { ...x, photos: x.photos?.length ? x.photos : l.photos, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
+      return l ? { ...x, photos: x.photos?.length ? x.photos : l.photos, photoCredit: !x.photos?.length ? l.photoCredit : undefined, howTo: l.howTo, hours: x.hours && Object.keys(x.hours).length ? x.hours : l.hours } : x;
     });
     const missing = ATTRACTIONS.filter((a) => !rows.some((r) => r.id === a.id));
     return [...rows, ...missing].map(withPhotos);

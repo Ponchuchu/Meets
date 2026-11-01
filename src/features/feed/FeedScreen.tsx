@@ -17,6 +17,7 @@ import { data, eventsSnapshot, type EventItem } from '../../data';
 import { LazyEventPage } from '../../event/LazyEventPage';
 import { FeedCard, feedCoverH } from '../../feed/FeedCard';
 import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
+import { sameFeedMeasurement, type FeedCardMeasurement } from '../../feed/cardLayout';
 import { QuickButtons } from '../../feed/SwipeHints';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { distinctEvents } from '../../event/identity';
@@ -41,7 +42,11 @@ const STACK = 3;
 
 export default function ForYouScreen() {
   const insets = useSafeAreaInsets();
-  const { width: W, height: winH } = useWindowDimensions();
+  const { width: W, height: winH, fontScale } = useWindowDimensions();
+  const [cardLayouts, setCardLayouts] = useState<Record<string, FeedCardMeasurement>>({});
+  const onCardMeasured = useCallback((id: string, measurement: FeedCardMeasurement) => {
+    setCardLayouts(current => sameFeedMeasurement(current[id], measurement) ? current : { ...current, [id]: measurement });
+  }, []);
   const [H, setH] = useState(0); // высота экрана ленты (над таб-баром)
   const seenFeed = useApp((s) => s.seenFeed);
   useFocusEffect(useCallback(() => { seenFeed(); }, [seenFeed]));
@@ -128,9 +133,10 @@ export default function ForYouScreen() {
   const HINTS_H = 84; // кнопки с подписями под карточкой
   const GAP = 38; // под карточкой видна стопка (28) и зазор
   const cardW = Math.min(420, W - 24);
-  const cardH = Math.max(330, Math.min(540, screenH - baseTop - GAP - HINTS_H - 10));
-  const free = Math.max(0, screenH - baseTop - cardH - GAP - HINTS_H - 10);
-  const cardTop = baseTop + Math.round(free * 0.5);
+  const maxCardH = Math.max(220, Math.min(540, screenH - baseTop - GAP - HINTS_H - 16));
+  const knownLayout = cardLayouts[deck[0]?.id ?? ''];
+  const cardH = knownLayout && knownLayout.width === cardW && knownLayout.maxHeight === maxCardH && knownLayout.fontScale === fontScale ? knownLayout.height : maxCardH;
+  const cardTop = baseTop + 6;
   const hintsTop = cardTop + cardH + GAP;
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
@@ -254,7 +260,7 @@ export default function ForYouScreen() {
             key={`${e.id}:${rounds[e.id] ?? 0}`}
             ref={k === 0 ? topRef : undefined}
             e={e} people={people} now={now}
-            k={k} top={k === 0} active={!open && !when && !spotOpen && !feedback} width={cardW} height={cardH} target={target}
+            k={k} top={k === 0} active={!open && !when && !spotOpen && !feedback} width={cardW} height={cardH} maxHeight={maxCardH} onMeasured={onCardMeasured} target={target}
             enterFrom={enter?.id === e.id ? enter.from : null}
             onDecide={(kind) => onDecide(e, kind)}
             onLand={() => useTabBadges.getState().landPlans()}
@@ -312,11 +318,11 @@ export default function ForYouScreen() {
       {open && (
         <Animated.View style={[styles.clip, clip]}>
           <Animated.View style={[{ position: 'absolute', top: 0, width: W, height: fullH }, clipInner]}>
-            <LazyEventPage progress={p} coverFrom={feedCoverH(open, cardH)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
+            <LazyEventPage progress={p} coverFrom={cardLayouts[open.id]?.mediaHeight ?? feedCoverH(open, cardH)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
               onGo={() => closeCard(() => topRef.current?.fly('go'))} onPlanned={() => plannedFromOpen(open)} />
           </Animated.View>
           <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: cardW, height: cardH, transformOrigin: 'left top' }, cardFade]}>
-            <FeedCard e={open} people={people} now={now} height={cardH} />
+            <FeedCard e={open} people={people} now={now} height={cardH} width={cardW} maxHeight={maxCardH} />
           </Animated.View>
         </Animated.View>
       )}

@@ -9,8 +9,7 @@ export const COMMONS_HASH: Record<string, string> = {
   "Big Almaty Lake from pass.jpg": 'a/a3',
   "Алматы, Кок-Тобе сверху.jpg": '4/4d',
   "Almaty Skyline from the Kök Töbe hill.jpg": '4/4f',
-  "Алматы, парк 28 панфиловцев сверху (2).jpg": 'b/b8',
   "Zenkov Cathedral Winter.jpg": 'a/a3',
+  "Almaty Botanical Garden - path 2022-06-15.jpg": '9/9e',
   "View of Kok Tobe from Terrenkur.jpg": '0/07',
-  "The Esentay with the Almaty Towers (AP4M2507 1PS) (29050959892).jpg": '1/11',
 };
