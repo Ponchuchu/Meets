@@ -18,6 +18,8 @@ import { NO_SYMBOLS, symbolsGeo } from './symbolsGeo';
 import { SPRITE_W, symbolMarkers } from './symbols';
 import { linesGeo, okPoint } from './linesGeo';
 import { CLUSTER_PALETTE } from './clusters';
+import { CLUSTER_DIGIT_IMAGES } from './clusterDigitImages';
+import { clusterDigitsGeo } from './clusterDigits';
 import { cameraNeedsRecovery, rememberHealthyCamera } from './cameraHealth';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
@@ -43,6 +45,7 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 const PIN_BOX = 128;
 const MAP_IMAGES = {
   ...SPRITES,
+  ...CLUSTER_DIGIT_IMAGES,
   tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png'),
   'tree-gold': require('../../assets/map/tree-gold.png'), 'tree-amber': require('../../assets/map/tree-amber.png'),
 };
@@ -70,6 +73,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
   const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
+  const digitShape = useMemo(() => clusterDigitsGeo(symbols), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const box = useRef({ w: 390, h: 844 });
@@ -264,11 +268,6 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 8, 2, 17, 100, 19, 1000, 22] as never, circleColor: '#17161A', circleOpacity: ['*', 0.15, ['get', 'op']] as never, circleOpacityTransition: { duration: 180, delay: 0 }, circleBlur: 0.8, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
           <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 6, 2, 15, 100, 17, 1000, 20] as never, circleRadiusTransition: { duration: 180, delay: 0 }, circleColor: ['case', ['>', ['get', 'count'], 1], CLUSTER_PALETTE.fill, ['get', 'dot']] as never, circleColorTransition: { duration: 180, delay: 0 }, circleStrokeColor: ['case', ['>', ['get', 'count'], 1], CLUSTER_PALETTE.stroke, '#FFFFFF'] as never, circleStrokeWidth: 1.8, circleOpacity: ['get', 'op'] as never, circleOpacityTransition: { duration: 180, delay: 0 }, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
           {/* Число — данные той же группы, что открывается по тапу; не отдельные React-маркеры. */}
-          <M.SymbolLayer id="syms-count" filter={['all', ['!=', ['get', 'dot'], ''], ['>', ['get', 'count'], 1]] as never} style={{
-            textField: ['get', 'countText'] as never, textSize: 12, textColor: CLUSTER_PALETTE.text, textAnchor: 'center',
-            textAllowOverlap: true, textIgnorePlacement: true, textPitchAlignment: 'viewport', textRotationAlignment: 'viewport',
-            textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,
-          }} />
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
             iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
             iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',
@@ -277,6 +276,16 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
             // Подпись маленькая и тихая; не помещается — прячется, значок остаётся.
             textField: ['get', 'text'] as never, textSize: 10, textColor: ['get', 'tc'] as never, textHaloColor: ['get', 'th'] as never, textHaloWidth: 1.4,
             textAnchor: 'top', textOffset: [0, 0.25], textOptional: true, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,
+          }} />
+        </M.ShapeSource>
+        {/* Local digit sprites share the native atlas with pins: no glyph request or React marker per count. */}
+        <M.ShapeSource id="cluster-digits" shape={digitShape as never} hitbox={{ width: 40, height: 40 }}
+          onPress={e => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
+          <M.SymbolLayer id="cluster-digits-icon" style={{
+            iconImage: ['get', 'icon'] as never, iconSize: ['get', 'scale'] as never,
+            iconOffset: ['get', 'offset'] as never, iconAnchor: 'center',
+            iconAllowOverlap: true, iconIgnorePlacement: true,
+            iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport', iconOpacity: ['get', 'op'] as never,
           }} />
         </M.ShapeSource>
         {me && <UserLayers M={M} me={me} heading={meHeading} arrow={meArrow} />}

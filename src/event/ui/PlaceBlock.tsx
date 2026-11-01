@@ -13,6 +13,8 @@ import { colors, fonts } from '../../theme';
 import { plate } from '../../ui/glass';
 import Svg, { Path } from 'react-native-svg';
 import { BRAND_PATH } from '../../ui/brands';
+import { useMapView } from '../../state/mapView';
+import { useEco } from '../../state/perf';
 
 /** Картинка карты с оранжевой меткой. Без токена или координат — null (блок покажет только адрес). */
 export function staticMapUrl(lat: number, lon: number, w = 640, h = 260): string | null {
@@ -25,6 +27,9 @@ export function staticMapUrl(lat: number, lon: number, w = 640, h = 260): string
  *  Появляется после открытия карточки, чтобы не тормозить её анимацию. В экономии — картинка. */
 function LiveMini({ lat, lon, category, near }: { lat: number; lon: number; category?: Category; near: boolean }) {
   const [on, setOn] = useState(false);
+  const view = useMapView(s => s.view);
+  const eco = useEco();
+  const threeD = view === '3d' && !eco;
   // Карта создаётся, только когда её почти доскроллили: живая 3D-карта под текстом тормозила прокрутку описания (27 окт.).
   useEffect(() => { if (!near) return; const t = InteractionManager.runAfterInteractions(() => setOn(true)); return () => t.cancel(); }, [near]);
   const markers = useMemo<MapMarker[]>(() => [{ id: 'here', lat, lon, z: 10, node: (
@@ -38,7 +43,7 @@ function LiveMini({ lat, lon, category, near }: { lat: number; lon: number; cate
   if (!on) return <View style={styles.map} />;
   return (
     <View style={styles.map} pointerEvents="none">
-      <MapCanvas theme="paper" camera={{ lat: lat + 0.00055, lon, zoom: 16.3 }} markers={markers} threeD still={{ pitch: 58, heading: -18 }} />
+      <MapCanvas theme="paper" camera={{ lat: lat + 0.00055, lon, zoom: 16.3 }} markers={markers} threeD={threeD} still={{ pitch: threeD ? 58 : 0, heading: threeD ? -18 : 0 }} />
     </View>
   );
 }
