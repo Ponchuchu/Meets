@@ -42,7 +42,7 @@ interface FeedState {
   addSignal: (s: Signal) => void;
   removeSignal: (id: string) => void;
   /** Вернуть последнее решение: сигнал стирается целиком. */
-  undo: () => Decision | null;
+  undo: (expectedEventId?: string) => Decision | null;
   /** «Сбросить вкус» из админки: снова считаем только от ответов при регистрации. */
   resetTaste: () => void;
   /** Снова показать всё, что пропустил («Мимо»); «Пойду» остаётся в планах. */
@@ -81,10 +81,10 @@ export const useFeed = create<FeedState>()(
         if (sig) dropSignal(sig.eventId, sig.kind);
         return { signals: st.signals.filter((x) => x.id !== id) };
       }),
-      undo: () => {
+      undo: (expectedEventId) => {
         const st = get();
         const last = st.history[st.history.length - 1];
-        if (!last || st.undosLeft <= 0) return null;
+        if (!last || st.undosLeft <= 0 || (expectedEventId && last.eventId !== expectedEventId)) return null;
         const decided = { ...st.decided };
         delete decided[last.eventId];
         const sig = st.signals.find((x) => x.id === last.signalId);

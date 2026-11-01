@@ -46,7 +46,13 @@ export const useSocial = create<SocialState>()(
         else sent[id] = true;
         return { sent };
       }),
-      removeFriend: (id) => set((s) => ({ removed: { ...s.removed, [id]: true } })),
+      removeFriend: (id) => set((s) => {
+        const sent = { ...s.sent };
+        const answered = { ...s.answered };
+        delete sent[id];
+        delete answered[id];
+        return { removed: { ...s.removed, [id]: true }, sent, answered };
+      }),
       hide: (id) => set((s) => ({ hidden: { ...s.hidden, [id]: true } })),
       report: (id) => set((s) => ({ reported: { ...s.reported, [id]: true } })),
       sticker: (id) => set((s) => ({ stickers: { ...s.stickers, [id]: new Date().toISOString() } })),

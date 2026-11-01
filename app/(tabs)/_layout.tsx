@@ -9,7 +9,6 @@ import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
 import { useAuth } from '../../src/live/auth';
-import { useLiveChats } from '../../src/data/realtime';
 import { useStepTracking } from '../../src/live/steps';
 import { usePushRegistration } from '../../src/live/push';
 import { useLiveLocation } from '../../src/live/useLiveLocation';
@@ -49,7 +48,6 @@ function Shell() {
   const demo = config.dataMode === 'demo';
   // Сильный телефон: вкладки не отцепляются (переключение мгновенное, карта не строится заново). Слабый или энергосбережение: отцепляются, как раньше.
   const eco = useEco();
-  useLiveChats();
   useStepTracking();
   usePushRegistration();
   useLiveLocation();

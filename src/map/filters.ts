@@ -48,9 +48,9 @@ export function occursOnDay(e: Pick<EventItem, 'startsAt' | 'endsAt'>, day: numb
 }
 
 export function matchesPrice(e: Pick<EventItem, 'isFree' | 'priceMin'>, f: Pick<MapFilters, 'free' | 'max'>): boolean {
-  const price = e.isFree ? 0 : e.priceMin ?? 0;
+  const price = e.isFree ? 0 : e.priceMin;
   if (f.free) return price === 0;
-  return f.max >= MAX_PRICE || price <= f.max;
+  return f.max >= MAX_PRICE || (price != null && price <= f.max);
 }
 
 export function matchesCats(e: Pick<EventItem, 'category'>, cats: FilterCat[]): boolean {

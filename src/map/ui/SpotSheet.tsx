@@ -92,7 +92,7 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
           {photos.length > 0 ? (
             <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={StyleSheet.absoluteFill}
               onMomentumScrollEnd={(ev) => setPage(Math.round(ev.nativeEvent.contentOffset.x / Math.max(1, width)))}>
-              {photos.map((u) => <Image key={u} source={remote(u)} style={{ width, height: '100%' }} resizeMode="cover" onError={() => setBroken((b) => [...b, u])} accessibilityIgnoresInvertColors />)}
+              {photos.map((u) => <Image key={u} source={remote(u)} style={{ width, height: '100%' }} resizeMode="cover" resizeMethod="resize" onError={() => setBroken((b) => [...b, u])} accessibilityIgnoresInvertColors />)}
             </ScrollView>
           ) : (
             <View style={styles.heroIcon} pointerEvents="none"><View style={{ transform: [{ scale: 1.6 }] }}><AttractionPin a={a} label={false} onPress={() => undefined} /></View></View>
@@ -103,17 +103,20 @@ export function SpotSheet({ a, all, onClose, onOpen }: { a: Attraction; all: Att
                 <Defs><LinearGradient id="spotShade" x1="0" y1="0" x2="0" y2="1"><Stop offset="0.55" stopColor="#17161A" stopOpacity={0} /><Stop offset="1" stopColor="#17161A" stopOpacity={0.55} /></LinearGradient></Defs>
                 <Rect x="0" y="0" width="100%" height="100%" fill="url(#spotShade)" />
               </Svg>
-              <View style={styles.cornerIcon} pointerEvents="none"><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
               {photos.length > 1 && <View style={styles.dots} pointerEvents="none">{photos.map((u, i) => <View key={u} style={[styles.pdot, i === page && styles.pdotOn]} />)}</View>}
             </>
           )}
           <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="Закрыть"><X size={20} color="#FFFFFF" strokeWidth={2.2} /></Pressable>
-          <Text style={[styles.heroKind, photos.length > 0 && { left: 70 }]} pointerEvents="none">{KIND_LABEL[a.kind].toUpperCase()}</Text>
+          <Text style={styles.heroKind} pointerEvents="none">{KIND_LABEL[a.kind].toUpperCase()}</Text>
         </View>
 
         <View style={styles.body}>
           <Text style={styles.title} accessibilityRole="header">{a.name}</Text>
           <Text style={styles.about}>{a.about}</Text>
+          {a.photoCredit && photos.length > 0 && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <Text style={{ color: colors.muted, fontSize: 11 }} onPress={() => go(a.photoCredit!.url)}>Фото: {a.photoCredit.name} · уменьшено</Text>
+            <Text style={{ color: colors.muted, fontSize: 11 }} onPress={() => go(a.photoCredit!.licenseUrl)}>Лицензия</Text>
+          </View>}
 
           <View style={styles.status}>
             <View style={[styles.dot, { backgroundColor: season ? STATE_COLOR[status.state] : STATE_COLOR.closed }]} />

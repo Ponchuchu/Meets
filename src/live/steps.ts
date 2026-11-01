@@ -1,7 +1,7 @@
 // Шаги за день — как во ВКонтакте (FIX3 Ф7): считаются всегда, без кнопки «стоп».
 // Android: итог дня из Health Connect (туда шаги пишет сам телефон, даже когда приложение закрыто);
 // нет Health Connect — датчик шагов, пока приложение открыто. iPhone: итог дня из «Здоровья» через CoreMotion.
-// Разрешение спрашиваем сами один раз; итог раз в минуту уходит на сервер (record_daily_steps — очки за 3, 6 и 10 тысяч).
+// Разрешение — по кнопке на карточке шагов; итог раз в минуту уходит на сервер (record_daily_steps — очки за 3, 6 и 10 тысяч).
 import { isEco } from '../state/perf';
 import { Pedometer } from 'expo-sensors';
 import { useEffect } from 'react';
@@ -104,7 +104,8 @@ export function useStepTracking() {
     const start = async () => {
       stop(); const run = generation;
       const fresh = () => live && run === generation;
-      if (await healthReady(true)) {
+      // Entering chats or the map must not open an unrelated health permission flow.
+      if (await healthReady(false)) {
         if (!fresh()) return;
         const read = async () => {
           const n = await healthToday().catch(() => null);
@@ -117,10 +118,9 @@ export function useStepTracking() {
         poll = setInterval(() => void read(), isEco() ? 180000 : 60000);
         return;
       }
-      // Датчик: разрешение «Физическая активность» спрашиваем сами.
+      // Permission is requested by askSteps after an explicit tap in the profile.
       if (!(await Pedometer.isAvailableAsync().catch(() => false))) { if (fresh()) useSteps.setState({ status: 'unavailable', source: 'none' }); return; }
-      let perm = await Pedometer.getPermissionsAsync();
-      if (!perm.granted && perm.canAskAgain && !asked) { asked = true; perm = await Pedometer.requestPermissionsAsync(); }
+      const perm = await Pedometer.getPermissionsAsync();
       if (!fresh()) return;
       if (!perm.granted) { useSteps.setState({ status: 'denied', source: 'sensor' }); return; }
       const day = today();

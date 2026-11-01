@@ -44,6 +44,7 @@ describe('строки базы → приложение', () => {
     expect(mapSpot({ ...base, speed: 5 }, at)).toMatchObject({ state: 'moving', speedKmh: 18, minutesAgo: 1, heading: 90 });
     expect(mapSpot({ ...base, speed: 0.3 }, at).state).toBe('here');
     expect(mapSpot({ ...base, speed: null, updated_at: '2026-09-28T12:30:00Z' }, at).state).toBe('paused');
+    expect(mapSpot({ ...base, speed: 20, status: 'moving', updated_at: '2026-09-28T12:30:00Z' }, at)).toMatchObject({ state: 'paused', speedKmh: undefined, place: '40 мин' });
   });
 });
 

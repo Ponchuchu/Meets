@@ -66,6 +66,9 @@ describe('фильтры карты', () => {
   it('бюджет и категории', () => {
     expect(matchesPrice({ isFree: false, priceMin: 15000 }, { free: false, max: 5000 })).toBe(false);
     expect(matchesPrice({ isFree: false, priceMin: 15000 }, { free: false, max: 20000 })).toBe(true);
+    expect(matchesPrice({ isFree: false, priceMin: null }, { free: true, max: 1000000 })).toBe(false);
+    expect(matchesPrice({ isFree: false, priceMin: null }, { free: false, max: 5000 })).toBe(false);
+    expect(matchesPrice({ isFree: false, priceMin: null }, { free: false, max: 1000000 })).toBe(true);
     const ids = visibleEvents(events, { ...DEFAULT_FILTERS, cats: ['games'] }, base).map((e) => e.id);
     expect(ids).toEqual(['games']);
   });
@@ -135,9 +138,10 @@ describe('FIX1 И2 п.8: на карте все одобренные событ�
 });
 it('у друга на карте одна пометка — самая важная (FIX5)', () => {
   const ago = (m: number) => `${m} мин`;
-  expect(friendMark({ state: 'moving', speedKmh: 14, battery: 10 }, ago)).toEqual({ kind: 'speed', text: '14 км/ч' });
+  expect(friendMark({ state: 'moving', speedKmh: 14, battery: 10 }, ago)).toEqual({ kind: 'speed', text: '14 км/ч · 10%' });
   expect(friendMark({ state: 'here', battery: 14 }, ago)).toEqual({ kind: 'low', text: '14%' });
   expect(friendMark({ state: 'here', battery: 56, charging: true }, ago)?.kind).toBe('charging');
   expect(friendMark({ state: 'paused', battery: 80, minutesAgo: 25 }, ago)).toEqual({ kind: 'ago', text: '25 мин' });
-  expect(friendMark({ state: 'here', battery: 82, minutesAgo: 2 }, ago)).toBeNull();
+  expect(friendMark({ state: 'here', battery: 82, minutesAgo: 2 }, ago)).toEqual({ kind: 'battery', text: '82%' });
+  expect(friendMark({ state: 'moving', speedKmh: 14, battery: 82, minutesAgo: 25 }, ago)).toEqual({ kind: 'ago', text: '25 мин' });
 });

@@ -12,6 +12,7 @@ import { Splash } from '../src/features/auth/Splash';
 import { useAuthWatch } from '../src/live/auth';
 import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
+import { useLiveChats } from '../src/data/realtime';
 import { KEEP_MS, persister, queryClient, shouldPersist } from '../src/live/query';
 import { colors, fonts } from '../src/theme';
 import { installCrashHandler, recordCrash, setCrashScreen } from '../src/lib/crash';
@@ -70,6 +71,8 @@ export default function RootLayout() {
 }
 
 function Root() {
+  // Deep links can open a chat/profile without mounting the tabs shell.
+  useLiveChats();
   const path = usePathname();
   useEffect(() => { setCrashScreen(path); }, [path]);
   return (

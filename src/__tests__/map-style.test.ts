@@ -16,6 +16,7 @@ it('экономный режим не запрашивает DEM и дерев�
   expect(flat.layers.some(l => l.source === 'dem' || l.type === 'fill-extrusion' || l.type === 'symbol' && String((l as { id?: string }).id).startsWith('trees'))).toBe(false);
   const volumetric = mapStyle('paper', true) as { sources: Record<string, unknown>; layers: { id: string; type: string; minzoom?: number; maxzoom?: number }[] };
   expect(volumetric.sources.dem).toBeDefined();
+  expect(volumetric.sources.dem).toMatchObject({ minzoom: 8, maxzoom: 11 });
   const ext = volumetric.layers.filter(l => l.type === 'fill-extrusion');
   expect(ext.map(l => l.id)).toEqual(['buildings', 'buildings-tall', 'landmarks']);
   // Высотки — только пока не появились все дома (плюс короткий переход), чтобы не рисовать их дважды.

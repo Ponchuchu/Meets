@@ -61,3 +61,33 @@ describe('точки издалека (26 октября)', () => {
     expect(MALL_DOT).toMatch(/^#/);
   });
 });
+
+describe('счётчики событий при отдалении', () => {
+  const event = (id: string, lon: number, lat = 43.2) => ({ id, lat, lon, startsAt: '2026-11-01T10:00:00Z' });
+  it('на границе режима все события сохраняются, а близкие точки раскрываются при приближении', () => {
+    const events = Array.from({ length: 1000 }, (_, i) => event(String(i), i / 100000));
+    for (const zoom of [0, 9, 11, 12.49, 12.5, 15]) {
+      const groups = groupByPoint(events, zoom);
+      expect(groups.flat()).toHaveLength(events.length);
+      expect(new Set(groups.flat().map(e => e.id)).size).toBe(events.length);
+    }
+    expect(groupByPoint(events, 11).length).toBeLessThan(groupByPoint(events, 12.5).length);
+  });
+  it('не включает невалидные координаты в число событий', () => {
+    const groups = groupByPoint([event('ok', 76.9), event('nan', NaN), event('lon', 181), event('lat', 76, 91)], 11);
+    expect(groups.flat().map(e => e.id)).toEqual(['ok']);
+  });
+  it('одинаковый меридиан ±180 не удваивает точку; полюса и границы ячеек не теряют события', () => {
+    const events = [event('west', -180), event('east', 180), event('near-west', -179.9999), event('near-east', 179.9999), event('north', 0, 90), event('south', 0, -90)];
+    for (const zoom of [0, 11, 12.5]) {
+      const groups = groupByPoint(events, zoom);
+      expect(groups.flat()).toHaveLength(events.length);
+      expect(groups.find(g => g.some(e => e.id === 'west'))?.some(e => e.id === 'east')).toBe(true);
+    }
+  });
+  it('группы стабильны внутри полушага масштаба, время внутри группы отсортировано', () => {
+    const events = [event('b', 0.001), { ...event('a', 0), startsAt: '2026-11-01T09:00:00Z' }];
+    expect(groupByPoint(events, 11.01)).toEqual(groupByPoint(events, 11.49));
+    expect(groupByPoint(events, 11)[0].map(e => e.id)).toEqual(['a', 'b']);
+  });
+});

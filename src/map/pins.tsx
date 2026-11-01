@@ -5,7 +5,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import Svg, { Path } from 'react-native-svg';
 import { agoShort } from './ago';
 import { friendMark, type FriendMark } from './social';
-import { BatteryLow, Clock3, Zap } from 'lucide-react-native';
+import { Battery, BatteryLow, Clock3, Zap } from 'lucide-react-native';
 import { Avatar } from '../ui/Avatar';
 import { photo } from '../data/photos';
 import { frameById } from '../profile/frames';
@@ -188,7 +188,7 @@ export const EventPin = memo(function EventPin({ e, kind, phase, label, showComp
  * Друг на карте (FIX5, как в Zenly): крупное фото в белой рамке с хвостиком к точке, ободок — цвет его рамки,
  * мягкая тень на земле. Сверху — плашка: заряд и «5 мин» или скорость со стрелкой. Давно не обновлялся — бледнее, серый ободок.
  */
-export function FriendBubble({ person, size = 46, ring, faded, badge }: { person: Person; size?: number; ring?: string; faded?: boolean; badge?: ReactNode }) {
+export function FriendBubble({ person, size = 38, ring, faded, badge }: { person: Person; size?: number; ring?: string; faded?: boolean; badge?: ReactNode }) {
   const color = ring ?? frameById(person.mapFrame).color;
   const total = size + 8;
   return (
@@ -198,7 +198,7 @@ export function FriendBubble({ person, size = 46, ring, faded, badge }: { person
         {/* Статус вшит в аватарку (26 окт.): плашка сидит на нижнем краю кольца, как «LIVE» в Instagram. */}
         {badge && <View style={styles.badgeSlot}>{badge}</View>}
       </View>
-      <Svg width={18} height={11} viewBox="0 0 18 11" style={{ marginTop: -3 }}>
+      <Svg width={size < 35 ? 12 : 16} height={size < 35 ? 7 : 9} viewBox="0 0 18 11" style={{ marginTop: -3 }}>
         <Path d="M1 0h16L9.9 9.6a1.2 1.2 0 0 1-1.8 0z" fill="#FFFFFF" />
       </Svg>
       <View style={styles.bubbleGround} />
@@ -209,13 +209,13 @@ export function FriendBubble({ person, size = 46, ring, faded, badge }: { person
 /** Плашка на кольце аватарки: в пути — скорость; мало заряда — красная батарейка; заряжается — молния; давно — часы. */
 export function StatusChip({ mark, big }: { mark: NonNullable<FriendMark>; big?: boolean }) {
   // В пути — только скорость, без значка транспорта (26 окт.: «лишняя информация»).
-  const Icon = mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : mark.kind === 'ago' ? Clock3 : null;
+  const Icon = mark.kind === 'charging' ? Zap : mark.kind === 'low' ? BatteryLow : mark.kind === 'battery' ? Battery : mark.kind === 'ago' ? Clock3 : null;
   const fg = mark.kind === 'ago' ? colors.muted2 : '#FFFFFF';
   return (
     <View style={[styles.chip, MARK_BG[mark.kind], big && styles.chipBig]}>
       {Icon && <Icon size={big ? 12 : 10.5} color={fg} strokeWidth={2.6} />}
       {/* Ширина текста — числом: внутри пина на карте Android обрезал «4 дн» до «· дн». */}
-      <Text numberOfLines={1} style={[styles.chipText, big && { fontSize: 11 }, { color: fg, width: Math.ceil(mark.text.length * (big ? 7 : 6.4)) + 2 }]}>{mark.text}</Text>
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.15} style={[styles.chipText, big && { fontSize: 11 }, { color: fg, width: Math.ceil(mark.text.length * (big ? 6.5 : 5.5)) + 2 }]}>{mark.text}</Text>
     </View>
   );
 }
@@ -239,8 +239,8 @@ function Streak({ t, dy, phase }: { t: ReturnType<typeof useSharedValue<number>>
   return <Animated.View style={[styles.streak, st]} />;
 }
 
-export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; onPress: () => void }) {
-  const moving = spot.state === 'moving';
+export const FriendPin = memo(function FriendPin({ person, spot, dim, compact = false, onPress }: { person: Person; spot: FriendSpot; dim?: boolean; compact?: boolean; onPress: () => void }) {
+  const moving = spot.state === 'moving' && Number.isFinite(spot.speedKmh) && (spot.minutesAgo ?? 0) < 10;
   const paused = spot.state === 'paused';
   const label = `${person.name}, ${moving ? `${spot.place.toLowerCase()}, ${spot.speedKmh} километров в час` : spot.place.toLowerCase()}`;
   // Одна плашка на кольце — только самое важное (src/map/social.ts friendMark), остальное — в карточке по нажатию.
@@ -248,17 +248,20 @@ export function FriendPin({ person, spot, dim, onPress }: { person: Person; spot
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}${mark ? `, ${mark.text}` : ''}`} style={[styles.hitTall, { opacity: dim ? 0.35 : 1 }]}>
       <View style={styles.anchor}>
-        {moving && !dim && <SpeedTrail heading={spot.heading} lift={35} />}
-        <FriendBubble person={person} ring={paused ? '#A8A195' : moving ? colors.friend : undefined} faded={paused || mark?.kind === 'ago'} badge={mark ? <StatusChip mark={mark} /> : null} />
+        {moving && !dim && !compact && <SpeedTrail heading={spot.heading} lift={30} />}
+        <FriendBubble person={person} size={compact ? 28 : 38} ring={paused ? '#A8A195' : moving ? colors.friend : undefined} faded={paused || mark?.kind === 'ago'} badge={!compact && mark ? <StatusChip mark={mark} /> : null} />
       </View>
     </Pressable>
   );
-}
+}, (a, b) => a.person === b.person && a.dim === b.dim && a.compact === b.compact
+  && a.spot.state === b.spot.state && a.spot.place === b.spot.place && a.spot.speedKmh === b.spot.speedKmh
+  && a.spot.battery === b.spot.battery && a.spot.charging === b.spot.charging && a.spot.minutesAgo === b.spot.minutesAgo && a.spot.heading === b.spot.heading);
 
 const MARK_BG = {
   speed: { backgroundColor: colors.friend },
   low: { backgroundColor: '#E5383B' },
   charging: { backgroundColor: '#2FA35A' },
+  battery: { backgroundColor: '#4F6A64' },
   ago: { backgroundColor: '#FFFFFF' },
 } as const;
 
@@ -339,12 +342,6 @@ const styles = StyleSheet.create({
   meet: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 4, justifyContent: 'center', borderRadius: 18, backgroundColor: colors.ink, borderWidth: 2, borderColor: '#FFFFFF', marginTop: -20,
     boxShadow: '0 8px 16px -6px rgba(23,22,26,0.55)' },
   meetTail: { width: 0, height: 0, marginTop: -1, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.ink },
-  city: { width: 56, height: 56, borderRadius: 19, borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.2), 0 10px 20px -6px rgba(23,22,26,0.5)', transform: [{ rotate: '-6deg' }] },
-  cityShine: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', backgroundColor: 'rgba(255,255,255,0.24)' },
-  cityTag: { alignItems: 'center', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(252,251,248,0.96)', boxShadow: '0 4px 10px -4px rgba(23,22,26,0.4)' },
-  cityTitle: { fontFamily: fonts.body700, fontSize: 11.5, color: colors.ink, maxWidth: 150 },
-  cityWhen: { fontFamily: fonts.mono600, fontSize: 9.5, letterSpacing: 0.3, color: colors.accentText },
   wave: { position: 'absolute', width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(240,82,31,0.16)', borderWidth: 2, borderColor: 'rgba(240,82,31,0.45)' },
   together: { flexDirection: 'row', alignItems: 'center', padding: 3, borderRadius: 30, backgroundColor: 'rgba(252,251,248,0.95)',
     boxShadow: '0 8px 18px -6px rgba(23,22,26,0.45), inset 0 1px 1px rgba(255,255,255,0.9)' },
@@ -385,9 +382,9 @@ const styles = StyleSheet.create({
   stack: { position: 'absolute', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   stackText: { fontFamily: fonts.mono600, fontSize: 10.5, color: colors.paper },
   badgeSlot: { position: 'absolute', bottom: -10, left: -20, right: -20, alignItems: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 19, paddingHorizontal: 6, borderRadius: 10, borderWidth: 2, borderColor: '#FFFFFF', boxShadow: '0 2px 5px rgba(23,22,26,0.28)' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 18, paddingHorizontal: 4, borderRadius: 9, borderWidth: 1.5, borderColor: '#FFFFFF', boxShadow: '0 1px 3px rgba(23,22,26,0.2)' },
   chipBig: { height: 22, paddingHorizontal: 8, borderRadius: 11 },
-  chipText: { fontFamily: fonts.body700, fontSize: 10, letterSpacing: -0.1, textAlign: 'center', includeFontPadding: false },
+  chipText: { fontFamily: fonts.body700, fontSize: 9, letterSpacing: -0.2, textAlign: 'center', includeFontPadding: false },
   trail: { position: 'absolute', width: 0, height: 0, alignItems: 'center', justifyContent: 'center' },
   streak: { position: 'absolute', width: 16, height: 3, borderRadius: 2, backgroundColor: colors.friend },
   battBare: { backgroundColor: 'transparent', boxShadow: 'none', paddingLeft: 0, paddingRight: 0, height: 16 },
@@ -425,26 +422,3 @@ export function FocusPin({ person, ring, speed, heading }: { person: Person; rin
     </View>
   );
 }
-
-/** Большое событие города («Год в Алматы»): крупный значок со своей иконкой, глянцем и мягким ореолом,
- *  под ним — название и «через 4 дня». Ореол пульсирует несколько раз при появлении и затихает. */
-export function CityPin({ title, when, color, Icon, onPress }: { title: string; when: string; color: string; Icon: import('lucide-react-native').LucideIcon; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}, ${when}`} style={styles.hitWide}>
-      <View style={styles.anchor} pointerEvents="none">
-        <Pulse size={78} color={color} />
-        <View style={[styles.city, { backgroundColor: color }]}>
-          <View style={styles.cityShine} />
-          <Icon size={26} color="#FFFFFF" strokeWidth={2.1} />
-        </View>
-        <Tag x={0} y={33} align="center">
-          <View style={styles.cityTag}>
-            <Text style={styles.cityTitle} numberOfLines={1}>{title}</Text>
-            <Text style={styles.cityWhen} numberOfLines={1}>{when}</Text>
-          </View>
-        </Tag>
-      </View>
-    </Pressable>
-  );
-}
-

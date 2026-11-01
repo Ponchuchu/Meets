@@ -11,6 +11,8 @@ describe('геолокация альфы', () => {
     expect(isJump(null, { ...a, accuracy: 400 })).toBe(true);
     expect(isJump(a, { lat: 43.2505, lon: 76.9, at: t0 + 5000, accuracy: 10 })).toBe(false); // 55 м за 5 с
     expect(isJump(a, { lat: 43.3, lon: 76.9, at: t0 + 5000 })).toBe(true); // 5,5 км за 5 с
+    expect(isJump(a, { ...a, at: t0 - 1000 })).toBe(true);
+    expect(isJump(null, { ...a, lat: Number.NaN })).toBe(true);
   });
   it('статусы: в пути, дома, ничего', () => {
     const home = { kind: 'home' as const, lat: 43.25, lon: 76.9 };

@@ -17,6 +17,7 @@ import { myId } from '../../live/auth';
 import { AvatarFrame, frameById } from '../../profile/frames';
 import { useBackClose } from '../../state/app';
 import { useProfile } from '../../state/profile';
+import { replaceMainPhoto } from '../../profile/photoCache';
 import { useSession } from '../../state/session';
 import { colors, fonts } from '../../theme';
 import { Aura } from './ProfileScreen';
@@ -56,7 +57,14 @@ export default function EditProfile() {
   const myPhotos = LIVE ? photosQ.data?.photos ?? (src?.photo_url ? [src.photo_url] : []) : demoPhotos.length ? demoPhotos : draft.photo ? [draft.photo] : [];
   const [sel, setSel] = useState<number | null>(null);
   const putPhotos = async (list: string[]) => {
-    if (LIVE) { await saveMyPhotos(list); void qc.invalidateQueries({ queryKey: ['me'] }); }
+    if (LIVE) {
+      await saveMyPhotos(list);
+      await Promise.all([qc.cancelQueries({ queryKey: ['me', 'photos'] }), qc.cancelQueries({ queryKey: ['me', 'profile'] })]);
+      qc.setQueryData<{ photos: string[]; birth: string | null }>(['me', 'photos'], old => ({ photos: list, birth: old?.birth ?? null }));
+      qc.setQueryData<Row | null>(['me', 'edit'], old => old ? { ...old, photo_url: list[0] ?? null } : old);
+      qc.setQueryData<{ photo_url: string | null }>(['me', 'profile'], old => old ? { ...old, photo_url: list[0] ?? null } : old);
+      void qc.invalidateQueries({ queryKey: ['me'] });
+    }
     else useProfile.getState().setPhotos(list);
     useSession.getState().update({ photo: list[0] ?? null });
     setPhoto(list[0] ?? null);
@@ -92,7 +100,13 @@ export default function EditProfile() {
       const url = LIVE ? await uploadAvatar(res.assets[0].uri) : res.assets[0].uri;
       useSession.getState().update({ photo: url });
       if (!LIVE && demoPhotos.length) useProfile.getState().setPhotos([url, ...demoPhotos.slice(1)]);
-      if (LIVE) void qc.invalidateQueries({ queryKey: ['me', 'photos'] });
+      if (LIVE) {
+        await Promise.all([qc.cancelQueries({ queryKey: ['me', 'photos'] }), qc.cancelQueries({ queryKey: ['me', 'profile'] })]);
+        qc.setQueryData<{ photos: string[]; birth: string | null }>(['me', 'photos'], old => ({ photos: replaceMainPhoto(old?.photos, url), birth: old?.birth ?? null }));
+        qc.setQueryData<Row | null>(['me', 'edit'], old => old ? { ...old, photo_url: url } : old);
+        qc.setQueryData<{ photo_url: string | null }>(['me', 'profile'], old => old ? { ...old, photo_url: url } : old);
+        void qc.invalidateQueries({ queryKey: ['me'] });
+      }
       setPhoto(url);
       setNote({ ok: true, text: 'Фото обновлено' });
     } catch { setNote({ ok: false, text: 'Не удалось сохранить фото. Проверь связь' }); }

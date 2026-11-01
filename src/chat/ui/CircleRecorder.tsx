@@ -38,9 +38,11 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
   useEffect(() => {
     (async () => {
       const c = camPerm?.granted || (await askCam()).granted;
+      if (!alive.current || stopped.current) return;
+      if (!c) { onDenied(); return; }
       const m = micPerm?.granted || (await askMic()).granted;
-      if (!c || !m) onDenied();
-    })().catch(onDenied);
+      if (alive.current && !stopped.current && !m) onDenied();
+    })().catch(() => { if (alive.current && !stopped.current) onDenied(); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Камера готова — начинаем запись. Промис завершится, когда вызовем stopRecording или выйдет 60 с.
@@ -57,7 +59,7 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
       if (res?.uri && sendOnStop.current && s >= 1) onDone(res.uri, s);
       else onCancel();
     }).catch(()=>{if(alive.current)onCancel();});
-    return () => { clearInterval(t); camera.stopRecording(); };
+    return () => { clearInterval(t); try { camera.stopRecording(); } catch { /* Camera already stopped. */ } };
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useImperativeHandle(ref, () => ({
@@ -65,8 +67,11 @@ export const CircleRecorder = forwardRef<CircleRecorderHandle, {
       if (stopped.current) return;
       stopped.current = true;
       sendOnStop.current = send;
-      if (ready) cam.current?.stopRecording();
-      else onCancel();
+      // onCameraReady can fire before the recording effect starts. In that gap
+      // there is no recordAsync promise to deliver onCancel/onDone.
+      if (started.current && cam.current) {
+        try { cam.current.stopRecording(); } catch { onCancel(); }
+      } else onCancel();
     },
   }));
 

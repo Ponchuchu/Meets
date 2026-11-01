@@ -40,7 +40,7 @@ export function mapStyle(theme: MapTheme, threeD = true, native = false): Record
       trees: { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8', maxzoom: 15 },
       terrain: { type: 'vector', url: 'mapbox://mapbox.mapbox-terrain-v2' },
       ...(threeD ? { landmarks: { type: 'geojson', data: landmarksGeoJSON() } } : {}),
-      ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
+      ...(threeD ? { dem: { type: 'raster-dem', tiles: [TERRAIN_TILES], tileSize: 256, minzoom: 8, maxzoom: 11, bounds: TERRAIN_BOUNDS, encoding: 'mapbox' } } : {}),
     },
     // В экономном режиме не загружаем DEM и не рисуем объёмную геометрию.
     // Свет для объёмных домов: мягкий общий и «солнце» с юго-запада (без теней — их считать дорого для Poco M6).

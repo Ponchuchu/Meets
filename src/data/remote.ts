@@ -94,8 +94,9 @@ export function mapMessage(r: MessageRow, me: string): Message {
 
 /** Друг на карте. Точка уже огрублена сервером до ~50 м (friend_locations). */
 export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: number | null; heading: number | null; updated_at: string; status?: string | null; battery?: number | null; charging?: boolean | null }, at = new Date()): FriendSpot {
-  const kmh = r.speed != null && r.speed >= 0 ? Math.round(r.speed * 3.6) : undefined;
+  const rawKmh = r.speed != null && Number.isFinite(r.speed) && r.speed >= 0 ? Math.round(r.speed * 3.6) : undefined;
   const minutes = Math.max(0, Math.round((at.getTime() - new Date(r.updated_at).getTime()) / 60000));
+  const kmh = minutes > 15 ? undefined : rawKmh;
   const moving = r.status === 'moving' || (!!kmh && kmh > 8);
   return {
     personId: r.user_id,
@@ -103,7 +104,7 @@ export function mapSpot(r: { user_id: string; lat: number; lon: number; speed: n
     lon: r.lon,
     state: minutes > 15 ? 'paused' : moving ? 'moving' : 'here',
     // Статусы альфы (V6 §9): в пути, дома / на работе, «2 мин», давно не в сети.
-    place: friendLine(moving ? 'moving' : r.status ?? null, kmh, minutes),
+    place: friendLine(minutes > 15 ? null : moving ? 'moving' : r.status ?? null, kmh, minutes),
     speedKmh: kmh,
     heading: r.heading ?? undefined,
     minutesAgo: minutes,
@@ -152,7 +153,12 @@ export async function getFriendRequests(): Promise<FriendRequest[]> {
   const me = await requireUser();
   const { data, error } = await withTimeout(supabase().from('friend_requests').select('from_id,note').eq('to_id', me).eq('status', 'pending'));
   if (error) throw error;
-  return (data as { from_id: string; note: string | null }[]).map((r) => ({ id: `fr-${r.from_id}`, personId: r.from_id, note: r.note ?? '' }));
+  const rows = data as { from_id: string; note: string | null }[];
+  const senders = await profiles(rows.map(r => r.from_id));
+  return rows.map((r) => {
+    const sender = senders.find(p => p.id === r.from_id);
+    return { id: `fr-${r.from_id}`, personId: r.from_id, note: r.note ?? '', ...(sender ? { person: mapProfile(sender, new Set<string>()) } : {}) };
+  });
 }
 
 export async function getFriendSpots(): Promise<FriendSpot[]> {
@@ -257,6 +263,7 @@ export async function getPersonDetails(id: string): Promise<PersonDetails | null
   const seen = card?.seen_at ? seenText(card.seen_at) : null;
   return {
     id: r.id,
+      person: mapProfile(r, friends),
     about: r.about ?? '',
     // Интересы в профиле (миграция 46) — что человек сам показал; «общие» — совпадают с моими.
     interests: ((r as { tags?: string[] }).tags ?? []).map((label) => ({ label, common: myTags.includes(label) })),

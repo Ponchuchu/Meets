@@ -1,5 +1,5 @@
 // Карточка друга на карте (MapFocus / MapMoving) и шторка «Позвать …» (MapInvite).
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
 import type { FriendSpot, Person } from '../../data/types';
@@ -14,7 +14,7 @@ import { CAT_ICON } from '../icons';
 import { BatteryTag } from '../pins';
 import { planWhen } from '../../lib/planWhen';
 import {STICKERS,stickerUnlocked} from '../../stickers/catalog';
-import {StickerView} from '../../stickers/StickerView';
+import { StickerHoldButton } from '../../stickers/StickerHoldButton';
 import {useQuery} from '@tanstack/react-query';
 import {getMeStats} from '../../live/api';
 import {config} from '../../lib/config';
@@ -32,8 +32,10 @@ export function updatedText(min: number | undefined): string {
 
 export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInvite }: {
   p: Person; spot: FriendSpot; ring: string;
-  onProfile: () => void; onSticker: (i: number) => void; onWrite: () => void; onInvite: () => void;
+  onProfile: () => void; onSticker: (i: number, delta: number) => void; onWrite: () => void; onInvite: () => void;
 }) {
+  const [holding, setHolding] = useState<number | null>(null);
+  const held = useRef<number | null>(null);
   const {data:stats}=useQuery({queryKey:['me','stats'],queryFn:getMeStats,enabled:config.dataMode!=='demo'});
   const level=stats?.level??1;
   const moving = spot.state === 'moving';
@@ -63,14 +65,16 @@ export function FriendCard({ p, spot, ring, onProfile, onSticker, onWrite, onInv
         <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
       </Pressable>
       {quick.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
+        <View style={styles.stickerArea}>
+        <View style={styles.stickerHeading}><Text style={styles.stickerTitle}>Стикеры на карте</Text></View>
+        <ScrollView horizontal scrollEnabled={holding == null} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stickers} accessibilityLabel="Кинуть стикер">
           {quick.map(({ st, i }) => (
-            <Pressable key={st.id} onPress={() => onSticker(i)} accessibilityRole="button" accessibilityLabel={`Кинуть стикер «${st.label}»`}
-              style={({ pressed }) => [styles.stickerTile, pressed && { transform: [{ scale: 0.88 }] }]}>
-              <View style={{ transform: [{ scale: 0.72 }] }}><StickerView st={st} /></View>
-            </Pressable>
+            <StickerHoldButton key={`${p.id}:${st.id}`} st={st} index={i} onSticker={onSticker} disabled={holding != null && holding !== i}
+              onHoldStart={() => { if (held.current != null) return false; held.current = i; setHolding(i); return true; }}
+              onHoldEnd={() => { if (held.current === i) { held.current = null; setHolding(null); } }} />
           ))}
         </ScrollView>
+        </View>
       )}
       <View style={styles.actions}>
         <Pressable onPress={onWrite} style={({ pressed }) => [styles.act, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Написать ${p.name}`}>
@@ -142,7 +146,10 @@ const styles = StyleSheet.create({
   place: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted2 },
   placeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: 190, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(36,71,184,0.1)' },
   placeText: { fontFamily: fonts.body600, fontSize: 12.5, color: colors.friend, flexShrink: 1 },
-  stickerTile: { width: 66, height: 72, borderRadius: 16, backgroundColor: 'rgba(23,22,26,0.04)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  stickerArea: { gap: 2 },
+  stickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingHorizontal: 2 },
+  stickerTitle: { fontFamily: fonts.body600, fontSize: 12, color: colors.ink },
+  stickerHint: { fontFamily: fonts.body400, fontSize: 11, color: colors.muted },
   actions: { flexDirection: 'row', gap: 8 },
   act: { flex: 1, height: 60, borderRadius: 18, backgroundColor: '#EDE8DD', alignItems: 'center', justifyContent: 'center', gap: 4 },
   actMain: { backgroundColor: colors.accent },
