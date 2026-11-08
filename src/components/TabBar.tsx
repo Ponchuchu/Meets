@@ -12,10 +12,11 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { Image, Keyboard, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useApp } from '../state/app';
 import { useTabBadges } from '../state/tabBadges';
 import { colors, fonts } from '../theme';
+import { imageUrl } from '../data/imageUrl';
 import { glass } from '../ui/glass';
 
 const BAR_H = 64;
@@ -23,25 +24,24 @@ const PAD = 5;
 const GAP = 2;
 const POP = Easing.bezier(0.3, 1.4, 0.5, 1);
 const OFF = '#5F5B55';
-const ON_DETAIL = '#EEE9DE';
 
 const TABS: Record<string, { label: string; shape?: string; details?: string; back?: string }> = {
   index: { label: 'Карта', shape: 'M3 6.5l6-3 6 3 6-3v14l-6 3-6-3-6 3z', details: 'M9 3.5v14M15 6.5v14' },
   // Рекомендации: передняя карточка со звездой и вторая карточка позади — читается как стопка. Выбрано: всё сплошным чёрным, как в Instagram.
-  foryou: { label: 'Рекомендации', shape: 'M8 3h9.5A2.5 2.5 0 0120 5.5v12a2.5 2.5 0 01-2.5 2.5H8A2.5 2.5 0 015.5 17.5v-12A2.5 2.5 0 018 3z', back: 'M3 7v11a3 3 0 003 3h9', details: 'M12.75 7.8l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4z' },
+  foryou: { label: 'Рекомендации', shape: 'M12 2.5a9.5 9.5 0 110 19 9.5 9.5 0 010-19z', details: 'M15.7 8.3l-2.3 5.1-5.1 2.3 2.3-5.1z' },
   plans: { label: 'Планы', shape: 'M5 4.5h14a2.5 2.5 0 012.5 2.5v12a2.5 2.5 0 01-2.5 2.5H5A2.5 2.5 0 012.5 19V7A2.5 2.5 0 015 4.5z', details: 'M2.5 9.5h19M8 2.5v4M16 2.5v4M8.5 15l2.3 2.3 4.7-4.6' },
   chats: { label: 'Чаты', shape: 'M4 4h16a1.5 1.5 0 011.5 1.5v10.5a1.5 1.5 0 01-1.5 1.5h-9.5L5.5 21.5v-4H4A1.5 1.5 0 012.5 16V5.5A1.5 1.5 0 014 4z', details: 'M7.5 9h9M7.5 12.5h5.5' },
-  me: { label: 'Профиль' },
+  account: { label: 'Настройки' },
 };
 
 /** Отступ снизу капсулы до края экрана. */
 export const tabGap = (bottomInset: number) => Math.max(12, bottomInset);
 /** Сколько места снизу занимает панель — на это поднимаем карточки и отступ списков. */
 export const tabInset = (bottomInset: number) => BAR_H + tabGap(bottomInset) + 10;
-/** Центр вкладки i (0 — Карта … 4 — Профиль) на экране шириной W и высотой H: сюда летят карточки и смотрит обучение. */
+/** Центр вкладки i (0 — Карта … 3 — Настройки) на экране шириной W и высотой H: сюда летят карточки и смотрит обучение. */
 export function tabCenter(i: number, W: number, H: number, bottomInset: number) {
-  const bar = Math.min(366, W * 0.94);
-  const cell = (bar - PAD * 2 - GAP * 4) / 5;
+  const bar = Math.min(320, W * 0.92);
+  const cell = (bar - PAD * 2 - GAP * 3) / 4;
   return { x: (W - bar) / 2 + PAD + i * (cell + GAP) + cell / 2, y: H - tabGap(bottomInset) - BAR_H / 2 };
 }
 export function useTabInset() {
@@ -75,19 +75,11 @@ const TabIcon = memo(function TabIcon({ name, on, pop }: { name: string; on: boo
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }] }));
   return (
     <Animated.View style={[{ width: 28, height: 28 }, bounce]}>
-      {on ? (
-        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-          <Path d={d.shape} fill={colors.ink} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={d.details} stroke={ON_DETAIL} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={d.back ? ON_DETAIL : 'none'} />
-          {d.back ? <Path d={d.back} stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
-        </Svg>
-      ) : (
-        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-          <Path d={d.shape} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          <Path d={d.details} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-          {d.back ? <Path d={d.back} stroke={OFF} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
-        </Svg>
-      )}
+      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+        <Path d={d.shape} stroke={on ? colors.ink : OFF} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d={d.details} stroke={on ? colors.ink : OFF} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+        {d.back ? <Path d={d.back} stroke={on ? colors.ink : OFF} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" /> : null}
+      </Svg>
     </Animated.View>
   );
 });
@@ -97,8 +89,8 @@ const MeIcon = memo(function MeIcon({ on, pop }: { on: boolean; pop: SharedValue
   const st = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }] }));
   return (
     <Animated.View style={[styles.meRing, on && styles.meRingOn, st]}>
-      {avatar.url ? <Image source={{ uri: avatar.url }} resizeMethod="resize" style={styles.meFace} /> : (
-        <View style={[styles.meFace, styles.meEmpty]}><Text style={styles.meLetter}>{avatar.letter || '·'}</Text></View>
+      {avatar.url ? <Image source={{ uri: imageUrl(avatar.url, 96) }} resizeMethod="resize" style={styles.meFace} /> : (
+        <View style={[styles.meFace, styles.meEmpty]}><Svg width={24} height={24} viewBox="0 0 24 24" fill="none"><Circle cx={12} cy={8} r={3.2} stroke={on ? colors.ink : OFF} strokeWidth={1.7} /><Path d="M5 20v-2a7 7 0 0114 0v2" stroke={on ? colors.ink : OFF} strokeWidth={1.7} strokeLinecap="round" /></Svg></View>
       )}
     </Animated.View>
   );
@@ -111,7 +103,7 @@ function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boo
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    if (on) pop.set(withSequence(withTiming(0.84, { duration: 0 }), withTiming(1.12, { duration: 286, easing: POP }), withTiming(1, { duration: 234, easing: POP })));
+    if (on) pop.set(withSequence(withTiming(1.06, { duration: 110 }), withTiming(1, { duration: 140 })));
   }, [on, pop]);
   // Прилёт карточки: scale 1,42 с покачиванием ±10°, затухание 0,5 с, оранжевая вспышка.
   useEffect(() => {
@@ -127,7 +119,7 @@ function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boo
     <Pressable onPress={onPress} onLongPress={onLong} delayLongPress={350} style={styles.tab}
       accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={badge ? `${label}, ${badge}` : label}>
       {name === 'plans' && <Animated.View pointerEvents="none" style={[styles.flash, flashSt]} />}
-      <Animated.View style={wobble}>{name === 'me' ? <MeIcon on={on} pop={pop} /> : <TabIcon name={name} on={on} pop={pop} />}</Animated.View>
+      <Animated.View style={wobble}>{name === 'account' ? <MeIcon on={on} pop={pop} /> : <TabIcon name={name} on={on} pop={pop} />}</Animated.View>
       {badge > 0 && <Badge n={badge} label={name === 'plans' ? `Новых планов: ${badge}` : `Непрочитанных: ${badge}`} />}
     </Pressable>
   );
@@ -136,9 +128,7 @@ function Tab({ name, on, badge, land, onPress, onLong }: { name: string; on: boo
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const covers = useApp((s) => s.covers);
-  const plans = useTabBadges((s) => s.plans);
   const chats = useTabBadges((s) => s.chats);
-  const land = useTabBadges((s) => s.land);
   const [kb, setKb] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   useEffect(() => {
@@ -156,27 +146,27 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     return () => clearTimeout(t);
   }, [hint]);
 
-  const routes = state.routes.filter((r) => TABS[r.name]);
+  const routes = state.routes.filter((r) => TABS[r.name] && r.name !== 'plans');
   const activeKey = state.routes[state.index]?.name;
-  const activeIdx = Math.max(0, routes.findIndex((r) => r.name === activeKey));
+  const activeIdx = Math.max(0, routes.findIndex((r) => r.name === (activeKey === 'plans' ? 'foryou' : activeKey === 'me' ? 'account' : activeKey)));
   const [cell, setCell] = useState(0);
   const slide = useSharedValue(activeIdx);
   useEffect(() => { slide.set(withSpring(activeIdx, { damping: 19, stiffness: 210, mass: 0.8 })); }, [activeIdx, slide]);
   const pill = useAnimatedStyle(() => ({ transform: [{ translateX: slide.get() * (cell + GAP) }] }));
-  const onBar = (e: LayoutChangeEvent) => setCell((e.nativeEvent.layout.width - PAD * 2 - GAP * 4) / 5);
+  const onBar = (e: LayoutChangeEvent) => setCell((e.nativeEvent.layout.width - PAD * 2 - GAP * 3) / 4);
   return (
     <Animated.View pointerEvents={hidden ? 'none' : 'box-none'} style={[styles.wrap, { bottom: tabGap(insets.bottom) }, wrap]}>
       {hint && <View style={styles.hint} pointerEvents="none"><Text style={styles.hintText}>{hint}</Text></View>}
-      <View style={[styles.bar, glass]} accessibilityRole="tablist" onLayout={onBar}>
-        {cell > 0 && <Animated.View pointerEvents="none" style={[styles.pill, { width: cell }, pill]} />}
+      <View style={[styles.bar, glass, styles.chrome]} accessibilityRole="tablist" onLayout={onBar}>
+        {cell > 0 && <Animated.View pointerEvents="none" style={[styles.pill, { width: 52, left: PAD + (cell - 52) / 2 }, pill]} />}
         {routes.map((route) => {
-          const on = route.name === activeKey;
+          const on = route.name === (activeKey === 'plans' ? 'foryou' : activeKey === 'me' ? 'account' : activeKey);
           return (
-            <Tab key={route.key} name={route.name} on={on} land={route.name === 'plans' ? land : 0} badge={route.name === 'plans' ? plans : route.name === 'chats' ? chats : 0}
+            <Tab key={route.key} name={route.name} on={on} land={0} badge={route.name === 'chats' ? chats : 0}
               onLong={() => setHint(TABS[route.name].label)}
               onPress={() => {
                 const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!on && !e.defaultPrevented) {
+                if (route.name !== activeKey && !e.defaultPrevented) {
                   void Haptics.selectionAsync().catch(() => undefined);
                   navigation.navigate(route.name);
                 }
@@ -191,12 +181,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
-    width: 366, maxWidth: '94%', height: BAR_H, padding: PAD, borderRadius: BAR_H / 2, flexDirection: 'row', gap: GAP,
+    width: 320, maxWidth: '92%', height: BAR_H, padding: PAD, borderRadius: BAR_H / 2, flexDirection: 'row', gap: GAP,
   },
+  chrome: { backgroundColor: 'rgba(255,255,252,0.94)', boxShadow: '0 5px 20px -12px rgba(23,22,26,0.24)' },
   // Линза под выбранной вкладкой — нейтральное стекло, как в iOS: светлая заливка, тонкая кромка и мягкая тень.
-  pill: { position: 'absolute', top: PAD, left: PAD, bottom: PAD, borderRadius: (BAR_H - PAD * 2) / 2, backgroundColor: 'rgba(23,22,26,0.065)',
+  pill: { position: 'absolute', top: 6, left: PAD, bottom: 6, borderRadius: 26, backgroundColor: 'rgba(182,210,204,0.32)',
     borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.9)' },
-  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
+  tab: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 3 },
   badge: {
     position: 'absolute', top: 6, left: '50%', marginLeft: 5, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: '#FCFBF8',
@@ -208,7 +199,7 @@ const styles = StyleSheet.create({
   meRing: { width: 36, height: 36, borderRadius: 18, padding: 1.5, borderWidth: 1.5, borderColor: 'transparent' },
   meRingOn: { borderColor: colors.ink },
   meFace: { width: 30, height: 30, borderRadius: 15, overflow: 'hidden' },
-  meEmpty: { backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  meEmpty: { backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   meLetter: { fontFamily: fonts.body700, fontSize: 15, lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center', color: colors.accent },
   hint: { position: 'absolute', bottom: BAR_H + 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.ink },
   hintText: { fontFamily: fonts.body600, fontSize: 13, color: colors.paper },

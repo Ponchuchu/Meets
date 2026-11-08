@@ -56,7 +56,7 @@ export function PhotoHero({ photos, initial, tint, accent, top, name, nameExtra,
     <GestureDetector gesture={swipe}>
     <View style={[styles.hero, { height: h }]}>
       <Animated.View style={[StyleSheet.absoluteFill, pullSt]}>
-        {cur ? <Image source={photoSrc(cur)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={160} accessibilityIgnoresInvertColors />
+        {cur ? <Image source={photoSrc(cur)} recyclingKey={cur} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={160} accessibilityIgnoresInvertColors />
           : <View style={[StyleSheet.absoluteFill, styles.noPhoto, { backgroundColor: tint }]}><Text style={styles.bigInitial}>{initial}</Text></View>}
       </Animated.View>
       <Svg style={StyleSheet.absoluteFill} width="100%" height={h} pointerEvents="none">

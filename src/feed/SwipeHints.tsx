@@ -1,6 +1,6 @@
 // Кнопки под карточкой: ✕ «Мимо», ⌃ «Подробнее», ♥ «Пойду». Их можно нажимать, и они же объясняют жесты:
 // когда тянешь карточку, нужная кнопка подсвечивается (Мимо чернеет, Пойду оранжевая, Подробнее синяя).
-import { ChevronUp, Heart, X } from 'lucide-react-native';
+import { ArrowUpRight, CalendarPlus, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, interpolateColor, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
@@ -35,20 +35,20 @@ export function QuickButtons({ x, y, onNo, onUp, onGo }: { x: SharedValue<number
   const p = { size: 24, strokeWidth: 2.2 };
   return (
     <View style={styles.row}>
-      <Btn label="Мимо" src={x} range={[12, THRESHOLD]} neg tint={colors.ink} size={54} onPress={onNo}
+      <Btn label="Мимо" src={x} range={[12, THRESHOLD]} neg tint={colors.ink} size={44} onPress={onNo}
         icon={<X {...p} color={colors.ink} />} iconOn={<X {...p} color="#FFFFFF" />} />
-      <Btn label="Подробнее" src={y} range={[10, 60]} neg tint={colors.friend} size={54} onPress={onUp}
-        icon={<ChevronUp {...p} color={colors.ink} />} iconOn={<ChevronUp {...p} color="#FFFFFF" />} />
-      <Btn label="Пойду" src={x} range={[12, THRESHOLD]} tint={colors.accent} size={54} onPress={onGo}
-        icon={<Heart {...p} color={colors.accent} />} iconOn={<Heart {...p} color={colors.ink} />} />
+      <Btn label="Подробнее" src={y} range={[10, 60]} neg tint={colors.friend} size={44} onPress={onUp}
+        icon={<ArrowUpRight {...p} color={colors.ink} />} iconOn={<ArrowUpRight {...p} color="#FFFFFF" />} />
+      <Btn label="Пойду" src={x} range={[12, THRESHOLD]} tint={colors.accent} size={44} onPress={onGo}
+        icon={<CalendarPlus {...p} color={colors.accent} />} iconOn={<CalendarPlus {...p} color={colors.ink} />} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around' },
-  item: { width: 90, alignItems: 'center', gap: 5 },
-  circle: { alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  item: { flex: 1, minWidth: 0, minHeight: 64, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 0, paddingBottom: 7, borderWidth: 1, borderColor: '#FFFFFF' },
+  circle: { alignItems: 'center', justifyContent: 'center' },
   icon: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   label: { fontFamily: fonts.body600, fontSize: 11, color: colors.muted },
 });

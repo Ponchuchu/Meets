@@ -115,16 +115,27 @@ async function mapbox(q: string, house?: string): Promise<Point | null> {
  * Свой справочник адресов Алматы (public.addresses: OpenStreetMap + Overture, docs/MAP-DATA.md):
  * «Жандосов көшесі 1/1» и «ул. Жандосова, 1/1» находят одну точку. Только уверенное совпадение с тем же домом.
  */
+export function selectRegistryMatch(rows: { lat: number; lon: number; house: string; score: number }[], house: string): Point | null {
+  const candidates = rows.filter(m => typeof m.house === 'string' && houseKey(m.house) === houseKey(house)
+    && Number.isFinite(m.lat) && Number.isFinite(m.lon) && Number.isFinite(m.score) && m.score >= 0.5 && inCity(m));
+  if (!candidates.length) return null;
+  const first = candidates[0];
+  // Same house on distant streets is ambiguous: let a moderator or another geocoder decide.
+  if (candidates.some(m => Math.hypot((m.lat - first.lat) * 111, (m.lon - first.lon) * 81) > 0.25)) return null;
+  return { lat: first.lat, lon: first.lon };
+}
+
 async function registry(street: string, house: string): Promise<Point | null> {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) return null;
   try {
     const h: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
     if (key.split('.').length === 3) h.Authorization = `Bearer ${key}`;
-    const r = await fetch(`${url}/rest/v1/rpc/match_address`, { method: 'POST', headers: h, body: JSON.stringify({ q: `${street} ${house}` }) });
+    // The first three fuzzy results can contain different house numbers. Inspect up to 20 and insist on the exact house.
+    const r = await fetch(`${url}/rest/v1/rpc/suggest_address`, { method: 'POST', headers: h, body: JSON.stringify({ q: `${street} ${house}`, near_lat: CENTER.lat, near_lon: CENTER.lon, lim: 20 }), signal: AbortSignal.timeout(15_000) });
     if (!r.ok) return null;
-    const [m] = await r.json() as { lat: number; lon: number }[];
-    return m && Number.isFinite(m.lat) && Number.isFinite(m.lon) ? { lat: m.lat, lon: m.lon } : null;
+    const rows = await r.json() as { lat: number; lon: number; house: string; score: number }[];
+    return selectRegistryMatch(rows, house);
   } catch { return null; }
 }
 

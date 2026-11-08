@@ -50,7 +50,7 @@ function useVis() {
   return { v: q.data, set };
 }
 
-export function SettingsRoot() {
+export function SettingsRoot({ tab = false }: { tab?: boolean }) {
   const phone = useAuth((s) => s.session?.user.phone);
   const { v } = useVis();
   const { get } = useSettingsKV();
@@ -63,7 +63,8 @@ export function SettingsRoot() {
   const pl = places.data ?? [];
   const eco = useEco();
   return (
-    <SettingsPage title="Настройки">
+    <SettingsPage title="Настройки" tab={tab}>
+      <Group><Row Icon={User} title="Мой профиль" sub="Фото, друзья и твои места" onPress={() => router.push('/me')} last /></Group>
       <Cap>АККАУНТ</Cap>
       <Group><Row Icon={User} title="Номер, имя, @ник" value={maskPhone(phone)} onPress={() => go('account')} last /></Group>
       <Cap>ПРИВАТНОСТЬ</Cap>

@@ -3,15 +3,25 @@ import { watchMapPosition } from '../live/watchMapPosition';
 import { startIntroReveal } from '../features/auth/introTiming';
 import { eventStatusLabel } from '../event/availability';
 
-jest.mock('expo-location', () => ({ Accuracy: { Balanced: 1 }, hasServicesEnabledAsync: jest.fn(), getLastKnownPositionAsync: jest.fn(), watchPositionAsync: jest.fn() }));
+jest.mock('expo-location', () => ({ Accuracy: { Balanced: 1 }, getForegroundPermissionsAsync: jest.fn(), hasServicesEnabledAsync: jest.fn(), getLastKnownPositionAsync: jest.fn(), watchPositionAsync: jest.fn() }));
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 describe('остановка геолокации карты', () => {
   beforeEach(() => {
+    jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue({ granted: true } as Location.LocationPermissionResponse);
     jest.mocked(Location.hasServicesEnabledAsync).mockResolvedValue(true);
     jest.mocked(Location.getLastKnownPositionAsync).mockResolvedValue(null);
   });
   afterEach(() => jest.resetAllMocks());
+
+  it('без разрешения не запускает подписку', async () => {
+    jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue({ granted: false } as Location.LocationPermissionResponse);
+    const off = jest.fn();
+    watchMapPosition(jest.fn(), off);
+    await flush();
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+  });
 
   it('останавливает подписку, созданную после ухода; новые точки не доставляет', async () => {
     let resolve!: (sub: Location.LocationSubscription) => void;

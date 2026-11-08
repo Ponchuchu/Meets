@@ -69,7 +69,7 @@ export default function FriendsScreen() {
   const onlineFriends = friends.filter((p) => isOnline(p.id));
   const offlineFriends = friends.filter((p) => !isOnline(p.id)).sort((a, b) => (spotOf(a.id)?.minutesAgo ?? 1e9) - (spotOf(b.id)?.minutesAgo ?? 1e9));
   const show = (t: ToastData) => { setToast(t); setTimeout(() => setToast((c) => (c === t ? null : c)), 3000); };
-  const pending = requests.filter((r) => !social.answered[r.personId]);
+  const pending = config.dataMode === 'demo' ? requests.filter((r) => !social.answered[r.personId]) : requests;
   const suggestions = people.filter((p) => !isFriendNow(p, social) && !social.hidden[p.id] && !pending.some((r) => r.personId === p.id));
   const openPerson = (id: string) => router.push({ pathname: '/person/[id]', params: { id } });
   const inviteLink = () => {
@@ -105,7 +105,7 @@ export default function FriendsScreen() {
               <View style={styles.count}><Text style={styles.countText}>{pending.length}</Text></View>
             </View>
             {pending.map((r) => {
-              const p = byId(r.personId);
+              const p = byId(r.personId) ?? r.person;
               if (!p) return null;
               return (
                 <View key={r.id} style={styles.card}>
@@ -229,9 +229,9 @@ export default function FriendsScreen() {
       {sheet && (
         <>
           <Backdrop onPress={() => setSheet(null)} label="Закрыть" />
-          <BottomSheet onClose={() => setSheet(null)} label={sheet === 'add' ? 'Добавить друга' : sheet === 'bump' ? 'Bump' : 'Переименовать'} style={{ gap: 14, paddingBottom: 30 + insets.bottom }}>
+          <BottomSheet scroll={sheet === 'add'} onClose={() => setSheet(null)} label={sheet === 'add' ? 'Добавить друга' : sheet === 'bump' ? 'Bump' : 'Переименовать'} style={{ gap: 14, paddingBottom: 30 + insets.bottom }}>
             {sheet === 'add' && <AddFriend people={people} social={social} onInvite={() => { setSheet(null); inviteLink(); }} onBump={() => setSheet('bump')} onOpen={(id) => { setSheet(null); openPerson(id); }} />}
-            {sheet === 'bump' && <Bump candidates={suggestions} onAdd={(p) => { social.toggleRequest(p.id); setSheet(null); show({ text: `Заявка ушла: ${p.name}` }); }} />}
+            {sheet === 'bump' && <Bump onSearch={() => setSheet('add')} candidates={suggestions} onAdd={(p) => { social.toggleRequest(p.id); setSheet(null); show({ text: `Заявка ушла: ${p.name}` }); }} />}
             {typeof sheet === 'object' && sheet && 'rename' in sheet && (
               <Rename p={sheet.rename} value={social.nicknames[sheet.rename.id] ?? ''} onSave={(v) => { social.setNickname(sheet.rename.id, v); setSheet(null); }} />
             )}
@@ -251,6 +251,9 @@ function AddFriend({ people, social, onInvite, onBump, onOpen }: {
   const [debounced, setDebounced] = useState('');
   useEffect(() => { const timer = setTimeout(() => setDebounced(query), 300); return () => clearTimeout(timer); }, [query]);
   const search = useQuery({ queryKey: ['peopleSearch', debounced], queryFn: () => findByHandle(debounced), enabled: config.dataMode !== 'demo' && debounced.length >= 2 });
+  const liveSearch = config.dataMode !== 'demo';
+  const searching = liveSearch && query.length >= 2 && (debounced !== query || search.isPending || search.isFetching);
+  const searchFailed = liveSearch && debounced === query && query.length >= 2 && search.isError;
   const local = query ? people.filter((p) => p.name.toLowerCase().includes(query) || (p.handle ?? '').toLowerCase().includes(query)) : [];
   const friends = new Set(people.filter(p => p.isFriend).map(p => p.id));
   const found = [...new Map([...local, ...(debounced === query ? search.data ?? [] : []).map(p => mapProfile(p, friends))].map(p => [p.id, p])).values()].slice(0, 10);
@@ -261,7 +264,8 @@ function AddFriend({ people, social, onInvite, onBump, onOpen }: {
         <Ic d="M20 20l-3.5-3.5" c={[[11, 11, 7]]} size={18} color={colors.muted} w={2} />
         <TextInput value={q} onChangeText={setQ} autoFocus placeholder="Имя или @ник" placeholderTextColor={colors.muted3} style={styles.searchInput} accessibilityLabel="Найти по имени или нику" autoCapitalize="none" />
       </View>
-      {search.isError && <Text style={styles.sub}>Поиск временно недоступен. Попробуй ещё раз</Text>}
+      {searching && <Text style={styles.sub}>Ищу…</Text>}
+      {searchFailed && <Pressable onPress={() => void search.refetch()} accessibilityRole="button"><Text style={styles.sub}>Поиск временно недоступен. Нажми, чтобы повторить</Text></Pressable>}
       {found.map((p) => {
         const friend = isFriendNow(p, social);
         const sent = !!social.sent[p.id];
@@ -279,7 +283,7 @@ function AddFriend({ people, social, onInvite, onBump, onOpen }: {
           </View>
         );
       })}
-      {query && found.length === 0 && <Text style={styles.sub}>Никого не нашли — позови ссылкой.</Text>}
+      {query && found.length === 0 && !searching && !searchFailed && <Text style={styles.sub}>{liveSearch && query.length < 2 ? 'Введи хотя бы два символа имени или ника.' : 'Никого не нашли — позови ссылкой.'}</Text>}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Pressable onPress={onInvite} style={styles.option} accessibilityRole="button">
           <View style={[styles.optionIcon, { backgroundColor: colors.accent }]}><Ic d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1" size={22} color={colors.ink} w={2} /></View>
@@ -297,7 +301,18 @@ function AddFriend({ people, social, onInvite, onBump, onOpen }: {
 }
 
 /** Bump: оба нажимают «Bump» и держат телефоны рядом. Совпадение по времени и месту находит сервер; в демо — ближайший человек. */
-function Bump({ candidates, onAdd }: { candidates: Person[]; onAdd: (p: Person) => void }) {
+function Bump({ onSearch, ...props }: { candidates: Person[]; onAdd: (p: Person) => void; onSearch: () => void }) {
+  if (config.dataMode !== 'demo') return <View style={{ alignItems: 'center', gap: 14, paddingVertical: 8 }}>
+    <Text style={styles.sheetTitle}>Bump пока недоступен</Text>
+    <Text style={[styles.sub, { textAlign: 'center' }]}>Добавь друга по нику или пригласи ссылкой.</Text>
+    <Pressable onPress={onSearch} accessibilityRole="button" style={[styles.dark, { height: 52, alignSelf: 'stretch', alignItems: 'center' }]}>
+      <Text style={styles.darkText}>Найти по нику</Text>
+    </Pressable>
+  </View>;
+  return <DemoBump {...props} />;
+}
+
+function DemoBump({ candidates, onAdd }: { candidates: Person[]; onAdd: (p: Person) => void }) {
   const [found, setFound] = useState<Person | null>(null);
   const [match] = useState<Person | null>(() => candidates[0] ?? null);
   const t = useSharedValue(0);

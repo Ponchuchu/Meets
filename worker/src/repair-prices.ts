@@ -1,12 +1,13 @@
 // Retry missing prices for existing cards too: a processed Instagram post is not pulled again.
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findPriceSources } from './price-search.ts';
 import { extract } from './heuristics.ts';
 import { linkedFacts } from './linkedFacts.ts';
 import { priceIn } from './social.ts';
 import type { Extraction } from './types.ts';
 
-export async function repairPrices(url: string, key: string, fetchFn: typeof fetch = fetch): Promise<number> {
+export async function repairPrices(url: string, key: string, fetchFn: typeof fetch = fetch, options: { kimiKey?: string; kimiLimit?: number; findSources?: typeof findPriceSources } = {}): Promise<number> {
   const headers: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
   if (key.split('.').length === 3) headers.Authorization = `Bearer ${key}`;
   const rest = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
@@ -19,6 +20,10 @@ export async function repairPrices(url: string, key: string, fetchFn: typeof fet
   const rows = await rest<Row[]>(`events?select=id,title,about,starts_at,source_url,flags&price_min=is.null&is_free=eq.false&status=in.(draft,published)&starts_at=gte.${new Date().toISOString()}&or=(price_checked_at.is.null,price_checked_at.lt.${dayAgo})&order=price_checked_at.asc.nullsfirst,starts_at.asc&limit=20`);
   const cache = new Map<string, Promise<string | null>>();
   let fixed = 0;
+  let searches = 0;
+  const kimiKey = options.kimiKey ?? process.env.KIMI_API_KEY ?? process.env.KIMI;
+  const kimiLimit = Math.min(5, Math.max(0, options.kimiLimit ?? Number(process.env.KIMI_PRICE_LIMIT || 3)));
+  if (!kimiKey) console.log('Kimi price search: key unavailable; unresolved prices stay excluded from recommendations.');
   for (const e of rows) {
     const posts = await rest<{ text: string }[]>(`raw_posts?select=text&event_id=eq.${e.id}&limit=1`);
     const text = posts[0]?.text || e.about;
@@ -26,6 +31,14 @@ export async function repairPrices(url: string, key: string, fetchFn: typeof fet
     const price = priceIn(text);
     x.price_min = price.min; x.price_max = price.max; x.is_free = price.free;
     await linkedFacts(x, `${text}\n${e.source_url ?? ''}`, fetchFn, cache);
+    if (x.price_min == null && !x.is_free && kimiKey && searches < kimiLimit) {
+      searches++;
+      try {
+        const links = await (options.findSources ?? findPriceSources)(e, kimiKey);
+        await linkedFacts(x, links.join('\n'), fetchFn, cache);
+        console.log(JSON.stringify({ stage: 'kimi-price', event_id: e.id, title: e.title, verified: x.price_min != null || x.is_free, price_min: x.price_min, is_free: x.is_free, checked_sources: links }));
+      } catch { console.log(JSON.stringify({ stage: 'kimi-price', event_id: e.id, verified: false, reason: 'lookup-unavailable' })); }
+    }
     const patch: Record<string, unknown> = { price_checked_at: new Date().toISOString() };
     if (x.price_min != null || x.is_free) {
       Object.assign(patch, { price_min: x.price_min, price_max: x.price_max, is_free: x.is_free, flags: (e.flags ?? []).filter(f => f !== 'check_price') });

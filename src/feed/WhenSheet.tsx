@@ -3,8 +3,8 @@
 // долгое событие (выставка, фестиваль) — день и время посещения.
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EventItem } from '../data/types';
 import { ScheduleSheet } from '../event/ScheduleSheet';
 import { occurrencesOf } from '../event/occurrences';
@@ -52,15 +52,28 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
   // Выбор по умолчанию — первый сеанс в барабане: «Добавить в планы» сразу активна.
   const chosen = sessions.find((s) => s.id === pick) ?? sessions.find((x) => dayIndex(x.startsAt) === day) ?? sessions[0];
 
-  const planSession = () => {
-    if (!chosen) return;
-    if (own) {
-      // Одна карточка — несколько дат: в планы идёт само событие с выбранной датой (как день выставки).
-      if (config.dataMode !== 'demo') void chooseEventVisit(e.id, chosen.startsAt).then(() => qc.invalidateQueries({ queryKey: ['me', 'attendance'] })).catch(() => undefined);
-      usePlans.setState((s) => ({ visits: { ...s.visits, [e.id]: chosen.startsAt }, going: { ...s.going, [e.id]: chosen.startsAt } }));
-    } else usePlans.getState().go(chosen.id);
-    addPlan();
-    onPlanned();
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const planSession = async () => {
+    if (!chosen || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true); setError('');
+    try {
+      if (own) {
+        // Сначала подтверждаем выбранную дату на сервере, затем показываем успех.
+        if (config.dataMode !== 'demo') await chooseEventVisit(e.id, chosen.startsAt);
+        usePlans.setState((s) => ({ visits: { ...s.visits, [e.id]: chosen.startsAt }, going: { ...s.going, [e.id]: chosen.startsAt } }));
+        void qc.invalidateQueries({ queryKey: ['me', 'attendance'] });
+      } else usePlans.getState().go(chosen.id);
+      addPlan();
+      onPlanned();
+    } catch {
+      setError('Не удалось сохранить дату. Проверь связь и повтори');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   return (
@@ -88,8 +101,9 @@ export function WhenSheet({ e, events, now, onClose, onPlanned }: { e: EventItem
               <DayTimeWheel days={wheelDays} day={day} time={chosen ? hhmm(chosen.startsAt) : null}
                 onChange={(d, t) => { setDay(d); setPick(sessions.find((x) => dayIndex(x.startsAt) === d && label(x) === t)?.id ?? null); }} />
             </View>
-            <Pressable disabled={!chosen} onPress={planSession} style={({ pressed }) => [styles.btn, !chosen && { backgroundColor: colors.sand }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
-              <Text style={[styles.btnText, !chosen && { color: colors.muted }]}>Добавить в планы</Text>
+            {!!error && <Text accessibilityRole="alert" style={{ color: colors.accentText, fontFamily: fonts.body500 }}>{error}</Text>}
+            <Pressable disabled={!chosen || saving} onPress={() => void planSession()} style={({ pressed }) => [styles.btn, !chosen && { backgroundColor: colors.sand }, pressed && { transform: [{ scale: 0.98 }] }]} accessibilityRole="button">
+              {saving ? <ActivityIndicator color={colors.paper} /> : <Text style={[styles.btnText, !chosen && { color: colors.muted }]}>Добавить в планы</Text>}
               <Text style={[styles.btnSub, !chosen && { color: colors.muted }]}>{chosen ? `${dayTitle(dayIndex(chosen.startsAt), today)} · ${hhmm(chosen.startsAt)}` : 'выбери время'}</Text>
             </Pressable>
           </>

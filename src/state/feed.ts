@@ -38,11 +38,11 @@ interface FeedState {
   /** Когда показывали подсказку жестов (мс): первый раз, через 5 дней, через месяц — и больше никогда. */
   hintShown: number[];
   markHint: (at: number) => void;
-  decide: (d: Decision, s: Signal) => void;
+  decide: (d: Decision, s: Signal, syncAttendance?: boolean) => void;
   addSignal: (s: Signal) => void;
   removeSignal: (id: string) => void;
   /** Вернуть последнее решение: сигнал стирается целиком. */
-  undo: () => Decision | null;
+  undo: (expectedEventId?: string) => Decision | null;
   /** «Сбросить вкус» из админки: снова считаем только от ответов при регистрации. */
   resetTaste: () => void;
   /** Снова показать всё, что пропустил («Мимо»); «Пойду» остаётся в планах. */
@@ -63,9 +63,9 @@ export const useFeed = create<FeedState>()(
       hintShown: [],
       markHint: (at) => set((st) => ({ hintShown: [...(st.hintShown ?? []), at].slice(-5) })),
       markSpot: (id, week, skipped = false) => set((st) => ({ spotSeen: { ...st.spotSeen, [id]: week }, ...(skipped ? { spotSkipped: { ...st.spotSkipped, [id]: week } } : {}) })),
-      decide: (d, s) => {
+      decide: (d, s, syncAttendance = true) => {
         pushSignal(s);
-        if (d.kind === 'skip' || d.kind === 'go') pushAttendance(d.eventId, d.kind === 'go' ? 'going' : 'skipped');
+        if (syncAttendance && (d.kind === 'skip' || d.kind === 'go')) pushAttendance(d.eventId, d.kind === 'go' ? 'going' : 'skipped');
         set((st) => ({
         signals: [...st.signals, s],
         decided: { ...st.decided, [d.eventId]: d.kind },
@@ -81,10 +81,10 @@ export const useFeed = create<FeedState>()(
         if (sig) dropSignal(sig.eventId, sig.kind);
         return { signals: st.signals.filter((x) => x.id !== id) };
       }),
-      undo: () => {
+      undo: (expectedEventId) => {
         const st = get();
         const last = st.history[st.history.length - 1];
-        if (!last || st.undosLeft <= 0) return null;
+        if (!last || st.undosLeft <= 0 || (expectedEventId && last.eventId !== expectedEventId)) return null;
         const decided = { ...st.decided };
         delete decided[last.eventId];
         const sig = st.signals.find((x) => x.id === last.signalId);

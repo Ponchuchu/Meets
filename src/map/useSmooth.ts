@@ -6,7 +6,7 @@ const MS = 1200;
 const STEP = 1000 / 30; // React-маркеры — до 30 обновлений/с; сама карта рисуется нативно до 60.
 const ease = (t: number) => 1 - (1 - t) ** 3;
 
-export function useSmoothSpots(spots: FriendSpot[]): FriendSpot[] {
+export function useSmoothSpots(spots: FriendSpot[], active = true): FriendSpot[] {
   const [shown, setShown] = useState(spots);
   const shownRef = useRef(spots);
   useEffect(() => {
@@ -16,7 +16,12 @@ export function useSmoothSpots(spots: FriendSpot[]): FriendSpot[] {
       const delta = a ? Math.abs(a.lat - s.lat) + Math.abs(a.lon - s.lon) : 0;
       return delta > 0 && delta <= 0.03;
     });
-    if (!moving) { shownRef.current = spots; return; }
+    if (!active || !moving) {
+      shownRef.current = spots;
+      // Sync the static snapshot when stopping/resuming; never schedule animation frames offscreen.
+      setShown(spots);
+      return;
+    }
     const start = Date.now();
     let last = -Infinity;
     let frame = 0;
@@ -37,10 +42,14 @@ export function useSmoothSpots(spots: FriendSpot[]): FriendSpot[] {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [spots]);
-  return useMemo(() => spots.map(s => {
-    const a = shown.find(x => x.personId === s.personId);
-    if (!a || Math.abs(a.lat - s.lat) + Math.abs(a.lon - s.lon) > 0.03) return s;
-    return a.lat === s.lat && a.lon === s.lon ? s : { ...s, lat: a.lat, lon: a.lon };
-  }), [spots, shown]);
+  }, [spots, active]);
+  return useMemo(() => {
+    if (!active) return spots;
+    const byId = new Map(shown.map(s => [s.personId, s]));
+    return spots.map(s => {
+      const a = byId.get(s.personId);
+      if (!a || Math.abs(a.lat - s.lat) + Math.abs(a.lon - s.lon) > 0.03) return s;
+      return a.lat === s.lat && a.lon === s.lon ? s : { ...s, lat: a.lat, lon: a.lon };
+    });
+  }, [spots, shown, active]);
 }

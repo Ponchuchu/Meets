@@ -1,0 +1,28 @@
+{
+  "mode": "demo",
+  "checks": [
+    {
+      "width": 320,
+      "height": 568,
+      "actionsAboveTabs": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "actionsAboveTabs": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "actionsAboveTabs": true,
+      "horizontalOverflow": false
+    }
+  ],
+  "tabs": 4,
+  "calendarRoundTrip": true,
+  "profileRoundTrip": true,
+  "pageErrors": [],
+  "limitation": "Remote requests blocked; no live Supabase or native Android performance verification."
+}

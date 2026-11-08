@@ -5,12 +5,11 @@ import { GESTURE_FPS_CAP, useEco, useRefreshRate } from '../state/perf';
 // тайлы не пришли за 8 с — один раз перезагружаем стиль, и только потом подложка; ошибки после загрузки не роняют карту.
 // Первый кадр (FIX1 И1): камера ставится на стартовую точку ещё раз после загрузки — иначе Android иногда остаётся в (0,0).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { config } from '../lib/config';
 import { MeDot } from './MeDot';
-import { colors } from '../theme';
 import { StaticMap } from './StaticMap';
 import { mapStyle } from './style';
 import { NO_PLACES, placesGeo } from './placesGeo';
@@ -18,6 +17,10 @@ import { SPRITES } from './sprites';
 import { NO_SYMBOLS, symbolsGeo } from './symbolsGeo';
 import { SPRITE_W, symbolMarkers } from './symbols';
 import { linesGeo, okPoint } from './linesGeo';
+import { CLUSTER_PALETTE } from './clusters';
+import { CLUSTER_DIGIT_IMAGES } from './clusterDigitImages';
+import { clusterDigitsGeo } from './clusterDigits';
+import { cameraNeedsRecovery, rememberHealthyCamera } from './cameraHealth';
 import { TILT_PITCH, type MapCanvasHandle, type MapCanvasProps } from './types';
 
 type RNMapbox = typeof import('@rnmapbox/maps');
@@ -42,6 +45,7 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 const PIN_BOX = 128;
 const MAP_IMAGES = {
   ...SPRITES,
+  ...CLUSTER_DIGIT_IMAGES,
   tree: require('../../assets/map/tree.png'), pine: require('../../assets/map/pine.png'),
   'tree-gold': require('../../assets/map/tree-gold.png'), 'tree-amber': require('../../assets/map/tree-amber.png'),
 };
@@ -52,7 +56,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const threeD = props.threeD !== false && !lowPower;
   const styleJSON = useMemo(() => JSON.stringify(mapStyle(props.theme, threeD, true)), [props.theme, threeD]);
   const { camera: startProp, markers, onMode, onZoom, onCenter, bottomInset = 0, showUser = false, traffic, fog, lines = [], zone, onPress, onBearing, follow = false, onFollowEnd, me, meHeading, places = NO_PLACES, onPlace, meArrow = false, still, onMoving, symbols = NO_SYMBOLS, onSymbol } = props;
-  const [camera] = useState(() => (props.remember && lastView ? { ...startProp, ...lastView } : startProp));
+  const [camera] = useState(() => (props.remember && lastView ? rememberHealthyCamera(null, lastView, startProp, true) ?? startProp : startProp));
   // Перелёт, заказанный до загрузки карты (конец заставки), раньше терялся на Android, а «moved» запрещал вернуть камеру —
   // карта открывалась пустой, пока не нажмёшь «Где я». Теперь он ждёт загрузки и выполняется сразу после неё (FIX5).
   const pendingFly = useRef<{ lat: number; lon: number; zoom?: number } | null>(null);
@@ -69,6 +73,7 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lineShape = useMemo(() => linesGeo(lines), [lines]);
   const zoneShape = useMemo(() => (zone && zone.length > 3 ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [zone] } }] } : EMPTY_FC), [zone]);
   const symShape = useMemo(() => symbolsGeo(symbols, SPRITE_W), [symbols]);
+  const digitShape = useMemo(() => clusterDigitsGeo(symbols), [symbols]);
   const cam = useRef<{ setCamera: (o: object) => void; fitBounds: (ne: number[], sw: number[], padding: number[], duration: number) => void } | null>(null);
   const staticRef = useRef<MapCanvasHandle>(null);
   const box = useRef({ w: 390, h: 844 });
@@ -79,7 +84,6 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const lastStep = useRef(Math.round(camera.zoom * 2) / 2);
   const [attempt, setAttempt] = useState(0);
   // Для конуса моей точки: масштаб (длина в метрах зависит от него) и направление телефона, не чаще ~10 раз в секунду.
-  const [ready, setReady] = useState(false);
   const [followZoom, setFollowZoom] = useState(camera.zoom);
   // Тайлы не пришли за 8 с (пустой голубой фон): первый раз — перезагрузить стиль, второй — подложка «бумага».
   useEffect(() => {
@@ -106,12 +110,8 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const gestured = useRef(false);
   const aim = (lat: number, lon: number, zoom?: number) => { want.current = { lat, lon, zoom: zoom ?? want.current.zoom }; };
   const checkCenter = (lat: number, lon: number) => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    const lost = Math.abs(lat) < 3 && Math.abs(lon) < 3;
-    const astray = !gestured.current && Math.hypot(lat - want.current.lat, lon - want.current.lon) > 0.5;
-    if (!lost && !astray) return;
     const w = want.current;
-    if (!okPoint([w.lon, w.lat])) return;
+    if (!cameraNeedsRecovery({ lat, lon }, w, gestured.current)) return;
     console.warn('[map] камера потеряла центр — возвращаю', lat, lon);
     cam.current?.setCamera({ centerCoordinate: [w.lon, w.lat], ...(w.zoom != null && Number.isFinite(w.zoom) ? { zoomLevel: w.zoom } : {}), pitch: still ? still.pitch : threeD ? TILT_PITCH : 0, animationDuration: 0 });
   };
@@ -170,10 +170,10 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
   const M = Mapbox;
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: '#DDD8CB' }]} onLayout={(ev) => { box.current = { w: ev.nativeEvent.layout.width, h: ev.nativeEvent.layout.height }; }}>
-      {!ready && <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={{ color: colors.muted2 }}>Загружаю карту…</Text></View>}
       <M.MapView
         key={attempt}
-        style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]}
+        // Show real native/cached frames immediately; readiness still comes only from the map's load event.
+        style={StyleSheet.absoluteFill}
         styleJSON={styleJSON}
         preferredFramesPerSecond={props.hidden ? 1 : lowPower || eco ? 30 : fps}
         surfaceView={false}
@@ -206,11 +206,12 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
         }}
         onPress={(event: { geometry?: { coordinates?: number[] } }) => { const p = event.geometry?.coordinates; onPress?.(p && p.every(Number.isFinite) ? { lat: p[1], lon: p[0] } : undefined); }}
         onMapIdle={(st: { properties: { center: number[] } }) => { const step = Math.round(z.current * 2) / 2; if (step !== lastStep.current) { lastStep.current = step; onZoom?.(step); } if (follow) setFollowZoom(step); if (movingRef.current) { movingRef.current = false; onMoving?.(false); } onCenter?.(st.properties.center[1], st.properties.center[0]); const lat = st.properties.center[1], lon = st.properties.center[0];
-          // Потерянный центр (0, 0) не запоминаем — иначе при следующем входе карта сразу откроется в океане.
-          if (props.remember && loaded.current && !(Math.abs(lat) < 3 && Math.abs(lon) < 3)) lastView = { lat, lon, zoom: z.current }; checkCenter(st.properties.center[1], st.properties.center[0]); }}
+          // Validate before remembering: a dropped latitude must not become the next mount's expected center.
+          if (props.remember && loaded.current) lastView = rememberHealthyCamera(lastView, { lat, lon, zoom: z.current }, want.current, gestured.current);
+          checkCenter(lat, lon); }}
         onDidFinishLoadingStyle={toStart}
         onDidFinishLoadingMap={() => {
-          loaded.current = true; toStart(); setReady(true); onMode?.('mapbox');
+          loaded.current = true; toStart(); onMode?.('mapbox');
           const p = pendingFly.current;
           if (p) { pendingFly.current = null; moved.current = true; if (p.zoom != null) z.current = p.zoom; cam.current?.setCamera({ centerCoordinate: [p.lon, p.lat], zoomLevel: p.zoom, pitch: threeD ? TILT_PITCH : 0, animationDuration: 0 }); }
           // Android может «съесть» и эту установку камеры — проверяем ещё несколько раз, пока карта устаканивается.
@@ -264,16 +265,27 @@ export const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(function Ma
           onPress={(e) => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
           {/* Точки издалека (26 октября): мягкая тень под точкой, белый ободок, точка растёт с приближением —
               от бусинки на весь город до 7 px у границы, где её сменяет значок. Одинаково у событий, ТРЦ и мест. */}
-          <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 4.5, 12.5, 9] as never, circleColor: '#17161A', circleOpacity: ['*', 0.22, ['get', 'op']] as never, circleBlur: 0.7, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
-          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['interpolate', ['linear'], ['zoom'], 9, 3, 12.5, 6.5] as never, circleColor: ['get', 'dot'] as never, circleStrokeColor: '#FFFFFF', circleStrokeWidth: ['interpolate', ['linear'], ['zoom'], 9, 1.5, 12.5, 2.2] as never, circleOpacity: ['get', 'op'] as never, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
+          <M.CircleLayer id="syms-dot-shadow" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 8, 2, 17, 100, 19, 1000, 22] as never, circleColor: '#17161A', circleOpacity: ['*', 0.15, ['get', 'op']] as never, circleOpacityTransition: { duration: 180, delay: 0 }, circleBlur: 0.8, circleTranslate: [0, 1.5], circlePitchAlignment: 'viewport' }} />
+          <M.CircleLayer id="syms-dot" filter={['!=', ['get', 'dot'], ''] as never} style={{ circleRadius: ['step', ['get', 'count'], 6, 2, 15, 100, 17, 1000, 20] as never, circleRadiusTransition: { duration: 180, delay: 0 }, circleColor: ['case', ['>', ['get', 'count'], 1], CLUSTER_PALETTE.fill, ['get', 'dot']] as never, circleColorTransition: { duration: 180, delay: 0 }, circleStrokeColor: ['case', ['>', ['get', 'count'], 1], CLUSTER_PALETTE.stroke, '#FFFFFF'] as never, circleStrokeWidth: 1.8, circleOpacity: ['get', 'op'] as never, circleOpacityTransition: { duration: 180, delay: 0 }, circleStrokeOpacity: ['get', 'op'] as never, circlePitchAlignment: 'viewport', circleSortKey: ['get', 'sort'] as never }} />
+          {/* Число — данные той же группы, что открывается по тапу; не отдельные React-маркеры. */}
           <M.SymbolLayer id="syms-icon" filter={['==', ['get', 'dot'], ''] as never} style={{
             iconImage: ['get', 'icon'] as never, iconSize: ['get', 'sz'] as never, iconAnchor: 'bottom',
             iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport',
-            // Налезают — карта оставляет важный (меньший ключ ставится первым), остальные появляются при приближении.
-            iconAllowOverlap: false, iconPadding: 1, iconOpacity: ['get', 'op'] as never, symbolSortKey: ['-', 0, ['get', 'sort']] as never,
+            // Общие кластеры уже учитывают размеры значков; движок не должен молча скрывать часть их состава.
+            iconAllowOverlap: true, iconIgnorePlacement: true, iconPadding: 1, iconOpacity: ['get', 'op'] as never, iconOpacityTransition: { duration: 180, delay: 0 }, symbolSortKey: ['-', 0, ['get', 'sort']] as never,
             // Подпись маленькая и тихая; не помещается — прячется, значок остаётся.
             textField: ['get', 'text'] as never, textSize: 10, textColor: ['get', 'tc'] as never, textHaloColor: ['get', 'th'] as never, textHaloWidth: 1.4,
             textAnchor: 'top', textOffset: [0, 0.25], textOptional: true, textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'], textOpacity: ['get', 'op'] as never,
+          }} />
+        </M.ShapeSource>
+        {/* Local digit sprites share the native atlas with pins: no glyph request or React marker per count. */}
+        <M.ShapeSource id="cluster-digits" shape={digitShape as never} hitbox={{ width: 40, height: 40 }}
+          onPress={e => { const id = e.features?.[0]?.properties?.id; if (typeof id === 'string') onSymbol?.(id); }}>
+          <M.SymbolLayer id="cluster-digits-icon" style={{
+            iconImage: ['get', 'icon'] as never, iconSize: ['get', 'scale'] as never,
+            iconOffset: ['get', 'offset'] as never, iconAnchor: 'center',
+            iconAllowOverlap: true, iconIgnorePlacement: true,
+            iconPitchAlignment: 'viewport', iconRotationAlignment: 'viewport', iconOpacity: ['get', 'op'] as never,
           }} />
         </M.ShapeSource>
         {me && <UserLayers M={M} me={me} heading={meHeading} arrow={meArrow} />}

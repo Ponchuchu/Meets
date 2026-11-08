@@ -4,14 +4,16 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { setVideoCacheSizeAsync } from 'expo-video';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Splash } from '../src/features/auth/Splash';
 import { useAuthWatch } from '../src/live/auth';
 import '../src/live/location'; // фоновая задача геолокации должна быть объявлена при старте
 import { useNetWatch } from '../src/live/net';
+import { useLiveChats } from '../src/data/realtime';
 import { KEEP_MS, persister, queryClient, shouldPersist } from '../src/live/query';
 import { colors, fonts } from '../src/theme';
 import { installCrashHandler, recordCrash, setCrashScreen } from '../src/lib/crash';
@@ -42,6 +44,14 @@ const serverSnapshot = () => false;
 
 export default function RootLayout() {
   const mounted = useSyncExternalStore(subscribeMount, clientSnapshot, serverSnapshot);
+  const [mediaReady, setMediaReady] = useState(Platform.OS === 'web');
+  // Native configuration requires zero existing players. Release the screen gate even if the OS rejects it.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let alive = true;
+    void setVideoCacheSizeAsync(64 * 1024 * 1024).catch(() => undefined).finally(() => { if (alive) setMediaReady(true); });
+    return () => { alive = false; };
+  }, []);
   useNetWatch();
   useAuthWatch();
   const [loaded, error] = useFonts({
@@ -52,7 +62,7 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync().catch(() => {});
   }, [loaded, error]);
 
-  if ((Platform.OS === 'web' && !mounted) || (!loaded && !error)) return null;
+  if ((Platform.OS === 'web' && !mounted) || (!loaded && !error) || !mediaReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.paper }}>
@@ -70,6 +80,8 @@ export default function RootLayout() {
 }
 
 function Root() {
+  // Deep links can open a chat/profile without mounting the tabs shell.
+  useLiveChats();
   const path = usePathname();
   useEffect(() => { setCrashScreen(path); }, [path]);
   return (

@@ -13,6 +13,7 @@ import { CINEMA_SITES, fetchCinemaFound } from './cinema.ts';
 import { robotLog, robotUpdate } from './robot.ts';
 import { fetchYandexFound } from './yandex.ts';
 import { EVENT_SITES, fetchEventSiteFound, type EventSite } from './eventSites.ts';
+import { usableTitle } from './title.ts';
 import { isKimi, KIMI_DEFAULT_MODEL, kimiPost, type KimiMessage } from './kimi.ts';
 
 export interface Found {
@@ -68,7 +69,7 @@ export const SITES = ['sxodim.com', 'afisha.yandex.kz', 'ticketon.kz', 'kassir.k
 export function topicPrompt(topic: string, from: string, to: string, max = 6, citySites: string[] = []): string {
   const sites = topic === CITY_TOPIC && citySites.length ? citySites.join(', ') : (process.env.SEARCH_SITES ? process.env.SEARCH_SITES.split(',') : SITES).slice(0, 4).join(', ');
   return `Найди через поиск до ${max} реальных событий в Алматы с ${from} по ${to}. Тема: ${topic}.
-Ищи на: ${sites}. Нужны дата и время, площадка, адрес, цена (нет — null). url — страница события или афиша площадки, не главная сайта. Не выдумывай, год проверяй. Не больше двух поисков, затем сразу ответ: только JSON-массив без вызовов функций ([] если пусто):
+Ищи на: ${sites}. Цена — билет, не приз; неизвестна — null. Настоящее название события, не заглушка. url — страница события, не главная. Не выдумывай. Не больше двух поисков, затем только JSON ([] если пусто):
 [{"title":"","category":"${CATEGORIES.join('|')}","starts_at":"ISO 8601 ${ALMATY}","ends_at":null,"venue_name":"","address":"","price_min":null,"price_max":null,"is_free":false,"about":"полное описание со страницы события, до 1500 символов","url":"","source_name":"","confidence":0.8}]`;
 }
 
@@ -180,7 +181,8 @@ const isUrl = (u: unknown): u is string => typeof u === 'string' && /^https?:\/\
 function clean(list: unknown[]): Found[] {
   return list.filter((x): x is Found => {
     const f = x as Found;
-    return !!f && typeof f.title === 'string' && f.title.trim().length > 1 && typeof f.starts_at === 'string' && !Number.isNaN(Date.parse(f.starts_at)) && isUrl(f.url);
+    return !!f && typeof f.title === 'string' && usableTitle(f.title)
+      && typeof f.starts_at === 'string' && !Number.isNaN(Date.parse(f.starts_at)) && isUrl(f.url);
   });
 }
 

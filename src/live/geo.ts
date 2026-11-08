@@ -16,8 +16,10 @@ export function distM(a: { lat: number; lon: number }, b: { lat: number; lon: nu
 
 /** Скачок GPS: точность хуже 150 м или «скорость» между точками выше 250 км/ч. Такие точки не рисуем и не шлём. */
 export function isJump(prev: Pt | null, next: Pt): boolean {
+  if (!Number.isFinite(next.lat) || !Number.isFinite(next.lon) || !Number.isFinite(next.at) || Math.abs(next.lat) > 90 || Math.abs(next.lon) > 180) return true;
   if (next.accuracy != null && next.accuracy > 150) return true;
   if (!prev) return false;
+  if (next.at <= prev.at) return true;
   const dt = Math.max(1, (next.at - prev.at) / 1000);
   return distM(prev, next) / dt > 70;
 }

@@ -2,9 +2,9 @@
 
 export const colors = {
   ink: '#17161A',
-  paper: '#E2DDD0',
-  card: '#EEE9DE',
-  cardAlt: '#EBE6DA',
+  paper: '#F3F1EA',
+  card: '#FCFBF7',
+  cardAlt: '#E9EDE5',
   sand: '#D5CFC1',
   sand2: '#D9D4C7',
   line: '#C8C2B2',
@@ -26,7 +26,7 @@ export const colors = {
 
 export const mapPalettes = {
   paper: {
-    land: '#D9D4C6', street: '#E7E2D5', highway: '#EDE8DC', park: '#C6D0B6', water: '#A9C4D0', waterEdge: '#8FAEBC',
+    land: '#E8E7DD', street: '#F6F5EE', highway: '#FFFFFF', park: '#CDDDC6', water: '#B3D4DC', waterEdge: '#91BAC6',
     mountains: ['#D0CABC', '#C9C2B3', '#C1BAA9'], label: '#7C7568', district: '#9A9384',
     extrude: '#E3DBCB',
   },

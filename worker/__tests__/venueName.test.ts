@@ -1,5 +1,5 @@
 import { buildDraft } from '../src/draft.ts';
-import { cleanVenueName, matchVenue, NOT_A_PLACE, type VenueRow } from '../src/venues.ts';
+import { cleanVenueName, matchVenue, NOT_A_PLACE, selectRegistryMatch, type VenueRow } from '../src/venues.ts';
 import type { Extraction, RawPost, Source } from '../src/types.ts';
 
 const source = { id: 's', trusted: false, auto_publish: false } as unknown as Source;
@@ -33,8 +33,22 @@ describe('площадка без адреса прикрепляется к м�
     expect(asked).toEqual([]);
     expect(d?.flags).toContain('needs_pin');
   });
+  it('площадка без точки сохраняет найденные координаты', async () => {
+    const venue: VenueRow[] = [{ id: 'v1', name: 'Театр Лермонтова', aliases: [], address: 'проспект Абая, 43', lat: null, lon: null }];
+    const d = await buildDraft(x('Театр Лермонтова', 'проспект Абая, 43'), post, source, venue, async () => ({ lat: 43.243, lon: 76.944 }));
+    expect(d?.venue_id).toBeNull();
+    expect(d?.point).toMatchObject({ lat: 43.243, lon: 76.944 });
+    expect(d?.flags).not.toContain('needs_pin');
+  });
   it('не нашли нигде — остаётся для модератора', async () => {
     const d = await buildDraft(x('Неведомый зал', null), post, source, [], async () => null);
     expect(d?.flags).toContain('needs_pin');
   });
+});
+
+it('справочник требует точный номер дома и отклоняет удалённые неоднозначные точки', () => {
+  const rows = [{ lat: 43.23, lon: 76.94, house: '5', score: 0.9 }, { lat: 43.2292, lon: 76.94712, house: '5/2', score: 0.8 }];
+  expect(selectRegistryMatch(rows, '5/2')).toEqual({ lat: 43.2292, lon: 76.94712 });
+  expect(selectRegistryMatch(rows, '5/3')).toBeNull();
+  expect(selectRegistryMatch([...rows, { lat: 43.26, lon: 76.95, house: '5/2', score: 0.7 }], '5/2')).toBeNull();
 });

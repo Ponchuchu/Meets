@@ -34,3 +34,17 @@ test('значки владельца: Терренкур, бильярд, ТР�
 test('значок события: название важнее бара', () => {
   expect(eventSprite({ category: 'standup', title: 'Стендап: открытый микрофон', venueName: 'Бар «Гараж»' })).toBe('ev-standup');
 });
+
+test('счётчик в слое карты точный, одиночные места без цифры и невалидные точки не рисуются', () => {
+  const base = { lat: 43.2, lon: 76.9, icon: 'ev-concert' as const, size: 40, sort: 10, dot: '#F0521F' };
+  const fc = symbolsGeo([
+    { ...base, id: 'group', count: 1234 },
+    { ...base, id: 'one' },
+    { ...base, id: 'invalid-count', count: NaN },
+    { ...base, id: 'invalid-coordinates', lon: 181, count: 100 },
+  ], 64);
+  expect(fc.features.map(f => f.properties.id)).toEqual(['group', 'one', 'invalid-count']);
+  expect(fc.features[0].properties).toMatchObject({ count: 1234, countText: '1234' });
+  expect(fc.features[1].properties).toMatchObject({ count: 1, countText: '' });
+  expect(fc.features[2].properties).toMatchObject({ count: 1, countText: '' });
+});

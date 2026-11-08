@@ -9,6 +9,9 @@ export function watchMapPosition(onPoint: (p: { lat: number; lon: number }) => v
     if (!stopped) onPoint({ lat: l.coords.latitude, lon: l.coords.longitude });
   };
   void (async () => {
+    const permission = await Location.getForegroundPermissionsAsync().catch(() => null);
+    if (stopped) return;
+    if (!permission?.granted) { onOff(); return; }
     const enabled = await Location.hasServicesEnabledAsync().catch(() => true);
     if (stopped) return;
     if (!enabled) { onOff(); return; }

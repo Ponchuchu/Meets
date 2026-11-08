@@ -9,7 +9,6 @@ import { TabBar } from '../../src/components/TabBar';
 import { config } from '../../src/lib/config';
 import { getProfile, getSettings } from '../../src/live/api';
 import { useAuth } from '../../src/live/auth';
-import { useLiveChats } from '../../src/data/realtime';
 import { useStepTracking } from '../../src/live/steps';
 import { usePushRegistration } from '../../src/live/push';
 import { useLiveLocation } from '../../src/live/useLiveLocation';
@@ -49,7 +48,6 @@ function Shell() {
   const demo = config.dataMode === 'demo';
   // Сильный телефон: вкладки не отцепляются (переключение мгновенное, карта не строится заново). Слабый или энергосбережение: отцепляются, как раньше.
   const eco = useEco();
-  useLiveChats();
   useStepTracking();
   usePushRegistration();
   useLiveLocation();
@@ -72,9 +70,10 @@ function Shell() {
         {/* Скрытые вкладки (кроме карты) замирают: не перерисовываются от сообщений и точек друзей, пока открыта другая.
             Карту не замораживаем — она сама отключает отрисовку вне фокуса (MapScreen: focused). */}
         <Tabs.Screen name="foryou" options={{ title: 'Рекомендации', freezeOnBlur: true }} />
-        <Tabs.Screen name="plans" options={{ title: 'Планы', freezeOnBlur: true }} />
+        <Tabs.Screen name="plans" options={{ href: null, title: 'Планы', freezeOnBlur: true }} />
         <Tabs.Screen name="chats" options={{ title: 'Чаты', freezeOnBlur: true }} />
-        <Tabs.Screen name="me" options={{ title: 'Профиль', freezeOnBlur: true }} />
+        <Tabs.Screen name="me" options={{ href: null, title: 'Профиль', freezeOnBlur: true }} />
+        <Tabs.Screen name="account" options={{ title: 'Настройки', freezeOnBlur: true }} />
       </Tabs>
       <Tutorial />
     </>

@@ -24,10 +24,10 @@ export const TUTORIAL: Step[] = [
   { id: 'lens', title: 'Слои карты', text: 'Обычная карта, пробки или «Где я был» — какие районы ты уже открыл.' },
   { id: 'friends', title: 'Тут друзья', text: 'Ты видишь друзей, а они — тебя. Больше никто. Невидимка — в профиле.' },
   { id: 'feed', title: 'Рекомендации', text: 'Нажми сюда — тут события, подобранные под тебя.', tapTab: 'foryou' },
-  { id: 'swipe', title: 'Смахивай', text: 'Вправо — пойду. Влево — не моё. Вверх — посмотреть подробнее.', btn: 'Понятно' },
-  { id: 'plans', title: 'Планы', text: 'Всё, куда ты идёшь, и куда тебя зовут друзья. За час напомним.' },
+  { id: 'swipe', title: 'Выбирай событие', text: 'Листай афишу вниз. Нажми фото или «Подробнее», чтобы узнать больше. «Пойду» добавит событие в планы.', btn: 'Понятно' },
+  { id: 'plans', title: 'Планы', text: 'Календарь вверху рекомендаций: всё, куда ты идёшь, и приглашения друзей. За час напомним.' },
   { id: 'chats', title: 'Чаты', text: 'Друзья и компании на событие. Стикеры и «я тут» — одним касанием.' },
-  { id: 'me', title: 'Профиль', text: 'Твои места, кто тебя видит, невидимка и настройки.' },
+  { id: 'me', title: 'Настройки', text: 'Тут твой профиль, места, приватность и настройки приложения.' },
   { id: 'done', title: 'Вот и всё', text: 'Дальше разберёшься сам — подсказки больше не появятся.', btn: 'Начать' },
 ];
 
@@ -40,9 +40,9 @@ function holeFor(id: string, W: number, H: number, top: number, bottom: number):
     case 'friends': return { x: W / 2 - 60, y: H * 0.62 - 60, w: 120, h: 120, r: 60 };
     case 'feed': return tab(1);
     case 'swipe': return { x: 16, y: top + 40, w: W - 32, h: H * 0.58, r: 28 };
-    case 'plans': return tab(2);
-    case 'chats': return tab(3);
-    case 'me': return tab(4);
+    case 'plans': return { x: W - (W - Math.min(420, W - 24)) / 2 - 70, y: Math.max(50, top) - 2, w: 74, h: 62, r: 22 };
+    case 'chats': return tab(2);
+    case 'me': return tab(3);
     default: return null;
   }
 }
@@ -77,6 +77,7 @@ function Run({ onFinish }: { onFinish: () => void }) {
 
   // Шаги по вкладкам: показываем нужный экран под подсказкой.
   useEffect(() => {
+    if (step.id === 'plans' && path !== '/foryou') router.navigate('/foryou');
     if (step.id === 'map' && path !== '/') router.navigate('/');
     if (step.id === 'done' && path !== '/') router.navigate('/');
   }, [step.id]); // eslint-disable-line react-hooks/exhaustive-deps

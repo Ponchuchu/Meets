@@ -10,7 +10,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { getRecordingPermissionsAsync, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { mergeChatMessages } from '../../chat/messages';
-import { Camera } from 'expo-camera';
 import { usePlayback } from '../../chat/playback';
 import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -36,7 +35,8 @@ import { data, eventsSnapshot, type Message, type Person } from '../../data';
 import { isRemoteId, useLiveChat } from '../../data/realtime';
 import { setOpenChat } from '../../live/reminders';
 import { useNet } from '../../live/net';
-import { openDirectChat, markChatRead, getMessages } from '../../data/remote';
+import { markChatRead, getMessages } from '../../data/remote';
+import { DirectChatOpening } from '../../chat/ui/DirectChatOpening';
 import { dayIndex, now as clockNow } from '../../lib/clock';
 import { accusative } from '../../lib/names';
 import { canSee } from '../../people/visibility';
@@ -71,6 +71,14 @@ const dur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStar
 const MY_ACCOUNT_CREATED = '2026-09-01T00:00:00Z';
 
 export default function ChatScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  if (config.dataMode !== 'demo' && id.startsWith('dm-') && isRemoteId(id.slice(3))) {
+    return <DirectChatOpening key={id} personId={id.slice(3)} />;
+  }
+  return <ResolvedChatScreen />;
+}
+
+function ResolvedChatScreen() {
   const insets = useSafeAreaInsets();
   const { height: winH } = useWindowDimensions();
   const { id, tray: trayParam, sheet: sheetParam } = useLocalSearchParams<{ id: string; tray?: string; sheet?: string }>();
@@ -89,14 +97,6 @@ export default function ChatScreen() {
   const isEvent = id.startsWith('ev-') || meta0?.kind === 'event';
   const personId = isEvent ? null : meta0?.personId ?? (id.startsWith('dm-') ? id.slice(3) : null);
   const qc = useQueryClient();
-  // Альфа: «dm-<uuid друга>» → настоящий личный чат в базе (сервер находит или создаёт), сообщения уходят туда.
-  useEffect(() => {
-    if (config.dataMode === 'demo' || !id.startsWith('dm-') || !isRemoteId(id.slice(3))) return;
-    openDirectChat(id.slice(3)).then((cid) => {
-      void qc.invalidateQueries({ queryKey: ['chats'] });
-      router.replace({ pathname: '/chat/[id]', params: { id: cid } });
-    }).catch(() => undefined);
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useLiveChat(id, focused);
   useEffect(() => { if (!focused) return; setOpenChat(id); return () => setOpenChat(null); }, [id, focused]);
   const messagesQuery = useQuery({ queryKey: ['messages', id], queryFn: () => data.getMessages(id) });
@@ -122,6 +122,7 @@ export default function ChatScreen() {
   const [editing, setEditing] = useState<Message | null>(null);
   const [menu, setMenu] = useState<Message | null>(null);
   const [recMode, setRecMode] = useState<'voice' | 'circle'>('voice');
+  const recModeRef = useRef<'voice' | 'circle'>('voice');
   // Плавающая капсула ввода лежит поверх ленты: лента получает отступ на её высоту. С клавиатурой — без отступа safe area.
   const [composerH, setComposerH] = useState(72);
   const [kb, setKb] = useState(false);
@@ -251,11 +252,12 @@ export default function ChatScreen() {
   const rec = useRef({ active:false, ready:false, mode:'voice' as 'voice'|'circle', started:0, locked:false });
   const [locked, setLocked] = useState(false);
   useEffect(() => () => { rec.current.active=false; circleRef.current?.stop(false); void recorder.stop().catch(()=>undefined); void setAudioModeAsync({allowsRecording:false}); },[recorder]);
-  const switchRecMode = async () => {
-    if (recMode === 'voice' && Platform.OS !== 'web') {
-      try { await Camera.requestCameraPermissionsAsync(); await Camera.requestMicrophonePermissionsAsync(); } catch { show({ text: 'Разреши камеру и микрофон' }); }
-    }
-    setRecMode(m => m === 'voice' ? 'circle' : 'voice');
+  // A mode change is immediate. Camera permissions belong to the recording attempt,
+  // not to the tap that only changes the icon.
+  const switchRecMode = () => {
+    const next = recModeRef.current === 'voice' ? 'circle' : 'voice';
+    recModeRef.current = next;
+    setRecMode(next);
   };
   useEffect(() => { usePlayback.getState().record(!!recording); return () => usePlayback.getState().record(false); }, [recording]);
   const preparing = useRef(false);
@@ -266,10 +268,11 @@ export default function ChatScreen() {
   const startRec = async () => {
     if(rec.current.active || preparing.current || stopping.current) return;
     usePlayback.getState().play(null);
-    rec.current = {active:true,ready:false,mode:recMode,started:recMode === 'circle' ? 0 : nowMs(),locked:false};
+    const mode = recModeRef.current;
+    rec.current = {active:true,ready:false,mode,started:mode === 'circle' ? 0 : nowMs(),locked:false};
     setLocked(false);setCancelling(false);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-    if (recMode === 'circle') {
+    if (mode === 'circle') {
       if (Platform.OS === 'web') { rec.current.active=false; show({text:'Кружки записываются в приложении на телефоне'}); return; }
       usePlayback.getState().record(true); setRecording('circle'); return;
     }
@@ -298,7 +301,12 @@ export default function ChatScreen() {
     const mode=rec.current.mode;
     const sec=Math.floor((nowMs()-rec.current.started)/1000);
     rec.current.active=false;rec.current.locked=false;setLocked(false);setCancelling(false);
-    if(mode==='circle') {stopping.current = true;if(circleRef.current)circleRef.current.stop(send);else setRecording(null);return;}
+    if(mode==='circle') {
+      if (send && !rec.current.ready) show({text:'Камера ещё запускается. Удерживай кнопку чуть дольше'});
+      if (circleRef.current) { stopping.current = true; circleRef.current.stop(send); }
+      else { stopping.current = false; setRecording(null); usePlayback.getState().record(false); }
+      return;
+    }
     setRecording(null);
     if(!rec.current.ready){ if (send && sec < 1) show({text:'Удерживай кнопку, чтобы записать'}); return; }
     stopping.current = true;
@@ -307,7 +315,6 @@ export default function ChatScreen() {
       if(send && recorder.uri && sec>=1) push({kind:'voice',media:recorder.uri,duration:dur(sec),durationS:sec});
     } catch {if(send)show({text:'Запись не сохранилась. Попробуй ещё раз'});} finally { stopping.current = false; usePlayback.getState().record(false); }
   };
-  useEffect(() => { stopOnBlur.current = () => { void stopRec(false); }; });
   // Эти обработчики читает Gesture Handler при касании; при рендере они не выполняются.
   /* eslint-disable react-hooks/refs */
   const recHandlers = useRef({ startRec, stopRec, switchRecMode });
@@ -318,10 +325,14 @@ export default function ChatScreen() {
   const recGesture = useMemo(() => Gesture.Pan().minDistance(0).shouldCancelWhenOutside(false).runOnJS(true)
     .onBegin(() => { hold.current = setTimeout(() => { hold.current = null; void recHandlers.current.startRec(); }, 180); })
     .onUpdate(e=>{ if (hold.current) return; setCancelling(old => old === (e.translationX < -80) ? old : e.translationX < -80); if(e.translationY < -70 && !rec.current.locked && rec.current.active){rec.current.locked=true;setLocked(true);void Haptics.selectionAsync().catch(() => undefined);} })
-    .onFinalize((e)=>{
-      if (hold.current) { clearTimeout(hold.current); hold.current = null; void recHandlers.current.switchRecMode(); return; }
-      if (!rec.current.locked) void recHandlers.current.stopRec(e.translationX >= -80);
+    .onFinalize((e, success)=>{
+      if (hold.current) { clearTimeout(hold.current); hold.current = null; if (success) recHandlers.current.switchRecMode(); return; }
+      // A gesture cancelled by the system or a competing handler must not send.
+      // Once locked, unmounting this detector is expected and the visible buttons own the recording.
+      if (!rec.current.locked) void recHandlers.current.stopRec(success && e.translationX >= -80);
     }), []);
+  useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
+  useEffect(() => { stopOnBlur.current = () => { if (hold.current) { clearTimeout(hold.current); hold.current = null; } void stopRec(false); }; });
   /* eslint-enable react-hooks/refs */
   const sendPoll = () => {
     if (!poll) return;

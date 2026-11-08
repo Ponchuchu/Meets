@@ -17,7 +17,7 @@ export interface Facts {
 }
 
 export function eventFacts(e: {
-  startsAt?: string | null; venueName?: string | null; address?: string | null;
+  about?: string | null; title?: string | null; startsAt?: string | null; venueName?: string | null; address?: string | null;
   priceMin?: number | null; priceMax?: number | null; isFree?: boolean | null;
 }): Facts {
   let when = 'дата не указана';
@@ -30,12 +30,21 @@ export function eventFacts(e: {
     whenMissing = false;
     when = hm === '00:00' ? `${day} · время не указано` : `${day} · ${hm}`;
   }
-  const place = [e.venueName, e.address].filter((x): x is string => !!x && x.trim().length > 0).filter((x, i, a) => a.indexOf(x) === i).join(', ');
+  // Иногда в название площадки импортируется «категория: название события».
+  // Убираем только этот очевидный случай, не отбрасывая реальные одноимённые площадки.
+  const norm = (s: string) => s.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const title = norm(e.title ?? '');
+  const venue = e.venueName?.trim() ?? '';
+  const colon = venue.indexOf(':');
+  const venueIsEvent = title.length >= 12 && colon > 0 && norm(venue.slice(colon + 1)) === title;
+  const place = [venueIsEvent ? null : venue, e.address].filter((x): x is string => !!x && x.trim().length > 0).filter((x, i, a) => a.indexOf(x) === i).join(', ');
   const placeMissing = !place || /^место встречи$/i.test(place);
   let price = 'цена не указана';
   let priceMissing = true;
-  if (e.isFree || e.priceMin === 0) { price = 'бесплатно'; priceMissing = false; }
-  else if (e.priceMin != null) {
+  // A museum ticket is still required when only subscription holders get free entry.
+  const conditionalFree = /по\s+входному\s+билету/iu.test(e.about ?? '') && /(?:обладател|владел).{0,80}абонемент.{0,80}бе[сз]п?латн/isu.test(e.about ?? '');
+  if (!conditionalFree && (e.isFree || e.priceMin === 0)) { price = 'бесплатно'; priceMissing = false; }
+  else if (e.priceMin != null && e.priceMin > 0) {
     priceMissing = false;
     price = e.priceMax != null && e.priceMax !== e.priceMin ? `${money(e.priceMin)}–${money(e.priceMax)} ₸` : `${money(e.priceMin)} ₸`;
   }

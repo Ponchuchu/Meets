@@ -1,0 +1,14 @@
+{
+  "fixture": {
+    "chats": 500,
+    "sentMessages": 10000
+  },
+  "environment": "demo Chromium, remote network blocked, not Android FPS",
+  "contentMs": 11555,
+  "mountedRows": 500,
+  "domNodes": 20796,
+  "longTasks": 11,
+  "longTaskMs": 10620,
+  "pageErrors": [],
+  "cpuSlowdown": 1
+}

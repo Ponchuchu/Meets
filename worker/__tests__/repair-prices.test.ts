@@ -13,3 +13,14 @@ describe('missing price retry', () => {
     expect(Object.keys(JSON.parse(fetcher.mock.calls[2][1].body))).toEqual(['price_checked_at']);
   });
 });
+
+it('asks Kimi for a page but accepts the price only from matching structured source data', async () => {
+  const row = { id: 'a', title: 'Руслан Тай. Импровизационный концерт', starts_at: '2026-11-01T21:30:00+05:00', about: 'Билеты по ссылке', source_url: '', flags: ['check_price'] };
+  const html = `<script type="application/ld+json">${JSON.stringify({ '@type': 'Event', name: row.title, startDate: row.starts_at, location: { address: { addressLocality: 'Алматы' } }, offers: { priceCurrency: 'KZT', price: '5000' } })}</script>`;
+  const fetcher = jest.fn().mockResolvedValueOnce(new Response(JSON.stringify([row]))).mockResolvedValueOnce(new Response('[]')).mockResolvedValueOnce(new Response(html, { headers: { 'content-type': 'text/html' } })).mockResolvedValueOnce(new Response(null, { status: 204 }));
+  const findSources = jest.fn(async () => ['https://ticketon.kz/event/tay']);
+  expect(await repairPrices('https://db.example', 'db-key', fetcher, { kimiKey: 'kimi-key', findSources })).toBe(1);
+  expect(findSources).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(fetcher.mock.calls[3][1].body)).toMatchObject({ price_min: 5000, is_free: false });
+  expect(fetcher.mock.calls[2][1].headers).not.toHaveProperty('apikey');
+});

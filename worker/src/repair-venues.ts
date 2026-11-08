@@ -4,7 +4,7 @@
 //   node worker/src/repair-venues.ts [--dry]
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { geocode, matchVenue, NOT_A_PLACE, type VenueRow } from './venues.ts';
+import { geocode, isVague, matchVenue, NOT_A_PLACE, type VenueRow } from './venues.ts';
 import { canonAddress } from './ruAddress.ts';
 
 interface Row { id: string; title: string; flags: string[]; address: string | null; venue_hint: string | null; sources: { venue_name: string | null } | null }
@@ -22,19 +22,22 @@ export async function repairVenues(url: string, key: string, dry = false, log: (
   let fixed = 0;
   for (const e of rows) {
     const hint = (e.venue_hint ?? e.sources?.venue_name ?? '').trim();
-    if (!hint || NOT_A_PLACE.test(hint)) continue;
-    let venueId: string | null = matchVenue(hint, null, venues)?.id ?? null;
+    const usableHint = hint && !NOT_A_PLACE.test(hint) ? hint : '';
+    if (!usableHint && isVague(e.address)) continue;
+    const match = matchVenue(usableHint || null, e.address, venues);
+    let venueId: string | null = match?.lat != null && match.lon != null ? match.id : null;
     let address = e.address;
     if (!venueId) {
-      const p = await geocode(hint);
+      const query = [usableHint, !isVague(e.address) ? e.address : null].filter(Boolean).join(', ');
+      const p = await geocode(query);
       if (!p) { log(`Не нашёл на карте · ${e.title} · «${hint}»`); continue; }
       address = address && /\d/.test(address) ? address : canonAddress(p.address ?? null).address;
       if (!dry) {
         const r = await fetch(`${url}/rest/v1/venues?on_conflict=name`, { method: 'POST', headers: { ...h, Prefer: 'resolution=merge-duplicates,return=representation' },
-          body: JSON.stringify([{ name: hint.slice(0, 120), address, geog: `SRID=4326;POINT(${p.lon} ${p.lat})` }]) });
+          body: JSON.stringify([{ name: (usableHint || address || e.title).slice(0, 120), address, needs_pin: false, geo_source: 'geocoded', geog: `SRID=4326;POINT(${p.lon} ${p.lat})` }]) });
         if (!r.ok) { log(`Площадка не сохранилась · ${hint}: ${r.status}`); continue; }
         venueId = ((await r.json()) as { id: string }[])[0].id;
-        venues.push({ id: venueId, name: hint, aliases: [], address, lat: p.lat, lon: p.lon });
+        venues.push({ id: venueId, name: usableHint || address || e.title, aliases: [], address, lat: p.lat, lon: p.lon });
       }
     }
     log(`${dry ? 'Проверка' : 'Привязал'} · ${e.title} → «${hint}»${address ? ` · ${address}` : ''}`);

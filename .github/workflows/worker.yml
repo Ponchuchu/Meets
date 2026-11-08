@@ -8,7 +8,7 @@ on:
         description: 'collect — сбор постов; maintenance — цены и фото существующих карточек'
         type: choice
         default: collect
-        options: [collect, maintenance]
+        options: [collect, maintenance, prices]
 concurrency: worker
 jobs:
   collect:
@@ -24,6 +24,8 @@ jobs:
           if [ "${{ inputs.mode }}" = "maintenance" ]; then
             node worker/src/repair-prices.ts
             node worker/src/spots.ts --run --photos-only
+          elif [ "${{ inputs.mode }}" = "prices" ]; then
+            node worker/src/repair-prices.ts
           else
             node worker/src/index.ts
           fi
@@ -31,4 +33,6 @@ jobs:
           SUPABASE_URL: https://xkpchsommtilristiesu.supabase.co
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY || secrets.KIMI }}
+          KIMI_BASE_URL: ${{ vars.KIMI_BASE_URL }}
+          KIMI_PRICE_LIMIT: '3'

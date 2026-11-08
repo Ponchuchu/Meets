@@ -18,7 +18,7 @@ export const edgeBorder: ViewStyle = {
 };
 
 export const glass: ViewStyle = {
-  backgroundColor: Platform.OS === 'web' ? 'rgba(252,251,248,0.94)' : '#FCFBF8',
+  backgroundColor: Platform.OS === 'web' ? 'rgba(252,253,249,0.82)' : 'rgba(252,253,249,0.97)',
   ...edgeBorder,
   // Android: внутренняя тень (блик) рисуется заново при каждом движении плашки — на Poco это заметные рывки
   // (шторки, панель, карточки на карте). Блик там даёт светлая верхняя кромка, тень — одна.

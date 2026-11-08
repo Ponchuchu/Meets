@@ -18,7 +18,7 @@ const sheetOut = new Keyframe({
 }).duration(200);
 export function Backdrop({ onPress, opacity = 0.4, label }: { onPress: () => void; opacity?: number; label: string }) {
   return (
-    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)} style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(23,22,26,${opacity})` }]}>
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(160)} style={[StyleSheet.absoluteFill, styles.backdrop, { backgroundColor: `rgba(23,22,26,${opacity})` }]}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onPress} accessibilityRole="button" accessibilityLabel={label} />
     </Animated.View>
   );
@@ -101,7 +101,10 @@ export function BottomSheet({ children, style, label, onClose, scroll = false }:
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  // Android also sorts elevated native views: swipe cards have elevation 8.
+  // Keep both the input-blocking dimmer and the sheet above those cards.
+  backdrop: { zIndex: 100, elevation: 16 },
+  host: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 101, elevation: 17 },
   sheet: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 30,
     backgroundColor: colors.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28, gap: 16,
   },
