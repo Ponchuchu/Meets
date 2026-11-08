@@ -9,17 +9,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBackClose } from '../../state/app';
 import { colors, fonts } from '../../theme';
 
-export function SettingsPage({ title, sub, children, onBack }: { title: string; sub?: string; children: ReactNode; onBack?: () => void }) {
+export function SettingsPage({ title, sub, children, onBack, tab = false }: { tab?: boolean; title: string; sub?: string; children: ReactNode; onBack?: () => void }) {
   const insets = useSafeAreaInsets();
   const back = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/me')));
   useBackClose(back);
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(40, insets.top + 10), paddingBottom: insets.bottom + 40, paddingHorizontal: 16, gap: 8 }}
+    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(40, insets.top + 10), paddingBottom: insets.bottom + (tab ? 100 : 40), paddingHorizontal: 16, gap: 8 }}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <View style={styles.head}>
-        <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад" hitSlop={6}>
+        {!tab && <Pressable onPress={back} style={styles.back} accessibilityRole="button" accessibilityLabel="Назад" hitSlop={6}>
           <ChevronLeft size={26} color={colors.ink} strokeWidth={2} />
-        </Pressable>
+        </Pressable>}
         <Text style={styles.h1} accessibilityRole="header" numberOfLines={1}>{title}</Text>
       </View>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}

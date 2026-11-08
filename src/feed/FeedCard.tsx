@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image } from 'expo-image';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useEco } from '../state/perf';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import type { EventItem, Person } from '../data/types';
@@ -119,6 +120,7 @@ function SpotFeedCard(props: CardProps) {
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
   const [bad, setBad] = useState(0);
+  const eco = useEco();
   const [knownAspect, setKnownAspect] = useState<{ url: string; ratio: number } | null>(null);
   const photo = a?.photos?.[bad];
   const aspect = knownAspect?.url === photo ? knownAspect?.ratio ?? null : null;
@@ -137,7 +139,7 @@ function SpotFeedCard(props: CardProps) {
         </Svg>
         {photo ? (
           <>
-            {aspect != null && Math.abs(sizing.width / aspect - sizing.mediaHeight) > 3 && <Image source={imageSource(photo)} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${photo}:bg`} />}
+            {!eco && aspect != null && Math.abs(sizing.width / aspect - sizing.mediaHeight) > 3 && <Image source={imageSource(photo)} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${photo}:bg`} />}
             <Image source={imageSource(photo)} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={photo}
               onLoad={ev => { if (ev.source.width > 0 && ev.source.height > 0) { const ratio = ev.source.width / ev.source.height; setKnownAspect(old => old?.url === photo && old.ratio === ratio ? old : { url: photo, ratio }); } }} onError={() => setBad((b) => b + 1)} />
             <View pointerEvents="none" style={styles.spotCorner}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
@@ -177,10 +179,11 @@ function Price({ text }: { text: string }) {
 /** Keep every poster legible; a cached, static backdrop fills its letterboxing without another video decoder. */
 function FeedPhoto({ uri, aspect, width, height, onAspect }: { uri: string; aspect: number | null; width: number; height: number; onAspect: (ratio: number) => void }) {
   const [broken, setBroken] = useState(false);
+  const eco = useEco();
   if (broken) return null;
   const source = imageSource(uri);
   return <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    {aspect != null && Math.abs(width / aspect - height) > 3 && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${uri}:backdrop`} />}
+    {!eco && aspect != null && Math.abs(width / aspect - height) > 3 && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${uri}:backdrop`} />}
     <Image source={source} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={uri}
       onLoad={ev => { if (ev.source.width > 0 && ev.source.height > 0) onAspect(ev.source.width / ev.source.height); }} onError={() => setBroken(true)} />
   </View>;
@@ -198,16 +201,16 @@ const styles = StyleSheet.create({
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: 20, borderColor: colors.ink, transform: [{ rotate: '12deg' }] },
   stampText: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: 0.5, color: colors.ink },
-  body: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20, gap: 13, backgroundColor: '#FBF8F2', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.85)' },
+  body: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20, gap: 13, backgroundColor: '#FCFBF7', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.85)' },
   bodyCompact: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 9 },
-  title: { fontFamily: fonts.display800, fontSize: 27, lineHeight: 30, letterSpacing: -0.8, color: colors.ink },
+  title: { fontFamily: fonts.display600, fontSize: 27, lineHeight: 30, letterSpacing: -0.8, color: colors.ink },
   titleCompact: { fontSize: 23, lineHeight: 26, letterSpacing: -0.6 },
   titleTiny: { fontSize: 20, lineHeight: 23 },
   facts: { gap: 10 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   fact: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   factText: { flex: 1, fontFamily: fonts.body500, fontSize: 12.5, lineHeight: 17, color: colors.muted2 },
-  price: { flexShrink: 0, maxWidth: '45%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 11, backgroundColor: '#F5E4D6' },
+  price: { flexShrink: 0, maxWidth: '45%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 11, backgroundColor: '#F5E8D4' },
   priceText: { flexShrink: 1, fontFamily: fonts.body700, fontSize: 13, lineHeight: 17, color: colors.accentText },
   about: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted },
   socialRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 2 },

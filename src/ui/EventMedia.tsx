@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { useVideoPlayer, VideoView, type VideoTrack } from 'expo-video';
 import { Volume2, VolumeX } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -17,7 +17,7 @@ export function eventMedia(e: Pick<EventItem, 'media' | 'cover'>): Media[] {
 
 function MediaImage({ item, fit, onAspect }: { item: Media; fit: 'cover' | 'contain'; onAspect?: (aspect: number) => void }) {
   const [broken, setBroken] = useState(false);
-  return broken ? <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={styles.counterText}>Фото недоступно</Text></View>
+  return broken ? <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={[styles.counterText, { color: colors.muted }]}>Фото недоступно</Text></View>
     : <Image source={photo(item.type === 'video' ? item.poster : item.url)} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" recyclingKey={item.url} onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} onError={() => setBroken(true)} />;
 }
 
@@ -45,6 +45,15 @@ function Clip({ item, active, controls, controlsTop, fit, onAspect }: { item: Me
       pause();
     };
   }, [active, failed, pause, player]));
+  useEffect(() => {
+    const report = (track: VideoTrack | null | undefined) => {
+      if (track && track.size.width > 0 && track.size.height > 0) onAspect?.(track.size.width / track.size.height);
+    };
+    report(player.videoTrack);
+    const loaded = player.addListener('sourceLoad', event => report(event.availableVideoTracks[0]));
+    const changed = player.addListener('videoTrackChange', event => report(event.videoTrack));
+    return () => { loaded.remove(); changed.remove(); };
+  }, [player, onAspect]);
   useEffect(() => {
     const sub = player.addListener('statusChange', s => { if (s.status === 'error') setFailed(true); });
     return () => sub.remove();
@@ -82,11 +91,11 @@ export function EventMedia({ items, active = true, gallery = false, height, cont
   }, [page, visiblePage, width]);
   const media = (item: Media, index: number) => {
     const content = item.type === 'video' && playing && index === visiblePage
-      ? <Clip item={item} active controls={gallery && !onOpenMedia} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
+      ? <Clip item={item} active controls={!onOpenMedia} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
       : <MediaImage item={item} fit={fit} onAspect={onAspect} />;
     return onOpenMedia ? <Pressable accessibilityRole="button" accessibilityLabel="Открыть фото или видео на весь экран" onPress={() => onOpenMedia(index)} style={styles.fill}>{content}</Pressable> : content;
   };
-  return <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height, overflow: 'hidden', backgroundColor: colors.ink }}>
+  return <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height, overflow: 'hidden', backgroundColor: colors.cardAlt }}>
     {list.length === 1 ? media(list[0], 0) : width > 0 && list.length > 1 && <FlatList ref={galleryRef} data={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
       keyExtractor={m => m.url} initialScrollIndex={visiblePage} nestedScrollEnabled directionalLockEnabled initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3}
       getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}

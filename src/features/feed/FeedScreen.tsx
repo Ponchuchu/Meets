@@ -1,4 +1,4 @@
-import { ThumbsUp, ThumbsDown, EyeOff } from 'lucide-react-native';
+import { CalendarDays, ThumbsUp, ThumbsDown, EyeOff } from 'lucide-react-native';
 // «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
 // «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
 import { NONE } from '../../lib/empty';
@@ -11,7 +11,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
-import { tabCenter, tabInset } from '../../components/TabBar';
+import { tabInset } from '../../components/TabBar';
 import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
 import { LazyEventPage } from '../../event/LazyEventPage';
@@ -36,12 +36,14 @@ import { track } from '../../analytics';
 import { useFeed } from '../../state/feed';
 import { usePlans } from '../../state/plans';
 import { INITIAL_DRAFT, useSession } from '../../state/session';
+import { glass } from '../../ui/glass';
 import { colors, fonts } from '../../theme';
 
 const STACK = 3;
 
 export default function ForYouScreen() {
   const insets = useSafeAreaInsets();
+  const plansCount = useTabBadges(s => s.plans);
   const { width: W, height: winH, fontScale } = useWindowDimensions();
   const [cardLayouts, setCardLayouts] = useState<Record<string, FeedCardMeasurement>>({});
   const onCardMeasured = useCallback((id: string, measurement: FeedCardMeasurement) => {
@@ -127,7 +129,7 @@ export default function ForYouScreen() {
 
   // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
   const headTop = Math.max(50, insets.top + 6);
-  const baseTop = headTop + 56;
+  const baseTop = headTop + 80;
   const fullH = H || winH;
   const screenH = fullH - tabInset(insets.bottom) + 10;
   const HINTS_H = 84; // кнопки с подписями под карточкой
@@ -140,7 +142,7 @@ export default function ForYouScreen() {
   const hintsTop = cardTop + cardH + GAP;
   const cardX = (W - cardW) / 2;
   // Центр иконки «Планы» на панели относительно центра карточки.
-  const plansIcon = tabCenter(2, W, fullH, insets.bottom);
+  const plansIcon = { x: W - cardX - 30, y: headTop + 24 };
   const target = { x: plansIcon.x - (cardX + cardW / 2), y: plansIcon.y - (cardTop + cardH / 2) };
 
 
@@ -250,7 +252,11 @@ export default function ForYouScreen() {
   return (
     <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
       <View style={[styles.head, { top: headTop, left: cardX + 2, right: cardX }]}>
-        <Text style={styles.h1} accessibilityRole="header">Рекомендации</Text>
+        <View style={{ flex: 1, gap: 4 }}><Text style={styles.eyebrow}>События и места рядом</Text><Text style={styles.h1} accessibilityRole="header">Для тебя</Text></View>
+        <Pressable onPress={() => router.navigate('/plans')} accessibilityRole="button" accessibilityLabel={`Планы${plansCount ? `, новых: ${plansCount}` : ''}`} style={[styles.calendar, glass]}>
+          <CalendarDays size={22} color={colors.ink} strokeWidth={1.8} /><Text style={styles.calendarText}>Планы</Text>
+          {plansCount > 0 && <View style={styles.planBadge}><Text style={styles.planBadgeText}>{plansCount > 9 ? '9+' : plansCount}</Text></View>}
+        </Pressable>
       </View>
 
       <View pointerEvents={open ? 'none' : 'auto'} style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
@@ -334,8 +340,13 @@ const styles = StyleSheet.create({
   feedbackRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.card },
   feedbackText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
   root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
-  head: { position: 'absolute', left: 16, right: 16, gap: 2 },
-  h1: { fontFamily: fonts.display800, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
+  head: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  eyebrow: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted },
+  calendar: { minHeight: 54, minWidth: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  calendarText: { fontFamily: fonts.body500, fontSize: 10, color: colors.ink },
+  planBadge: { position: 'absolute', top: -4, right: -3, borderRadius: 10, minWidth: 20, height: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  planBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: '#FFFFFF' },
+  h1: { fontFamily: fonts.display600, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
   emptyBox: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10, paddingTop: 160 },
   emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
   emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
