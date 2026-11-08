@@ -15,7 +15,6 @@
   "ignoreExportsUsedInFile": true,
   "ignoreDependencies": [
     "expo-updates",
-    "@expo/config-plugins",
     "jsr",
     "expo-symbols"
   ]
