@@ -1,0 +1,65 @@
+{
+  "identity": "demo; public events snapshot only",
+  "productionWrites": 0,
+  "checks": [
+    {
+      "name": "portrait",
+      "size": {
+        "width": 390,
+        "height": 844
+      },
+      "publicEventId": "33e59b40-68c9-4988-ae10-70a599e957b2",
+      "naturalAspectRatio": true,
+      "noBlur": true,
+      "geometry": [
+        {
+          "sourceWidth": 1088,
+          "sourceHeight": 1360,
+          "renderedWidth": 358,
+          "renderedHeight": 448,
+          "blurred": false
+        }
+      ]
+    },
+    {
+      "name": "landscape",
+      "size": {
+        "width": 390,
+        "height": 844
+      },
+      "publicEventId": "f00bab27-967c-4ed1-ba37-928ab85711ca",
+      "naturalAspectRatio": true,
+      "noBlur": true,
+      "geometry": [
+        {
+          "sourceWidth": 1920,
+          "sourceHeight": 1080,
+          "renderedWidth": 358,
+          "renderedHeight": 201,
+          "blurred": false
+        }
+      ]
+    },
+    {
+      "name": "small",
+      "size": {
+        "width": 320,
+        "height": 568
+      },
+      "publicEventId": "33e59b40-68c9-4988-ae10-70a599e957b2",
+      "naturalAspectRatio": true,
+      "noBlur": true,
+      "geometry": [
+        {
+          "sourceWidth": 896,
+          "sourceHeight": 1120,
+          "renderedWidth": 288,
+          "renderedHeight": 360,
+          "blurred": false
+        }
+      ]
+    }
+  ],
+  "mediaFailures": [],
+  "pageErrors": []
+}
