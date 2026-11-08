@@ -1,0 +1,25 @@
+{
+  "environment": "headless Chromium, demo, software WebGL; not physical Android FPS",
+  "offline": true,
+  "cpuSlowdown": 6,
+  "js": {
+    "totalKB": 8530,
+    "entryKB": 1066
+  },
+  "screens": {
+    "/": {
+      "contentMs": 9928,
+      "longTasks": 15,
+      "longTaskMs": 13060,
+      "fpsWhileDragging": 6,
+      "worstFrameMs": 483
+    },
+    "/foryou": {
+      "contentMs": 9139,
+      "longTasks": 11,
+      "longTaskMs": 8808,
+      "fpsWhileDragging": 22,
+      "worstFrameMs": 250
+    }
+  }
+}

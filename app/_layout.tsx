@@ -4,8 +4,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { setVideoCacheSizeAsync } from 'expo-video';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Splash } from '../src/features/auth/Splash';
@@ -43,6 +44,14 @@ const serverSnapshot = () => false;
 
 export default function RootLayout() {
   const mounted = useSyncExternalStore(subscribeMount, clientSnapshot, serverSnapshot);
+  const [mediaReady, setMediaReady] = useState(Platform.OS === 'web');
+  // Native configuration requires zero existing players. Release the screen gate even if the OS rejects it.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let alive = true;
+    void setVideoCacheSizeAsync(64 * 1024 * 1024).catch(() => undefined).finally(() => { if (alive) setMediaReady(true); });
+    return () => { alive = false; };
+  }, []);
   useNetWatch();
   useAuthWatch();
   const [loaded, error] = useFonts({
@@ -53,7 +62,7 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync().catch(() => {});
   }, [loaded, error]);
 
-  if ((Platform.OS === 'web' && !mounted) || (!loaded && !error)) return null;
+  if ((Platform.OS === 'web' && !mounted) || (!loaded && !error) || !mediaReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.paper }}>

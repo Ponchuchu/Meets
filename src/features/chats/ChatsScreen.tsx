@@ -22,8 +22,8 @@ import { getInvites, type Invite } from '../../live/api';
 import { myId } from '../../live/auth';
 import { Backdrop, BottomSheet } from '../../ui/sheet';
 import { now as clockNow } from '../../lib/clock';
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabInset } from '../../components/TabBar';
 import { data, eventsSnapshot, type Chat } from '../../data';
@@ -90,8 +90,16 @@ export default function ChatsScreen() {
   const match = (c: Chat) => !q || c.title.toLowerCase().includes(q) || c.lastText.toLowerCase().includes(q);
   // Своё неотправленное показываем, только если оно новее того, что уже на сервере: раньше одно застрявшее сообщение
   // навсегда закрывало собой всю переписку в списке.
+  const sent = chat.sent;
+  const pendingByChat = useMemo(() => {
+    const indexed = new Map<string, (typeof sent)[number]>();
+    for (const message of sent) if (message.delivery) indexed.set(message.chatId, message);
+    return indexed;
+  }, [sent]);
+  const peopleById = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
+  const eventsById = useMemo(() => new Map(events.map(e => [e.id, e])), [events]);
   const last = (c: Chat) => {
-    const mine = chat.sent.filter((m) => m.chatId === c.id && m.delivery).at(-1);
+    const mine = pendingByChat.get(c.id);
     const newer = mine && (!c.lastAt || !mine.createdAt || Date.parse(mine.createdAt) > Date.parse(c.lastAt));
     return newer ? { text: previewText(mine.kind, mine.text), time: mine.time, mine: true, tick: tickOf(mine) }
       : { text: previewText(c.lastKind, c.lastText), time: c.lastTime, mine: !!c.lastMine, tick: c.lastMine ? tickOf({ createdAt: c.lastAt }, c.readUpTo) : undefined };
@@ -101,7 +109,7 @@ export default function ChatsScreen() {
   const list = sortChats(
     [...chats, ...chat.groups.filter(g => !chats.some(c => c.id === g.id))]
       .filter((c) => match(c) && !chat.hidden[c.id] && !(c.personId && chat.blocked[c.personId]) && (filter === 'archive' ? !!chat.archived[c.id] : !chat.archived[c.id]))
-      .map((c) => ({ ...c, l: last(c), time: last(c).time })),
+      .map((c) => { const l = last(c); return { ...c, l, time: l.time }; }),
     chat.pinned,
   );
   const archivedCount = chats.filter((c) => chat.archived[c.id] && !chat.hidden[c.id]).length;
@@ -119,8 +127,54 @@ export default function ChatsScreen() {
   ];
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
+  const renderChat = ({ item: c }: { item: (typeof list)[number] }) => {
+    const e = c.kind === 'event' ? eventsById.get(c.eventId!) : undefined;
+    const p = c.kind === 'direct' ? peopleById.get(c.personId!) : undefined;
+    const n = unread(c);
+    const pin = !!chat.pinned[c.id];
+    const act = !c.l.text && p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
+    return (
+      <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
+        <Pressable onPress={() => open(c.id)}
+          style={({ pressed }) => [styles.row, n > 0 && styles.rowNew, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
+          {p ? <Avatar p={p} size={56} /> : c.photo ? <Image source={{ uri: c.photo }} style={styles.groupPhoto} /> : (
+            <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
+              <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
+            </View>
+          )}
+          <View style={{ flex: 1, gap: 3 }}>
+            <View style={styles.titleRow}>
+              <Text style={[styles.name, { flex: 1 }, n > 0 && { fontFamily: fonts.display700 }]} numberOfLines={1}>{c.title}</Text>
+              {c.l.tick && c.l.mine && <Tick kind={c.l.tick} color={colors.muted} size={14} />}
+              <Text style={[styles.time, n > 0 && styles.timeNew]}>{c.l.time}</Text>
+            </View>
+            <View style={styles.titleRow}>
+              <Text style={[styles.sub, { flex: 1 }, n > 0 && { color: colors.ink, fontFamily: fonts.body600 }]} numberOfLines={1}>
+                {c.l.text ? `${c.l.mine ? 'Ты: ' : ''}${c.l.text}` : 'Напиши первым'}
+              </Text>
+              {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n > 99 ? '99+' : n}</Text></View>
+                : pin ? <Pin size={14} color={colors.muted} strokeWidth={2} /> : null}
+            </View>
+            {act && (
+              <View style={styles.act}>
+                <CalendarCheck size={13} color={colors.accentText} strokeWidth={2} />
+                <Text style={styles.actText} numberOfLines={1}>{act}</Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      </SwipeRow>
+    );
+  };
+
   return (
-    <View style={styles.root}><ScrollView style={styles.root} contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad, gap: 14 }}>
+    <View style={styles.root}><FlatList style={styles.root}
+      data={filter === 'requests' ? [] : list} keyExtractor={c => c.id} renderItem={renderChat}
+      initialNumToRender={8} maxToRenderPerBatch={8} windowSize={5} keyboardShouldPersistTaps="handled"
+      ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+      contentContainerStyle={{ paddingTop: Math.max(50, insets.top + 6), paddingHorizontal: 16, paddingBottom: tabPad }}
+      ListHeaderComponent={<View style={{ gap: 14, paddingBottom: 14 }}>
       <View style={styles.head}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityLiveRegion="polite">
           {headTitle !== 'Чаты' && <ActivityIndicator size="small" color={colors.muted2} />}
@@ -199,50 +253,8 @@ export default function ChatsScreen() {
       {/* Список не загрузился — говорим об этом, а не показываем пустоту, будто переписок нет. */}
       {chatsQuery.isError && !chats.length && online && <StateView kind="error" compact text="Чаты не загрузились" onAction={() => void chatsQuery.refetch()} />}
 
-      {list.length > 0 && filter !== 'requests' && (
-        <View style={{ gap: 8 }}>
-          {list.map((c) => {
-            const e = c.kind === 'event' ? events.find((x) => x.id === c.eventId) : undefined;
-            const p = c.kind === 'direct' ? people.find((x) => x.id === c.personId) : undefined;
-            const n = unread(c);
-            const pin = !!chat.pinned[c.id];
-            const act = !c.l.text && p ? friendActivity(p.id, myId(), events, goingSet, invites, clockNow()) : null;
-            return (
-              <SwipeRow key={c.id} actions={chatActions(c)} background={colors.card} radius={20}>
-                <Pressable onPress={() => open(c.id)}
-                  style={({ pressed }) => [styles.row, n > 0 && styles.rowNew, pressed && { opacity: 0.7 }]}
-                  accessibilityRole="button" accessibilityLabel={`${c.title}. ${c.l.mine ? 'Ты: ' : ''}${c.l.text}${act ? `. ${act}` : ''}${pin ? '. Закреплён' : ''}`}>
-                  {p ? <Avatar p={p} size={56} /> : c.photo ? <Image source={{ uri: c.photo }} style={styles.groupPhoto} /> : (
-                    <View style={[styles.evIcon, { backgroundColor: e ? CAT_COLOR[e.category] : colors.ink }]}>
-                      <Ic d={e ? CAT_ICON[e.category] : 'M4 5h16v11H9l-5 4z'} size={23} color={e ? catFg(e.category) : colors.paper} w={2} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <View style={styles.titleRow}>
-                      <Text style={[styles.name, { flex: 1 }, n > 0 && { fontFamily: fonts.display700 }]} numberOfLines={1}>{c.title}</Text>
-                      {c.l.tick && c.l.mine && <Tick kind={c.l.tick} color={colors.muted} size={14} />}
-                      <Text style={[styles.time, n > 0 && styles.timeNew]}>{c.l.time}</Text>
-                    </View>
-                    <View style={styles.titleRow}>
-                      <Text style={[styles.sub, { flex: 1 }, n > 0 && { color: colors.ink, fontFamily: fonts.body600 }]} numberOfLines={1}>
-                        {c.l.text ? `${c.l.mine ? 'Ты: ' : ''}${c.l.text}` : 'Напиши первым'}
-                      </Text>
-                      {n > 0 ? <View style={styles.unread}><Text style={styles.unreadText}>{n > 99 ? '99+' : n}</Text></View>
-                        : pin ? <Pin size={14} color={colors.muted} strokeWidth={2} /> : null}
-                    </View>
-                    {act && (
-                      <View style={styles.act}>
-                        <CalendarCheck size={13} color={colors.accentText} strokeWidth={2} />
-                        <Text style={styles.actText} numberOfLines={1}>{act}</Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-              </SwipeRow>
-            );
-          })}
-        </View>
-      )}
+      </View>}
+      ListFooterComponent={<View style={{ gap: 14, paddingTop: 14 }}>
       {filter === 'all' && !q && lonely.length > 0 && (
         <View style={{ gap: 8 }}>
           <Text style={styles.cap}>ДРУЗЬЯ · НАПИШИ ПЕРВЫМ</Text>
@@ -268,7 +280,7 @@ export default function ChatsScreen() {
         : chatsQuery.isPending ? <StateView kind="loading" title="Загружаю чаты…" />
         : <StateView kind="empty" title="Пока нет чатов" text="Нажми «Пойду» на событии — появится чат с теми, кто идёт. Или напиши другу." />
       )}
-    </ScrollView>
+    </View>} />
     {compose && <><Backdrop label="Закрыть" onPress={() => setCompose(false)}/><BottomSheet onClose={() => setCompose(false)} label="Новый чат" scroll style={{paddingBottom:24+insets.bottom}}>
       <Text style={styles.h1}>Новый чат</Text>
       <TextInput value={who} onChangeText={setWho} placeholder="Имя друга" placeholderTextColor={colors.muted3} accessibilityLabel="Найти друга" style={styles.search} />

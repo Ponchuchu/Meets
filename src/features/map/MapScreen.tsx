@@ -283,21 +283,26 @@ export default function MapScreen() {
   useEffect(() => () => stickerQueue.flush(), [stickerQueue]);
   const { data: myProfile } = useQuery({ queryKey: ['me', 'profile'], queryFn: () => getProfile(), enabled: LIVE });
   const { data: rawSpots = NONE } = useQuery({ queryKey: ['friendSpots'], queryFn: () => data.getFriendSpots() });
-  const spots = useSmoothSpots(rawSpots);
+  const spots = useSmoothSpots(rawSpots, focused);
   useLiveFriends(useMemo(() => people.filter((x) => x.isFriend).map((x) => x.id), [people]));
   const { data: me } = useQuery({ queryKey: ['mySpot'], queryFn: () => data.getMySpot() });
-  const { data: details = NONE } = useQuery({
-    queryKey: ['spotDetails', spots.map((x) => x.personId).join(',')],
-    queryFn: () => Promise.all(spots.map((x) => data.getPersonDetails(x.personId))),
-    enabled: spots.length > 0,
+  // Live markers already obey server location privacy. Fetch full details only for the selected friend.
+  const { data: selectedDetails } = useQuery({
+    queryKey: ['person', focusId], queryFn: () => data.getPersonDetails(focusId!), enabled: focused && !!focusId,
   });
-  const detailsOf = (id: string) => details.find((d) => d?.id === id) ?? undefined;
+  const { data: demoDetails = NONE } = useQuery({
+    queryKey: ['spotDetails', spots.map(x => x.personId).join(',')],
+    queryFn: () => Promise.all(spots.map(x => data.getPersonDetails(x.personId))),
+    enabled: !LIVE && focused && spots.length > 0,
+  });
+  const details = useMemo(() => LIVE ? selectedDetails ? [selectedDetails] : NONE : demoDetails, [selectedDetails, demoDetails]);
+  const detailsOf = (id: string) => details.find(d => d?.id === id) ?? undefined;
   // «Назад» на Android закрывает карточку друга или события, а не выходит из приложения.
   useBackClose(() => { if (focusId) focusFriend(null); else select(null); }, sheet === null && (!!focusId || !!selectedId));
   const focusSpot = spots.find((x) => x.personId === focusId);
   const focusPerson = people.find((x) => x.id === focusId);
   // Хвост друга: последние 4 точки за 10 минут (только у выбранного).
-  const { data: trail = NONE } = useQuery({ queryKey: ['trail', focusId], queryFn: () => getTrail(focusId!), enabled: LIVE && !!focusId, refetchInterval: 20000 });
+  const { data: trail = NONE } = useQuery({ queryKey: ['trail', focusId], queryFn: () => getTrail(focusId!), enabled: LIVE && focused && !!focusId, refetchInterval: focused ? 20000 : false });
   const friendLines = useMemo(() => focusSpot && filters.friends && focusPerson?.mapTrail === 'comet' && trail.length > 1 ? [{ id: 'friend-trail', coords: trail.map(t => [t.lon,t.lat] as [number,number]), color: MAP_FRAMES.find(f => f.id === focusPerson.mapFrame)?.color ?? colors.friend, width: 3 }] : [], [focusSpot, focusPerson, filters.friends, trail]);
   // «Где я был»: открытые клетки.
   const { data: cells = NONE } = useQuery({
@@ -345,7 +350,7 @@ export default function MapScreen() {
   // В линзах «Пробки» и «Где я был» карточки события нет — видно саму карту (V6MapLens*).
   // Линза «Пробки»: балл города (traffic-score, раз в 10 мин) и время на машине до ближайшего проспекта.
   const trafficOn = LIVE && lens === 'traffic';
-  const tscore = useQuery({ queryKey: ['traffic', 'score'], queryFn: getTrafficScore, enabled: trafficOn, staleTime: 5 * 60e3, refetchInterval: trafficOn ? 10 * 60e3 : false });
+  const tscore = useQuery({ queryKey: ['traffic', 'score'], queryFn: getTrafficScore, enabled: focused && trafficOn, staleTime: 5 * 60e3, refetchInterval: focused && trafficOn ? 10 * 60e3 : false });
   const meAt = fix ?? myPos;
   const nearAve = useMemo(() => {
     if (!meAt || !tscore.data?.points.length) return null;
@@ -517,7 +522,7 @@ export default function MapScreen() {
   const dateText = rangeLabel(filters.from, filters.to, clock);
   const showText = showLabel(count) + (count === 0 ? '' : filters.soon ? ' · на неделю' : ` · ${dateText}`);
   const { data: forecast = DEMO_FORECAST } = useQuery({ queryKey: ['forecast'], queryFn: () => data.getForecast(), staleTime: 30 * 60e3 });
-  const { data: nowWx } = useQuery({ queryKey: ['weatherNow'], queryFn: () => data.getWeatherNow(), staleTime: 15 * 60e3, refetchInterval: 15 * 60e3 });
+  const { data: nowWx } = useQuery({ queryKey: ['weatherNow'], queryFn: () => data.getWeatherNow(), enabled: focused, staleTime: 15 * 60e3, refetchInterval: focused ? 15 * 60e3 : false });
   // Погода по дате в фильтре: сегодня — «сейчас», другой день — прогноз на него.
   const weatherNow = filters.soon || filters.from === 0;
   const weather = (weatherNow ? nowWx ?? forecast[0] : forecast[filters.from]) ?? null;

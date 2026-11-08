@@ -1,5 +1,6 @@
 // Люди, чаты, сообщения, друзья на карте — из Supabase (таблицы из миграции 20260928000002).
 // Работает только после входа: без сессии бросает NoSessionError, и слой данных показывает демо.
+import { signedMediaCache } from './signedMedia';
 import { File } from 'expo-file-system';
 import { fetch as nativeFetch } from 'expo/fetch';
 import { Platform } from 'react-native';
@@ -242,12 +243,11 @@ export async function getMessages(chatId: string, before?: { at: string; id: str
 export async function resolveMessages(rows: MessageRow[], me: string): Promise<Message[]> {
   // Путь в Storage — «<chat>/<файл>»; без «/» — ключ встроенного фото (демо-данные из seed).
   const paths = rows.map((r) => r.media_path).filter((x): x is string => !!x && x.includes('/'));
-  const signed = new Map<string, string>();
-  if (paths.length) {
-    const { data: urls, error } = await withTimeout(supabase().storage.from('media').createSignedUrls([...new Set(paths)], 3600));
+  const signed = await signedMediaCache.resolve(me, paths, async missing => {
+    const { data: urls, error } = await withTimeout(supabase().storage.from('media').createSignedUrls(missing, 3600));
     if (error) throw error;
-    urls?.forEach((u) => u.path && u.signedUrl && signed.set(u.path, u.signedUrl));
-  }
+    return (urls ?? []).filter((u): u is typeof u & { path: string; signedUrl: string } => !!u.path && !!u.signedUrl);
+  });
   return rows.map((r) => mapMessage({ ...r, media_path: r.media_path ? (r.media_path.includes('/') ? (signed.get(r.media_path) ?? null) : r.media_path) : null }, me));
 }
 

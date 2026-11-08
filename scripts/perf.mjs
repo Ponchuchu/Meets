@@ -40,14 +40,15 @@ async function jsSize() {
   return { totalKB: Math.round(total / 1024), entryKB: Math.round(entry / 1024) };
 }
 
-const preinstalled = '/opt/pw-browsers/chromium';
+const preinstalled = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium';
 const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
   ...(existsSync(preinstalled) ? { executablePath: preinstalled } : {}),
 });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', timezoneId: 'Asia/Almaty', isMobile: true, hasTouch: true });
 // Внешние запросы — через fetch Node (прокси облачной среды), как в scripts/shots.mjs.
-if (process.env.HTTPS_PROXY) {
+if (process.env.PERF_OFFLINE === '1') await ctx.route(/^https:\/\//, route => route.abort());
+else if (process.env.HTTPS_PROXY) {
   await ctx.route(/^https:\/\/(?!localhost)/, async (route) => {
     const r = route.request();
     try {
@@ -64,7 +65,7 @@ await ctx.addInitScript(() => {
   new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__long.push(e.duration))).observe({ type: 'longtask', buffered: true });
   const draft = { provider: 'google', phone: '', name: 'Данил', photo: 'danil', birthDate: '14.03.2001', interests: ['music', 'hike', 'games'], times: ['weekday', 'weekend'], withWho: 'friends', budget: 'mid' };
   if (!localStorage.getItem('ryadom-session')) {
-    localStorage.setItem('ryadom-session', JSON.stringify({ state: { signedIn: true, onboarded: true, locationAsked: true, taste: null, draft }, version: 0 }));
+    localStorage.setItem('ryadom-session', JSON.stringify({ state: { signedIn: true, onboarded: true, locationAsked: true, tutorialDone: true, taste: null, draft }, version: 0 }));
     localStorage.setItem('ryadom-clock', '18:10');
   }
 });
@@ -98,9 +99,9 @@ async function dragFps(page, x, y, dx, dy) {
   }), [x, y, dx, dy]);
 }
 
-const results = { cpuSlowdown: RATE, js: await jsSize(), screens: {} };
+const results = { environment: 'headless Chromium, demo, software WebGL; not physical Android FPS', offline: process.env.PERF_OFFLINE === '1', cpuSlowdown: RATE, js: await jsSize(), screens: {} };
 for (const [route, ready, drag] of [
-  ['/', () => document.body.innerText.includes('Сегодня'), [200, 500, -120, 80]],
+  ['/', () => !!document.querySelector('[role="tablist"]'), [200, 500, -120, 80]],
   ['/foryou', () => !!document.querySelector('[aria-label*="Пойду"], [aria-label*="пойду"]') || document.body.innerText.includes('Пойду'), [195, 420, 90, 0]],
 ]) {
   const page = await ctx.newPage();
@@ -121,7 +122,7 @@ for (const [route, ready, drag] of [
 await browser.close();
 server.close();
 
-const out = join(root, 'docs/progress/stage-10');
+const out = join(root, process.env.PERF_OUT || 'docs/progress/stage-10');
 await mkdir(out, { recursive: true });
 await writeFile(join(out, 'perf.json'), `${JSON.stringify(results, null, 2)}\n`);
-console.log(`JS: ${results.js.entryKB} КБ до первого экрана, ${results.js.totalKB} КБ всего · итог в docs/progress/stage-10/perf.json`);
+console.log(`JS: ${results.js.entryKB} КБ в главном JS-модуле, ${results.js.totalKB} КБ всего · итог в ${out}/perf.json`);
