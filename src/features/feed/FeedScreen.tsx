@@ -1,359 +1,161 @@
-import { CalendarDays, ThumbsUp, ThumbsDown, EyeOff } from 'lucide-react-native';
-// «Рекомендации» v6 (V6.md §4.1): стопка из настоящих событий, свайпы без кнопок, «Пойду» улетает дугой в «Планы».
-// «Мимо» — плашка на 5 с «Мимо: … · Вернуть» (не больше 10 возвратов за сессию). Кончились — V6Empty.
-import { NONE } from '../../lib/empty';
+// A scrollable city programme. Full-ratio media, explicit plans, one visible video decoder.
 import { useQuery } from '@tanstack/react-query';
-import { useNet } from '../../live/net';
-import { StateView } from '../../ui/StateView';
 import { router, useFocusEffect } from 'expo-router';
+import { CalendarDays, Check, EyeOff, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { FlatList, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View, type ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { track } from '../../analytics';
 import { tabInset } from '../../components/TabBar';
-import { useTabBadges } from '../../state/tabBadges';
 import { data, eventsSnapshot, type EventItem } from '../../data';
-import { LazyEventPage } from '../../event/LazyEventPage';
-import { FeedCard, feedCoverH } from '../../feed/FeedCard';
-import { SwipeCard, type SwipeHandle } from '../../feed/SwipeCard';
-import { sameFeedMeasurement, type FeedCardMeasurement } from '../../feed/cardLayout';
-import { QuickButtons } from '../../feed/SwipeHints';
-import { Backdrop, BottomSheet } from '../../ui/sheet';
-import { distinctEvents } from '../../event/identity';
-import { eventFacts } from '../../event/facts';
-import { UndoBar } from '../../feed/UndoBar';
-import { WhenSheet, needsWhen } from '../../feed/WhenSheet';
-import { now as clockNow } from '../../lib/clock';
-import { buildDeck, makeSignal, tasteFrom } from '../../reco';
-import { pickSpots, spotCard, weekOf, withSpots } from '../../reco/spots';
 import { ATTRACTIONS, type Attraction } from '../../data/attractions';
 import { getSpots } from '../../data/spots';
-import { SpotSheet } from '../../map/ui/SpotSheet';
+import { EventPage } from '../../event/EventPage';
+import { eventFacts } from '../../event/facts';
+import { NaturalEvent } from '../../feed/NaturalEvent';
+import { WhenSheet, needsWhen } from '../../feed/WhenSheet';
+import { now as clockNow } from '../../lib/clock';
 import { useMyArea } from '../../live/location';
+import { useNet } from '../../live/net';
+import { SpotSheet } from '../../map/ui/SpotSheet';
+import { buildDeck, makeSignal, tasteFrom } from '../../reco';
+import { pickSpots, spotCard, weekOf, withSpots } from '../../reco/spots';
 import { useApp, useCoverTabBar } from '../../state/app';
-import { track } from '../../analytics';
 import { useFeed } from '../../state/feed';
 import { usePlans } from '../../state/plans';
 import { INITIAL_DRAFT, useSession } from '../../state/session';
-import { glass } from '../../ui/glass';
+import { useTabBadges } from '../../state/tabBadges';
 import { colors, fonts } from '../../theme';
+import { StateView } from '../../ui/StateView';
+import { Backdrop, BottomSheet } from '../../ui/sheet';
 
-const STACK = 3;
-
+type Notice = { id: string; kind: 'go' | 'skip'; text: string };
 export default function ForYouScreen() {
   const insets = useSafeAreaInsets();
-  const plansCount = useTabBadges(s => s.plans);
-  const { width: W, height: winH, fontScale } = useWindowDimensions();
-  const [cardLayouts, setCardLayouts] = useState<Record<string, FeedCardMeasurement>>({});
-  const onCardMeasured = useCallback((id: string, measurement: FeedCardMeasurement) => {
-    setCardLayouts(current => sameFeedMeasurement(current[id], measurement) ? current : { ...current, [id]: measurement });
-  }, []);
-  const [H, setH] = useState(0); // высота экрана ленты (над таб-баром)
-  const seenFeed = useApp((s) => s.seenFeed);
-  useFocusEffect(useCallback(() => { seenFeed(); }, [seenFeed]));
-
-  const [now, setNow] = useState(clockNow);
-  useFocusEffect(useCallback(() => { setNow(clockNow()); const timer = setInterval(() => setNow(clockNow()), 60000); return () => clearInterval(timer); }, []));
-  const eventsQ = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
-  const events = useMemo(() => eventsQ.data ?? [], [eventsQ.data]);
-  // Recommendations only contain events with a known price, including free ones.
-  const pricedEvents = useMemo(() => events.filter(e => !eventFacts(e).priceMissing), [events]);
-  const online = useNet((s) => s.online);
-  const { data: people = NONE } = useQuery({ queryKey: ['people'], queryFn: () => data.getPeople() });
-  const draft = useSession((s) => s.draft) ?? INITIAL_DRAFT;
-  const { signals, hidden, hide, decided, undosLeft, decide, addSignal, undo, restoreSkipped } = useFeed();
-  const goingIds = usePlans(s => s.going);
-  const skippedCount = Object.values(decided).filter((k) => k === 'skip').length;
-  const { go, ungo } = usePlans.getState();
-  const addPlan = useApp((s) => s.addPlan);
-  const removePlan = useApp((s) => s.removePlan);
-  const pulsePlan = useApp((s) => s.pulsePlan);
-
-  // Плашка «Мимо · Вернуть»: тонкая, над нижней панелью, 5 секунд.
-  const undoSeq = useRef(0);
-  const [undoBar, setUndoBar] = useState<{ key: number; text: string; eventId: string } | null>(null);
-  const [enter, setEnter] = useState<{ id: string; from: 'go' | 'skip' } | null>(null);
-  const [feedback, setFeedback] = useState<EventItem | null>(null);
-  const [open, setOpen] = useState<EventItem | null>(null);
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  const [when, setWhen] = useState<EventItem | null>(null);
-  const [planning, setPlanning] = useState<string | null>(null);
-  const opened = useRef(new Set<string>());
-  useCoverTabBar(!!open);
-  const topRef = useRef<SwipeHandle>(null);
-  // Смещение верхней карточки: по нему подсвечиваются подсказки жестов и края экрана.
-  const dragX = useSharedValue(0);
-  const dragY = useSharedValue(0);
-  const drag = { x: dragX, y: dragY };
-
-  // Вкус = ответы регистрации + свайпы. Колода пересчитывается после каждого решения.
-  const answers = { interests: draft.interests ?? INITIAL_DRAFT.interests, times: draft.times ?? INITIAL_DRAFT.times, withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' };
-  const taste = useMemo(() => tasteFrom(answers, signals, now), [signals, now, answers.interests, answers.times, answers.withWho, answers.budget]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { width } = useWindowDimensions();
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  const column = Math.min(520, width - 32);
+  const bottom = tabInset(insets.bottom);
+  const q = useQuery({ queryKey: ['events'], queryFn: () => data.getEvents(), placeholderData: eventsSnapshot });
+  const events = useMemo(() => q.data ?? [], [q.data]);
   const spotsQ = useQuery({ queryKey: ['spots'], queryFn: getSpots, staleTime: 3600e3, placeholderData: ATTRACTIONS });
-  const allSpots = spotsQ.data ?? ATTRACTIONS;
-  const myPos = useMyArea();
-  // Места выбираются один раз за открытие ленты (иначе колода «прыгала» бы от каждого свайпа).
-  const [spotCards] = useState(() => {
-    const st = useFeed.getState();
-    return pickSpots(allSpots.filter(a => a.free || a.priceFrom != null), tasteFrom(answers, st.signals, clockNow()), { seen: st.spotSeen ?? {}, skipped: st.spotSkipped ?? {} }, clockNow(), { solo: answers.withWho === 'alone' }).map((a) => spotCard(a, clockNow()));
-  });
-  const [spotDone, setSpotDone] = useState<Set<string>>(() => new Set());
-  const [spotOpen, setSpotOpen] = useState<Attraction | null>(null);
-  const markSpot = useFeed((s) => s.markSpot);
-  // Порядок колоды «замораживается» (FIX5): видимые карточки и ближайшие за ними не переставляются после каждого свайпа —
-  // раньше вкус пересчитывался, и карточка, которая должна была прийти через четыре, вдруг выскакивала следующей.
-  const [frozen, setFrozen] = useState<string[]>([]);
-  const deck = useMemo(() => {
-    const swipes = signals.filter(s => ['go', 'skip', 'skipAfterOpen'].includes(s.kind)).length;
-    const dec = new Set([...Object.keys(decided), ...Object.keys(goingIds), ...Object.keys(hidden ?? {})]);
-    const fresh = withSpots(buildDeck(taste, pricedEvents, { decided: dec, swipes }, { now, me: myPos }, { size: 10 }), spotCards.filter((c) => !spotDone.has(c.id) && !hidden?.[c.id]));
-    const pool = new Map<string, EventItem>([...pricedEvents.map((x) => [x.id, x] as const), ...fresh.map((x) => [x.id, x] as const)]);
-    const alive = (id: string) => (id === planning || !dec.has(id)) && !spotDone.has(id) && pool.has(id) && (pool.get(id)!.spotId ? true : fresh.some((x) => x.id === id) || Date.parse(pool.get(id)!.endsAt ?? pool.get(id)!.startsAt) > now.getTime());
-    const head = frozen.filter(alive).slice(0, STACK + 2).map((id) => pool.get(id)!);
-    let d = [...head, ...fresh.filter((x) => !head.some((h) => h.id === x.id))];
-    // «Вернуть»: возвращённая карточка снова первая.
-    if (enter && !decided[enter.id]) {
-      const back = d.find((x) => x.id === enter.id) ?? pricedEvents.find((x) => x.id === enter.id);
-      if (back) d = [back, ...d.filter((x) => x.id !== enter.id)];
-    }
-    if (previewId && !decided[previewId]) {
-      const preview = pricedEvents.find(x => x.id === previewId);
-      if (preview) d = [preview, ...d.filter(x => x.id !== previewId)];
-    }
-    return distinctEvents(d);
-  }, [taste, pricedEvents, decided, hidden, goingIds, signals, now, enter, previewId, spotCards, spotDone, frozen, planning]); // eslint-disable-line react-hooks/exhaustive-deps
-  const headKey = deck.slice(0, STACK + 2).map((x) => x.id).join('|');
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setFrozen((f) => (f.join('|') === headKey ? f : headKey.split('|').filter(Boolean))); }, [headKey]);
-
-  // Раскладка: заголовок, карточка и подсказки жестов под ней — всё по одной вертикальной оси; свободное место делим пополам.
-  const headTop = Math.max(50, insets.top + 6);
-  const baseTop = headTop + 80;
-  const fullH = H || winH;
-  const screenH = fullH - tabInset(insets.bottom) + 10;
-  const HINTS_H = 84; // кнопки с подписями под карточкой
-  const GAP = 38; // под карточкой видна стопка (28) и зазор
-  const cardW = Math.min(420, W - 24);
-  const maxCardH = Math.max(220, Math.min(540, screenH - baseTop - GAP - HINTS_H - 16));
-  const knownLayout = cardLayouts[deck[0]?.id ?? ''];
-  const cardH = knownLayout && knownLayout.width === cardW && knownLayout.maxHeight === maxCardH && knownLayout.fontScale === fontScale ? knownLayout.height : maxCardH;
-  const cardTop = baseTop + 6;
-  const hintsTop = cardTop + cardH + GAP;
-  const cardX = (W - cardW) / 2;
-  // Центр иконки «Планы» на панели относительно центра карточки.
-  const plansIcon = { x: W - cardX - 30, y: headTop + 24 };
-  const target = { x: plansIcon.x - (cardX + cardW / 2), y: plansIcon.y - (cardTop + cardH / 2) };
-
-
-  // Каждое решение даёт карточке новый «круг»: если она вернётся в колоду (пропущенное или «Вернуть»), это новый экземпляр,
-  // а не старый, улетевший за экран, с занятым жестом — иначе лента «зависала» и смотреть было нечего.
-  const [rounds, setRounds] = useState<Record<string, number>>({});
-  const bump = (id: string) => setRounds((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
-  const onDecide = (e: EventItem, kind: 'go' | 'skip') => {
-    setPreviewId(null);
-    setUndoBar(null);
-    // Место: «Хочу» — сразу карточка с планом на день и время, «Мимо» — не показывать месяц. Вкус учится и на местах.
-    if (e.spotId) {
-      setSpotDone((d) => new Set(d).add(e.id));
-      markSpot(e.spotId, weekOf(clockNow()), kind === 'skip');
-      addSignal(makeSignal(e, kind === 'go' ? 'save' : 'skip', clockNow()));
-      track(kind, e.id);
-      if (kind === 'go') { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); }
-      return;
-    }
-    // Новый экземпляр карточки нужен только когда она возвращается в колоду (выбор даты, «Вернуть»).
-    // Раньше он создавался при каждом свайпе: улетевшая карточка на миг снова появлялась по центру и пропадала.
-    // Нужен день или сеанс: карточка возвращается в колоду, сверху — шторка выбора; смахнул шторку — листаешь дальше.
-    const planned = planning === e.id;
-    if (planned) setPlanning(null);
-    if (kind === 'go' && !planned && needsWhen(e)) { bump(e.id); setEnter({ id: e.id, from: 'go' }); setWhen(e); return; }
-    const sig = makeSignal(e, kind === 'skip' && opened.current.has(e.id) ? 'skipAfterOpen' : kind, clockNow());
-    decide({ eventId: e.id, kind, signalId: sig.id }, sig);
-    track(kind, e.id);
-    setEnter(current => current?.id === e.id ? null : current);
-    if (kind === 'go') {
-      // День или сеанс уже записан шторкой — в планы добавлено там.
-      if (!planned) { go(e.id); addPlan(); }
-      pulsePlan();
-    } else if (undosLeft > 0) {
-      setUndoBar({ key: ++undoSeq.current, text: `Мимо · ${e.title}`, eventId: e.id });
-    }
-  };
-
-  // «Вернуть» / «Отменить»: сигнал стирается целиком, карточка снова первая.
-  function doUndo(expectedEventId?: string) {
-    const last = undo(expectedEventId);
-    setUndoBar(null);
-    if (!last) return;
-    bump(last.eventId);
-    // «Отменить» после «пойду» считается в ungo как cancel_plan, «вернуть» после «мимо» — здесь.
-    if (last.kind === 'go') { ungo(last.eventId); removePlan(); } else track('undo', last.eventId);
-    setEnter({ id: last.eventId, from: last.kind });
-  }
-
-  const top = deck[0];
-  useEffect(() => track('feed_open'), []);
+  const spots = spotsQ.data ?? ATTRACTIONS;
+  const online = useNet(s => s.online);
+  const draft = useSession(s => s.draft) ?? INITIAL_DRAFT;
+  const signals = useFeed(s => s.signals);
+  const decided = useFeed(s => s.decided);
+  const hidden = useFeed(s => s.hidden);
+  const going = usePlans(s => s.going);
+  const badges = useTabBadges(s => s.plans);
+  const pos = useMyArea();
+  const [now, setNow] = useState(clockNow);
+  const [order, setOrder] = useState<string[]>([]);
+  const [plannedHere, setPlannedHere] = useState<Set<string>>(() => new Set());
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [open, setOpen] = useState<EventItem | null>(null);
+  const [when, setWhen] = useState<EventItem | null>(null);
+  const [spot, setSpot] = useState<Attraction | null>(null);
+  const [feedback, setFeedback] = useState<EventItem | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  useCoverTabBar(!!open);
+  useFocusEffect(useCallback(() => { setNow(clockNow()); useApp.getState().seenFeed(); track('feed_open'); }, []));
+  useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 5000); return () => clearTimeout(timer); }, [notice]);
+  const taste = useMemo(() => tasteFrom({ interests: draft.interests ?? [], times: draft.times ?? [], withWho: draft.withWho ?? 'friends', budget: draft.budget ?? 'mid' }, signals, now), [draft.interests, draft.times, draft.withWho, draft.budget, signals, now]);
+  const candidates = useMemo(() => events.filter(e => !eventFacts(e).priceMissing && !/^спасибо\s+за\s+видео\b/iu.test(e.title)), [events]);
+  const places = useMemo(() => pickSpots(spots.filter(a => a.free || a.priceFrom != null), taste, { seen: useFeed.getState().spotSeen, skipped: useFeed.getState().spotSkipped }, now).map(a => spotCard(a, now)), [spots, taste, now]);
+  const ranked = useMemo(() => {
+    const excluded = new Set([...Object.keys(hidden ?? {}), ...Object.entries(decided).filter(([id, kind]) => kind === 'skip' || !plannedHere.has(id)).map(([id]) => id), ...Object.keys(going).filter(id => !plannedHere.has(id))]);
+    const deck = withSpots(buildDeck(taste, candidates, { decided: excluded, swipes: signals.length }, { now, me: pos }, { size: 30 }), places);
+    const byId = new Map([...candidates, ...places].map(e => [e.id, e]));
+    return [...new Set([...order, ...deck.map(e => e.id)])].map(id => byId.get(id)).filter((e): e is EventItem => !!e && !excluded.has(e.id));
+  }, [taste, candidates, hidden, decided, going, plannedHere, signals.length, now, pos, places, order]);
+  const ids = !q.isPlaceholderData && !q.isPending ? ranked.map(e => e.id).join('|') : '';
   useEffect(() => {
-    if (!top) return;
-    track('card_shown', top.id);
-    if (top.spotId) markSpot(top.spotId, weekOf(clockNow()));
-  }, [top?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Раскрытие события из прямоугольника карточки и обратно (FIX3 Ф2): окно-маска растёт из карточки на весь экран,
-  // фото внутри растёт из фото карточки, сама карточка растворяется в первой трети — без скачка картинки.
-  const p = useSharedValue(0);
-  // __animSlow — только для проверки кадров анимации в web (scripts/shots.mjs, SHOTS_ANIM_SLOW).
-  const slow = () => (globalThis as { __animSlow?: number }).__animSlow ?? 1;
-  const OPEN = () => ({ duration: 420 * slow(), easing: Easing.bezier(0.16, 1, 0.3, 1) });
-  const CLOSE = () => ({ duration: 300 * slow(), easing: Easing.bezier(0.65, 0, 0.35, 1) });
-  const openCard = (e: EventItem, interactive = false) => {
-    setPreviewId(e.id);
-    if (!opened.current.has(e.id)) { opened.current.add(e.id); addSignal(makeSignal(e, 'open', clockNow())); track('event_open', e.id); }
-    setUndoBar(null);
-    setOpen(e);
-    if (interactive) return;
-    p.value = 0;
-    p.value = withTiming(1, OPEN());
+    if (!ids) return;
+    // Keep the programme stable when a plan is saved, a price arrives or an image decodes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrder(current => { const next = [...new Set([...current, ...ids.split('|')])].slice(-80); return next.join('|') === current.join('|') ? current : next; });
+  }, [ids]);
+  const confirmed = (e: EventItem, alreadySaved = false) => {
+    if (plannedHere.has(e.id) || (!alreadySaved && usePlans.getState().going[e.id])) return;
+    setPlannedHere(current => new Set(current).add(e.id));
+    const signal = makeSignal(e, 'go', clockNow());
+    useFeed.getState().decide({ eventId: e.id, kind: 'go', signalId: signal.id }, signal, false);
+    if (!alreadySaved) { usePlans.getState().go(e.id); useApp.getState().addPlan(); }
+    useApp.getState().pulsePlan(); useTabBadges.getState().landPlans(); track('go', e.id);
+    setNotice({ id: e.id, kind: 'go', text: 'Добавлено в планы' });
   };
-  const closeCard = (then?: () => void) => {
-    p.value = withTiming(0, CLOSE(), () => {
-      scheduleOnRN(setOpen, null);
-      if (then) scheduleOnRN(then);
-    });
+  const plan = (e: EventItem) => {
+    if (going[e.id]) { router.navigate('/plans'); return; }
+    if (e.spotId) { const a = e.spot ?? spots.find(a => a.id === e.spotId); if (a) setSpot(a); return; }
+    if (needsWhen(e)) { setWhen(e); return; }
+    confirmed(e);
   };
-  // Выбрал дату или сеанс в открытой карточке — событие уже в планах: сворачиваем и считаем это «Пойду»,
-  // иначе карточка под окном исчезала, а окно оставалось и лента не отвечала.
-  const plannedFromOpen = (e: EventItem) => closeCard(() => {
-    bump(e.id);
-    setPreviewId(null);
-    setEnter(null);
-    if (!decided[e.id]) {
-      const sig = makeSignal(e, 'go', clockNow());
-      decide({ eventId: e.id, kind: 'go', signalId: sig.id }, sig);
-      track('go', e.id);
-    }
-    pulsePlan();
-    useTabBadges.getState().landPlans();
-  });
-  const clip = useAnimatedStyle(() => ({
-    left: cardX * (1 - p.value),
-    top: cardTop * (1 - p.value),
-    width: cardW + (W - cardW) * p.value,
-    height: cardH + (fullH - cardH) * p.value,
-    borderRadius: 30 * (1 - p.value),
-  }));
-  const clipInner = useAnimatedStyle(() => ({ left: -cardX * (1 - p.value) }));
-  const cardFade = useAnimatedStyle(() => ({
-    opacity: interpolate(p.value, [0, 0.32], [1, 0], Extrapolation.CLAMP),
-    transform: [{ scale: 1 + ((W - cardW) / cardW) * p.value }],
-  }));
-
-  return (
-    <View style={styles.root} onLayout={(ev) => setH(ev.nativeEvent.layout.height)}>
-      <View style={[styles.head, { top: headTop, left: cardX + 2, right: cardX }]}>
-        <View style={{ flex: 1, gap: 4 }}><Text style={styles.eyebrow}>События и места рядом</Text><Text style={styles.h1} accessibilityRole="header">Для тебя</Text></View>
-        <Pressable onPress={() => router.navigate('/plans')} accessibilityRole="button" accessibilityLabel={`Планы${plansCount ? `, новых: ${plansCount}` : ''}`} style={[styles.calendar, glass]}>
-          <CalendarDays size={22} color={colors.ink} strokeWidth={1.8} /><Text style={styles.calendarText}>Планы</Text>
-          {plansCount > 0 && <View style={styles.planBadge}><Text style={styles.planBadgeText}>{plansCount > 9 ? '9+' : plansCount}</Text></View>}
+  const skip = (e: EventItem) => {
+    const signal = makeSignal(e, 'skip', clockNow());
+    useFeed.getState().decide({ eventId: e.id, kind: 'skip', signalId: signal.id }, signal);
+    if (e.spotId) useFeed.getState().markSpot(e.spotId, weekOf(clockNow()), true);
+    track('skip', e.id); setNotice({ id: e.id, kind: 'skip', text: 'Событие скрыто' });
+  };
+  const show = (e: EventItem) => {
+    useFeed.getState().addSignal(makeSignal(e, 'open', clockNow()));
+    if (e.spotId) { const a = e.spot ?? spots.find(a => a.id === e.spotId); if (a) setSpot(a); }
+    else setOpen(e);
+  };
+  const viewability = useMemo(() => ({ viewAreaCoveragePercentThreshold: 45 }), []);
+  const seen = useRef(new Set<string>());
+  const onVisible = useCallback(({ viewableItems }: { viewableItems: ViewToken<EventItem>[] }) => {
+    const entry = viewableItems.find(v => v.isViewable)?.item;
+    setActiveId(entry?.id ?? null);
+    if (entry && !seen.current.has(entry.id)) { seen.current.add(entry.id); track('card_shown', entry.id); if (entry.spotId) useFeed.getState().markSpot(entry.spotId, weekOf(clockNow())); }
+  }, []);
+  return <View style={styles.root}>
+    <FlatList data={ranked} keyExtractor={e => e.id} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={5}
+      onViewableItemsChanged={onVisible} viewabilityConfig={viewability} maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      contentContainerStyle={{ width: column, alignSelf: 'center', paddingTop: Math.max(24, insets.top + 14), paddingBottom: bottom + 24 }}
+      ListHeaderComponent={<View style={styles.header}>
+        <View style={{ flex: 1, gap: 6 }}><Text style={styles.city}>Алматы</Text><Text style={styles.h1} accessibilityRole="header">Куда пойдём?</Text></View>
+        <Pressable onPress={() => router.navigate('/plans')} style={styles.calendar} accessibilityRole="button" accessibilityLabel={badges ? `Планы, новых: ${badges}` : 'Планы'}>
+          <CalendarDays size={24} color={colors.ink} strokeWidth={1.7} />{badges > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{badges > 9 ? '9+' : badges}</Text></View>}
         </Pressable>
-      </View>
-
-      <View pointerEvents={open ? 'none' : 'auto'} style={{ position: 'absolute', left: cardX, top: cardTop, width: cardW, height: cardH }}>
-        {/* Обработчики читают opened (ref) только при жесте, не при отрисовке. */}
-        {deck.slice(0, STACK).map((e, k) => (
-          <SwipeCard
-            key={`${e.id}:${rounds[e.id] ?? 0}`}
-            ref={k === 0 ? topRef : undefined}
-            e={e} people={people} now={now}
-            k={k} top={k === 0} active={!open && !when && !spotOpen && !feedback} width={cardW} height={cardH} maxHeight={maxCardH} onMeasured={onCardMeasured} target={target}
-            enterFrom={enter?.id === e.id ? enter.from : null}
-            onDecide={(kind) => onDecide(e, kind)}
-            onLand={() => useTabBadges.getState().landPlans()}
-            onLongPress={() => setFeedback(e)}
-            onTap={() => { if (e.spotId) { const a = allSpots.find((x) => x.id === e.spotId); if (a) setSpotOpen(a); } else openCard(e); }}
-            expand={p} onReveal={() => openCard(e, true)}
-            onRevealEnd={(commit) => { if (commit) p.set(withTiming(1, OPEN())); else closeCard(); }}
-            onUndo={() => doUndo()}
-            drag={k === 0 ? drag : undefined}
-          />
-        )).reverse()}
-      </View>
-
-      {top && !open && !when && (
-        <View style={[styles.hints, { top: hintsTop, left: cardX - 6, width: cardW + 12 }]}>
-          <QuickButtons x={dragX} y={dragY} onNo={() => topRef.current?.fly('skip')} onGo={() => topRef.current?.fly('go')} onUp={() => { if (top.spotId) { const a = allSpots.find((x) => x.id === top.spotId); if (a) setSpotOpen(a); } else openCard(top); }} />
-        </View>
-      )}
-
-      {!top && (
-        <View style={[styles.emptyBox, { top: cardTop + 40 }]}>
-          {events.length === 0 ? (
-            !online ? <StateView kind="offline" text="Карточки появятся, как только вернётся связь." onAction={() => void eventsQ.refetch()} />
-            : eventsQ.isError ? <StateView kind="error" text="События не загрузились. Проверь связь и попробуй ещё раз." onAction={() => void eventsQ.refetch()} />
-            : eventsQ.isFetching ? <StateView kind="loading" title="Загружаю события…" />
-            : <StateView kind="empty" title="Событий пока нет" text="Новые появятся вечером. А пока — загляни на карту." action="Открыть карту" onAction={() => router.navigate('/')} />
-          ) : (
-            <>
-              <Text style={styles.emptyTitle}>Ты всё посмотрел</Text>
-              <Text style={styles.emptySub}>Новые события появятся вечером. А пока — что на карте прямо сейчас.</Text>
-              <Pressable onPress={() => router.navigate('/')} style={({ pressed }) => [styles.emptyBtn, pressed && { transform: [{ scale: 0.97 }] }]} accessibilityRole="button">
-                <Text style={styles.emptyBtnText}>Открыть карту</Text>
-              </Pressable>
-              {skippedCount > 0 && (
-                <Pressable onPress={restoreSkipped} style={({ pressed }) => [styles.emptyGhost, pressed && { opacity: 0.7 }]} accessibilityRole="button">
-                  <Text style={styles.emptyGhostText}>Показать пропущенные ({skippedCount})</Text>
-                </Pressable>
-              )}
-            </>
-          )}
-        </View>
-      )}
-
-      {when && <WhenSheet key={when.id} e={when} events={events} now={now} onClose={() => setWhen(null)}
-        onPlanned={() => { const id = when.id; setWhen(null); setPlanning(id); setTimeout(() => topRef.current?.fly('go'), 260); }} />}
-      {spotOpen && <SpotSheet key={spotOpen.id} a={spotOpen} all={allSpots} onClose={() => setSpotOpen(null)} onOpen={setSpotOpen} />}
-      {feedback && <><Backdrop label="Закрыть настройки рекомендаций" onPress={() => setFeedback(null)} /><BottomSheet label="Настроить рекомендации" onClose={() => setFeedback(null)}>
-        <Text style={styles.emptyTitle}>Что показывать тебе?</Text>
-        <Pressable accessibilityRole="button" onPress={() => { addSignal(makeSignal(feedback, 'save', clockNow())); setFeedback(null); }} style={styles.feedbackRow}><ThumbsUp size={20} color={colors.ink} /><Text style={styles.feedbackText}>Больше похожего</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { onDecide(feedback, 'skip'); setFeedback(null); }} style={styles.feedbackRow}><ThumbsDown size={20} color={colors.ink} /><Text style={styles.feedbackText}>Меньше похожего</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { hide(feedback.id); if (feedback.spotId) setSpotDone(s => new Set([...s, feedback.id])); setFeedback(null); }} style={styles.feedbackRow}><EyeOff size={20} color={colors.ink} /><Text style={styles.feedbackText}>Не показывать это событие</Text></Pressable>
-      </BottomSheet></>}
-      {undoBar && !open && !when && <UndoBar key={undoBar.key} text={undoBar.text} bottom={tabInset(insets.bottom) + 2} onUndo={() => doUndo(undoBar.eventId)} onGone={() => setUndoBar(null)} />}
-
-      {open && (
-        <Animated.View style={[styles.clip, clip]}>
-          <Animated.View style={[{ position: 'absolute', top: 0, width: W, height: fullH }, clipInner]}>
-            <LazyEventPage progress={p} coverFrom={cardLayouts[open.id]?.mediaHeight ?? feedCoverH(open, cardH)} e={open} now={now} closeLabel="Свернуть обратно в карточку" onClose={() => closeCard()} onSkip={() => closeCard(() => topRef.current?.fly('skip'))}
-              onGo={() => closeCard(() => topRef.current?.fly('go'))} onPlanned={() => plannedFromOpen(open)} />
-          </Animated.View>
-          <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: cardW, height: cardH, transformOrigin: 'left top' }, cardFade]}>
-            <FeedCard e={open} people={people} now={now} height={cardH} width={cardW} maxHeight={maxCardH} />
-          </Animated.View>
-        </Animated.View>
-      )}
-    </View>
-  );
+      </View>}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      renderItem={({ item }) => <View><NaturalEvent event={item} now={now} width={column} active={focused && activeId === item.id && !open && !when && !spot && !feedback} planned={!!going[item.id]}
+        onOpen={() => show(item)} onPlan={() => plan(item)} onSkip={() => skip(item)} onFeedback={() => setFeedback(item)} /></View>}
+      ListEmptyComponent={q.isPending ? <StateView kind="loading" /> : q.isError ? <StateView kind={online ? 'error' : 'offline'} onAction={() => void q.refetch()} /> : <StateView kind="empty" title="На сегодня всё" text="Новые события появятся здесь. А твои планы — в календаре." />}
+    />
+    {notice && !open && <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)} style={[styles.notice, { bottom: bottom + 4 }]} accessibilityLiveRegion="polite">
+      {notice.kind === 'go' ? <Check size={18} color={colors.ok} /> : <EyeOff size={18} color={colors.muted} />}
+      <Text style={styles.noticeText}>{notice.text}</Text><Pressable style={styles.noticeAction} accessibilityRole="button" accessibilityLabel={notice.kind === 'go' ? 'Открыть планы' : 'Вернуть'} onPress={() => {
+        if (notice.kind === 'go') router.navigate('/plans'); else { useFeed.getState().undo(notice.id); track('undo', notice.id); }
+        setNotice(null);
+      }}><Text style={styles.noticeLink}>{notice.kind === 'go' ? 'Открыть' : 'Вернуть'}</Text></Pressable>
+    </Animated.View>}
+    <Modal visible={!!open} animationType="slide" onRequestClose={() => setOpen(null)} presentationStyle="fullScreen">
+      {open && <EventPage e={open} now={now} closeLabel="Вернуться в рекомендации" onClose={() => setOpen(null)} onGo={() => { const e = open; setOpen(null); plan(e); }} onSkip={() => { skip(open); setOpen(null); }} onPlanned={() => { confirmed(open, true); setOpen(null); }} />}
+    </Modal>
+    {when && <WhenSheet e={when} events={events} now={now} onClose={() => setWhen(null)} onPlanned={() => { confirmed(when, true); setWhen(null); }} />}
+    {spot && <SpotSheet a={spot} all={spots} onClose={() => setSpot(null)} onOpen={setSpot} />}
+    {feedback && <><Backdrop label="Закрыть" onPress={() => setFeedback(null)} /><BottomSheet label="Настроить рекомендации" onClose={() => setFeedback(null)}>
+      <Pressable style={styles.feedback} onPress={() => { useFeed.getState().addSignal(makeSignal(feedback, 'save', clockNow())); setFeedback(null); }}><ThumbsUp size={20} color={colors.ink} /><Text>Больше похожего</Text></Pressable>
+      <Pressable style={styles.feedback} onPress={() => { skip(feedback); setFeedback(null); }}><ThumbsDown size={20} color={colors.ink} /><Text>Меньше похожего</Text></Pressable>
+    </BottomSheet></>}
+  </View>;
 }
-
 const styles = StyleSheet.create({
-  feedbackRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.card },
-  feedbackText: { fontFamily: fonts.body600, fontSize: 15, color: colors.ink },
-  root: { flex: 1, backgroundColor: colors.paper, overflow: 'hidden' },
-  head: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  eyebrow: { fontFamily: fonts.body400, fontSize: 12, color: colors.muted },
-  calendar: { minHeight: 54, minWidth: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  calendarText: { fontFamily: fonts.body500, fontSize: 10, color: colors.ink },
-  planBadge: { position: 'absolute', top: -4, right: -3, borderRadius: 10, minWidth: 20, height: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  planBadgeText: { fontFamily: fonts.body700, fontSize: 11, color: '#FFFFFF' },
-  h1: { fontFamily: fonts.display600, fontSize: 30, letterSpacing: -0.9, lineHeight: 34, color: colors.ink },
-  emptyBox: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10, paddingTop: 160 },
-  emptyTitle: { fontFamily: fonts.display700, fontSize: 24, letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
-  emptySub: { fontFamily: fonts.body400, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
-  emptyBtn: { marginTop: 10, height: 50, paddingHorizontal: 26, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  emptyGhost: { minHeight: 44, justifyContent: 'center' },
-  emptyGhostText: { fontFamily: fonts.body700, fontSize: 14.5, color: colors.ink, textDecorationLine: 'underline' },
-  emptyBtnText: { fontFamily: fonts.body700, fontSize: 15.5, color: colors.paper },
-  clip: { position: 'absolute', overflow: 'hidden', zIndex: 50 },
-  hints: { position: 'absolute' },
+  root: { flex: 1, backgroundColor: colors.paper },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingBottom: 28 },
+  city: { fontFamily: fonts.body400, fontSize: 13, color: colors.muted },
+  h1: { fontFamily: fonts.display600, fontSize: 28, lineHeight: 34, letterSpacing: -0.8, color: colors.ink },
+  calendar: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: '#FFFEFA' },
+  badge: { position: 'absolute', right: -2, top: -2, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: fonts.body600, fontSize: 10, color: '#FFFFFF' },
+  separator: { height: 1, backgroundColor: '#DDDCD3', marginVertical: 28 },
+  notice: { position: 'absolute', left: 16, right: 16, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 14, paddingRight: 6, borderRadius: 16, backgroundColor: '#FDFDF8', boxShadow: '0 4px 18px rgba(23,22,26,0.1)' },
+  noticeText: { flex: 1, fontFamily: fonts.body500, fontSize: 13, color: colors.ink },
+  noticeAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  noticeLink: { fontFamily: fonts.body600, fontSize: 13, color: colors.accentText },
+  feedback: { minHeight: 52, flexDirection: 'row', gap: 12, alignItems: 'center' },
 });

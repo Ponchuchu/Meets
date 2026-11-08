@@ -29,25 +29,27 @@ try {
   await page.goto(`http://localhost:${server.address().port}/foryou`, { waitUntil: 'domcontentloaded' });
   const splash = page.getByRole('button', { name: 'Пропустить заставку' });
   await splash.waitFor({ state: 'visible', timeout: 15000 }).then(() => splash.click()).catch(() => {});
-  await page.getByRole('heading', { name: 'Для тебя', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Куда пойдём?', exact: true }).waitFor();
   assert.equal(await page.getByRole('tab').count(), 4);
   const checks = [];
   for (const [width, height, name] of [[320, 568, 'Recommendations-small'], [390, 844, 'Recommendations'], [768, 1024, 'Recommendations-tablet']]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(500);
-    const action = await page.getByRole('button', { name: 'Пойду', exact: true }).boundingBox();
+    const plan = page.getByRole('button', { name: /^Пойду:/ }).first();
+    await plan.scrollIntoViewIfNeeded();
+    const action = await plan.boundingBox();
     const tabs = await page.getByRole('tablist').boundingBox();
     assert(action && tabs && action.y + action.height <= tabs.y, `Actions overlap tabs at ${width}x${height}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: `${out}/${name}.png` });
-    checks.push({ width, height, actionsAboveTabs: true, horizontalOverflow: false });
+    checks.push({ width, height, actionsReachableAfterScroll: true, horizontalOverflow: false });
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Планы', exact: true }).click();
   await page.getByRole('heading', { name: 'Планы', exact: true }).waitFor();
   await page.screenshot({ path: `${out}/Plans.png` });
   await page.getByRole('tab', { name: 'Рекомендации', exact: true }).click();
-  await page.getByRole('heading', { name: 'Для тебя', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Куда пойдём?', exact: true }).waitFor();
   await page.getByRole('tab', { name: 'Настройки', exact: true }).click();
   await page.getByRole('heading', { name: 'Настройки', exact: true }).waitFor();
   await page.screenshot({ path: `${out}/Settings.png` });

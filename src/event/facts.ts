@@ -17,7 +17,7 @@ export interface Facts {
 }
 
 export function eventFacts(e: {
-  title?: string | null; startsAt?: string | null; venueName?: string | null; address?: string | null;
+  about?: string | null; title?: string | null; startsAt?: string | null; venueName?: string | null; address?: string | null;
   priceMin?: number | null; priceMax?: number | null; isFree?: boolean | null;
 }): Facts {
   let when = 'дата не указана';
@@ -41,8 +41,10 @@ export function eventFacts(e: {
   const placeMissing = !place || /^место встречи$/i.test(place);
   let price = 'цена не указана';
   let priceMissing = true;
-  if (e.isFree || e.priceMin === 0) { price = 'бесплатно'; priceMissing = false; }
-  else if (e.priceMin != null) {
+  // A museum ticket is still required when only subscription holders get free entry.
+  const conditionalFree = /по\s+входному\s+билету/iu.test(e.about ?? '') && /(?:обладател|владел).{0,80}абонемент.{0,80}бе[сз]п?латн/isu.test(e.about ?? '');
+  if (!conditionalFree && (e.isFree || e.priceMin === 0)) { price = 'бесплатно'; priceMissing = false; }
+  else if (e.priceMin != null && e.priceMin > 0) {
     priceMissing = false;
     price = e.priceMax != null && e.priceMax !== e.priceMin ? `${money(e.priceMin)}–${money(e.priceMax)} ₸` : `${money(e.priceMin)} ₸`;
   }

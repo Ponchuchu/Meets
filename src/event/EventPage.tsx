@@ -12,7 +12,7 @@ import { ScheduleSheet } from './ScheduleSheet';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useCallback, useMemo, useRef,useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { Linking, Modal, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Linking, Modal, Pressable, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { editorialText } from './editorial';
 import { displayEventTitle } from './title';
@@ -71,9 +71,9 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   // Фото — в тех же пропорциях, что на карточке ленты (FIX5): не растягивается и не режется сильнее, чем снаружи.
-  const coverH = openCoverH(winW, insets.top);
   const controlsTop = Math.max(14, insets.top + 6);
   useFocusEffect(useCallback(() => {
+    if (Platform.OS === 'web') return;
     const status = StatusBar.pushStackEntry({ barStyle: 'light-content' });
     return () => StatusBar.popStackEntry(status);
   }, []));
@@ -83,6 +83,11 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
   const base = selectedSession?.initialId === initialEvent.id ? selectedSession.event : initialEvent;
   const e = updatedEvent?.id === base.id ? updatedEvent : base;
   const media = useMemo(() => eventMedia(e), [e]);
+  const [mediaAspect, setMediaAspect] = useState<{ id: string; value: number } | null>(null);
+  const coverH = mediaAspect?.id === e.id ? Math.round(winW / mediaAspect.value) : openCoverH(winW, insets.top);
+  const onMediaAspect = useCallback((value: number) => {
+    if (Number.isFinite(value) && value > 0) setMediaAspect(old => old?.id === e.id && old.value === value ? old : { id: e.id, value });
+  }, [e.id]);
   const visitAt = usePlans(s => s.visits[e.id]);
   const multiDay = !!e.endsAt && dayIndex(e.endsAt) > dayIndex(e.startsAt) && e.isLong;
   const mine = LIVE ? e.createdBy === myId() : !!e.meetup;
@@ -180,7 +185,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
         {/* V6CardOpen: фото как на карточке, плашка «СЕГОДНЯ · 20:00», название поверх. */}
         <Animated.View style={parallax}>
         <EventCover cover={null} category={e.category} color={e.coverColor} style={[styles.cover, { height: coverH }]} iconSize={Math.round(coverH * 0.5)}>
-          {media.length > 0 && <EventMedia key={e.id} items={media} height={coverH} active={sheet === null && fullMedia === null && mediaVisible} controlsTop={controlsTop + 56} onOpenMedia={setFullMedia} gallery />}
+          {media.length > 0 && <EventMedia key={e.id} items={media} height={coverH} onAspect={onMediaAspect} active={sheet === null && fullMedia === null && mediaVisible} controlsTop={controlsTop + 56} onOpenMedia={setFullMedia} gallery />}
           <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
             <Defs>
               <LinearGradient id="openShade" x1="0" y1="0" x2="0" y2="1">
@@ -305,7 +310,7 @@ export function EventPage({ e: initialEvent, now, onClose, closeLabel = 'Све�
       )}
 
       <Modal visible={fullMedia !== null} animationType="fade" onRequestClose={() => setFullMedia(null)} statusBarTranslucent>
-        <View style={{ flex: 1, backgroundColor: colors.ink, justifyContent: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: colors.paper, justifyContent: 'center' }}>
           {fullMedia !== null && <EventMedia key={`${e.id}:${fullMedia}`} items={media} height={viewH} initialPage={fullMedia} gallery fit="contain" />}
           <Pressable accessibilityRole="button" accessibilityLabel="Закрыть просмотр медиа" onPress={() => setFullMedia(null)} style={[styles.round, { position: 'absolute', left: 18, top: insets.top + 10 }]}><X size={24} color="#FFFFFF" /></Pressable>
         </View>

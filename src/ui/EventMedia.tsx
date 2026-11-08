@@ -17,8 +17,10 @@ export function eventMedia(e: Pick<EventItem, 'media' | 'cover'>): Media[] {
 
 function MediaImage({ item, fit, onAspect }: { item: Media; fit: 'cover' | 'contain'; onAspect?: (aspect: number) => void }) {
   const [broken, setBroken] = useState(false);
+  const [aspect, setAspect] = useState<number | null>(null);
+  useEffect(() => { if (aspect) onAspect?.(aspect); }, [aspect, onAspect]);
   return broken ? <View style={[styles.fill, { alignItems: 'center', justifyContent: 'center' }]}><Text style={[styles.counterText, { color: colors.muted }]}>Фото недоступно</Text></View>
-    : <Image source={photo(item.type === 'video' ? item.poster : item.url)} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" recyclingKey={item.url} onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} onError={() => setBroken(true)} />;
+    : <Image source={photo(item.type === 'video' ? item.poster : item.url, 1080)} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" recyclingKey={item.url} onLoad={e => { if (e.source.width && e.source.height) setAspect(e.source.width / e.source.height); }} onError={() => setBroken(true)} />;
 }
 
 function Clip({ item, active, controls, controlsTop, fit, onAspect }: { item: Media; active: boolean; controls: boolean; controlsTop: number; fit: 'cover' | 'contain'; onAspect?: (aspect: number) => void }) {
@@ -59,7 +61,7 @@ function Clip({ item, active, controls, controlsTop, fit, onAspect }: { item: Me
     return () => sub.remove();
   }, [player]);
   return <View style={styles.fill}>
-    {item.poster && <Image source={{ uri: item.poster }} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} />}
+    {item.poster && <Image source={photo(item.poster, 1080)} style={styles.fill} contentFit={fit} cachePolicy="memory-disk" onLoad={e => { if (e.source.width && e.source.height) onAspect?.(e.source.width / e.source.height); }} />}
     {!failed && <VideoView player={player} style={styles.fill} contentFit={fit} nativeControls={false} surfaceType="textureView" />}
     {failed && <Text style={styles.error}>Видео не загрузилось</Text>}
     {controls && !failed && <Pressable onPress={() => setMuted(v => !v)} style={[styles.sound, { top: controlsTop }]} accessibilityRole="button" accessibilityLabel={muted ? 'Включить звук' : 'Выключить звук'}>
@@ -91,8 +93,8 @@ export function EventMedia({ items, active = true, gallery = false, height, cont
   }, [page, visiblePage, width]);
   const media = (item: Media, index: number) => {
     const content = item.type === 'video' && playing && index === visiblePage
-      ? <Clip item={item} active controls={!onOpenMedia} controlsTop={controlsTop} fit={fit} onAspect={onAspect} />
-      : <MediaImage item={item} fit={fit} onAspect={onAspect} />;
+      ? <Clip item={item} active controls={!onOpenMedia} controlsTop={controlsTop} fit={fit} onAspect={index === visiblePage ? onAspect : undefined} />
+      : <MediaImage item={item} fit={fit} onAspect={index === visiblePage ? onAspect : undefined} />;
     return onOpenMedia ? <Pressable accessibilityRole="button" accessibilityLabel="Открыть фото или видео на весь экран" onPress={() => onOpenMedia(index)} style={styles.fill}>{content}</Pressable> : content;
   };
   return <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height, overflow: 'hidden', backgroundColor: colors.cardAlt }}>

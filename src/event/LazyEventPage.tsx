@@ -4,7 +4,7 @@
 import { useCallback, useState, type ComponentProps } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
-import { StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Extrapolation, interpolate, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -63,6 +63,7 @@ function Hero({ e, now, progress, coverFrom }: { e: EventItem; now: Date; progre
 
 export function LazyEventPage({ progress, coverFrom, ...props }: ComponentProps<typeof EventPage> & { progress: SharedValue<number>; coverFrom?: number }) {
   useFocusEffect(useCallback(() => {
+    if (Platform.OS === 'web') return;
     const status = StatusBar.pushStackEntry({ barStyle: 'light-content' });
     return () => StatusBar.popStackEntry(status);
   }, []));

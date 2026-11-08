@@ -1,4 +1,5 @@
 // Фото для демо-данных из design/assets. Ключ — имя файла без расширения.
+import { imageUrl } from './imageUrl';
 import type { ImageSourcePropType } from 'react-native';
 
 export const photos: Record<string, ImageSourcePropType> = {
@@ -16,13 +17,13 @@ export const photos: Record<string, ImageSourcePropType> = {
 };
 
 /** Ключ демо-фото ('igor') или адрес картинки (галерея, Storage). */
-export function photo(key: string | null | undefined): ImageSourcePropType | undefined {
+export function photo(key: string | null | undefined, width?: number): ImageSourcePropType | undefined {
   if (!key) return undefined;
-  return photos[key] ?? remote(key);
+  return photos[key] ?? remote(key, width);
 }
 
 /** Wikimedia отклоняет запросы без подписи приложения (их правила User-Agent) — фото мест подписываем. */
 const UA = { 'User-Agent': 'Ryadom/1.0 (Almaty events app; https://ryadom.app)' };
-export function remote(uri: string): ImageSourcePropType {
-  return uri.includes('wikimedia.org') ? { uri, headers: UA } : { uri };
+export function remote(uri: string, width?: number): ImageSourcePropType {
+  return uri.includes('wikimedia.org') ? { uri, headers: UA } : { uri: imageUrl(uri, width) };
 }

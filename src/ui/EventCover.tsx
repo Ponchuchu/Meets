@@ -8,7 +8,6 @@ import { photo } from '../data/photos';
 import type { Category } from '../data/types';
 import { CAT_COLOR, CAT_ICON, catFg } from '../map/icons';
 import { colors } from '../theme';
-import { useEco } from '../state/perf';
 import { Ic } from './Ic';
 
 /** Смешать цвет #RRGGBB с чёрным (amt > 0) или белым (amt < 0), 0…1. */
@@ -28,12 +27,11 @@ export function openCoverH(width: number, top: number): number {
 export function EventCover({ cover, category, color, style, iconSize = 150, children }: {
   cover?: string | null; category: Category; color?: string; style?: StyleProp<ViewStyle>; iconSize?: number; children?: ReactNode;
 }) {
-  const eco = useEco();
   const [brokenCover, setBrokenCover] = useState<string | null>(null);
   // Высокая афиша (портрет) целиком, на размытом фоне из неё же: раньше обрезалась по центру и терялся текст (27 окт.).
   const [tall, setTall] = useState(false);
   const base = color ?? CAT_COLOR[category] ?? colors.sand;
-  const src = cover && cover !== brokenCover ? photo(cover) : undefined;
+  const src = cover && cover !== brokenCover ? photo(cover, 1080) : undefined;
   const fg = catFg(category);
   return (
     <View style={[styles.box, { backgroundColor: base }, style]}>
@@ -49,7 +47,6 @@ export function EventCover({ cover, category, color, style, iconSize = 150, chil
         <Circle cx="8%" cy="92%" r="28%" fill={fg} opacity={0.08} />
       </Svg>
       {!src && <View style={styles.icon} pointerEvents="none"><Ic d={CAT_ICON[category]} size={iconSize} color={fg} w={0.9} /></View>}
-      {src && tall && !eco && <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={28} cachePolicy="memory-disk" recyclingKey={`${String(cover)}-bg`} />}
       {src && <Image source={src} style={StyleSheet.absoluteFill} contentFit={tall ? 'contain' : 'cover'} cachePolicy="memory-disk" recyclingKey={String(cover)} transition={150} onLoad={(ev) => { const { width, height } = ev.source; if (width && height) setTall(width / height < 0.8); }} onError={() => setBrokenCover(cover ?? null)} />}
       {children}
     </View>

@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image } from 'expo-image';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { useEco } from '../state/perf';
 import { edgeBorder } from '../ui/glass';
 import Animated, { Extrapolation, interpolate, type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import type { EventItem, Person } from '../data/types';
@@ -21,6 +20,7 @@ import { EventMedia, eventMedia } from '../ui/EventMedia';
 import { ATTRACTIONS, inSeason, KIND_COLOR, KIND_LABEL, seasonText } from '../data/attractions';
 import { openStatus } from '../data/hours';
 import { AttractionPin } from '../map/ui/AttractionPin';
+import { CAT_LABEL } from '../map/icons';
 import { fitFeedCard, type FeedCardMeasurement } from './cardLayout';
 
 export function feedSocial(e: EventItem, people: Person[]): { text: string; faces: { p: Person; ring?: string }[] } {
@@ -60,7 +60,7 @@ export function FeedCard(props: CardProps) {
 }
 
 function EventFeedCard(props: CardProps) {
-  const { e, people, dx, stamp, height, active = false } = props;
+  const { e, people, now, dx, stamp, height, active = false } = props;
   const media = useMemo(() => eventMedia(e), [e]);
   const [page, setPage] = useState(() => Math.max(0, media.findIndex(m => m.type === 'video')));
   const selected = Math.min(page, Math.max(0, media.length - 1));
@@ -73,6 +73,10 @@ function EventFeedCard(props: CardProps) {
   const onAspect = (ratio: number) => { if (item) setKnownAspect(old => old?.url === item.url && old.ratio === ratio ? old : { url: item.url, ratio }); };
   const social = feedSocial(e, people);
   const f = eventFacts(e);
+  const when = e.isLong && e.endsAt && Date.parse(e.startsAt) < now.getTime() && Date.parse(e.endsAt) > now.getTime()
+    ? `До ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'Asia/Almaty' }).format(new Date(e.endsAt)).replace(/\.$/, '')} · выбери день` : f.when;
+  const price = f.priceMissing ? 'Цена уточняется' : !e.isFree && e.priceMin != null && e.priceMin > 0 && e.priceMax == null ? `от ${f.price}` : f.price;
+  const category = CAT_LABEL[e.category]?.toLocaleLowerCase('ru-RU') ?? 'событие';
   const about = !compact && e.about.trim() ? editorialText(e) : '';
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
@@ -92,9 +96,10 @@ function EventFeedCard(props: CardProps) {
       </EventCover>
       </View>
       <View style={[styles.body, compact && styles.bodyCompact]} onLayout={ev => sizing.setBodyHeight(Math.round(ev.nativeEvent.layout.height))}>
+        {!tiny && <View style={styles.kickerRow}><Text style={styles.kicker}>{category[0].toUpperCase() + category.slice(1)}</Text>{item?.type === 'video' && <Text style={styles.kicker}>Видео</Text>}</View>}
         <Text style={[styles.title, compact && styles.titleCompact, tiny && styles.titleTiny]} numberOfLines={tiny ? 1 : compact ? 2 : 3} maxFontSizeMultiplier={tiny ? 1.15 : 1.3}>{displayEventTitle(e.title) || 'Событие'}</Text>
         <View style={styles.facts}>
-          <View style={styles.metaRow}><Fact Icon={Clock} text={f.when} bad={f.whenMissing} grow lines={2} /><Price text={f.price} /></View>
+          <View style={styles.metaRow}><Fact Icon={Clock} text={when} bad={f.whenMissing} grow lines={2} /><Price text={price} missing={f.priceMissing} /></View>
           <Fact Icon={MapPin} text={f.place} bad={f.placeMissing} />
         </View>
         {!!about && <Text style={styles.about} numberOfLines={2} maxFontSizeMultiplier={1.3}>{about}</Text>}
@@ -120,7 +125,6 @@ function SpotFeedCard(props: CardProps) {
   const goStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === 1 ? 1 : dx ? interpolate(dx.get(), [0, 90], [0, 1], Extrapolation.CLAMP) : 0 }));
   const skipStamp = useAnimatedStyle(() => ({ opacity: stamp?.get() === -1 ? 1 : dx ? interpolate(dx.get(), [-90, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
   const [bad, setBad] = useState(0);
-  const eco = useEco();
   const [knownAspect, setKnownAspect] = useState<{ url: string; ratio: number } | null>(null);
   const photo = a?.photos?.[bad];
   const aspect = knownAspect?.url === photo ? knownAspect?.ratio ?? null : null;
@@ -139,8 +143,7 @@ function SpotFeedCard(props: CardProps) {
         </Svg>
         {photo ? (
           <>
-            {!eco && aspect != null && Math.abs(sizing.width / aspect - sizing.mediaHeight) > 3 && <Image source={imageSource(photo)} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${photo}:bg`} />}
-            <Image source={imageSource(photo)} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={photo}
+            <Image source={imageSource(photo, 1080)} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={photo}
               onLoad={ev => { if (ev.source.width > 0 && ev.source.height > 0) { const ratio = ev.source.width / ev.source.height; setKnownAspect(old => old?.url === photo && old.ratio === ratio ? old : { url: photo, ratio }); } }} onError={() => setBad((b) => b + 1)} />
             <View pointerEvents="none" style={styles.spotCorner}><AttractionPin a={a} label={false} onPress={() => undefined} /></View>
           </>
@@ -172,18 +175,16 @@ function Fact({ Icon, text, bad, grow, lines = 1 }: { Icon: typeof Clock; text: 
   );
 }
 
-function Price({ text }: { text: string }) {
-  return <View style={styles.price}><Ticket size={14} color={colors.accentText} strokeWidth={1.9} /><Text style={styles.priceText} numberOfLines={2} maxFontSizeMultiplier={1.2}>{text}</Text></View>;
+function Price({ text, missing = false }: { text: string; missing?: boolean }) {
+  return <View style={[styles.price, missing && styles.priceUnknown]}><Ticket size={14} color={missing ? colors.muted : colors.accentText} strokeWidth={1.9} /><Text style={[styles.priceText, missing && { color: colors.muted, fontFamily: fonts.body500 }]} numberOfLines={2} maxFontSizeMultiplier={1.2}>{text}</Text></View>;
 }
 
 /** Keep every poster legible; a cached, static backdrop fills its letterboxing without another video decoder. */
-function FeedPhoto({ uri, aspect, width, height, onAspect }: { uri: string; aspect: number | null; width: number; height: number; onAspect: (ratio: number) => void }) {
+function FeedPhoto({ uri, width, onAspect }: { uri: string; aspect: number | null; width: number; height: number; onAspect: (ratio: number) => void }) {
   const [broken, setBroken] = useState(false);
-  const eco = useEco();
   if (broken) return null;
-  const source = imageSource(uri);
+  const source = imageSource(uri, Math.min(1080, width * 3));
   return <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    {!eco && aspect != null && Math.abs(width / aspect - height) > 3 && <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={22} cachePolicy="memory-disk" recyclingKey={`${uri}:backdrop`} />}
     <Image source={source} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" recyclingKey={uri}
       onLoad={ev => { if (ev.source.width > 0 && ev.source.height > 0) onAspect(ev.source.width / ev.source.height); }} onError={() => setBroken(true)} />
   </View>;
@@ -192,7 +193,7 @@ function FeedPhoto({ uri, aspect, width, height, onAspect }: { uri: string; aspe
 const styles = StyleSheet.create({
   // Жидкое стекло (FIX3 Ф12): светлая кромка сверху, блик внутри, глубокая мягкая тень; плашки на фото — полупрозрачные.
   // Карточка движется под пальцем каждый кадр — на Android без внутренней тени и с одной внешней (дешевле).
-  card: { borderRadius: 30, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: Platform.OS === 'android' ? 'none' : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
+  card: { borderRadius: 26, overflow: 'hidden', backgroundColor: '#F3EFE6', ...edgeBorder, boxShadow: Platform.OS === 'android' ? 'none' : 'inset 0 1px 1px rgba(255,255,255,0.9), 0 22px 44px -20px rgba(23,22,26,0.5), 0 3px 10px rgba(23,22,26,0.06)' },
   media: { flex: 1, minHeight: 0, overflow: 'hidden' },
   kk: { position: 'absolute', right: 14, top: 14, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: '#1E7BB8' },
   kkText: { fontFamily: fonts.mono600, fontSize: 10.5, letterSpacing: 0.8, color: '#FFFFFF' },
@@ -201,9 +202,11 @@ const styles = StyleSheet.create({
   stampGo: { left: 20, borderColor: colors.accent, transform: [{ rotate: '-12deg' }] },
   stampSkip: { right: 20, borderColor: colors.ink, transform: [{ rotate: '12deg' }] },
   stampText: { fontFamily: fonts.display800, fontSize: 26, letterSpacing: 0.5, color: colors.ink },
-  body: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20, gap: 13, backgroundColor: '#FCFBF7', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.85)' },
+  kickerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  kicker: { fontFamily: fonts.body500, fontSize: 11, color: colors.muted },
+  body: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 18, gap: 12, backgroundColor: '#FFFEFA', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.85)' },
   bodyCompact: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 9 },
-  title: { fontFamily: fonts.display600, fontSize: 27, lineHeight: 30, letterSpacing: -0.8, color: colors.ink },
+  title: { fontFamily: fonts.display600, fontSize: 25, lineHeight: 29, letterSpacing: -0.6, color: colors.ink },
   titleCompact: { fontSize: 23, lineHeight: 26, letterSpacing: -0.6 },
   titleTiny: { fontSize: 20, lineHeight: 23 },
   facts: { gap: 10 },
@@ -211,6 +214,7 @@ const styles = StyleSheet.create({
   fact: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   factText: { flex: 1, fontFamily: fonts.body500, fontSize: 12.5, lineHeight: 17, color: colors.muted2 },
   price: { flexShrink: 0, maxWidth: '45%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 11, backgroundColor: '#F5E8D4' },
+  priceUnknown: { backgroundColor: '#EFEEE8' },
   priceText: { flexShrink: 1, fontFamily: fonts.body700, fontSize: 13, lineHeight: 17, color: colors.accentText },
   about: { fontFamily: fonts.body400, fontSize: 13.5, lineHeight: 19, color: colors.muted },
   socialRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 2 },
